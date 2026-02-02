@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { DataTable, type Column } from "@/components/data-table"
 import type { SwimEvent } from "@/lib/swim-meet-types"
+import Link from "next/link"
 
 // ToDo: Fetch sessions from API
 const sessions = [{ id: "1", name: "Session 1" }, { id: "2", name: "Session 2" }]
@@ -17,7 +18,11 @@ const columns: Column<SwimEvent>[] = [
         type: "select",
         options: sessions.map(s => s.id),
         width: "w-36",
-        render: (value) => getSessionName(value as string)
+        render: (value) => (
+            <Link href={`/sessions/${value}`} className="hover:underline text-primary">
+                {getSessionName(value as string)}
+            </Link>
+        )
     },
     { key: "distance", label: "Distance", editable: true, type: "number", width: "w-24" },
     {
@@ -35,9 +40,14 @@ const columns: Column<SwimEvent>[] = [
                 Breaststroke: "bg-lane-red/20 text-lane-red",
                 Butterfly: "bg-pool-light/50 text-foreground",
                 IM: "bg-muted text-foreground",
+                "Medley Relay": "bg-purple-100 text-purple-700",
+                "Free Relay": "bg-green-100 text-green-700",
             }
+            // Simple fallback color if not found
+            const colorClass = colors[stroke] || "bg-muted text-muted-foreground"
+
             return (
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${colors[stroke] || ""}`}>
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
                     {stroke}
                 </span>
             )
@@ -48,8 +58,8 @@ const columns: Column<SwimEvent>[] = [
         label: "Gender",
         editable: true,
         type: "select",
-        options: ["M", "F", "Mixed"],
-        width: "w-20"
+        options: ["M", "F", "Mixed", "Boys", "Girls", "Men", "Women"],
+        width: "w-24"
     },
     { key: "ageGroup", label: "Age Group", editable: true, width: "w-24" },
     { key: "entryCount", label: "Entries", editable: true, type: "number", width: "w-20" },

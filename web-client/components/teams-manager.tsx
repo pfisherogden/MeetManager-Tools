@@ -3,9 +3,20 @@
 import { useState } from "react"
 import { DataTable, type Column } from "@/components/data-table"
 import type { Team } from "@/lib/swim-meet-types"
+import Link from "next/link"
 
 const columns: Column<Team>[] = [
-    { key: "name", label: "Team Name", editable: true, width: "w-52" },
+    {
+        key: "name",
+        label: "Team Name",
+        editable: true,
+        width: "w-52",
+        render: (value, row) => (
+            <Link href={`/teams/${row.id}`} className="hover:underline text-primary font-medium">
+                {value as string}
+            </Link>
+        )
+    },
     { key: "abbreviation", label: "Abbr", editable: true, width: "w-20" },
     { key: "city", label: "City", editable: true, width: "w-36" },
     { key: "state", label: "State", editable: true, width: "w-20" },

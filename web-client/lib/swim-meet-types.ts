@@ -33,8 +33,8 @@ export interface SwimEvent {
   sessionId: string
   eventNumber: number
   distance: number
-  stroke: 'Freestyle' | 'Backstroke' | 'Breaststroke' | 'Butterfly' | 'IM'
-  gender: 'M' | 'F' | 'Mixed'
+  stroke: string // Relaxed from specific union to allow server string
+  gender: string
   ageGroup: string
   entryCount: number
 }
@@ -46,7 +46,7 @@ export interface Athlete {
   teamId: string
   teamName: string
   dateOfBirth: string
-  gender: 'M' | 'F'
+  gender: string
   age: number
 }
 
@@ -55,6 +55,7 @@ export interface Entry {
   eventId: string
   athleteId: string
   athleteName: string
+  teamId: string // Added
   teamName: string
   seedTime: string
   finalTime: string | null

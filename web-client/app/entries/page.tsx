@@ -28,6 +28,7 @@ export default async function EntriesPage() {
       eventId: e.eventId.toString(),
       athleteId: e.athleteId.toString(),
       athleteName: e.athleteName,
+      teamId: e.teamId ? e.teamId.toString() : "",
       teamName: e.teamName,
       seedTime: e.seedTime,
       finalTime: e.finalTime || null,

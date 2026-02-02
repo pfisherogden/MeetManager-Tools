@@ -3,10 +3,35 @@
 import { useState } from "react"
 import { DataTable, type Column } from "@/components/data-table"
 import type { Entry } from "@/lib/swim-meet-types"
+import Link from "next/link"
 
 const columns: Column<Entry>[] = [
-    { key: "athleteName", label: "Athlete", editable: true, width: "w-40" },
-    { key: "teamName", label: "Team", editable: true, width: "w-40" },
+    {
+        key: "athleteName",
+        label: "Athlete",
+        editable: true,
+        width: "w-40",
+        render: (value, row) => (
+            <Link href={`/athletes/${row.athleteId}`} className="hover:underline text-primary font-medium">
+                {value as string}
+            </Link>
+        )
+    },
+    {
+        key: "teamName",
+        label: "Team",
+        editable: true,
+        width: "w-40",
+        render: (value, row) => (
+            row.teamId ? (
+                <Link href={`/teams/${row.teamId}`} className="hover:underline text-primary">
+                    {value as string}
+                </Link>
+            ) : (
+                <span>{value as string}</span>
+            )
+        )
+    },
     { key: "eventId", label: "Event ID", editable: true, width: "w-24" },
     {
         key: "seedTime",
@@ -65,6 +90,7 @@ export function EntriesManager({ initialEntries }: EntriesManagerProps) {
             eventId: "",
             athleteId: "",
             athleteName: "New Athlete",
+            teamId: "",
             teamName: "",
             seedTime: "NT",
             finalTime: null,
