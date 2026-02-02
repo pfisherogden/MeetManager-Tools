@@ -1,0 +1,22 @@
+# Project Rules & Preferences
+
+## General Workflow
+- **Independency**: This repository contains two distinct projects: `backend` (Python/gRPC) and `web-client` (Next.js). deeply understand that they may be split in the future. treating them as loosely coupled services is preferred over tight integration.
+- **Docker First**: Prefer using Docker and Docker Compose for running services, setups, and verifying builds. 
+- **Testing**: Always create or update tests for new features. verifying code effectively is a hard requirement.
+  - Frontend: Use `vitest`.
+  - Backend: Use `pytest` (using the test_client.py pattern is also acceptable for integration checks).
+- **Linting**: Ensure all code is cleanly formatted and passes lint checks before considering a task complete.
+  - Frontend: `eslint`
+  - Backend: `ruff`
+
+## Python (Backend)
+- Use `uv` for dependency management and package installation where possible (e.g. `uv pip install ...` or `uv venv`).
+- Maintain `pyproject.toml` for configuration.
+
+## TypeScript/Next.js (Web Client)
+- Use `npm` for node package management.
+- Prefer Server Components for data fetching where possible, but be mindful of caching (use `force-dynamic` or `revalidatePath` for admin/data-heavy views).
+
+## Commit Style
+- Use Semantic Commits (e.g., `feat:`, `fix:`, `chore:`).
