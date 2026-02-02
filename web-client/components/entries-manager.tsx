@@ -1,0 +1,97 @@
+"use client"
+
+import { useState } from "react"
+import { DataTable, type Column } from "@/components/data-table"
+import type { Entry } from "@/lib/swim-meet-types"
+
+const columns: Column<Entry>[] = [
+    { key: "athleteName", label: "Athlete", editable: true, width: "w-40" },
+    { key: "teamName", label: "Team", editable: true, width: "w-40" },
+    { key: "eventId", label: "Event ID", editable: true, width: "w-24" },
+    {
+        key: "seedTime",
+        label: "Seed Time",
+        editable: true,
+        width: "w-28",
+        render: (value) => (
+            <span className="font-mono text-sm">{value as string}</span>
+        )
+    },
+    {
+        key: "finalTime",
+        label: "Final Time",
+        editable: true,
+        width: "w-28",
+        render: (value) => (
+            <span className={`font-mono text-sm ${value ? "text-foreground" : "text-muted-foreground"}`}>
+                {value as string || "—"}
+            </span>
+        )
+    },
+    {
+        key: "place",
+        label: "Place",
+        editable: true,
+        type: "number",
+        width: "w-20",
+        render: (value) => {
+            const place = value as number | null
+            if (!place) return <span className="text-muted-foreground">—</span>
+            const colors = {
+                1: "bg-sunshine text-foreground",
+                2: "bg-gray-200 text-gray-800",
+                3: "bg-lane-red/30 text-lane-red",
+            }
+            return (
+                <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full text-xs font-bold ${colors[place as keyof typeof colors] || "bg-muted text-muted-foreground"
+                    }`}>
+                    {place}
+                </span>
+            )
+        }
+    },
+]
+
+interface EntriesManagerProps {
+    initialEntries: Entry[]
+}
+
+export function EntriesManager({ initialEntries }: EntriesManagerProps) {
+    const [data, setData] = useState<Entry[]>(initialEntries)
+
+    const handleAdd = () => {
+        const newEntry: Entry = {
+            id: `en${Date.now()}`,
+            eventId: "",
+            athleteId: "",
+            athleteName: "New Athlete",
+            teamName: "",
+            seedTime: "NT",
+            finalTime: null,
+            place: null,
+        }
+        setData([newEntry, ...data])
+    }
+
+    const handleDelete = (id: string) => {
+        setData(data.filter((e) => e.id !== id))
+    }
+
+    const handleUpdate = (id: string, key: keyof Entry, value: Entry[keyof Entry]) => {
+        setData(data.map((e) => (e.id === id ? { ...e, [key]: value } : e)))
+    }
+
+    return (
+        <div className="flex-1 p-6 pt-4">
+            <div className="h-full rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                <DataTable
+                    data={data}
+                    columns={columns}
+                    onAdd={handleAdd}
+                    onDelete={handleDelete}
+                    onUpdate={handleUpdate}
+                />
+            </div>
+        </div>
+    )
+}
