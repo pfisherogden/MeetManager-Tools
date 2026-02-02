@@ -61,23 +61,46 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
 
     def UploadDataset(self, request_iterator, context):
         print("DEBUG: UploadDataset called", flush=True)
-        filename = "uploaded.mdb"
+        filename = "uploaded.mdb" 
         filepath = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
         
+        # Temporary buffer to hold file content while we wait for filename
+        file_content = io.BytesIO()
+        
         try:
-            with open(filepath, 'wb') as f:
-                for request in request_iterator:
-                    if request.HasField("filename"):
-                        filename = request.filename
-                        # Update path with real filename if sent first, 
-                        # but careful about directory traversal paths.
-                        safe_name = os.path.basename(filename)
-                        filepath = os.path.join(os.path.dirname(__file__), DATA_DIR, safe_name)
+            for request in request_iterator:
+                if request.HasField("filename"):
+                    filename = request.filename
+                    safe_name = os.path.basename(filename)
+                    # Security check: Ensure .mdb extension
+                    if not safe_name.lower().endswith('.mdb'):
+                         safe_name += ".mdb"
                     
-                    if request.HasField("chunk"):
-                        f.write(request.chunk)
+                    filename = safe_name
+                    filepath = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
+                
+                if request.HasField("chunk"):
+                    file_content.write(request.chunk)
             
+            # Now write the buffer to the actual file
+            with open(filepath, 'wb') as f:
+                f.write(file_content.getvalue())
+
             print(f"Saved uploaded file to {filepath}")
+            
+            # CRITICAL FIX: Reload the data immediately if we overwrote the current file
+            # or if we want to switch to it. 
+            # Ideally we check if self.current_file matches, but usually user wants to see it now.
+            # So let's force a reload if it's the active file, or just invoke loading.
+            if filename == self.current_file:
+                print(f"Reloading active dataset {filename}...")
+                self._load_data()
+            else:
+                # Optional: Auto-switch? Let's just reload if it is the current file.
+                # If it's a new file, the user might need to 'SetActiveDataset' via UI.
+                # But if they uploaded 'uploaded.mdb' and we are using 'uploaded.mdb', reload!
+                pass
+
             return meet_manager_pb2.UploadResponse(success=True, message=f"Saved {filename}")
         except Exception as e:
             print(f"Upload failed: {e}")
@@ -124,7 +147,7 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
         teams = []
         for item in data:
             teams.append(meet_manager_pb2.Team(
-                id=item.get('Team_no', 0),
+                id=int(item.get('Team_no', 0)),
                 name=item.get('Team_name', 'Unknown'),
                 code=item.get('Team_abbr', ''),
                 lsc=item.get('Team_lsc', ''),
@@ -134,20 +157,39 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             ))
         return meet_manager_pb2.TeamList(teams=teams)
 
+    def GetTeam(self, request, context):
+        team_id = request.id
+        data = self._get_table('Team')
+        for item in data:
+            if int(item.get('Team_no', 0)) == team_id:
+                return meet_manager_pb2.Team(
+                    id=int(item.get('Team_no', 0)),
+                    name=item.get('Team_name', 'Unknown'),
+                    code=item.get('Team_abbr', ''),
+                    lsc=item.get('Team_lsc', ''),
+                    city=item.get('Team_city', ''),
+                    state=item.get('Team_statenew', ''),
+                    athlete_count=0 
+                )
+        
+        context.set_code(grpc.StatusCode.NOT_FOUND)
+        context.set_details(f"Team {team_id} not found")
+        return meet_manager_pb2.Team()
+
     def GetAthletes(self, request, context):
         data = self._get_table('Athlete')
         # We need to map Team ID to Name for efficient display, or join manually
-        teams_map = {t.get('Team_no'): t.get('Team_name') for t in self._get_table('Team')}
+        teams_map = {int(t.get('Team_no', 0)): t.get('Team_name') for t in self._get_table('Team')}
         
         athletes = []
         for item in data:
-            t_id = item.get('Team_no', 0)
+            t_id = int(item.get('Team_no', 0))
             athletes.append(meet_manager_pb2.Athlete(
-                id=item.get('Ath_no', 0),
+                id=int(item.get('Ath_no', 0)),
                 first_name=item.get('First_name', ''),
                 last_name=item.get('Last_name', ''),
                 gender=item.get('Ath_Sex', ''),
-                age=item.get('Ath_age', 0),
+                age=int(item.get('Ath_age', 0)),
                 team_id=t_id,
                 team_name=teams_map.get(t_id, 'Unknown'), 
                 school_year=item.get('School_yr', ''),
@@ -155,15 +197,70 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             ))
         return meet_manager_pb2.AthleteList(athletes=athletes)
 
+    def GetAthlete(self, request, context):
+        ath_id = request.id
+        data = self._get_table('Athlete')
+        teams_map = {int(t.get('Team_no', 0)): t.get('Team_name') for t in self._get_table('Team')}
+        
+        for item in data:
+            if int(item.get('Ath_no', 0)) == ath_id:
+                t_id = int(item.get('Team_no', 0))
+                return meet_manager_pb2.Athlete(
+                    id=int(item.get('Ath_no', 0)),
+                    first_name=item.get('First_name', ''),
+                    last_name=item.get('Last_name', ''),
+                    gender=item.get('Ath_Sex', ''),
+                    age=int(item.get('Ath_age', 0)),
+                    team_id=t_id,
+                    team_name=teams_map.get(t_id, 'Unknown'), 
+                    school_year=item.get('School_yr', ''),
+                    reg_no=item.get('Reg_no', '')
+                )
+        
+        context.set_code(grpc.StatusCode.NOT_FOUND)
+        context.set_details(f"Athlete {ath_id} not found")
+        return meet_manager_pb2.Athlete()
+
     def GetEvents(self, request, context):
         data = self._get_table('Event')
         events = []
+        stroke_map = {
+            'A': 'Freestyle',
+            'B': 'Backstroke',
+            'C': 'Breaststroke',
+            'D': 'Butterfly',
+            'E': 'IM' 
+        }
+        gender_map = {
+            'B': 'Boys',
+            'G': 'Girls',
+            'X': 'Mixed',
+            'M': 'Men',
+            'F': 'Women',
+            'W': 'Women'
+        }
+
         for item in data:
+            # Stroke mapping
+            raw_stroke = item.get('Event_stroke', '').upper().strip()
+            stroke_desc = stroke_map.get(raw_stroke, raw_stroke)
+            
+            # Refine IM vs Medley based on Ind_rel
+            is_relay = (item.get('Ind_rel', '').upper().strip() == 'R')
+            if raw_stroke == 'E' and is_relay:
+                stroke_desc = "Medley Relay"
+            elif is_relay and stroke_desc != raw_stroke:
+                 stroke_desc += " Relay"
+
+            # Gender mapping
+            raw_gender = item.get('Event_sex', '').upper().strip()
+            gender_desc = gender_map.get(raw_gender, raw_gender)
+
             events.append(meet_manager_pb2.Event(
                 id=int(item.get('Event_no', 0)),
-                gender=item.get('Event_sex', ''),
+                gender=gender_desc,
                 distance=int(item.get('Event_dist', 0)),
-                stroke=item.get('Event_stroke', ''),
+                stroke=stroke_desc,
                 low_age=int(item.get('Low_age', 0)),
                 high_age=int(item.get('High_Age', 0))
             ))
