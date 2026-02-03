@@ -26,6 +26,20 @@ pip install -r requirements.txt
 python src/server.py
 ```
 
+### Running Tests (Locally)
+To run tests outside of Docker, you must regenerate the protobuf code locally:
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Generate Protos
+python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src protos/meet_manager.proto
+
+# 3. Run Tests
+pytest tests/
+```
+
 ### Docker
 ```bash
 docker-compose up backend

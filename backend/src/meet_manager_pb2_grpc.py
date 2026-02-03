@@ -69,6 +69,36 @@ class MeetManagerServiceStub(object):
                 request_serializer=meet__manager__pb2.Empty.SerializeToString,
                 response_deserializer=meet__manager__pb2.EventList.FromString,
                 _registered_method=True)
+        self.ListDatasets = channel.unary_unary(
+                '/meetmanager.MeetManagerService/ListDatasets',
+                request_serializer=meet__manager__pb2.Empty.SerializeToString,
+                response_deserializer=meet__manager__pb2.DatasetList.FromString,
+                _registered_method=True)
+        self.SetActiveDataset = channel.unary_unary(
+                '/meetmanager.MeetManagerService/SetActiveDataset',
+                request_serializer=meet__manager__pb2.DatasetRequest.SerializeToString,
+                response_deserializer=meet__manager__pb2.Empty.FromString,
+                _registered_method=True)
+        self.UploadDataset = channel.stream_unary(
+                '/meetmanager.MeetManagerService/UploadDataset',
+                request_serializer=meet__manager__pb2.UploadRequest.SerializeToString,
+                response_deserializer=meet__manager__pb2.UploadResponse.FromString,
+                _registered_method=True)
+        self.GetRelays = channel.unary_unary(
+                '/meetmanager.MeetManagerService/GetRelays',
+                request_serializer=meet__manager__pb2.Empty.SerializeToString,
+                response_deserializer=meet__manager__pb2.RelayList.FromString,
+                _registered_method=True)
+        self.GetScores = channel.unary_unary(
+                '/meetmanager.MeetManagerService/GetScores',
+                request_serializer=meet__manager__pb2.Empty.SerializeToString,
+                response_deserializer=meet__manager__pb2.ScoreList.FromString,
+                _registered_method=True)
+        self.GetEntries = channel.unary_unary(
+                '/meetmanager.MeetManagerService/GetEntries',
+                request_serializer=meet__manager__pb2.Empty.SerializeToString,
+                response_deserializer=meet__manager__pb2.EntryList.FromString,
+                _registered_method=True)
 
 
 class MeetManagerServiceServicer(object):
@@ -120,6 +150,44 @@ class MeetManagerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListDatasets(self, request, context):
+        """Admin Operations
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SetActiveDataset(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UploadDataset(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetRelays(self, request, context):
+        """New Data Operations
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetScores(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetEntries(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MeetManagerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -157,6 +225,36 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
                     servicer.GetEvents,
                     request_deserializer=meet__manager__pb2.Empty.FromString,
                     response_serializer=meet__manager__pb2.EventList.SerializeToString,
+            ),
+            'ListDatasets': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListDatasets,
+                    request_deserializer=meet__manager__pb2.Empty.FromString,
+                    response_serializer=meet__manager__pb2.DatasetList.SerializeToString,
+            ),
+            'SetActiveDataset': grpc.unary_unary_rpc_method_handler(
+                    servicer.SetActiveDataset,
+                    request_deserializer=meet__manager__pb2.DatasetRequest.FromString,
+                    response_serializer=meet__manager__pb2.Empty.SerializeToString,
+            ),
+            'UploadDataset': grpc.stream_unary_rpc_method_handler(
+                    servicer.UploadDataset,
+                    request_deserializer=meet__manager__pb2.UploadRequest.FromString,
+                    response_serializer=meet__manager__pb2.UploadResponse.SerializeToString,
+            ),
+            'GetRelays': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetRelays,
+                    request_deserializer=meet__manager__pb2.Empty.FromString,
+                    response_serializer=meet__manager__pb2.RelayList.SerializeToString,
+            ),
+            'GetScores': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetScores,
+                    request_deserializer=meet__manager__pb2.Empty.FromString,
+                    response_serializer=meet__manager__pb2.ScoreList.SerializeToString,
+            ),
+            'GetEntries': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetEntries,
+                    request_deserializer=meet__manager__pb2.Empty.FromString,
+                    response_serializer=meet__manager__pb2.EntryList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -348,6 +446,168 @@ class MeetManagerService(object):
             '/meetmanager.MeetManagerService/GetEvents',
             meet__manager__pb2.Empty.SerializeToString,
             meet__manager__pb2.EventList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListDatasets(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/ListDatasets',
+            meet__manager__pb2.Empty.SerializeToString,
+            meet__manager__pb2.DatasetList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SetActiveDataset(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/SetActiveDataset',
+            meet__manager__pb2.DatasetRequest.SerializeToString,
+            meet__manager__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UploadDataset(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(
+            request_iterator,
+            target,
+            '/meetmanager.MeetManagerService/UploadDataset',
+            meet__manager__pb2.UploadRequest.SerializeToString,
+            meet__manager__pb2.UploadResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetRelays(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/GetRelays',
+            meet__manager__pb2.Empty.SerializeToString,
+            meet__manager__pb2.RelayList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetScores(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/GetScores',
+            meet__manager__pb2.Empty.SerializeToString,
+            meet__manager__pb2.ScoreList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetEntries(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/GetEntries',
+            meet__manager__pb2.Empty.SerializeToString,
+            meet__manager__pb2.EntryList.FromString,
             options,
             channel_credentials,
             insecure,

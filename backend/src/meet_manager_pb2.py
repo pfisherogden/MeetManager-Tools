@@ -24,37 +24,59 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12meet_manager.proto\x12\x0bmeetmanager\"\x07\n\x05\x45mpty\"h\n\x04Meet\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08location\x18\x03 \x01(\t\x12\x12\n\nstart_date\x18\x04 \x01(\t\x12\x10\n\x08\x65nd_date\x18\x05 \x01(\t\x12\x0e\n\x06status\x18\x06 \x01(\t\",\n\x08MeetList\x12 \n\x05meets\x18\x01 \x03(\x0b\x32\x11.meetmanager.Meet\"d\n\x0e\x44\x61shboardStats\x12\x12\n\nmeet_count\x18\x01 \x01(\x05\x12\x12\n\nteam_count\x18\x02 \x01(\x05\x12\x15\n\rathlete_count\x18\x03 \x01(\x05\x12\x13\n\x0b\x65vent_count\x18\x04 \x01(\x05\"o\n\x04Team\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x63ode\x18\x03 \x01(\t\x12\x0b\n\x03lsc\x18\x04 \x01(\t\x12\x0c\n\x04\x63ity\x18\x05 \x01(\t\x12\r\n\x05state\x18\x06 \x01(\t\x12\x15\n\rathlete_count\x18\x07 \x01(\x05\",\n\x08TeamList\x12 \n\x05teams\x18\x01 \x03(\x0b\x32\x11.meetmanager.Team\"\x19\n\x0bTeamRequest\x12\n\n\x02id\x18\x01 \x01(\x05\"\xa2\x01\n\x07\x41thlete\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x12\n\nfirst_name\x18\x02 \x01(\t\x12\x11\n\tlast_name\x18\x03 \x01(\t\x12\x0e\n\x06gender\x18\x04 \x01(\t\x12\x0b\n\x03\x61ge\x18\x05 \x01(\x05\x12\x0f\n\x07team_id\x18\x06 \x01(\x05\x12\x11\n\tteam_name\x18\x07 \x01(\t\x12\x13\n\x0bschool_year\x18\x08 \x01(\t\x12\x0e\n\x06reg_no\x18\t \x01(\t\"5\n\x0b\x41thleteList\x12&\n\x08\x61thletes\x18\x01 \x03(\x0b\x32\x14.meetmanager.Athlete\"\x1c\n\x0e\x41thleteRequest\x12\n\n\x02id\x18\x01 \x01(\x05\"\x89\x01\n\x05\x45vent\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0e\n\x06gender\x18\x02 \x01(\t\x12\x10\n\x08\x64istance\x18\x03 \x01(\x05\x12\x0e\n\x06stroke\x18\x04 \x01(\t\x12\x0f\n\x07low_age\x18\x05 \x01(\x05\x12\x10\n\x08high_age\x18\x06 \x01(\x05\x12\x0f\n\x07session\x18\x07 \x01(\x05\x12\x0e\n\x06status\x18\x08 \x01(\t\"/\n\tEventList\x12\"\n\x06\x65vents\x18\x01 \x03(\x0b\x32\x12.meetmanager.Event2\xb7\x03\n\x12MeetManagerService\x12\x35\n\x08GetMeets\x12\x12.meetmanager.Empty\x1a\x15.meetmanager.MeetList\x12\x44\n\x11GetDashboardStats\x12\x12.meetmanager.Empty\x1a\x1b.meetmanager.DashboardStats\x12\x35\n\x08GetTeams\x12\x12.meetmanager.Empty\x1a\x15.meetmanager.TeamList\x12\x36\n\x07GetTeam\x12\x18.meetmanager.TeamRequest\x1a\x11.meetmanager.Team\x12;\n\x0bGetAthletes\x12\x12.meetmanager.Empty\x1a\x18.meetmanager.AthleteList\x12?\n\nGetAthlete\x12\x1b.meetmanager.AthleteRequest\x1a\x14.meetmanager.Athlete\x12\x37\n\tGetEvents\x12\x12.meetmanager.Empty\x1a\x16.meetmanager.EventListb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12meet_manager.proto\x12\x0bmeetmanager\"E\n\x07\x44\x61taset\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x11\n\tis_active\x18\x02 \x01(\x08\x12\x15\n\rlast_modified\x18\x03 \x01(\t\"5\n\x0b\x44\x61tasetList\x12&\n\x08\x64\x61tasets\x18\x01 \x03(\x0b\x32\x14.meetmanager.Dataset\"\"\n\x0e\x44\x61tasetRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"<\n\rUploadRequest\x12\x12\n\x08\x66ilename\x18\x01 \x01(\tH\x00\x12\x0f\n\x05\x63hunk\x18\x02 \x01(\x0cH\x00\x42\x06\n\x04\x64\x61ta\"2\n\x0eUploadResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"\xcb\x01\n\x05Relay\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x10\n\x08\x65vent_id\x18\x02 \x01(\x05\x12\x0f\n\x07team_id\x18\x03 \x01(\x05\x12\x11\n\tteam_name\x18\x04 \x01(\t\x12\x11\n\tleg1_name\x18\x05 \x01(\t\x12\x11\n\tleg2_name\x18\x06 \x01(\t\x12\x11\n\tleg3_name\x18\x07 \x01(\t\x12\x11\n\tleg4_name\x18\x08 \x01(\t\x12\x11\n\tseed_time\x18\t \x01(\t\x12\x12\n\nfinal_time\x18\n \x01(\t\x12\r\n\x05place\x18\x0b \x01(\x05\"/\n\tRelayList\x12\"\n\x06relays\x18\x01 \x03(\x0b\x32\x12.meetmanager.Relay\"\x80\x01\n\x05Score\x12\x0f\n\x07team_id\x18\x01 \x01(\x05\x12\x11\n\tteam_name\x18\x02 \x01(\t\x12\x19\n\x11individual_points\x18\x03 \x01(\x02\x12\x14\n\x0crelay_points\x18\x04 \x01(\x02\x12\x14\n\x0ctotal_points\x18\x05 \x01(\x02\x12\x0c\n\x04rank\x18\x06 \x01(\x05\"/\n\tScoreList\x12\"\n\x06scores\x18\x01 \x03(\x0b\x32\x12.meetmanager.Score\"\xa9\x01\n\x05\x45ntry\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x10\n\x08\x65vent_id\x18\x02 \x01(\x05\x12\x12\n\nathlete_id\x18\x03 \x01(\x05\x12\x14\n\x0c\x61thlete_name\x18\x04 \x01(\t\x12\x0f\n\x07team_id\x18\x05 \x01(\x05\x12\x11\n\tteam_name\x18\x06 \x01(\t\x12\x11\n\tseed_time\x18\x07 \x01(\t\x12\x12\n\nfinal_time\x18\x08 \x01(\t\x12\r\n\x05place\x18\t \x01(\x05\"0\n\tEntryList\x12#\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x12.meetmanager.Entry\"\x07\n\x05\x45mpty\"h\n\x04Meet\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08location\x18\x03 \x01(\t\x12\x12\n\nstart_date\x18\x04 \x01(\t\x12\x10\n\x08\x65nd_date\x18\x05 \x01(\t\x12\x0e\n\x06status\x18\x06 \x01(\t\",\n\x08MeetList\x12 \n\x05meets\x18\x01 \x03(\x0b\x32\x11.meetmanager.Meet\"d\n\x0e\x44\x61shboardStats\x12\x12\n\nmeet_count\x18\x01 \x01(\x05\x12\x12\n\nteam_count\x18\x02 \x01(\x05\x12\x15\n\rathlete_count\x18\x03 \x01(\x05\x12\x13\n\x0b\x65vent_count\x18\x04 \x01(\x05\"o\n\x04Team\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x63ode\x18\x03 \x01(\t\x12\x0b\n\x03lsc\x18\x04 \x01(\t\x12\x0c\n\x04\x63ity\x18\x05 \x01(\t\x12\r\n\x05state\x18\x06 \x01(\t\x12\x15\n\rathlete_count\x18\x07 \x01(\x05\",\n\x08TeamList\x12 \n\x05teams\x18\x01 \x03(\x0b\x32\x11.meetmanager.Team\"\x19\n\x0bTeamRequest\x12\n\n\x02id\x18\x01 \x01(\x05\"\xa2\x01\n\x07\x41thlete\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x12\n\nfirst_name\x18\x02 \x01(\t\x12\x11\n\tlast_name\x18\x03 \x01(\t\x12\x0e\n\x06gender\x18\x04 \x01(\t\x12\x0b\n\x03\x61ge\x18\x05 \x01(\x05\x12\x0f\n\x07team_id\x18\x06 \x01(\x05\x12\x11\n\tteam_name\x18\x07 \x01(\t\x12\x13\n\x0bschool_year\x18\x08 \x01(\t\x12\x0e\n\x06reg_no\x18\t \x01(\t\"5\n\x0b\x41thleteList\x12&\n\x08\x61thletes\x18\x01 \x03(\x0b\x32\x14.meetmanager.Athlete\"\x1c\n\x0e\x41thleteRequest\x12\n\n\x02id\x18\x01 \x01(\x05\"\x89\x01\n\x05\x45vent\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0e\n\x06gender\x18\x02 \x01(\t\x12\x10\n\x08\x64istance\x18\x03 \x01(\x05\x12\x0e\n\x06stroke\x18\x04 \x01(\t\x12\x0f\n\x07low_age\x18\x05 \x01(\x05\x12\x10\n\x08high_age\x18\x06 \x01(\x05\x12\x0f\n\x07session\x18\x07 \x01(\x05\x12\x0e\n\x06status\x18\x08 \x01(\t\"/\n\tEventList\x12\"\n\x06\x65vents\x18\x01 \x03(\x0b\x32\x12.meetmanager.Event2\xb2\x06\n\x12MeetManagerService\x12\x35\n\x08GetMeets\x12\x12.meetmanager.Empty\x1a\x15.meetmanager.MeetList\x12\x44\n\x11GetDashboardStats\x12\x12.meetmanager.Empty\x1a\x1b.meetmanager.DashboardStats\x12\x35\n\x08GetTeams\x12\x12.meetmanager.Empty\x1a\x15.meetmanager.TeamList\x12\x36\n\x07GetTeam\x12\x18.meetmanager.TeamRequest\x1a\x11.meetmanager.Team\x12;\n\x0bGetAthletes\x12\x12.meetmanager.Empty\x1a\x18.meetmanager.AthleteList\x12?\n\nGetAthlete\x12\x1b.meetmanager.AthleteRequest\x1a\x14.meetmanager.Athlete\x12\x37\n\tGetEvents\x12\x12.meetmanager.Empty\x1a\x16.meetmanager.EventList\x12<\n\x0cListDatasets\x12\x12.meetmanager.Empty\x1a\x18.meetmanager.DatasetList\x12\x43\n\x10SetActiveDataset\x12\x1b.meetmanager.DatasetRequest\x1a\x12.meetmanager.Empty\x12J\n\rUploadDataset\x12\x1a.meetmanager.UploadRequest\x1a\x1b.meetmanager.UploadResponse(\x01\x12\x37\n\tGetRelays\x12\x12.meetmanager.Empty\x1a\x16.meetmanager.RelayList\x12\x37\n\tGetScores\x12\x12.meetmanager.Empty\x1a\x16.meetmanager.ScoreList\x12\x38\n\nGetEntries\x12\x12.meetmanager.Empty\x1a\x16.meetmanager.EntryListb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'meet_manager_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_EMPTY']._serialized_start=35
-  _globals['_EMPTY']._serialized_end=42
-  _globals['_MEET']._serialized_start=44
-  _globals['_MEET']._serialized_end=148
-  _globals['_MEETLIST']._serialized_start=150
-  _globals['_MEETLIST']._serialized_end=194
-  _globals['_DASHBOARDSTATS']._serialized_start=196
-  _globals['_DASHBOARDSTATS']._serialized_end=296
-  _globals['_TEAM']._serialized_start=298
-  _globals['_TEAM']._serialized_end=409
-  _globals['_TEAMLIST']._serialized_start=411
-  _globals['_TEAMLIST']._serialized_end=455
-  _globals['_TEAMREQUEST']._serialized_start=457
-  _globals['_TEAMREQUEST']._serialized_end=482
-  _globals['_ATHLETE']._serialized_start=485
-  _globals['_ATHLETE']._serialized_end=647
-  _globals['_ATHLETELIST']._serialized_start=649
-  _globals['_ATHLETELIST']._serialized_end=702
-  _globals['_ATHLETEREQUEST']._serialized_start=704
-  _globals['_ATHLETEREQUEST']._serialized_end=732
-  _globals['_EVENT']._serialized_start=735
-  _globals['_EVENT']._serialized_end=872
-  _globals['_EVENTLIST']._serialized_start=874
-  _globals['_EVENTLIST']._serialized_end=921
-  _globals['_MEETMANAGERSERVICE']._serialized_start=924
-  _globals['_MEETMANAGERSERVICE']._serialized_end=1363
+  _globals['_DATASET']._serialized_start=35
+  _globals['_DATASET']._serialized_end=104
+  _globals['_DATASETLIST']._serialized_start=106
+  _globals['_DATASETLIST']._serialized_end=159
+  _globals['_DATASETREQUEST']._serialized_start=161
+  _globals['_DATASETREQUEST']._serialized_end=195
+  _globals['_UPLOADREQUEST']._serialized_start=197
+  _globals['_UPLOADREQUEST']._serialized_end=257
+  _globals['_UPLOADRESPONSE']._serialized_start=259
+  _globals['_UPLOADRESPONSE']._serialized_end=309
+  _globals['_RELAY']._serialized_start=312
+  _globals['_RELAY']._serialized_end=515
+  _globals['_RELAYLIST']._serialized_start=517
+  _globals['_RELAYLIST']._serialized_end=564
+  _globals['_SCORE']._serialized_start=567
+  _globals['_SCORE']._serialized_end=695
+  _globals['_SCORELIST']._serialized_start=697
+  _globals['_SCORELIST']._serialized_end=744
+  _globals['_ENTRY']._serialized_start=747
+  _globals['_ENTRY']._serialized_end=916
+  _globals['_ENTRYLIST']._serialized_start=918
+  _globals['_ENTRYLIST']._serialized_end=966
+  _globals['_EMPTY']._serialized_start=968
+  _globals['_EMPTY']._serialized_end=975
+  _globals['_MEET']._serialized_start=977
+  _globals['_MEET']._serialized_end=1081
+  _globals['_MEETLIST']._serialized_start=1083
+  _globals['_MEETLIST']._serialized_end=1127
+  _globals['_DASHBOARDSTATS']._serialized_start=1129
+  _globals['_DASHBOARDSTATS']._serialized_end=1229
+  _globals['_TEAM']._serialized_start=1231
+  _globals['_TEAM']._serialized_end=1342
+  _globals['_TEAMLIST']._serialized_start=1344
+  _globals['_TEAMLIST']._serialized_end=1388
+  _globals['_TEAMREQUEST']._serialized_start=1390
+  _globals['_TEAMREQUEST']._serialized_end=1415
+  _globals['_ATHLETE']._serialized_start=1418
+  _globals['_ATHLETE']._serialized_end=1580
+  _globals['_ATHLETELIST']._serialized_start=1582
+  _globals['_ATHLETELIST']._serialized_end=1635
+  _globals['_ATHLETEREQUEST']._serialized_start=1637
+  _globals['_ATHLETEREQUEST']._serialized_end=1665
+  _globals['_EVENT']._serialized_start=1668
+  _globals['_EVENT']._serialized_end=1805
+  _globals['_EVENTLIST']._serialized_start=1807
+  _globals['_EVENTLIST']._serialized_end=1854
+  _globals['_MEETMANAGERSERVICE']._serialized_start=1857
+  _globals['_MEETMANAGERSERVICE']._serialized_end=2675
 # @@protoc_insertion_point(module_scope)
