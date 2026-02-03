@@ -15,6 +15,13 @@ backend/venv/
 backend/__pycache__/
 backend/data/
 *.pyc
+web-client/.npm-cache/
+web-client/package-lock 2.json
+web-client/pnpm-lock.yaml
+
+# Data Processing
+mm_to_json/
+randomize_data.py
 
 # Python/uv
 .uv_cache
@@ -41,3 +48,4 @@ yarn-error.log*
 test.mdb
 coverage/
 TRASH/
+tmp/

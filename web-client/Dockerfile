@@ -3,11 +3,16 @@ RUN apk add --no-cache libc6-compat protobuf
 WORKDIR /app
 
 # Install dependencies (single stage to avoid COPY --from hang)
-COPY package.json package-lock.json* ./
+
+# Install dependencies (single stage to avoid COPY --from hang)
+COPY web-client/package.json web-client/package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else echo "Lockfile not found. Running npm install." && npm install; fi
 
 # Copy source
-COPY . .
+# Copy web-client code to /app
+COPY web-client/ .
+# Copy backend protos to /backend/protos (relative to workdir /app)
+COPY backend/protos ./backend/protos
 
 # Generate TS Code
 RUN mkdir -p lib/proto && \
