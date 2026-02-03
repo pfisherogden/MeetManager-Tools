@@ -2,6 +2,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { Dashboard } from "@/components/dashboard"
 import client from "@/lib/mm-client";
 import { Empty, DashboardStats } from "@/lib/proto/meet_manager";
+export const dynamic = 'force-dynamic';
 
 // Helper to wrap callback in promise
 function getStats(): Promise<DashboardStats> {

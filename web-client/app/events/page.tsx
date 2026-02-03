@@ -25,6 +25,8 @@ function formatAgeGroup(low: number, high: number): string {
   return `${low}-${high}`;
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function EventsPage() {
   let mappedEvents: UIEvent[] = [];
 

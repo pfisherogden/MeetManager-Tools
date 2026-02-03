@@ -55,6 +55,7 @@ export async function uploadDataset(formData: FormData) {
                     reject(err.message);
                 } else {
                     console.log("SERVER ACTION: gRPC Success:", response);
+                    revalidatePath('/', 'layout');
                     resolve(response);
                 }
             });

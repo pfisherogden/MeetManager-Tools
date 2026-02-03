@@ -18,6 +18,8 @@ function getRelays(): Promise<any> {
   });
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function RelaysPage() {
   let mappedRelays: UIRelay[] = [];
 

@@ -19,6 +19,8 @@ function getTeams(): Promise<TeamList> {
   });
 }
 
+
+
 export default async function TeamsPage() {
   let mappedTeams: UITeam[] = [];
 

@@ -19,6 +19,8 @@ function getAthletes(): Promise<AthleteList> {
   });
 }
 
+
+
 export default async function AthletesPage() {
   let mappedAthletes: UIAthlete[] = [];
 
