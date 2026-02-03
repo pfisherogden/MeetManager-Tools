@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Install Python dependencies
-RUN pip install grpcio grpcio-tools
+RUN pip install grpcio grpcio-tools pytest
 
 # Copy only the backend directory content
 COPY . .
@@ -18,7 +18,9 @@ RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src 
 
 # Add src and protos to path
 ENV PYTHONPATH=/app:/app/src:/app/src/protos
+ENV PYTHONPATH=/app:/app/src:/app/src/protos
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 50051
 

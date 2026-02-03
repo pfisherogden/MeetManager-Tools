@@ -1,0 +1,33 @@
+# Dependencies
+**/node_modules
+**/venv
+**/.uv_cache
+**/.npm_cache
+
+# Version Control
+.git
+**/.git
+
+# System
+.DS_Store
+**/.DS_Store
+.tmp
+**/.tmp
+
+# Build Artifacts
+web-client-build
+web-client/.npm-cache
+web-client/node_modules
+**/.next
+**/out
+**/build
+**/dist
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+
+# Data
+# Data & Large Directories
+backend/data/*.mdb
+mm_to_json/
+randomize_data.py

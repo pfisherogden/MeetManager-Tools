@@ -46,6 +46,7 @@ yarn-error.log*
 
 # Testing
 test.mdb
+*test*.mdb
 coverage/
 TRASH/
 tmp/

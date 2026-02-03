@@ -4,7 +4,26 @@ Tools to parse and display detailed swim meet data from Meet Manager `.mdb` file
 
 [Architecture Documentation](docs/ARCHITECTURE.md)
 
-## Project Structure
+## Automated Build & Test (Modern)
+This project uses [`just`](https://github.com/casey/just) as a command runner.
+
+### Prerequisites
+- [Docker & Docker Compose](https://www.docker.com/)
+- [Just](https://github.com/casey/just) (`brew install just`)
+
+```bash
+# Run the full build & test cycle
+just test
+```
+
+Other available commands:
+- `just build` - Build containers
+- `just up` - Start services
+- `just logs` - View logs
+- `just clean` - Remove cache artifacts
+
+## Getting Started
+
 
 - **`backend/`**: Python gRPC server. Handles MDB parsing and data service.
 - **`web-client/`**: Next.js Frontend. Provides the Dashboard, Browser, and Admin UI.

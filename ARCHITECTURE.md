@@ -62,3 +62,22 @@ graph TD
 ### 3. Entity Navigation
 - **Athletes**: Detailed view at `/athletes/[id]`. joins Team data.
 - **Teams**: Detailed view at `/teams/[id]`.
+
+## Build & Release Pipeline
+The project uses [`just`](https://github.com/casey/just) to manage the lifecycle of the application containers.
+
+### Common Commands
+- **`just test`**: **(Recommended)** Runs the full pipeline: Clean -> Build -> Up -> Sync Protos -> Test.
+- **`just build`**: Rebuilds containers using optimised context (excludes `node_modules`, etc).
+- **`just clean`**: Safely removes cache artifacts (`.DS_Store`, `__pycache__`) that cause permission errors.
+
+### Workflow Steps (Internal Logic)
+1. **Cleanup**: Removes cache artifacts to prevented context bloat.
+2. **Build**: Runs `docker-compose build` with `PYTHONDONTWRITEBYTECODE=1`.
+3. **Deploy**: Runs `docker-compose up -d`.
+4. **Sync**: Executes `protoc` via `docker-compose run` to regenerate Python gRPC definitions **before** startup to ensure version consistency.
+5. **Verify**: Runs `pytest` inside the backend container.
+
+### Troubleshooting
+- **Permission Errors**: If you see errors deleting `__pycache__` or `.uv_cache`, you may need to run `sudo rm -rf ...` once to clear old root-owned artifacts. The new build process prevents them from recurring.
+- **Docker Build Stall**: If "Sending build context" takes too long, check that `web-client/node_modules` and `.git` are properly ignored in `.dockerignore`.

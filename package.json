@@ -1,0 +1,20 @@
+{
+  "name": "meetmanager-tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "npm run dev --prefix web-client",
+    "server": "uv run backend/src/server.py",
+    "build": "npm run build --prefix web-client",
+    "start": "npm run start --prefix web-client"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
