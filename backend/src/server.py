@@ -11,15 +11,38 @@ import csv
 import subprocess
 import io
 
+
 # Defines where the source JSON data lives
 DATA_DIR = "../data" 
 SOURCE_FILE = "Sample_Data.json"
+CONFIG_FILE = "config.json"
 
 class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
     def __init__(self):
         self._data_cache = None
         self.current_file = SOURCE_FILE
         self._load_data()
+        self._load_config()
+
+    def _load_config(self):
+        path = os.path.join(os.path.dirname(__file__), DATA_DIR, CONFIG_FILE)
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    self.config = json.load(f)
+            except Exception as e:
+                print(f"Error loading config: {e}")
+                self.config = {"meet_name": "", "meet_description": ""}
+        else:
+             self.config = {"meet_name": "", "meet_description": ""}
+
+    def _save_config(self):
+        path = os.path.join(os.path.dirname(__file__), DATA_DIR, CONFIG_FILE)
+        try:
+            with open(path, 'w') as f:
+                json.dump(self.config, f, indent=2)
+        except Exception as e:
+            print(f"Error saving config: {e}")
 
     def _load_data(self):
         path = os.path.join(os.path.dirname(__file__), DATA_DIR, self.current_file)
@@ -144,16 +167,25 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
 
     def GetTeams(self, request, context):
         data = self._get_table('Team')
+        athletes = self._get_table('Athlete')
+        
+        # Count athletes per team
+        ath_counts = {}
+        for ath in athletes:
+            t_id = int(ath.get('Team_no', 0))
+            ath_counts[t_id] = ath_counts.get(t_id, 0) + 1
+
         teams = []
         for item in data:
+            t_id = int(item.get('Team_no', 0))
             teams.append(meet_manager_pb2.Team(
-                id=int(item.get('Team_no', 0)),
+                id=t_id,
                 name=item.get('Team_name', 'Unknown'),
                 code=item.get('Team_abbr', ''),
                 lsc=item.get('Team_lsc', ''),
                 city=item.get('Team_city', ''),
                 state=item.get('Team_statenew', ''),
-                athlete_count=0 
+                athlete_count=ath_counts.get(t_id, 0)
             ))
         return meet_manager_pb2.TeamList(teams=teams)
 
@@ -312,41 +344,49 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
 
     # ... existing methods ...
 
+    def _safe_int(self, value, default=0):
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return default
+
+    def _safe_float(self, value, default=0.0):
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+
     def GetRelays(self, request, context):
         """Fetches Relay entries, joining with Team data."""
         relays_data = self._get_table('RELAY')  # Assuming table name is capital RELAY
         if not relays_data:
              relays_data = self._get_table('Relay') # Try mixed case
-
+        
         teams = {t.get('Team_no'): t.get('Team_name') for t in self._get_table('Team')}
-        # Athletes map for names? Usually relays have Ath_no_1, etc.
-        # For now, simplest implementation: just return raw data if names aren't simple FKs
         
         result = []
         for idx, item in enumerate(relays_data):
-            t_id = item.get('Team_ptr', 0) # Meet Manager often uses Team_ptr or Team_no
+            t_id = item.get('Team_ptr', 0)
             if not t_id:
                 t_id = item.get('Team_no', 0)
             
             result.append(meet_manager_pb2.Relay(
-                id=idx, # Or item.get('Relay_no')
-                event_id=item.get('Event_ptr', 0),
-                team_id=t_id,
+                id=idx, 
+                event_id=self._safe_int(item.get('Event_ptr')),
+                team_id=self._safe_int(t_id),
                 team_name=teams.get(t_id, 'Unknown'),
-                # Names might be separate columns or linked. Placeholder for now.
                 leg1_name="", 
                 leg2_name="",
                 leg3_name="",
                 leg4_name="",
                 seed_time=str(item.get('Seed_Time', 'NT')),
                 final_time=str(item.get('Finals_Time', '')),
-                place=int(item.get('Place', 0) or 0)
+                place=self._safe_int(item.get('Place'))
             ))
         return meet_manager_pb2.RelayList(relays=result)
 
     def GetScores(self, request, context):
         """Fetches or calculates team scores."""
-        # Check if score table exists (e.g. TEAMSCOR)
         scores_data = self._get_table('TEAMSCOR') 
         teams = {t.get('Team_no'): t for t in self._get_table('Team')}
         
@@ -355,19 +395,17 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             for item in scores_data:
                  t_id = item.get('Team_no')
                  result.append(meet_manager_pb2.Score(
-                     team_id=t_id,
+                     team_id=self._safe_int(t_id),
                      team_name=teams.get(t_id, {}).get('Team_name', 'Unknown'),
-                     individual_points=float(item.get('Ind_score', 0)),
-                     relay_points=float(item.get('Rel_score', 0)),
-                     total_points=float(item.get('Tot_score', 0)),
-                     rank=int(item.get('Place', 0) or 0)
+                     individual_points=self._safe_float(item.get('Ind_score')),
+                     relay_points=self._safe_float(item.get('Rel_score')),
+                     total_points=self._safe_float(item.get('Tot_score')),
+                     rank=self._safe_int(item.get('Place'))
                  ))
         else:
-             # Calculate simple score based on entries? Too complex for now.
-             # Return dummy score based on team list just to show something
              for t_id, team in teams.items():
                  result.append(meet_manager_pb2.Score(
-                     team_id=t_id,
+                     team_id=self._safe_int(t_id),
                      team_name=team.get('Team_name', 'Unknown'),
                      individual_points=0,
                      relay_points=0,
@@ -393,17 +431,95 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             t_id = athlete.get('Team_no', 0)
             
             result.append(meet_manager_pb2.Entry(
-                id=idx, # Entry usually has no ID, it's a link table
-                event_id=item.get('Event_ptr', 0),
-                athlete_id=ath_id,
+                id=idx, 
+                event_id=self._safe_int(item.get('Event_ptr')),
+                athlete_id=self._safe_int(ath_id),
                 athlete_name=f"{athlete.get('First_name','')} {athlete.get('Last_name','')}",
-                team_id=t_id,
+                team_id=self._safe_int(t_id),
                 team_name=teams.get(t_id, 'Unknown'),
                 seed_time=str(item.get('Seed_Time', 'NT')),
                 final_time=str(item.get('Finals_Time', '')),
-                place=int(item.get('Place', 0) or 0)
+                place=self._safe_int(item.get('Place'))
             ))
         return meet_manager_pb2.EntryList(entries=result)
+
+    def GetSessions(self, request, context):
+        # Trying to find explicit sessions table first (often 'Session' or derived from Events)
+        # Assuming we might not have a Session table, we can infer from Events session column.
+        
+        # NOTE: MDBTools may not export Session table if we didn't ask for it, 
+        # but _load_mdb loads ALL tables.
+        
+        sessions_data = self._get_table('Session') 
+        if not sessions_data:
+             sessions_data = self._get_table('SESSION')
+        
+        events = self._get_table('Event')
+        
+        final_sessions = []
+        
+        if sessions_data:
+            for item in sessions_data:
+                 # Check event count for this session
+                 sess_no = int(item.get('Sess_no', 0))
+                 sess_events = [e for e in events if int(e.get('Sess_no', 0) if e.get('Sess_no') else 0) == sess_no]
+                 
+                 final_sessions.append(meet_manager_pb2.Session(
+                     id=str(item.get('Sess_no', '')),
+                     meet_id="1", 
+                     name=item.get('Sess_name', f"Session {sess_no}"),
+                     date=str(item.get('Sess_date', '')), # formatting needed?
+                     warm_up_time=str(item.get('Sess_time', '')), # Field names vary
+                     start_time=str(item.get('Sess_starttime', '')),
+                     event_count=len(sess_events),
+                     session_num=sess_no,
+                     day=int(item.get('Sess_day', 0))
+                 ))
+        
+        # If no session data found or empty, infer from events or return default
+        if not final_sessions:
+            if events:
+                 # Group by Sess_no
+                 sessions_map = {}
+                 for e in events:
+                     s_no = int(e.get('Sess_no', 0) if e.get('Sess_no') else 1) # Default to 1 if missing
+                     if s_no not in sessions_map:
+                         sessions_map[s_no] = 0
+                     sessions_map[s_no] += 1
+                 
+                 for s_no, count in sessions_map.items():
+                     final_sessions.append(meet_manager_pb2.Session(
+                         id=str(s_no),
+                         meet_id="1",
+                         name=f"Session {s_no}",
+                         event_count=count,
+                         session_num=s_no,
+                         day=1, # Default
+                         start_time="00:00 AM" 
+                     ))
+            else:
+                 # Absolutely no data
+                 final_sessions.append(meet_manager_pb2.Session(
+                     id="0",
+                     meet_id="1",
+                     name="All Events",
+                     event_count=0,
+                     session_num=0
+                 ))
+                 
+        return meet_manager_pb2.SessionList(sessions=final_sessions)
+
+    def GetAdminConfig(self, request, context):
+        return meet_manager_pb2.AdminConfig(
+            meet_name=self.config.get('meet_name', ''),
+            meet_description=self.config.get('meet_description', '')
+        )
+
+    def UpdateAdminConfig(self, request, context):
+        self.config['meet_name'] = request.meet_name
+        self.config['meet_description'] = request.meet_description
+        self._save_config()
+        return self.GetAdminConfig(request, context)
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

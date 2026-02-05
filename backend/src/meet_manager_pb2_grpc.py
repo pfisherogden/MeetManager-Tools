@@ -99,6 +99,21 @@ class MeetManagerServiceStub(object):
                 request_serializer=meet__manager__pb2.Empty.SerializeToString,
                 response_deserializer=meet__manager__pb2.EntryList.FromString,
                 _registered_method=True)
+        self.GetSessions = channel.unary_unary(
+                '/meetmanager.MeetManagerService/GetSessions',
+                request_serializer=meet__manager__pb2.Empty.SerializeToString,
+                response_deserializer=meet__manager__pb2.SessionList.FromString,
+                _registered_method=True)
+        self.GetAdminConfig = channel.unary_unary(
+                '/meetmanager.MeetManagerService/GetAdminConfig',
+                request_serializer=meet__manager__pb2.Empty.SerializeToString,
+                response_deserializer=meet__manager__pb2.AdminConfig.FromString,
+                _registered_method=True)
+        self.UpdateAdminConfig = channel.unary_unary(
+                '/meetmanager.MeetManagerService/UpdateAdminConfig',
+                request_serializer=meet__manager__pb2.AdminConfig.SerializeToString,
+                response_deserializer=meet__manager__pb2.AdminConfig.FromString,
+                _registered_method=True)
 
 
 class MeetManagerServiceServicer(object):
@@ -188,6 +203,26 @@ class MeetManagerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetSessions(self, request, context):
+        """Session Operations
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetAdminConfig(self, request, context):
+        """Configuration
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateAdminConfig(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MeetManagerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -255,6 +290,21 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
                     servicer.GetEntries,
                     request_deserializer=meet__manager__pb2.Empty.FromString,
                     response_serializer=meet__manager__pb2.EntryList.SerializeToString,
+            ),
+            'GetSessions': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetSessions,
+                    request_deserializer=meet__manager__pb2.Empty.FromString,
+                    response_serializer=meet__manager__pb2.SessionList.SerializeToString,
+            ),
+            'GetAdminConfig': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAdminConfig,
+                    request_deserializer=meet__manager__pb2.Empty.FromString,
+                    response_serializer=meet__manager__pb2.AdminConfig.SerializeToString,
+            ),
+            'UpdateAdminConfig': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateAdminConfig,
+                    request_deserializer=meet__manager__pb2.AdminConfig.FromString,
+                    response_serializer=meet__manager__pb2.AdminConfig.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -608,6 +658,87 @@ class MeetManagerService(object):
             '/meetmanager.MeetManagerService/GetEntries',
             meet__manager__pb2.Empty.SerializeToString,
             meet__manager__pb2.EntryList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetSessions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/GetSessions',
+            meet__manager__pb2.Empty.SerializeToString,
+            meet__manager__pb2.SessionList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetAdminConfig(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/GetAdminConfig',
+            meet__manager__pb2.Empty.SerializeToString,
+            meet__manager__pb2.AdminConfig.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateAdminConfig(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/UpdateAdminConfig',
+            meet__manager__pb2.AdminConfig.SerializeToString,
+            meet__manager__pb2.AdminConfig.FromString,
             options,
             channel_credentials,
             insecure,
