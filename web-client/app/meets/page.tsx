@@ -1,40 +1,27 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { MeetsManager } from "@/components/meets-manager"
 import type { Meet as UIMeet } from "@/lib/swim-meet-types"
-import client from "@/lib/mm-client";
-import { Empty, MeetList } from "@/lib/proto/meet_manager";
+
+import { getMeets } from "@/app/actions"
 
 export const dynamic = 'force-dynamic';
-
-// Helper to wrap callback in promise
-function getMeets(): Promise<MeetList> {
-  return new Promise((resolve, reject) => {
-    client.getMeets(Empty.fromPartial({}), (err, response) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
-
-
 
 export default async function MeetsPage() {
   let mappedMeets: UIMeet[] = [];
 
   try {
-    const list = await getMeets();
-    mappedMeets = list.meets.map(m => ({
-      id: m.id,
-      name: m.name,
-      location: m.location,
-      startDate: m.startDate,
-      endDate: m.endDate,
-      poolType: "SCY", // Default or parsed from location?
-      status: (m.status as "upcoming" | "active" | "completed") || "upcoming"
-    }));
+    const list: any = await getMeets();
+    if (list && list.meets) {
+      mappedMeets = list.meets.map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        location: m.location,
+        startDate: m.startDate,
+        endDate: m.endDate,
+        poolType: "SCY", // Default or parsed from location?
+        status: (m.status as "upcoming" | "active" | "completed") || "upcoming"
+      }));
+    }
   } catch (e) {
     console.error("Failed to fetch meets", e);
   }

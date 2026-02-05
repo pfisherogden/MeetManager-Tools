@@ -1,5 +1,6 @@
-import * as grpc from '@grpc/grpc-js';
-import { MeetManagerServiceClient } from './proto/meet_manager';
+import { ChannelCredentials, createChannel } from 'nice-grpc';
+import { MeetManagerServiceDefinition, MeetManagerServiceClient } from './proto/meet_manager';
+import { createClientFactory } from 'nice-grpc';
 
 // Determine host:
 // - Server Side (Docker): use 'backend:50051' (or env var)
@@ -10,9 +11,11 @@ const defaultHost = typeof window === 'undefined'
     : 'localhost:50051';
 
 // Create a singleton client
-const client = new MeetManagerServiceClient(
-    defaultHost,
-    grpc.credentials.createInsecure()
+const clientFactory = createClientFactory();
+
+const client: MeetManagerServiceClient = clientFactory.create(
+    MeetManagerServiceDefinition,
+    createChannel(defaultHost, ChannelCredentials.createInsecure())
 );
 
 export default client;

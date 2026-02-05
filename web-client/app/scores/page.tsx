@@ -1,22 +1,8 @@
 import type { Score as UIScore } from "@/lib/swim-meet-types"
-import client from "@/lib/mm-client";
-import { Empty } from "@/lib/proto/meet_manager";
 import { ScoresManager } from "@/components/scores-manager"
 import { AppSidebar } from "@/components/app-sidebar"
 
-// Helper to wrap callback in promise
-function getScores(): Promise<any> {
-  return new Promise((resolve, reject) => {
-    // @ts-ignore
-    client.getScores(Empty.fromPartial({}), (err: any, response: any) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
+import { getScores } from "@/app/actions"
 
 export const dynamic = 'force-dynamic';
 
@@ -24,17 +10,19 @@ export default async function ScoresPage() {
   let mappedScores: UIScore[] = [];
 
   try {
-    const list = await getScores();
-    mappedScores = list.scores.map((s: any, index: number) => ({
-      id: `sc-${index}-${s.teamId}`,
-      meetId: "1", // Placeholder, as scores are usually per meet
-      teamId: s.teamId.toString(),
-      teamName: s.teamName,
-      individualPoints: s.individualPoints,
-      relayPoints: s.relayPoints,
-      totalPoints: s.totalPoints,
-      rank: s.rank
-    }));
+    const list: any = await getScores();
+    if (list && list.scores) {
+      mappedScores = list.scores.map((s: any, index: number) => ({
+        id: `sc-${index}-${s.teamId}`,
+        meetId: "1", // Placeholder, as scores are usually per meet
+        teamId: s.teamId.toString(),
+        teamName: s.teamName,
+        individualPoints: s.individualPoints,
+        relayPoints: s.relayPoints,
+        totalPoints: s.totalPoints,
+        rank: s.rank
+      }));
+    }
   } catch (e) {
     console.error("Failed to fetch scores", e);
   }

@@ -1,22 +1,8 @@
 import type { Entry as UIEntry } from "@/lib/swim-meet-types"
-import client from "@/lib/mm-client";
-import { Empty } from "@/lib/proto/meet_manager";
 import { EntriesManager } from "@/components/entries-manager"
 import { AppSidebar } from "@/components/app-sidebar"
 
-// Helper to wrap callback in promise
-function getEntries(): Promise<any> {
-  return new Promise((resolve, reject) => {
-    // @ts-ignore
-    client.getEntries(Empty.fromPartial({}), (err: any, response: any) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
+import { getEntries } from "@/app/actions"
 
 export const dynamic = 'force-dynamic';
 
@@ -24,18 +10,20 @@ export default async function EntriesPage() {
   let mappedEntries: UIEntry[] = [];
 
   try {
-    const list = await getEntries();
-    mappedEntries = list.entries.map((e: any) => ({
-      id: e.id.toString(), // assuming server provides index as ID
-      eventId: e.eventId.toString(),
-      athleteId: e.athleteId.toString(),
-      athleteName: e.athleteName,
-      teamId: e.teamId ? e.teamId.toString() : "",
-      teamName: e.teamName,
-      seedTime: e.seedTime,
-      finalTime: e.finalTime || null,
-      place: e.place || null,
-    }));
+    const list: any = await getEntries();
+    if (list && list.entries) {
+      mappedEntries = list.entries.map((e: any) => ({
+        id: e.id.toString(), // assuming server provides index as ID
+        eventId: e.eventId.toString(),
+        athleteId: e.athleteId.toString(),
+        athleteName: e.athleteName,
+        teamId: e.teamId ? e.teamId.toString() : "",
+        teamName: e.teamName,
+        seedTime: e.seedTime,
+        finalTime: e.finalTime || null,
+        place: e.place || null,
+      }));
+    }
   } catch (e) {
     console.error("Failed to fetch entries", e);
   }

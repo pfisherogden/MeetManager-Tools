@@ -6,7 +6,6 @@ default: test
 # Clean up temporary cache files
 clean:
     @echo "Cleaning up..."
-    -rm -rf .DS_Store
     -rm -rf .tmp
     -rm -rf .npm_cache
     -rm -rf backend/src/__pycache__

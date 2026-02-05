@@ -1,21 +1,9 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { Dashboard } from "@/components/dashboard"
-import client from "@/lib/mm-client";
-import { Empty, DashboardStats } from "@/lib/proto/meet_manager";
-export const dynamic = 'force-dynamic';
+import { DashboardStats } from "@/lib/proto/meet_manager";
+import { getDashboardStats } from "@/app/actions"
 
-// Helper to wrap callback in promise
-function getStats(): Promise<DashboardStats> {
-  return new Promise((resolve, reject) => {
-    client.getDashboardStats(Empty.fromPartial({}), (err, response) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   let stats: DashboardStats = {
@@ -26,7 +14,10 @@ export default async function HomePage() {
   };
 
   try {
-    stats = await getStats();
+    const fetchedStats = await getDashboardStats();
+    if (fetchedStats) {
+      stats = fetchedStats;
+    }
   } catch (e) {
     console.error("Failed to fetch dashboard stats", e);
   }

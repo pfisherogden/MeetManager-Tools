@@ -1,52 +1,32 @@
-"use client"
 
-import { useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
-import { DataTable, type Column } from "@/components/data-table"
-import { sessions as initialSessions, meets } from "@/lib/swim-meet-data"
+import { SessionsManager } from "@/components/sessions-manager"
 import type { Session } from "@/lib/swim-meet-types"
+import { getSessions } from "@/app/actions"
 
-const getMeetName = (meetId: string) => meets.find(m => m.id === meetId)?.name || meetId
+export const dynamic = 'force-dynamic';
 
-const columns: Column<Session>[] = [
-  { key: "name", label: "Session Name", editable: true, width: "w-40" },
-  { 
-    key: "meetId", 
-    label: "Meet", 
-    editable: true, 
-    type: "select",
-    options: meets.map(m => m.id),
-    width: "w-52",
-    render: (value) => getMeetName(value as string)
-  },
-  { key: "date", label: "Date", editable: true, type: "date", width: "w-32" },
-  { key: "warmUpTime", label: "Warm-up", editable: true, width: "w-24" },
-  { key: "startTime", label: "Start", editable: true, width: "w-24" },
-  { key: "eventCount", label: "Events", editable: true, type: "number", width: "w-20" },
-]
+export default async function SessionsPage() {
+  let mappedSessions: Session[] = [];
 
-export default function SessionsPage() {
-  const [data, setData] = useState<Session[]>(initialSessions)
+  // Mock meets for now, eventually fetch from backend
+  const meets = [{ id: "1", name: "Summer Championships" }];
 
-  const handleAdd = () => {
-    const newSession: Session = {
-      id: `s${Date.now()}`,
-      meetId: meets[0]?.id || "",
-      name: "New Session",
-      date: new Date().toISOString().split("T")[0],
-      warmUpTime: "07:00",
-      startTime: "09:00",
-      eventCount: 0,
+  try {
+    const response: any = await getSessions();
+    if (response && response.sessions) {
+      mappedSessions = response.sessions.map((s: any) => ({
+        id: s.id,
+        meetId: s.meetId,
+        name: s.name,
+        date: s.date,
+        warmUpTime: s.warmUpTime,
+        startTime: s.startTime,
+        eventCount: s.eventCount,
+      }));
     }
-    setData([newSession, ...data])
-  }
-
-  const handleDelete = (id: string) => {
-    setData(data.filter((s) => s.id !== id))
-  }
-
-  const handleUpdate = (id: string, key: keyof Session, value: Session[keyof Session]) => {
-    setData(data.map((s) => (s.id === id ? { ...s, [key]: value } : s)))
+  } catch (e) {
+    console.error("Failed to fetch sessions", e);
   }
 
   return (
@@ -57,17 +37,7 @@ export default function SessionsPage() {
           <h1 className="text-2xl font-bold text-foreground">Sessions</h1>
           <p className="text-muted-foreground">Manage meet sessions and schedules</p>
         </div>
-        <div className="flex-1 p-6 pt-4">
-          <div className="h-full rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-            <DataTable
-              data={data}
-              columns={columns}
-              onAdd={handleAdd}
-              onDelete={handleDelete}
-              onUpdate={handleUpdate}
-            />
-          </div>
-        </div>
+        <SessionsManager initialSessions={mappedSessions} meets={meets} />
       </main>
     </div>
   )

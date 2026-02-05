@@ -15,6 +15,7 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useConfig } from "@/components/config-provider"
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -71,15 +72,27 @@ export function AppSidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
-        <div className="px-4 py-3 rounded-lg bg-sidebar-accent/50">
-          <p className="text-xs text-sidebar-foreground/60">
-            Summer Championships 2025
-          </p>
-          <p className="text-sm font-medium text-sidebar-foreground mt-1">
-            July 15-18, Miami FL
-          </p>
-        </div>
+        <SidebarFooterContent />
       </div>
     </aside>
+  )
+}
+
+function SidebarFooterContent() {
+  const { meetDescription } = useConfig();
+  if (!meetDescription) return null;
+
+  // Split optionally by first newline or just show it
+  return (
+    <div className="px-4 py-3 rounded-lg bg-sidebar-accent/50 space-y-2">
+      <p className="text-xs text-sidebar-foreground/60 whitespace-pre-wrap">
+        {meetDescription}
+      </p>
+      {process.env.NEXT_PUBLIC_BUILD_TIME && (
+        <div className="text-[10px] text-sidebar-foreground/30 font-mono pt-2 border-t border-sidebar-border/50">
+          Build: {new Date(process.env.NEXT_PUBLIC_BUILD_TIME).toLocaleString()}
+        </div>
+      )}
+    </div>
   )
 }

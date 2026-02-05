@@ -1,41 +1,28 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { AthletesManager } from "@/components/athletes-manager"
 import type { Athlete as UIAthlete } from "@/lib/swim-meet-types"
-import client from "@/lib/mm-client";
-import { Empty, AthleteList } from "@/lib/proto/meet_manager";
+
+import { getAthletes } from "@/app/actions"
 
 export const dynamic = 'force-dynamic';
-
-// Helper to wrap callback in promise
-function getAthletes(): Promise<AthleteList> {
-  return new Promise((resolve, reject) => {
-    client.getAthletes(Empty.fromPartial({}), (err, response) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
-
-
 
 export default async function AthletesPage() {
   let mappedAthletes: UIAthlete[] = [];
 
   try {
-    const list = await getAthletes();
-    mappedAthletes = list.athletes.map(a => ({
-      id: a.id.toString(),
-      firstName: a.firstName,
-      lastName: a.lastName,
-      teamId: a.teamId.toString(),
-      teamName: a.teamName,
-      dateOfBirth: "2010-01-01", // Placeholder as DoB is not in current proto
-      gender: a.gender as "M" | "F",
-      age: a.age
-    }));
+    const list: any = await getAthletes();
+    if (list && list.athletes) {
+      mappedAthletes = list.athletes.map((a: any) => ({
+        id: a.id.toString(),
+        firstName: a.firstName,
+        lastName: a.lastName,
+        teamId: a.teamId.toString(),
+        teamName: a.teamName,
+        dateOfBirth: "2010-01-01", // Placeholder as DoB is not in current proto
+        gender: a.gender as "M" | "F",
+        age: a.age
+      }));
+    }
   } catch (e) {
     console.error("Failed to fetch athletes", e);
   }

@@ -12,6 +12,9 @@ const nextConfig = {
       bodySizeLimit: '50mb',
     },
   },
+  env: {
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
 }
 
 export default nextConfig
