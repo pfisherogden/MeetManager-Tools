@@ -27,6 +27,13 @@ service MeetManagerService {
   rpc GetRelays (Empty) returns (RelayList);
   rpc GetScores (Empty) returns (ScoreList);
   rpc GetEntries (Empty) returns (EntryList);
+  
+  // Session Operations
+  rpc GetSessions (Empty) returns (SessionList);
+
+  // Configuration
+  rpc GetAdminConfig (Empty) returns (AdminConfig);
+  rpc UpdateAdminConfig (AdminConfig) returns (AdminConfig);
 }
 
 message Dataset {
@@ -102,6 +109,27 @@ message Entry {
 
 message EntryList {
   repeated Entry entries = 1;
+}
+
+message Session {
+  string id = 1;
+  string meet_id = 2;
+  string name = 3;
+  string date = 4;
+  string warm_up_time = 5;
+  string start_time = 6;
+  int32 event_count = 7;
+  int32 session_num = 8;
+  int32 day = 9;
+}
+
+message SessionList {
+  repeated Session sessions = 1;
+}
+
+message AdminConfig {
+  string meet_name = 1;
+  string meet_description = 2; // Details like location, dates
 }
 
 message Empty {}

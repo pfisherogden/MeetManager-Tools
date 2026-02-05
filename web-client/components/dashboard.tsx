@@ -8,7 +8,11 @@ interface DashboardProps {
   stats: DashboardStats;
 }
 
+import { useConfig } from "@/components/config-provider"
+
 export function Dashboard({ stats: backendStats }: DashboardProps) {
+  const { meetName } = useConfig();
+
   // Use backend stats
   const statItems = [
     {
@@ -41,12 +45,6 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
     },
   ];
 
-  // Mocking the extra content for now as we don't have detailed endpoints yet
-  const upcomingMeets = [];
-  const activeMeets = [];
-  const topScores = [];
-  const recentEntries = [];
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -55,10 +53,12 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Welcome to SwimMeet Pro</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-sunshine/20 text-foreground">
-          <Waves className="h-5 w-5 text-pool-blue" />
-          <span className="text-sm font-medium">Summer Season 2025</span>
-        </div>
+        {meetName && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-sunshine/20 text-foreground">
+            <Waves className="h-5 w-5 text-pool-blue" />
+            <span className="text-sm font-medium">{meetName}</span>
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -83,9 +83,9 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
       </div>
 
       {/* Placeholder for future detailed widgets */}
-      <div className="p-4 rounded border bg-muted/20 text-center text-muted-foreground">
+      {/* <div className="p-4 rounded border bg-muted/20 text-center text-muted-foreground">
         Detailed activity widgets coming soon (connected to live data).
-      </div>
+      </div> */}
     </div>
   )
 }
