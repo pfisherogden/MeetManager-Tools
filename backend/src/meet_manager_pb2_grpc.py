@@ -114,6 +114,11 @@ class MeetManagerServiceStub(object):
                 request_serializer=meet__manager__pb2.AdminConfig.SerializeToString,
                 response_deserializer=meet__manager__pb2.AdminConfig.FromString,
                 _registered_method=True)
+        self.GetEventScores = channel.unary_unary(
+                '/meetmanager.MeetManagerService/GetEventScores',
+                request_serializer=meet__manager__pb2.Empty.SerializeToString,
+                response_deserializer=meet__manager__pb2.EventScoreList.FromString,
+                _registered_method=True)
 
 
 class MeetManagerServiceServicer(object):
@@ -223,6 +228,12 @@ class MeetManagerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetEventScores(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MeetManagerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -305,6 +316,11 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
                     servicer.UpdateAdminConfig,
                     request_deserializer=meet__manager__pb2.AdminConfig.FromString,
                     response_serializer=meet__manager__pb2.AdminConfig.SerializeToString,
+            ),
+            'GetEventScores': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetEventScores,
+                    request_deserializer=meet__manager__pb2.Empty.FromString,
+                    response_serializer=meet__manager__pb2.EventScoreList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -739,6 +755,33 @@ class MeetManagerService(object):
             '/meetmanager.MeetManagerService/UpdateAdminConfig',
             meet__manager__pb2.AdminConfig.SerializeToString,
             meet__manager__pb2.AdminConfig.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetEventScores(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/GetEventScores',
+            meet__manager__pb2.Empty.SerializeToString,
+            meet__manager__pb2.EventScoreList.FromString,
             options,
             channel_credentials,
             insecure,

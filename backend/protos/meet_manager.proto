@@ -34,6 +34,7 @@ service MeetManagerService {
   // Configuration
   rpc GetAdminConfig (Empty) returns (AdminConfig);
   rpc UpdateAdminConfig (AdminConfig) returns (AdminConfig);
+  rpc GetEventScores (Empty) returns (EventScoreList);
 }
 
 message Dataset {
@@ -76,6 +77,8 @@ message Relay {
   string seed_time = 9;
   string final_time = 10;
   int32 place = 11;
+  string event_name = 12;
+  string relay_letter = 13;
 }
 
 message RelayList {
@@ -95,6 +98,16 @@ message ScoreList {
   repeated Score scores = 1;
 }
 
+message EventScore {
+  int32 event_id = 1;
+  string event_name = 2;
+  repeated Entry entries = 3; // Reusing Entry which has place/points
+}
+
+message EventScoreList {
+  repeated EventScore event_scores = 1;
+}
+
 message Entry {
   int32 id = 1; // Entry_no
   int32 event_id = 2; // Event_ptr
@@ -105,6 +118,10 @@ message Entry {
   string seed_time = 7;
   string final_time = 8;
   int32 place = 9;
+  string event_name = 10;
+  int32 heat = 11;
+  int32 lane = 12;
+  float points = 14;
 }
 
 message EntryList {
@@ -182,6 +199,7 @@ message Athlete {
   string team_name = 7;
   string school_year = 8;
   string reg_no = 9;
+  string date_of_birth = 10;
 }
 
 message AthleteList {
