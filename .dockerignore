@@ -1,33 +1,14 @@
-# Dependencies
-**/node_modules
-**/venv
-**/.uv_cache
-**/.npm_cache
-
-# Version Control
-.git
-**/.git
-
-# System
 .DS_Store
 **/.DS_Store
-.tmp
-**/.tmp
-
-# Build Artifacts
-web-client-build
-web-client/.npm-cache
-web-client/node_modules
-**/.next
-**/out
-**/build
-**/dist
+.git
+.venv
 **/__pycache__
-**/*.pyc
-**/*.egg-info
-
-# Data
-# Data & Large Directories
+node_modules
+**/node_modules
+.next
+**/.next
+.tmp
+.npm_cache
 backend/data/*.mdb
-mm_to_json/
-randomize_data.py
+!backend/data/Sample_Data.json
+# Keep original MDBs if they are part of repo, but typically we might want to ignore large data files in build context

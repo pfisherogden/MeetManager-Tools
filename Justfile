@@ -9,12 +9,18 @@ clean:
     -rm -rf .tmp
     -rm -rf .npm_cache
     -rm -rf backend/src/__pycache__
+    -rm -f backend/data/uploaded.mdb
     @echo "Cleanup complete."
 
 # Build Docker containers
 build: clean
+    @echo "Preparing frontend build context..."
+    mkdir -p web-client/backend_protos_temp
+    cp -r backend/protos/* web-client/backend_protos_temp/
     @echo "Building containers..."
     docker-compose build
+    @echo "Cleaning up temp protos..."
+    rm -rf web-client/backend_protos_temp
 
 # Start services in the background
 up:

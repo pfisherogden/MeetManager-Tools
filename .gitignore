@@ -1,52 +1,13 @@
-# System
 .DS_Store
+*.pyc
+__pycache__/
+.venv/
+node_modules/
+.next/
+.idea/
+.vscode/
+backend/data/*.mdb
+!backend/data/Sample_Data.json
+web-client/backend_protos_temp/
 .tmp
 .npm_cache
-
-# Build Artifacts
-web-client-build/
-backend/src/protos/
-web-client/lib/proto/
-
-# Dependencies
-**/node_modules/
-*.zip
-backend/venv/
-backend/__pycache__/
-backend/data/
-*.pyc
-web-client/.npm-cache/
-web-client/package-lock 2.json
-web-client/pnpm-lock.yaml
-
-# Data Processing
-mm_to_json/
-randomize_data.py
-
-# Python/uv
-.uv_cache
-.venv
-build/
-dist/
-*.egg-info/
-
-# Node/npm
-.npmrc
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment
-.env
-.env.local
-
-# IDE
-.vscode/
-.idea/
-
-# Testing
-test.mdb
-*test*.mdb
-coverage/
-TRASH/
-tmp/

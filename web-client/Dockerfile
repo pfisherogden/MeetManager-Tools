@@ -5,14 +5,13 @@ WORKDIR /app
 # Install dependencies (single stage to avoid COPY --from hang)
 
 # Install dependencies (single stage to avoid COPY --from hang)
-COPY web-client/package.json web-client/package-lock.json* ./
+# Install dependencies
+COPY package.json package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else echo "Lockfile not found. Running npm install." && npm install; fi
 
 # Copy source
-# Copy web-client code to /app
-COPY web-client/ .
-# Copy backend protos to /backend/protos (relative to workdir /app)
-COPY backend/protos ./backend/protos
+COPY . .
+# Protos are now in backend_protos_temp (copied by Justfile)
 
 # Generate TS Code
 RUN mkdir -p lib/proto && \
@@ -20,8 +19,8 @@ RUN mkdir -p lib/proto && \
   --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
   --ts_proto_out=./lib/proto \
   --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,esModuleInterop=true \
-  -I./backend/protos \
-  ./backend/protos/meet_manager.proto
+  -I./backend_protos_temp \
+  ./backend_protos_temp/meet_manager.proto
 
 # Build
 ENV NEXT_TELEMETRY_DISABLED 1
