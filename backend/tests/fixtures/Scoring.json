@@ -1,0 +1,982 @@
+[
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "1",
+    "ind_score": "20",
+    "rel_score": "40"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "1",
+    "ind_score": "16",
+    "rel_score": "32"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "2",
+    "ind_score": "17",
+    "rel_score": "34"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "2",
+    "ind_score": "13",
+    "rel_score": "26"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "3",
+    "ind_score": "16",
+    "rel_score": "32"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "3",
+    "ind_score": "12",
+    "rel_score": "24"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "4",
+    "ind_score": "15",
+    "rel_score": "30"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "4",
+    "ind_score": "11",
+    "rel_score": "22"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "5",
+    "ind_score": "14",
+    "rel_score": "28"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "5",
+    "ind_score": "10",
+    "rel_score": "20"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "6",
+    "ind_score": "13",
+    "rel_score": "26"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "6",
+    "ind_score": "9",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "7",
+    "ind_score": "12",
+    "rel_score": "24"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "7",
+    "ind_score": "7",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "8",
+    "ind_score": "11",
+    "rel_score": "22"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "8",
+    "ind_score": "5",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "9",
+    "ind_score": "9",
+    "rel_score": "18"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "9",
+    "ind_score": "4",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "10",
+    "ind_score": "7",
+    "rel_score": "14"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "10",
+    "ind_score": "3",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "11",
+    "ind_score": "6",
+    "rel_score": "12"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "11",
+    "ind_score": "2",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "12",
+    "ind_score": "5",
+    "rel_score": "10"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "12",
+    "ind_score": "1",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "13",
+    "ind_score": "4",
+    "rel_score": "8"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "13",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "14",
+    "ind_score": "3",
+    "rel_score": "6"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "14",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "15",
+    "ind_score": "2",
+    "rel_score": "4"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "15",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "16",
+    "ind_score": "1",
+    "rel_score": "2"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "16",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "17",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "17",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "18",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "18",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "19",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "19",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "20",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "20",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "21",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "21",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "22",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "22",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "23",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "23",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "24",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "24",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "25",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "25",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "26",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "26",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "27",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "27",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "28",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "28",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "29",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "29",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "30",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "30",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "31",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "31",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "32",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "32",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "33",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "33",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "34",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "34",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "35",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "35",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "36",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "36",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "37",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "37",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "38",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "38",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "39",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "39",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "F",
+    "score_place": "40",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "40",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "41",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "42",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "43",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "44",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "45",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "46",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "47",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "48",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "49",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "50",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "51",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "52",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "53",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "54",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "55",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "56",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "57",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "58",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "59",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "60",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "61",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "62",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "63",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "64",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "65",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "66",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "67",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "68",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "69",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "70",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "71",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "72",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "73",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "74",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "75",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "76",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "77",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "78",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "79",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "80",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "81",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "82",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "83",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "84",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "85",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "86",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "87",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "88",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "89",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "90",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "91",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "92",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "93",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "94",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "95",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "96",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "97",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "98",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "99",
+    "ind_score": "0",
+    "rel_score": "0"
+  },
+  {
+    "score_divno": "0",
+    "score_sex": "M",
+    "score_place": "100",
+    "ind_score": "0",
+    "rel_score": "0"
+  }
+]

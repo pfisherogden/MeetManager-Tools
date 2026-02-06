@@ -213,9 +213,18 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
         # We need to map Team ID to Name for efficient display, or join manually
         teams_map = {int(t.get('Team_no', 0)): t.get('Team_name') for t in self._get_table('Team')}
         
+    def GetAthletes(self, request, context):
+        data = self._get_table('Athlete')
+        # We need to map Team ID to Name for efficient display, or join manually
+        teams_map = {int(t.get('Team_no', 0)): t.get('Team_name') for t in self._get_table('Team')}
+        
         athletes = []
         for item in data:
             t_id = int(item.get('Team_no', 0))
+            # Birthdate parsing: "01/28/11 00:00:00"
+            dob_raw = item.get('Ath_birthdate') or item.get('Birth_date') or ''
+            dob = dob_raw.split(' ')[0] if dob_raw else ''
+
             athletes.append(meet_manager_pb2.Athlete(
                 id=int(item.get('Ath_no', 0)),
                 first_name=item.get('First_name', ''),
@@ -225,7 +234,8 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                 team_id=t_id,
                 team_name=teams_map.get(t_id, 'Unknown'), 
                 school_year=item.get('School_yr', ''),
-                reg_no=item.get('Reg_no', '')
+                reg_no=item.get('Reg_no', ''),
+                date_of_birth=dob
             ))
         return meet_manager_pb2.AthleteList(athletes=athletes)
 
@@ -356,62 +366,161 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
         except (ValueError, TypeError):
             return default
 
+    def _seconds_to_time(self, seconds_val):
+        """Converts raw integer seconds (or similar) to HH:MM AM/PM."""
+        try:
+            val = int(seconds_val)
+            # Assuming seconds from midnight
+            hours = val // 3600
+            minutes = (val % 3600) // 60
+            # AM/PM
+            period = "AM"
+            if hours >= 12:
+                period = "PM"
+                if hours > 12:
+                    hours -= 12
+            if hours == 0:
+                hours = 12
+            if hours == 12 and period == "AM": # Midnight case?
+                 pass
+            return f"{hours}:{minutes:02d} {period}"
+        except (ValueError, TypeError):
+            return ""
+
     def GetRelays(self, request, context):
         """Fetches Relay entries, joining with Team data."""
-        relays_data = self._get_table('RELAY')  # Assuming table name is capital RELAY
+        relays_data = self._get_table('Relay')  # Assuming table name is capital RELAY
         if not relays_data:
-             relays_data = self._get_table('Relay') # Try mixed case
+             relays_data = self._get_table('RELAY') # Try mixed case
+        
+        # Load RelayNames to get swimmers
+        relay_names_data = self._get_table('RelayNames')
+        # Index RelayNames by (Event_ptr, Team_no, Relay_no)
+        relay_legs_map = {}
+        for rn in relay_names_data:
+            key = (rn.get('Event_ptr'), rn.get('Team_no'), rn.get('Relay_no'))
+            if key not in relay_legs_map:
+                relay_legs_map[key] = []
+            relay_legs_map[key].append(rn)
         
         teams = {t.get('Team_no'): t.get('Team_name') for t in self._get_table('Team')}
+        athletes = {a.get('Ath_no'): a for a in self._get_table('Athlete')}
         
+        # Pre-process Events mapping
+        events_map = {}
+        stroke_map = {'A': 'Free', 'B': 'Back', 'C': 'Breast', 'D': 'Fly', 'E': 'IM'}
+        gender_map = {'B': 'Boys', 'G': 'Girls', 'X': 'Mixed', 'M': 'Men', 'W': 'Women', 'F': 'Women'}
+        
+        for e in self._get_table('Event'):
+             e_no = e.get('Event_no') or e.get('Event_ptr')
+             if e_no:
+                  g = gender_map.get(e.get('Event_sex','').strip(), e.get('Event_sex',''))
+                  d = e.get('Event_dist','')
+                  s = stroke_map.get(e.get('Event_stroke','').strip(), e.get('Event_stroke',''))
+                  low = e.get('Low_age','')
+                  high = e.get('High_Age','')
+                  name = f"{g} {low}-{high} {d} {s}"
+                  events_map[e_no] = name
+
         result = []
         for idx, item in enumerate(relays_data):
             t_id = item.get('Team_ptr', 0)
-            if not t_id:
+            if not t_id or t_id == '0':
                 t_id = item.get('Team_no', 0)
             
+            event_ptr = item.get('Event_ptr')
+            relay_no = item.get('Relay_no')
+            
+            # Find legs
+            legs = relay_legs_map.get((event_ptr, t_id, relay_no), [])
+            # Sort by Pos_no
+            legs.sort(key=lambda x: int(x.get('Pos_no', 0) if x.get('Pos_no') and x.get('Pos_no').strip().isdigit() else 99))
+            
+            leg_names = ["", "", "", ""]
+            for leg in legs:
+                try:
+                    pos = int(leg.get('Pos_no', 0))
+                    if 1 <= pos <= 4:
+                        ath_id = leg.get('Ath_no')
+                        ath = athletes.get(ath_id)
+                        if ath:
+                            leg_names[pos-1] = f"{ath.get('First_name','')} {ath.get('Last_name','')}"
+                except ValueError:
+                    continue
+
+            # Fix Seed Time (NT if empty or 0)
+            seed = item.get('ActualSeed_time') or item.get('ConvSeed_time') or item.get('Seed_Time') or 'NT'
+            try:
+                 if float(seed) == 0: seed = 'NT'
+            except:
+                 pass
+
             result.append(meet_manager_pb2.Relay(
                 id=idx, 
                 event_id=self._safe_int(item.get('Event_ptr')),
                 team_id=self._safe_int(t_id),
                 team_name=teams.get(t_id, 'Unknown'),
-                leg1_name="", 
-                leg2_name="",
-                leg3_name="",
-                leg4_name="",
-                seed_time=str(item.get('Seed_Time', 'NT')),
-                final_time=str(item.get('Finals_Time', '')),
-                place=self._safe_int(item.get('Place'))
+                leg1_name=leg_names[0], 
+                leg2_name=leg_names[1],
+                leg3_name=leg_names[2],
+                leg4_name=leg_names[3],
+                seed_time=str(seed),
+                final_time=str(item.get('Fin_Time', '')),
+                place=self._safe_int(item.get('Fin_place', item.get('Place'))),
+                event_name=events_map.get(event_ptr, f"Event {event_ptr}"),
+                relay_letter=item.get('Team_ltr', '')
             ))
         return meet_manager_pb2.RelayList(relays=result)
 
     def GetScores(self, request, context):
         """Fetches or calculates team scores."""
-        scores_data = self._get_table('TEAMSCOR') 
-        teams = {t.get('Team_no'): t for t in self._get_table('Team')}
+        # Calculate from Entry and Relay Ev_score
+        teams = {t.get('Team_no'): {'name': t.get('Team_name'), 'id': t.get('Team_no')} for t in self._get_table('Team')}
+        scores = {t_id: {'ind': 0.0, 'rel': 0.0} for t_id in teams}
         
+        # Process Entries
+        entries_data = self._get_table('Entry') or self._get_table('ENTRY')
+        athletes = {a.get('Ath_no'): a for a in self._get_table('Athlete')}
+        
+        if entries_data:
+            for e in entries_data:
+                 ath_id = e.get('Ath_no')
+                 ath = athletes.get(ath_id)
+                 if ath:
+                      t_id = ath.get('Team_no')
+                      if t_id in scores:
+                           val = self._safe_float(e.get('Ev_score', 0))
+                           scores[t_id]['ind'] += val
+
+        # Process Relays
+        relays_data = self._get_table('Relay') or self._get_table('RELAY')
+        if relays_data:
+            for r in relays_data:
+                 t_id = r.get('Team_no') # Or Team_ptr
+                 if not t_id or t_id == '0':
+                      t_id = r.get('Team_ptr')
+                 
+                 if t_id in scores:
+                      val = self._safe_float(r.get('Ev_score', 0))
+                      scores[t_id]['rel'] += val
+
         result = []
-        if scores_data:
-            for item in scores_data:
-                 t_id = item.get('Team_no')
-                 result.append(meet_manager_pb2.Score(
-                     team_id=self._safe_int(t_id),
-                     team_name=teams.get(t_id, {}).get('Team_name', 'Unknown'),
-                     individual_points=self._safe_float(item.get('Ind_score')),
-                     relay_points=self._safe_float(item.get('Rel_score')),
-                     total_points=self._safe_float(item.get('Tot_score')),
-                     rank=self._safe_int(item.get('Place'))
-                 ))
-        else:
-             for t_id, team in teams.items():
-                 result.append(meet_manager_pb2.Score(
-                     team_id=self._safe_int(t_id),
-                     team_name=team.get('Team_name', 'Unknown'),
-                     individual_points=0,
-                     relay_points=0,
-                     total_points=0,
-                     rank=0
-                 ))
+        for t_id, s in scores.items():
+             total = s['ind'] + s['rel']
+             result.append(meet_manager_pb2.Score(
+                 team_id=self._safe_int(t_id),
+                 team_name=teams[t_id]['name'],
+                 individual_points=s['ind'],
+                 relay_points=s['rel'],
+                 total_points=total,
+                 rank=0 
+             ))
+        
+        # Sort by total points desc
+        result.sort(key=lambda x: x.total_points, reverse=True)
+        for i, r in enumerate(result):
+             if r.total_points > 0:
+                 r.rank = i + 1
         
         return meet_manager_pb2.ScoreList(scores=result)
 
@@ -423,25 +532,158 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
         
         athletes = {a.get('Ath_no'): a for a in self._get_table('Athlete')}
         teams = {t.get('Team_no'): t.get('Team_name') for t in self._get_table('Team')}
+        # Pre-process Events mapping
+        events_map = {}
+        stroke_map = {'A': 'Free', 'B': 'Back', 'C': 'Breast', 'D': 'Fly', 'E': 'IM'}
+        gender_map = {'B': 'Boys', 'G': 'Girls', 'X': 'Mixed', 'M': 'Men', 'W': 'Women', 'F': 'Women'}
         
+        for e in self._get_table('Event'):
+             e_no = e.get('Event_no') or e.get('Event_ptr')
+             if e_no:
+                  g = gender_map.get(e.get('Event_sex','').strip(), e.get('Event_sex',''))
+                  d = e.get('Event_dist','')
+                  s = stroke_map.get(e.get('Event_stroke','').strip(), e.get('Event_stroke',''))
+                  low = e.get('Low_age','')
+                  high = e.get('High_Age','')
+                  name = f"{g} {low}-{high} {d} {s}"
+                  events_map[e_no] = name
+
         result = []
         for idx, item in enumerate(entries_data):
             ath_id = item.get('Ath_no', 0)
             athlete = athletes.get(ath_id, {})
             t_id = athlete.get('Team_no', 0)
-            
+            event_id = item.get('Event_ptr')
+
+            seed = item.get('ActualSeed_time') or item.get('ConvSeed_time') or item.get('Seed_Time') or 'NT'
+            try:
+                 if float(seed) == 0: seed = 'NT'
+            except:
+                 pass
+
             result.append(meet_manager_pb2.Entry(
                 id=idx, 
-                event_id=self._safe_int(item.get('Event_ptr')),
+                event_id=self._safe_int(event_id),
                 athlete_id=self._safe_int(ath_id),
                 athlete_name=f"{athlete.get('First_name','')} {athlete.get('Last_name','')}",
                 team_id=self._safe_int(t_id),
                 team_name=teams.get(t_id, 'Unknown'),
-                seed_time=str(item.get('Seed_Time', 'NT')),
-                final_time=str(item.get('Finals_Time', '')),
-                place=self._safe_int(item.get('Place'))
+                seed_time=str(seed),
+                final_time=str(item.get('Fin_Time', '')),
+                place=self._safe_int(item.get('Fin_place', item.get('Place'))),
+                event_name=events_map.get(event_id, f"Event {event_id}"),
+                heat=self._safe_int(item.get('Fin_heat', item.get('Pre_heat', 0))),
+                lane=self._safe_int(item.get('Fin_lane', item.get('Pre_lane', 0))),
+                points=self._safe_float(item.get('Ev_score', 0.0))
             ))
         return meet_manager_pb2.EntryList(entries=result)
+
+    def GetEventScores(self, request, context):
+        """Fetches detailed scores per event (Entries and Relays)."""
+        # Load all needed data
+        entries = self._get_table('Entry') or self._get_table('ENTRY')
+        relays = self._get_table('Relay') or self._get_table('RELAY')
+        athletes_map = {a.get('Ath_no'): a for a in self._get_table('Athlete')}
+        teams_map = {t.get('Team_no'): t.get('Team_name') for t in self._get_table('Team')}
+        
+        # Build Event Map
+        events_map = {}
+        stroke_map = {'A': 'Free', 'B': 'Back', 'C': 'Breast', 'D': 'Fly', 'E': 'IM'}
+        gender_map = {'B': 'Boys', 'G': 'Girls', 'X': 'Mixed', 'M': 'Men', 'W': 'Women', 'F': 'Women'}
+        
+        # Events by ID
+        event_dict = {}
+        
+        for e in self._get_table('Event'):
+             e_no = e.get('Event_no') or e.get('Event_ptr')
+             if not e_no: continue
+             
+             g = gender_map.get(e.get('Event_sex','').strip(), e.get('Event_sex',''))
+             d = e.get('Event_dist','')
+             s_raw = e.get('Event_stroke','').strip()
+             s = stroke_map.get(s_raw, s_raw)
+             
+             # Relay check
+             is_relay = (e.get('Ind_rel', '').upper().strip() == 'R')
+             if s_raw == 'E' and is_relay: s = "Medley Relay"
+             elif is_relay and s != s_raw: s += " Relay"
+             
+             low = e.get('Low_age','')
+             high = e.get('High_Age','')
+             name = f"{g} {low}-{high} {d} {s}"
+             events_map[e_no] = name
+             event_dict[e_no] = {'id': int(e_no), 'name': name, 'entries': []}
+
+        # Process Individual Entries
+        for item in entries:
+             e_id = item.get('Event_ptr')
+             if e_id not in event_dict:
+                  continue
+             
+             ath_id = item.get('Ath_no')
+             ath = athletes_map.get(ath_id)
+             t_id = ath.get('Team_no', 0) if ath else 0
+             
+             # Check if it has a score or place
+             place = self._safe_int(item.get('Fin_place', item.get('Place', 0)))
+             points = self._safe_float(item.get('Ev_score', 0))
+             
+             # Only include scored items or finalists? User asked for "scores for each event, including athletes and ranks"
+             # So maybe just list everyone who participated? 
+             # Let's list everyone who has a place or score.
+             
+             entry_obj = meet_manager_pb2.Entry(
+                 id=0, # Not vital here
+                 event_id=int(e_id),
+                 athlete_id=int(ath_id if ath else 0),
+                 athlete_name=f"{ath.get('First_name','')} {ath.get('Last_name','')}" if ath else "Unknown",
+                 team_id=int(t_id),
+                 team_name=teams_map.get(t_id, 'Unknown'),
+                 final_time=str(item.get('Fin_Time', '')),
+                 place=place,
+                 event_name=events_map.get(e_id, "")
+             )
+             event_dict[e_id]['entries'].append(entry_obj)
+
+        # Process Relays
+        for item in relays:
+             e_id = item.get('Event_ptr')
+             if e_id not in event_dict:
+                  continue
+                  
+             t_id = item.get('Team_ptr') or item.get('Team_no')
+             place = self._safe_int(item.get('Fin_place', item.get('Place', 0)))
+             
+             # Create a "pseudo-entry" for the relay team
+             entry_obj = meet_manager_pb2.Entry(
+                 id=0,
+                 event_id=int(e_id),
+                 athlete_id=0,
+                 athlete_name="Relay Team", # Or list legs?
+                 team_id=int(t_id if t_id else 0),
+                 team_name=teams_map.get(t_id, 'Unknown'),
+                 final_time=str(item.get('Fin_Time', '')),
+                 place=place,
+                 event_name=events_map.get(e_id, "")
+             )
+             event_dict[e_id]['entries'].append(entry_obj)
+
+        # Build response
+        resp_list = []
+        # Sort events by ID
+        sorted_keys = sorted(event_dict.keys(), key=lambda k: int(k))
+        for k in sorted_keys:
+             ev = event_dict[k]
+             # Sort entries by place
+             ev['entries'].sort(key=lambda x: x.place if x.place > 0 else 9999)
+             
+             resp_list.append(meet_manager_pb2.EventScore(
+                 event_id=ev['id'],
+                 event_name=ev['name'],
+                 entries=ev['entries']
+             ))
+             
+        return meet_manager_pb2.EventScoreList(event_scores=resp_list)
 
     def GetSessions(self, request, context):
         # Trying to find explicit sessions table first (often 'Session' or derived from Events)
@@ -469,8 +711,8 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                      meet_id="1", 
                      name=item.get('Sess_name', f"Session {sess_no}"),
                      date=str(item.get('Sess_date', '')), # formatting needed?
-                     warm_up_time=str(item.get('Sess_time', '')), # Field names vary
-                     start_time=str(item.get('Sess_starttime', '')),
+                     warm_up_time=self._seconds_to_time(item.get('Sess_time', '')), 
+                     start_time=self._seconds_to_time(item.get('Sess_starttime', '')),
                      event_count=len(sess_events),
                      session_num=sess_no,
                      day=int(item.get('Sess_day', 0))
