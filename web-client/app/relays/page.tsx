@@ -14,7 +14,8 @@ export default async function RelaysPage() {
     if (list && list.relays) {
       mappedRelays = list.relays.map((r: any) => ({
         id: r.id.toString(),
-        eventId: r.eventId.toString(), // Map if needed
+        eventId: r.eventId.toString(),
+        eventName: r.eventName || `Event ${r.eventId}`,
         teamId: r.teamId.toString(),
         teamName: r.teamName,
         leg1: r.leg1Name,
@@ -23,7 +24,7 @@ export default async function RelaysPage() {
         leg4: r.leg4Name,
         seedTime: r.seedTime,
         finalTime: r.finalTime || null,
-        place: r.place || null,
+        place: r.place ? r.place : null,
       }));
     }
   } catch (e) {

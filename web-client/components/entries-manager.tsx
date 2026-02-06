@@ -22,6 +22,7 @@ const columns: Column<Entry>[] = [
         label: "Team",
         editable: true,
         width: "w-40",
+        filterVariant: "faceted",
         render: (value, row) => (
             row.teamId ? (
                 <Link href={`/teams/${row.teamId}`} className="hover:underline text-primary">
@@ -32,7 +33,10 @@ const columns: Column<Entry>[] = [
             )
         )
     },
-    { key: "eventId", label: "Event ID", editable: true, width: "w-24" },
+    { key: "heat", label: "Heat", editable: false, width: "w-16", type: "number" },
+    { key: "lane", label: "Lane", editable: false, width: "w-16", type: "number" },
+    { key: "eventName", label: "Event", editable: false, width: "w-40", filterVariant: "faceted" },
+    { key: "eventId", label: "ID", editable: true, width: "w-16" },
     {
         key: "seedTime",
         label: "Seed Time",
@@ -59,6 +63,7 @@ const columns: Column<Entry>[] = [
         editable: true,
         type: "number",
         width: "w-20",
+        filterVariant: "faceted",
         render: (value) => {
             const place = value as number | null
             if (!place) return <span className="text-muted-foreground">—</span>

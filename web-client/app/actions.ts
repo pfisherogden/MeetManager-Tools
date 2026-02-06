@@ -113,7 +113,14 @@ export async function getScores() {
     } catch (err) {
         return { scores: [] };
     }
+}
 
+export async function getEventScores() {
+    try {
+        return await client.getEventScores(Empty.fromPartial({}));
+    } catch (err) {
+        return { eventScores: [] };
+    }
 }
 
 export async function getTeams() {

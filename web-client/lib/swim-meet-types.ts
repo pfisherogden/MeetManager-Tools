@@ -60,6 +60,10 @@ export interface Entry {
   seedTime: string
   finalTime: string | null
   place: number | null
+  eventName?: string
+  heat?: number
+  lane?: number
+  points?: number
 }
 
 export interface Relay {
@@ -74,6 +78,13 @@ export interface Relay {
   seedTime: string
   finalTime: string | null
   place: number | null
+  eventName?: string
+}
+
+export interface EventScore {
+  eventId: string
+  eventName: string
+  entries: Entry[]
 }
 
 export interface Score {

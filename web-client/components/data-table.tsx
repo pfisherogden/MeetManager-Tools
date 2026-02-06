@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useState, useCallback } from "react"
-import { ChevronDown, ChevronUp, Plus, Trash2, Search, X, Check, Edit2 } from "lucide-react"
+import { useState, useCallback, useMemo } from "react"
+import { ChevronDown, ChevronUp, Plus, Trash2, X, Check, Edit2, Filter } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { DataTableFacetedFilter } from "@/components/data-table-faceted-filter"
 
 export interface Column<T> {
   key: keyof T
@@ -19,6 +20,7 @@ export interface Column<T> {
   width?: string
   editable?: boolean
   type?: 'text' | 'number' | 'select' | 'date'
+  filterVariant?: 'text' | 'faceted'
   options?: string[]
   render?: (value: T[keyof T], row: T) => React.ReactNode
 }
@@ -42,7 +44,12 @@ export function DataTable<T extends { id: string }>({
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
-  const [searchQuery, setSearchQuery] = useState('')
+
+  // Per-column filter state.
+  // For text filters, value is a string.
+  // For faceted filters, value is a Set<string>.
+  const [filters, setFilters] = useState<Record<string, string | Set<string>>>({})
+
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [editingCell, setEditingCell] = useState<{ id: string; key: keyof T } | null>(null)
   const [editValue, setEditValue] = useState<string>('')
@@ -55,6 +62,13 @@ export function DataTable<T extends { id: string }>({
       setSortDirection('asc')
     }
   }, [sortKey])
+
+  const handleFilterChange = (key: keyof T, value: string | Set<string>) => {
+    setFilters(prev => ({
+      ...prev,
+      [key as string]: value
+    }))
+  }
 
   const handleSelectAll = useCallback(() => {
     if (selectedRows.size === data.length) {
@@ -94,30 +108,76 @@ export function DataTable<T extends { id: string }>({
     setEditValue('')
   }, [])
 
-  const filteredData = React.useMemo(() => {
+  // Auto-generate options for faceted filters if not provided, based on current data
+  const facetedOptions = useMemo(() => {
+    const optionsMap: Record<string, { label: string, value: string }[]> = {}
+
+    columns.forEach(col => {
+      if (col.filterVariant === 'faceted') {
+        if (col.options) {
+          optionsMap[String(col.key)] = col.options.map(o => ({ label: o, value: o }))
+        } else {
+          // Derive from data
+          const uniqueValues = Array.from(new Set(data.map(row => String(row[col.key] ?? '')))).filter(Boolean).sort()
+          optionsMap[String(col.key)] = uniqueValues.map(v => ({ label: v, value: v }))
+        }
+      }
+    })
+    return optionsMap
+  }, [data, columns])
+
+  const filteredData = useMemo(() => {
     let result = [...data]
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter(row => 
-        columns.some(col => {
-          const value = row[col.key]
-          return String(value).toLowerCase().includes(query)
+
+    // Apply per-column filters (AND logic)
+    // We only care about filters that are "active" (non-empty string or non-empty Set)
+    const activeFilters = Object.entries(filters).filter(([_, val]) => {
+      if (val instanceof Set) return val.size > 0
+      return typeof val === 'string' && val.trim() !== ''
+    })
+
+    if (activeFilters.length > 0) {
+      result = result.filter(row => {
+        return activeFilters.every(([key, filterVal]) => {
+          const rowVal = String(row[key as keyof T] ?? '')
+
+          if (filterVal instanceof Set) {
+            // Faceted match: must be one of the selected values
+            // Normalize case for safer comparison? typically faceted values are exact matches
+            return filterVal.has(rowVal)
+          } else {
+            // Text match: substring, case-insensitive
+            return rowVal.toLowerCase().includes((filterVal as string).toLowerCase())
+          }
         })
-      )
+      })
     }
-    
+
+    // Sorting
     if (sortKey) {
       result.sort((a, b) => {
         const aVal = a[sortKey]
         const bVal = b[sortKey]
+
+        // Handle undefined/null
+        if (aVal == null && bVal == null) return 0
+        if (aVal == null) return sortDirection === 'asc' ? 1 : -1
+        if (bVal == null) return sortDirection === 'asc' ? -1 : 1
+
+        // Numeric sort if possible
+        const aNum = Number(aVal)
+        const bNum = Number(bVal)
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return sortDirection === 'asc' ? aNum - bNum : bNum - aNum
+        }
+
         const comparison = String(aVal).localeCompare(String(bVal), undefined, { numeric: true })
         return sortDirection === 'asc' ? comparison : -comparison
       })
     }
-    
+
     return result
-  }, [data, searchQuery, sortKey, sortDirection, columns])
+  }, [data, filters, sortKey, sortDirection])
 
   return (
     <div className="flex flex-col h-full">
@@ -130,23 +190,7 @@ export function DataTable<T extends { id: string }>({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-64 h-9 bg-muted/50"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          {/* Global search removed in favor of column filters */}
           {onAdd && (
             <Button onClick={onAdd} size="sm" className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-1" />
@@ -174,8 +218,8 @@ export function DataTable<T extends { id: string }>({
         <table className="w-full border-collapse">
           <thead className="sticky top-0 z-10">
             <tr className="bg-muted/70 backdrop-blur-sm">
-              <th className="w-10 p-0">
-                <div className="flex items-center justify-center h-10 border-b border-r border-border">
+              <th className="w-10 p-0 align-bottom border-b border-r border-border">
+                <div className="flex items-center justify-center h-full pb-2">
                   <input
                     type="checkbox"
                     checked={selectedRows.size === data.length && data.length > 0}
@@ -188,21 +232,51 @@ export function DataTable<T extends { id: string }>({
                 <th
                   key={String(col.key)}
                   className={cn(
-                    "text-left p-0 border-b border-r border-border last:border-r-0",
+                    "text-left p-2 border-b border-r border-border last:border-r-0 align-top",
                     col.width
                   )}
                 >
-                  <button
-                    onClick={() => handleSort(col.key)}
-                    className="flex items-center gap-1 w-full h-10 px-3 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
-                  >
-                    {col.label}
-                    {sortKey === col.key && (
-                      sortDirection === 'asc' 
-                        ? <ChevronUp className="h-4 w-4 text-primary" />
-                        : <ChevronDown className="h-4 w-4 text-primary" />
-                    )}
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => handleSort(col.key)}
+                      className="flex items-center gap-1 w-full text-sm font-medium text-foreground hover:text-primary transition-colors"
+                    >
+                      {col.label}
+                      {sortKey === col.key && (
+                        sortDirection === 'asc'
+                          ? <ChevronUp className="h-3 w-3" />
+                          : <ChevronDown className="h-3 w-3" />
+                      )}
+                    </button>
+
+                    <div className="relative">
+                      {col.filterVariant === 'faceted' ? (
+                        <DataTableFacetedFilter
+                          title={col.label}
+                          options={facetedOptions[String(col.key)] || []}
+                          selectedValues={(filters[String(col.key)] as Set<string>) || new Set()}
+                          onSelect={(newValues) => handleFilterChange(col.key, newValues)}
+                        />
+                      ) : (
+                        <div className="relative">
+                          <Input
+                            placeholder="Filter..."
+                            className="h-7 text-[10px] italic text-muted-foreground bg-background/50 px-2"
+                            value={(filters[String(col.key)] as string) || ''}
+                            onChange={(e) => handleFilterChange(col.key, e.target.value)}
+                          />
+                          {filters[String(col.key)] && (
+                            <button
+                              onClick={() => handleFilterChange(col.key, '')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </th>
               ))}
             </tr>
@@ -230,7 +304,7 @@ export function DataTable<T extends { id: string }>({
                 {columns.map((col) => {
                   const isEditing = editingCell?.id === row.id && editingCell?.key === col.key
                   const value = row[col.key]
-                  
+
                   return (
                     <td
                       key={String(col.key)}
@@ -251,8 +325,8 @@ export function DataTable<T extends { id: string }>({
                               </DropdownMenuTrigger>
                               <DropdownMenuContent>
                                 {col.options.map(opt => (
-                                  <DropdownMenuItem 
-                                    key={opt} 
+                                  <DropdownMenuItem
+                                    key={opt}
                                     onClick={() => setEditValue(opt)}
                                   >
                                     {opt}
@@ -307,11 +381,11 @@ export function DataTable<T extends { id: string }>({
             ))}
             {filteredData.length === 0 && (
               <tr>
-                <td 
-                  colSpan={columns.length + 1} 
+                <td
+                  colSpan={columns.length + 1}
                   className="h-32 text-center text-muted-foreground"
                 >
-                  {searchQuery ? 'No results found' : 'No data available'}
+                  {Object.keys(filters).length > 0 ? 'No results found matching filters' : 'No data available'}
                 </td>
               </tr>
             )}

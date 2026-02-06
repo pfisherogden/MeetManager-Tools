@@ -14,7 +14,7 @@ export default async function EntriesPage() {
     if (list && list.entries) {
       mappedEntries = list.entries.map((e: any) => ({
         id: e.id.toString(), // assuming server provides index as ID
-        eventId: e.eventId.toString(),
+        eventName: e.eventName || `Event ${e.eventId}`, // Fallback if missing
         athleteId: e.athleteId.toString(),
         athleteName: e.athleteName,
         teamId: e.teamId ? e.teamId.toString() : "",

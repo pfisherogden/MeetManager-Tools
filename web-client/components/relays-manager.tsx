@@ -30,7 +30,7 @@ const columns: Column<Relay>[] = [
             )
         }
     },
-    { key: "eventId", label: "Event", editable: true, width: "w-20" },
+    { key: "eventId", label: "Event", editable: true, width: "w-20", filterVariant: "faceted" }, // Added filterVariant
     { key: "leg1", label: "Leg 1", editable: true, width: "w-36" },
     { key: "leg2", label: "Leg 2", editable: true, width: "w-36" },
     { key: "leg3", label: "Leg 3", editable: true, width: "w-36" },

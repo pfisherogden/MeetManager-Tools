@@ -19,8 +19,19 @@ const columns: Column<Team>[] = [
     },
     { key: "abbreviation", label: "Abbr", editable: true, width: "w-20" },
     { key: "city", label: "City", editable: true, width: "w-36" },
-    { key: "state", label: "State", editable: true, width: "w-20" },
-    { key: "athleteCount", label: "Athletes", editable: true, type: "number", width: "w-24" },
+    { key: "state", label: "State", editable: true, width: "w-20", filterVariant: "faceted" },
+    {
+        key: "athleteCount",
+        label: "Athletes",
+        editable: true,
+        type: "number",
+        width: "w-24",
+        render: (value, row) => (
+            <Link href={`/athletes?teamId=${row.id}`} className="hover:underline text-primary font-medium">
+                {value as number}
+            </Link>
+        )
+    },
     {
         key: "color",
         label: "Color",

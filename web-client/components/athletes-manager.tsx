@@ -33,6 +33,7 @@ const columns: Column<Athlete>[] = [
         label: "Team",
         editable: true,
         type: "select",
+        filterVariant: "faceted",
         // Note: In a real app we might pass team options as props too
         options: ["Kyleton Swimmers", "Other"],
         width: "w-44",
@@ -50,6 +51,7 @@ const columns: Column<Athlete>[] = [
         label: "Gender",
         editable: true,
         type: "select",
+        filterVariant: "faceted",
         options: ["M", "F"],
         width: "w-20",
         render: (value) => (
