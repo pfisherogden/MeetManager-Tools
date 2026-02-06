@@ -6,8 +6,40 @@ node_modules/
 .next/
 .idea/
 .vscode/
-backend/data/*.mdb
-!backend/data/Sample_Data.json
-web-client/backend_protos_temp/
+
+# Build and temp directories
 .tmp
+tmp/
+web-client-build/
+web-client/.npm-cache/
+web-client/.npm_cache
+web-client/backend_protos_temp/
 .npm_cache
+
+# mm_to_json specific ignores
+**/venv/
+**/uv_cache/
+**/.uv_cache/
+**/.ruff_cache/
+**/.venv/
+**/tmp/
+**/__pycache__/
+mm_to_json/mm_to_json_py/verification_output/
+mm_to_json/mm_to_json_py/verification_report.md
+# Ignore large generated JSON files in mm_to_json_py
+mm_to_json/mm_to_json_py/*.json
+!mm_to_json/mm_to_json_py/README.md
+
+# Data files
+backend/data/*.mdb
+backend/data/config.json
+test.mdb
+*.mdb
+*.zip
+!backend/data/Sample_Data.json
+
+# Lock files
+package-lock 2.json
+pnpm-lock.yaml
+web-client/package-lock 2.json
+web-client/pnpm-lock.yaml
