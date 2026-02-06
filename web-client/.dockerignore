@@ -1,6 +1,14 @@
-node_modules
-.next
+node_modules/
+.next/
+.npm_cache/
+.npm-cache/
 .DS_Store
 .git
-.npm_cache
 .npmrc
+*.mdb
+*.log
+tmp/
+coverage/
+dist/
+build/
+**/.DS_Store
