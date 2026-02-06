@@ -45,7 +45,7 @@ const columns: Column<Athlete>[] = [
         )
     },
     { key: "dateOfBirth", label: "Birth Date", editable: true, type: "date", width: "w-32" },
-    { key: "age", label: "Age", editable: true, type: "number", width: "w-16" },
+    { key: "age", label: "Age", editable: true, type: "number", width: "w-16", filterVariant: "faceted" },
     {
         key: "gender",
         label: "Gender",

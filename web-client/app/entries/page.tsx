@@ -22,6 +22,9 @@ export default async function EntriesPage() {
         seedTime: e.seedTime,
         finalTime: e.finalTime || null,
         place: e.place || null,
+        heat: e.heat || 0,
+        lane: e.lane || 0,
+        points: e.points || 0,
       }));
     }
   } catch (e) {

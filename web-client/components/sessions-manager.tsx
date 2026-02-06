@@ -25,11 +25,12 @@ export function SessionsManager({ initialSessions, meets = [] }: SessionsManager
             label: "Meet",
             editable: false,
             width: "w-52",
+            filterVariant: "faceted",
             render: (value) => getMeetName(value as string)
         },
-        { key: "date", label: "Date", editable: false, type: "date", width: "w-32" },
+        { key: "date", label: "Date", editable: false, type: "date", width: "w-32", filterVariant: "faceted" },
         { key: "warmUpTime", label: "Warm-up", editable: false, width: "w-24" },
-        { key: "startTime", label: "Start", editable: false, width: "w-24" },
+        { key: "startTime", label: "Start", editable: false, width: "w-24", filterVariant: "faceted" },
         { key: "eventCount", label: "Events", editable: false, type: "number", width: "w-20" },
     ]
 

@@ -33,8 +33,8 @@ const columns: Column<Entry>[] = [
             )
         )
     },
-    { key: "heat", label: "Heat", editable: false, width: "w-16", type: "number" },
-    { key: "lane", label: "Lane", editable: false, width: "w-16", type: "number" },
+    { key: "heat", label: "Heat", editable: false, width: "w-16", type: "number", filterVariant: "faceted" },
+    { key: "lane", label: "Lane", editable: false, width: "w-16", type: "number", filterVariant: "faceted" },
     { key: "eventName", label: "Event", editable: false, width: "w-40", filterVariant: "faceted" },
     { key: "eventId", label: "ID", editable: true, width: "w-16" },
     {

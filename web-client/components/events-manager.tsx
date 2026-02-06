@@ -18,6 +18,7 @@ const columns: Column<SwimEvent>[] = [
         type: "select",
         options: sessions.map(s => s.id),
         width: "w-36",
+        filterVariant: "faceted",
         render: (value) => (
             <Link href={`/sessions/${value}`} className="hover:underline text-primary">
                 {getSessionName(value as string)}
@@ -32,6 +33,7 @@ const columns: Column<SwimEvent>[] = [
         type: "select",
         options: ["Freestyle", "Backstroke", "Breaststroke", "Butterfly", "IM"],
         width: "w-32",
+        filterVariant: "faceted",
         render: (value) => {
             const stroke = value as string
             const colors: Record<string, string> = {
@@ -59,9 +61,10 @@ const columns: Column<SwimEvent>[] = [
         editable: true,
         type: "select",
         options: ["M", "F", "Mixed", "Boys", "Girls", "Men", "Women"],
+        filterVariant: "faceted",
         width: "w-24"
     },
-    { key: "ageGroup", label: "Age Group", editable: true, width: "w-24" },
+    { key: "ageGroup", label: "Age Group", editable: true, width: "w-24", filterVariant: "faceted" },
     { key: "entryCount", label: "Entries", editable: true, type: "number", width: "w-20" },
 ]
 

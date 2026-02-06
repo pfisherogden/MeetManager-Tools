@@ -17,12 +17,13 @@ const columns: Column<Meet>[] = [
         type: "select",
         options: ["upcoming", "active", "completed"],
         width: "w-28",
+        filterVariant: "faceted",
         render: (value) => {
             const status = value as Meet["status"]
             return (
                 <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${status === "active" ? "bg-lane-red/20 text-lane-red" :
-                        status === "upcoming" ? "bg-sunshine/30 text-foreground" :
-                            "bg-muted text-muted-foreground"
+                    status === "upcoming" ? "bg-sunshine/30 text-foreground" :
+                        "bg-muted text-muted-foreground"
                     }`}>
                     {status}
                 </span>

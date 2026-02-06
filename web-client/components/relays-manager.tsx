@@ -15,6 +15,7 @@ const columns: Column<Relay>[] = [
         type: "select",
         options: teams.map(t => t.name),
         width: "w-44",
+        filterVariant: "faceted",
         render: (value) => {
             const team = teams.find(t => t.name === value)
             return (
@@ -61,6 +62,7 @@ const columns: Column<Relay>[] = [
         editable: true,
         type: "number",
         width: "w-20",
+        filterVariant: "faceted",
         render: (value) => {
             const place = value as number | null
             if (!place) return <span className="text-muted-foreground">—</span>
