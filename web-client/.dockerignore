@@ -1,8 +1,14 @@
+# Ignore everything by default
+node_modules
 node_modules/
+**/node_modules
+.next
 .next/
-.npm_cache/
-.npm-cache/
+**/.next
+.npm-cache
+.npm_cache
 .DS_Store
+**/.DS_Store
 .git
 .npmrc
 *.mdb
@@ -11,4 +17,5 @@ tmp/
 coverage/
 dist/
 build/
-**/.DS_Store
+backend_protos_temp/
+!backend_protos_temp

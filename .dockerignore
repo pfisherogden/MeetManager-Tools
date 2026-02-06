@@ -1,14 +1,24 @@
-.DS_Store
 **/.DS_Store
 .git
 .venv
 **/__pycache__
-node_modules
-**/node_modules
-.next
-**/.next
-.tmp
-.npm_cache
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+.tmp/
+tmp/
+.npm_cache/
+.npm-cache/
 backend/data/*.mdb
+**/venv/
+**/uv_cache/
+**/.uv_cache/
+**/.ruff_cache/
+mm_to_json/
 !backend/data/Sample_Data.json
-# Keep original MDBs if they are part of repo, but typically we might want to ignore large data files in build context
+web-client-build/
+package-lock 2.json
+pnpm-lock.yaml
+*.zip
+*.mdb
