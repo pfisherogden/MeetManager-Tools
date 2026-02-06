@@ -1,0 +1,39 @@
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Build artifacts
+build/
+out/
+dist/
+*.exe
+*.o
+*.obj
+
+# Java / External Libs
+jdk-*/
+*.class
+# Ignore jars generally but allow them in our source lib
+*.jar
+!mm_to_json_py/src/mm_to_json/lib/*.jar
+
+# Temporary debugging scripts
+debug_*.py
+inspect_*.py
+deep_debug.py
+dump_output.txt
+
+# Local Data
+*.mdb
+*.json
+
+# VS / VS Code
+.vscode/
+.vs/
+*.user
+
+# Temporary Directories
+tmp/
