@@ -50,25 +50,32 @@ def test_athletes_birthdate(service):
     print(f"Found {len(dobs)} unique birthdates among {len(resp.athletes)} athletes")
 
 def test_entries_fields(service):
-    """(4) Entries should have ID, Final Time, Place, and Event Name."""
+    """(4) Entries should have ID, Final Time, Place, Event Name, Heat, and Lane."""
     resp = service.GetEntries(None, None)
     assert len(resp.entries) > 0
     
     missing_data = 0
+    has_heats = False
+    has_lanes = False
+    has_points = False
+    
     for e in resp.entries:
-        # ID is just index in current logic, so it should be present (0 is valid but let's check object)
         assert e.id is not None
         
-        # Check event name
         if not e.event_name:
             missing_data += 1
             
-        # We expect some entries to have times
-        if e.final_time and e.final_time != "NT":
-             # Should be valid
-             pass
+        if e.heat > 0:
+            has_heats = True
+        if e.lane > 0:
+            has_lanes = True
+        if e.points > 0:
+            has_points = True
              
     assert missing_data == 0, "Some entries are missing event_name"
+    assert has_heats, "No entries have heat data"
+    assert has_lanes, "No entries have lane data"
+    assert has_points, "No entries have points data"
 
 def test_relays_fields(service):
     """(1, 3, 8) Relays should have Event Name, Final Time, Place, Leg Names."""
