@@ -1,0 +1,497 @@
+from typing import Dict, Any, List
+from ..mm_to_json import MmToJsonConverter
+
+class ReportDataExtractor:
+    def __init__(self, converter: MmToJsonConverter):
+        self.converter = converter
+        
+    def extract_meet_entries_data(self, team_filter: str = None) -> Dict[str, Any]:
+        """
+        Extracts data for the Meet Entries report.
+        Hierarchy: Team -> Athlete -> Events
+        """
+        # 1. Get raw dataframes
+        df_ath = self.converter.tables.get("Athlete", None)
+        df_team = self.converter.tables.get("Team", None)
+        
+        if df_ath is None or df_team is None:
+            return {"groups": []}
+
+        # 2. Build Team Map (ID -> {Code, Name})
+        team_map = {}
+        for _, row in df_team.iterrows():
+            t_id = row.get("Team_no")
+            t_code = str(row.get("Team_abbr", "")).strip()
+            t_lsc = str(row.get("Team_lsc", "")).strip()
+            # Construct code like DP-TV
+            full_code = f"{t_code}-{t_lsc}" if t_lsc else t_code
+            team_map[t_id] = {
+                "name": str(row.get("Team_name", "")).strip(),
+                "code": full_code
+            }
+
+        # 3. Build Athlete Map (ID -> {Name, Gender, Age, TeamID})
+        ath_map = {}
+        for _, row in df_ath.iterrows():
+            a_id = row.get("Ath_no")
+            t_id = row.get("Team_no")
+            last = str(row.get("Last_name", "")).strip()
+            first = str(row.get("First_name", "")).strip()
+            initial = str(row.get("Initial", "")).strip() # Middle Initial
+            sex = str(row.get("Sex", "")).strip()
+            age = row.get("Ath_age")
+            
+            # Filter by team if requested
+            t_info = team_map.get(t_id)
+            if team_filter:
+                # Check against code or name
+                if not t_info: continue
+                if team_filter.lower() not in [t_info["code"].lower(), t_info["name"].lower()]:
+                    continue
+
+            name_str = f"{last}, {first}"
+            if initial:
+                name_str += f" {initial}"
+                
+            ath_map[a_id] = {
+                "id": a_id,
+                "name": name_str,
+                "sex": "Female" if sex == "F" else "Male" if sex == "M" else sex,
+                "age": age,
+                "team_id": t_id,
+                "team_code": t_info["code"] if t_info else "UNK",
+                "events": []
+            }
+
+        # 4. Iterate Events and Entries to link to Athletes
+        # We can use the converter's convert() method to get the hierarchical events, 
+        # then flatten back to athletes.
+        full_data = self.converter.convert()
+        
+        # We need to map formatted entries back to athletes.
+        # But convert() loses some raw data (like athlete ID).
+        # Better to iterate raw ENTRY table?
+        # Creating a map of Event_ptr -> EventDesc/No
+        
+        event_map = {}
+        for sess in full_data.get("sessions", []):
+            for evt in sess.get("events", []):
+                # We need the Event_ptr to link raw entries. 
+                # convert() puts entries inside.
+                # Let's use the 'entries' list from convert() as it has seedTime formatted
+                # But it doesn't have athlete ID easily. 
+                # Actually earlier I saw add_individual_entries does a look up by ID.
+                # Let's rely on the convert() output for now, but we need to match name/age/team to ath_map?
+                # That is risky.
+                
+                # Robust approach: 
+                # Use raw ENTRY table + self.converter.get_heat_lane_time logic.
+                pass
+                
+        # Let's use the raw tables to be precise.
+        df_entry = self.converter.tables.get("Entry", None)
+        df_event = self.converter.tables.get("Event", None)
+        
+        if df_entry is None or df_event is None:
+             return {"groups": []}
+
+        # Build Event Info Map
+        # Pointer -> {Num, Desc}
+        raw_evt_map = {}
+        for _, row in df_event.iterrows():
+            ptr = row.get("Event_ptr")
+            num = str(row.get("Event_no"))
+            ltr = row.get("Event_ltr", "")
+            if ltr: num += ltr
+            
+            dist = int(row.get("Event_dist", 0))
+            stroke = row.get("Event_stroke", "S") # 'A'='Free'?? Need map
+            # MmToJsonConverter has stroke_map but it's internal logic
+            # Let's construct a description
+            # Actually, reusing converter.get_event_name is safer
+            # But that requires an object.
+            
+            # Simple map
+            stroke_map = {"A": "Freestyle", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
+            # This map might be wrong for this DB.
+            # Let's peek at MmToJson using view_code? No time.
+            # Let's rely on the converter's `convert()` output for Event definitions
+            # and map via `eventNum`?
+            # Data from `convert()` is: sessions -> events -> entries
+            pass
+
+        # HYBRID APPROACH
+        # Use `convert()` to get the nice event descriptions and processed entries.
+        # But we need to group by Athlete.
+        # The entries in `convert()` output have: name, age, team, seedTime, heat, lane.
+        # We can iterate these and group by (Team, Name, Age).
+        
+        flat_entries = []
+        
+        for sess in full_data.get("sessions", []):
+            for evt in sess.get("events", []):
+                evt_num = evt.get("eventNum")
+                evt_desc = evt.get("eventDesc")
+                is_relay = evt.get("isRelay", False)
+                
+                for entry in evt.get("entries", []):
+                    # Filter by team if needed
+                    t_name = entry.get("team", "")
+                    # This is the team NAME from helper, might not match filter if filter is Code.
+                    # But if we pass team_filter to extract, we can check.
+                    
+                    # Group Key: Name + Age + Team
+                    key = (entry.get("name"), entry.get("age"), t_name)
+                    
+                    # Heat/Lane formatting
+                    heat = entry.get("heat", 0)
+                    lane = entry.get("lane", 0)
+                    hl = f"{heat}/{lane}" if heat and lane else ""
+                    
+                    entry_data = {
+                        "key": key,
+                        "team": t_name,
+                        "name": entry.get("name"),
+                        "age": entry.get("age"),
+                        "evt_num": evt_num,
+                        "evt_desc": evt_desc,
+                        "time": entry.get("seedTime", "NT"),
+                        "hl": hl,
+                        "is_relay": is_relay,
+                        "athleteId": entry.get("athleteId"),
+                    }
+                    if is_relay:
+                        entry_data["relayAthletes"] = entry.get("relayAthletes", [])
+                        
+                    flat_entries.append(entry_data)
+
+        # Map: Team -> AthleteKey -> Dict
+        # Special key "RelayTeams" for list of relay entries
+        grouped = {}
+        
+        # New approach: Iterate and distribute
+        # We need `team_filter` checking early
+        pass # Replaced by logic in chunk 1 (see replacement below)
+        
+        # actually removing the old loop completely to avoid duplicates
+        # The chunk 1 replaces the loop logic
+
+        # We need Gender and Team Code.
+        # We can try to look up in `ath_map` by name/age match?
+        # Dictionary fuzzy match...
+        # Let's try to enhance `ath_map` lookup.
+        
+        # Build name map to help resolving relay names and gender/code
+        name_gender_map = {}
+        team_code_map = {} # Team Name -> Team Code
+        
+        for _, row in df_ath.iterrows():
+             try:
+                f = str(row.get("First_name", row.get("First", ""))).strip()
+                l = str(row.get("Last_name", row.get("Last", ""))).strip()
+                sex = str(row.get("Sex", "")).strip()
+                full_fl = f"{f} {l}" # First Last
+                full_lf = f"{l}, {f}" # Last, First
+                
+                name_gender_map[full_fl] = "Female" if sex == "F" else "Male" if sex == "M" else sex
+                name_gender_map[full_lf] = name_gender_map[full_fl]
+                
+                tid = row.get("Team_no", row.get("Team1"))
+                if tid in team_map:
+                     tname = team_map[tid]["name"]
+                     tcode = team_map[tid]["code"]
+                     team_code_map[tname] = tcode
+             except: pass
+             
+        # Grouping Logic
+        grouped = {}
+        
+        # Split into Individuals and Relays for processing order
+        ind_entries = [e for e in flat_entries if not e["is_relay"]]
+        relay_entries = [e for e in flat_entries if e["is_relay"]]
+        
+        # 1. Process Individual Entries first to establish athlete base
+        for item in ind_entries:
+            t_name = item["team"]
+            if team_filter and team_filter.lower() not in t_name.lower(): continue
+            
+            key = item["key"] # (Name, Age, Team)
+            
+            if t_name not in grouped: grouped[t_name] = {}
+            if key not in grouped[t_name]:
+                grouped[t_name][key] = {
+                    "name": item["name"],
+                    "age": item["age"],
+                    "team": t_name,
+                    "ind_count": 0,
+                    "rel_count": 0,
+                    "events": []
+                }
+            grouped[t_name][key]["events"].append(item)
+            grouped[t_name][key]["ind_count"] += 1
+
+        # 2. Build Lookup Map for existing athletes in this team
+        # (Team, AthleteID) -> Key
+        id_lookup = {}
+        
+        for t_name, athletes in grouped.items():
+            for key, data in athletes.items():
+                if key == "RelayTeams": continue
+                # We need to find the ID stored in the first event?
+                # The group key doesn't store ID. But events do.
+                if data["events"]:
+                    first_evt = data["events"][0]
+                    aid = first_evt.get("athleteId")
+                    if aid:
+                        id_lookup[(t_name, aid)] = key
+                        
+        # 3. Process Relay Entries using detailed athlete lists
+        for item in relay_entries:
+            t_name = item["team"]
+            if team_filter and team_filter.lower() not in t_name.lower(): continue
+            
+            # Add to RelayTeams list for the section
+            if t_name not in grouped: grouped[t_name] = {}
+            if "RelayTeams" not in grouped[t_name]: grouped[t_name]["RelayTeams"] = []
+            grouped[t_name]["RelayTeams"].append(item)
+            
+            # Attribute to individuals using relayAthletes list
+            relay_athletes = item.get("relayAthletes", [])
+            
+            for ath in relay_athletes:
+                aid = ath.get("id")
+                if not aid:
+                     # print(f"DEBUG: Skipping athlete {ath} - No ID")
+                     continue
+                
+                # Look up existing
+                found_key = id_lookup.get((t_name, aid))
+                
+                if not found_key:
+                     # Check with int conversion?
+                     try:
+                         found_key = id_lookup.get((t_name, int(aid)))
+                     except: pass
+                
+                if found_key:
+                    grp = grouped[t_name][found_key]
+                else:
+                    # New athlete (Relay only)
+                    # Use actual data from athlete object!
+                    s_name = f"{ath.get('first', '')} {ath.get('last', '')}".strip()
+                    s_age = ath.get('age', 0)
+                    
+                    # Create key (Name, Age, Team) - standard key format
+                    new_key = (s_name, s_age, t_name)
+                    
+                    # Check if key exists (unlikely if ID didn't match, unless ID missing)
+                    if new_key not in grouped[t_name]:
+                         grouped[t_name][new_key] = {
+                            "name": s_name,
+                            "age": s_age,
+                            "team": t_name,
+                            "ind_count": 0,
+                            "rel_count": 0,
+                            "events": []
+                        }
+                    grp = grouped[t_name][new_key]
+                    # Add to lookup
+                    id_lookup[(t_name, aid)] = new_key
+                
+                # Add event (clone)
+                import copy
+                evt_clone = copy.copy(item)
+                # Ensure we don't duplicate events if swimmer is in multiple relays?
+                # No, we want to list all relays they are in.
+                
+                grp["events"].append(evt_clone)
+                grp["rel_count"] += 1
+
+        sorted_teams = sorted(grouped.keys())
+        report_groups = []
+        for t_name in sorted_teams:
+            team_items = []
+            
+            # Sort Athletes by Name
+            # Exclude special "RelayTeams" key
+            real_athletes = [v for k, v in grouped[t_name].items() if k != "RelayTeams"]
+            sorted_athletes = sorted(real_athletes, key=lambda x: x["name"])
+            
+            seq = 1
+            for ath in sorted_athletes:
+                # Patch Gender/Code
+                # Try exact match or partial
+                # Our entry name is "First Last". Map key is "First Last".
+                gender = name_gender_map.get(ath["name"], "")
+                t_code = team_code_map.get(t_name, t_name) # Fallback to name
+                
+                # Reformat name to "Last, First" for report
+                # Split "First Last" -> "Last, First"
+                parts = ath["name"].split(" ")
+                if len(parts) >= 2:
+                    display_name = f"{parts[-1]}, " + " ".join(parts[:-1])
+                else:
+                    display_name = ath["name"]
+                
+                # Format Header with conditional separators
+                age_val = ath.get('age') or 0
+                
+                # Filter empty strings to avoid extra dashes
+                parts = []
+                if seq: parts.append(f"{seq} {display_name}")
+                if gender: parts.append(gender)
+                if age_val > 0: parts.append(f"Age: {age_val}")
+                if t_code: parts.append(t_code)
+                
+                # Join with " - "
+                main_header = " - ".join(parts)
+                header_str = f"{main_header} - Ind/Rel: {ath['ind_count']} / {ath['rel_count']}"
+                
+                # Sub-items (Events) for the grid
+                # Need to be sorted by Event Num
+                # Event Num is string "31", "3", etc. Need int sort.
+                def sort_key(e):
+                    try:
+                        return int(''.join(filter(str.isdigit, str(e["evt_num"]))))
+                    except: return 0
+                
+                sorted_events = sorted(ath["events"], key=sort_key)
+                
+                sub_rows = []
+                for e in sorted_events:
+                    desc_text = e["evt_desc"]
+                    if e["is_relay"]:
+                         desc_text += " (Relay)"
+                    sub_rows.append({
+                        "idx": f"#{e['evt_num']}",
+                        "desc": desc_text,
+                        "time": e["time"],
+                        "heat_lane": e["hl"]
+                    })
+                    
+                team_items.append({
+                    "header": header_str,
+                    "sub_items": sub_rows
+                })
+                seq += 1
+
+            # Process Relay Teams
+            relay_teams_list = grouped[t_name].get("RelayTeams", [])
+            
+            if relay_teams_list:
+                 # Add divider/section header
+                 team_items.append({
+                     "header": "   RELAY TEAMS",
+                     "sub_items": [] 
+                 })
+                 
+                 # Separate list logic
+                 flat_relays = []
+                 for item in relay_teams_list:
+                        flat_relays.append(item)
+                 
+                 flat_relays.sort(key=lambda x: int(''.join(filter(str.isdigit, str(x["evt_num"])))))
+
+                 for r in flat_relays:
+                     header = f"#{r['evt_num']} {r['evt_desc']}"
+                     
+                     # Heat/Lane in idx column
+                     hl_text = ""
+                     if r.get('heat'):
+                         hl_text = f"{r['heat']}/{r['lane']}"
+
+                     # Match Relay Letter from Team Name?
+                     # r['team'] might be "Team - A"
+                     relay_ltr = r.get("relayLm", "") # Usually not present in flat entry?
+                     # Try to parse from team name if it has " - A"
+                     # Or check `relayLtr` if mm_to_json adds it
+                     # Actually mm_to_json adds relayLtr!
+                     rltr = r.get("relayLtr", "")
+                     if rltr:
+                         header += f" - Relay {rltr}"
+
+                     # Names formatting
+                     formatted_lines = []
+                     # Use relayAthletes list if available for better formatting
+                     if "relayAthletes" in r:
+                         ras = r["relayAthletes"]
+                         # Format: Last, First; Last, First
+                         names_parts = []
+                         for ath in ras:
+                             f = ath.get('first', '')
+                             l = ath.get('last', '')
+                             names_parts.append(f"{l}, {f}")
+                         
+                         full_names_str = "; ".join(names_parts)
+                         # Split manually if too long? Renderer table handles wrapping text? 
+                         # ReportLab Table handles wrapping text if Paragraph used?
+                         # Extractor returns strings.
+                         # Let's split into 2 lines if > 2 names
+                         if len(names_parts) > 2:
+                             mid = (len(names_parts) + 1) // 2
+                             visited = False
+                             # Actually just split by length or count?
+                             # 4 names -> 2 and 2
+                             if len(names_parts) == 4:
+                                 formatted_lines.append("; ".join(names_parts[:2]))
+                                 formatted_lines.append("; ".join(names_parts[2:]))
+                             else:
+                                 formatted_lines.append(full_names_str)
+                         else:
+                             formatted_lines.append(full_names_str)
+                     else:
+                         # Fallback string split
+                         # "First Last, First Last..."
+                         names_list = [n.strip() for n in r['name'].split(",")]
+                         names_parts = []
+                         for n in names_list:
+                             parts = n.split(" ")
+                             if len(parts) >= 2:
+                                 names_parts.append(f"{parts[-1]}, " + " ".join(parts[:-1]))
+                             else:
+                                 names_parts.append(n)
+                                 
+                         full_names_str = "; ".join(names_parts)
+                         if len(names_parts) > 2:
+                             if len(names_parts) == 4:
+                                 formatted_lines.append("; ".join(names_parts[:2]))
+                                 formatted_lines.append("; ".join(names_parts[2:]))
+                             else:
+                                 formatted_lines.append(full_names_str)
+                         else:
+                             formatted_lines.append(full_names_str)
+
+                     # Row 1
+                     # idx=HL, desc=Names1, time=SeedTime, hl=Empty
+                     sub_items = []
+                     sub_items.append({
+                         "idx": hl_text,
+                         "desc": formatted_lines[0] if formatted_lines else "",
+                         "time": r.get("seedTime", r.get("time", "")),
+                         "heat_lane": "" 
+                     })
+                     
+                     # Row 2 (if needed)
+                     if len(formatted_lines) > 1:
+                          sub_items.append({
+                             "idx": "",
+                             "desc": formatted_lines[1],
+                             "time": "",
+                             "heat_lane": ""
+                          })
+
+                     team_items.append({
+                         "header": header,
+                         "sub_items": sub_items
+                     })
+
+            report_groups.append({
+                "header": f"Team Entries - {t_name}",
+                "items": team_items
+            })
+            
+        return {
+            "meet_name": full_data.get("meetName", ""),
+            "sub_title": "Entries - All Events",
+            "groups": report_groups
+        }
