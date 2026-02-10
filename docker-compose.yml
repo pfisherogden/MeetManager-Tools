@@ -9,6 +9,7 @@ services:
       - ./backend/data:/app/data
       - ./backend/src:/app/src # Mount source code for live updates (requires restart if no auto-reload)
       - ./backend/tests:/app/tests
+      - ./backend/protos:/app/protos
     environment:
       - PYTHONUNBUFFERED=1
 
