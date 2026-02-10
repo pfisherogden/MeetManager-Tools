@@ -35,6 +35,8 @@ service MeetManagerService {
   rpc GetAdminConfig (Empty) returns (AdminConfig);
   rpc UpdateAdminConfig (AdminConfig) returns (AdminConfig);
   rpc GetEventScores (Empty) returns (EventScoreList);
+
+
 }
 
 message Dataset {
@@ -92,6 +94,7 @@ message Score {
   float relay_points = 4;
   float total_points = 5;
   int32 rank = 6;
+  string meet_name = 7;
 }
 
 message ScoreList {
@@ -219,8 +222,10 @@ message Event {
   int32 high_age = 6;
   int32 session = 7;
   string status = 8;
+  int32 entry_count = 9;
 }
 
 message EventList {
   repeated Event events = 1;
 }
+

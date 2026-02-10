@@ -65,10 +65,19 @@ const columns: Column<Athlete>[] = [
 
 interface AthletesManagerProps {
     initialAthletes: Athlete[];
+    teams: string[];
 }
 
-export function AthletesManager({ initialAthletes }: AthletesManagerProps) {
+export function AthletesManager({ initialAthletes, teams }: AthletesManagerProps) {
     const [data, setData] = useState<Athlete[]>(initialAthletes)
+
+    // Update columns to use dynamic teams
+    const columnsWithTeams = columns.map(col => {
+        if (col.key === "teamName") {
+            return { ...col, options: teams }
+        }
+        return col;
+    });
 
     const handleAdd = () => {
         const newAthlete: Athlete = {
@@ -100,7 +109,7 @@ export function AthletesManager({ initialAthletes }: AthletesManagerProps) {
             <div className="h-full rounded-xl border border-border bg-card overflow-hidden shadow-sm">
                 <DataTable
                     data={data}
-                    columns={columns}
+                    columns={columnsWithTeams}
                     onAdd={handleAdd}
                     onDelete={handleDelete}
                     onUpdate={handleUpdate}

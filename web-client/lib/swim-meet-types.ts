@@ -96,4 +96,5 @@ export interface Score {
   relayPoints: number
   totalPoints: number
   rank: number
+  meetName: string
 }

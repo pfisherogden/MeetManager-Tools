@@ -10,6 +10,7 @@ import meet_manager_pb2_grpc
 import csv
 import subprocess
 import io
+import tempfile
 
 
 # Defines where the source JSON data lives
@@ -152,8 +153,9 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
         for item in data:
             name = item.get('Meet_name') or item.get('MName') or 'Unknown Meet'
             loc = item.get('Location') or item.get('Meet_location') or ''
-            start = str(item.get('Start_date') or item.get('Start') or '')
-            end = str(item.get('End_date') or item.get('End') or '')
+            loc = item.get('Location') or item.get('Meet_location') or ''
+            start = self._format_date(item.get('Start_date') or item.get('Start') or '')
+            end = self._format_date(item.get('End_date') or item.get('End') or '')
             
             meets.append(meet_manager_pb2.Meet(
                 id="1", 
@@ -282,6 +284,14 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             'W': 'Women'
         }
 
+        # Pre-calculate entry counts per event
+        entry_counts = {}
+        entries = self._get_table('Entry') or self._get_table('ENTRY')
+        for e in entries:
+             evt_ptr = e.get('Event_ptr')
+             if evt_ptr:
+                  entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
+
         for item in data:
             # Stroke mapping
             raw_stroke = item.get('Event_stroke', '').upper().strip()
@@ -304,7 +314,8 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                 distance=int(item.get('Event_dist', 0)),
                 stroke=stroke_desc,
                 low_age=int(item.get('Low_age', 0)),
-                high_age=int(item.get('High_Age', 0))
+                high_age=int(item.get('High_Age', 0)),
+                entry_count=entry_counts.get(item.get('Event_no') or item.get('Event_ptr'), 0)
             ))
         return meet_manager_pb2.EventList(events=events)
 
@@ -386,6 +397,29 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             return f"{hours}:{minutes:02d} {period}"
         except (ValueError, TypeError):
             return ""
+
+    def _format_date(self, date_str):
+        """Standardizes date strings to YYYY-MM-DD."""
+        if not date_str:
+            return ""
+        try:
+            # Check if already in YYYY-MM-DD
+            # Simple heuristic
+            date_str = str(date_str).strip()
+            if " " in date_str:
+                date_str = date_str.split(" ")[0]
+            
+            # Common formats
+            for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%d-%b-%y"):
+                try:
+                    dt = datetime.datetime.strptime(date_str, fmt)
+                    return dt.strftime("%Y-%m-%d")
+                except ValueError:
+                    continue
+            return date_str # Return original if parse fails
+        except Exception:
+            return str(date_str)
+
 
     def GetRelays(self, request, context):
         """Fetches Relay entries, joining with Team data."""
@@ -481,15 +515,19 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
         # Process Entries
         entries_data = self._get_table('Entry') or self._get_table('ENTRY')
         athletes = {a.get('Ath_no'): a for a in self._get_table('Athlete')}
+        events_sex_map = {e.get('Event_no') or e.get('Event_ptr'): e.get('Event_sex', 'M') for e in self._get_table('Event')}
         
         if entries_data:
             for e in entries_data:
                  ath_id = e.get('Ath_no')
+                 # Use athletes from line 483
                  ath = athletes.get(ath_id)
                  if ath:
                       t_id = ath.get('Team_no')
                       if t_id in scores:
-                           val = self._safe_float(e.get('Ev_score', 0))
+                           e_id = e.get('Event_ptr')
+                           sex = events_sex_map.get(e_id, ath.get('Ath_Sex', 'M'))
+                           val = self._calculate_points(e, sex, False)
                            scores[t_id]['ind'] += val
 
         # Process Relays
@@ -501,7 +539,9 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                       t_id = r.get('Team_ptr')
                  
                  if t_id in scores:
-                      val = self._safe_float(r.get('Ev_score', 0))
+                      e_id = r.get('Event_ptr')
+                      sex = events_sex_map.get(e_id, r.get('Rel_sex', 'X'))
+                      val = self._calculate_points(r, sex, True)
                       scores[t_id]['rel'] += val
 
         result = []
@@ -513,7 +553,9 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                  individual_points=s['ind'],
                  relay_points=s['rel'],
                  total_points=total,
-                 rank=0 
+                 rank=0,
+
+                 meet_name=self.config.get('meet_name', 'Unknown Meet')
              ))
         
         # Sort by total points desc
@@ -578,6 +620,53 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             ))
         return meet_manager_pb2.EntryList(entries=result)
 
+    def _get_scoring_map(self):
+        """Builds a lookup map for the Scoring table."""
+        if hasattr(self, '_scoring_map') and self._scoring_map is not None:
+            return self._scoring_map
+        
+        scoring_data = self._get_table('Scoring') or self._get_table('SCORING')
+        self._scoring_map = {}
+        for row in scoring_data:
+            div = row.get('score_divno', '0')
+            sex = row.get('score_sex', 'M').upper()
+            place = self._safe_int(row.get('score_place', 0))
+            
+            if div not in self._scoring_map:
+                self._scoring_map[div] = {}
+            if sex not in self._scoring_map[div]:
+                self._scoring_map[div][sex] = {}
+            
+            self._scoring_map[div][sex][place] = {
+                'ind': self._safe_float(row.get('ind_score', 0)),
+                'rel': self._safe_float(row.get('rel_score', 0))
+            }
+        return self._scoring_map
+
+    def _calculate_points(self, item, sex, is_relay):
+        """Calculates points for an entry or relay, with fallback to Scoring table."""
+        # 1. Try pre-computed Ev_score
+        score = self._safe_float(item.get('Ev_score', 0))
+        if score > 0:
+            return score
+            
+        # 2. Fallback to Scoring table
+        place = self._safe_int(item.get('Fin_place', item.get('Place', 0)))
+        if place <= 0:
+            return 0.0
+            
+        div = item.get('Div_no', '0') or '0'
+        # Map gender to Scoring table sexes (M/F)
+        sex_map = {'B': 'M', 'M': 'M', 'G': 'F', 'W': 'F', 'F': 'F', 'X': 'M'} 
+        mapped_sex = sex_map.get(sex.upper(), 'M')
+        
+        scoring_map = self._get_scoring_map()
+        div_map = scoring_map.get(div, scoring_map.get('0', {}))
+        sex_scores = div_map.get(mapped_sex, div_map.get('M', {}))
+        
+        score_data = sex_scores.get(place, {})
+        return score_data.get('rel' if is_relay else 'ind', 0.0)
+
     def GetEventScores(self, request, context):
         """Fetches detailed scores per event (Entries and Relays)."""
         # Load all needed data
@@ -593,11 +682,13 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
         
         # Events by ID
         event_dict = {}
+        event_raw_map = {} # Store raw event rows for sex lookup
         
         for e in self._get_table('Event'):
              e_no = e.get('Event_no') or e.get('Event_ptr')
              if not e_no: continue
              
+             event_raw_map[e_no] = e
              g = gender_map.get(e.get('Event_sex','').strip(), e.get('Event_sex',''))
              d = e.get('Event_dist','')
              s_raw = e.get('Event_stroke','').strip()
@@ -618,7 +709,7 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
         for item in entries:
              e_id = item.get('Event_ptr')
              if e_id not in event_dict:
-                  continue
+                   continue
              
              ath_id = item.get('Ath_no')
              ath = athletes_map.get(ath_id)
@@ -626,21 +717,34 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
              
              # Check if it has a score or place
              place = self._safe_int(item.get('Fin_place', item.get('Place', 0)))
-             points = self._safe_float(item.get('Ev_score', 0))
              
-             # Only include scored items or finalists? User asked for "scores for each event, including athletes and ranks"
-             # So maybe just list everyone who participated? 
-             # Let's list everyone who has a place or score.
+             # Lookup points
+             ev_raw = event_raw_map.get(e_id, {})
+             points = self._calculate_points(item, ev_raw.get('Event_sex', 'M'), False)
+             
+             # Only include scored items or finalists? 
+             # Let's list everyone who has a place or time.
+             if not item.get('Fin_Time') and place <= 0:
+                  continue
+
+             # Seed Time
+             seed = item.get('ActualSeed_time') or item.get('ConvSeed_time') or item.get('Seed_Time') or 'NT'
+             try:
+                  if float(seed) == 0: seed = 'NT'
+             except:
+                  pass
              
              entry_obj = meet_manager_pb2.Entry(
-                 id=0, # Not vital here
+                 id=0,
                  event_id=int(e_id),
                  athlete_id=int(ath_id if ath else 0),
                  athlete_name=f"{ath.get('First_name','')} {ath.get('Last_name','')}" if ath else "Unknown",
                  team_id=int(t_id),
                  team_name=teams_map.get(t_id, 'Unknown'),
+                 seed_time=str(seed),
                  final_time=str(item.get('Fin_Time', '')),
                  place=place,
+                 points=points,
                  event_name=events_map.get(e_id, "")
              )
              event_dict[e_id]['entries'].append(entry_obj)
@@ -650,20 +754,35 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
              e_id = item.get('Event_ptr')
              if e_id not in event_dict:
                   continue
-                  
+                   
              t_id = item.get('Team_ptr') or item.get('Team_no')
              place = self._safe_int(item.get('Fin_place', item.get('Place', 0)))
              
-             # Create a "pseudo-entry" for the relay team
+             # Lookup points
+             ev_raw = event_raw_map.get(e_id, {})
+             points = self._calculate_points(item, ev_raw.get('Event_sex', 'X'), True)
+
+             if not item.get('Fin_Time') and place <= 0:
+                  continue
+
+             # Seed Time
+             seed = item.get('ActualSeed_time') or item.get('ConvSeed_time') or item.get('Seed_Time') or 'NT'
+             try:
+                  if float(seed) == 0: seed = 'NT'
+             except:
+                  pass
+
              entry_obj = meet_manager_pb2.Entry(
                  id=0,
                  event_id=int(e_id),
                  athlete_id=0,
-                 athlete_name="Relay Team", # Or list legs?
+                 athlete_name="Relay Team",
                  team_id=int(t_id if t_id else 0),
                  team_name=teams_map.get(t_id, 'Unknown'),
+                 seed_time=str(seed),
                  final_time=str(item.get('Fin_Time', '')),
                  place=place,
+                 points=points,
                  event_name=events_map.get(e_id, "")
              )
              event_dict[e_id]['entries'].append(entry_obj)
@@ -684,6 +803,7 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
              ))
              
         return meet_manager_pb2.EventScoreList(event_scores=resp_list)
+
 
     def GetSessions(self, request, context):
         # Trying to find explicit sessions table first (often 'Session' or derived from Events)
@@ -710,7 +830,7 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                      id=str(item.get('Sess_no', '')),
                      meet_id="1", 
                      name=item.get('Sess_name', f"Session {sess_no}"),
-                     date=str(item.get('Sess_date', '')), # formatting needed?
+                     date=self._format_date(item.get('Sess_date', '')),
                      warm_up_time=self._seconds_to_time(item.get('Sess_time', '')), 
                      start_time=self._seconds_to_time(item.get('Sess_starttime', '')),
                      event_count=len(sess_events),

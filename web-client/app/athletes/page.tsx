@@ -2,17 +2,26 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { AthletesManager } from "@/components/athletes-manager"
 import type { Athlete as UIAthlete } from "@/lib/swim-meet-types"
 
-import { getAthletes } from "@/app/actions"
+import { getAthletes, getTeams } from "@/app/actions"
 
 export const dynamic = 'force-dynamic';
 
 export default async function AthletesPage() {
   let mappedAthletes: UIAthlete[] = [];
+  let teamOptions: string[] = [];
 
   try {
-    const list: any = await getAthletes();
-    if (list && list.athletes) {
-      mappedAthletes = list.athletes.map((a: any) => ({
+    const [athleteList, teamList] = await Promise.all([
+      getAthletes(),
+      getTeams()
+    ]);
+
+    if (teamList && (teamList as any).teams) {
+      teamOptions = (teamList as any).teams.map((t: any) => t.name).sort();
+    }
+
+    if (athleteList && (athleteList as any).athletes) {
+      mappedAthletes = (athleteList as any).athletes.map((a: any) => ({
         id: a.id.toString(),
         firstName: a.firstName,
         lastName: a.lastName,
@@ -35,7 +44,7 @@ export default async function AthletesPage() {
           <h1 className="text-2xl font-bold text-foreground">Athletes</h1>
           <p className="text-muted-foreground">Manage athlete profiles and team assignments</p>
         </div>
-        <AthletesManager initialAthletes={mappedAthletes} />
+        <AthletesManager initialAthletes={mappedAthletes} teams={teamOptions} />
       </main>
     </div>
   )
