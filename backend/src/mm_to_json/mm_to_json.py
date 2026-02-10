@@ -665,18 +665,19 @@ class MmToJsonConverter:
                     heat = self._safe_int(row.get("HEAT"))
                     lane = self._safe_int(row.get("LANE"))
 
+                    relay_ltr = str(row.get("RelayLtr", "A"))
                     event.add_entry(
                         {
                             "name": self.get_relay_names_schema_b(
                                 event.event_ptr, team_no
-                            ),  # Need helper
-                            "team": team_name,
+                            ),
+                            "team": f"{team_name} {relay_ltr}" if relay_ltr else team_name,
                             "heat": heat,
                             "lane": lane,
                             "seedTime": time_str,
                             "psTime": "NT",
                             "isRelay": True,
-                            "relayLtr": str(row.get("RelayLtr", "A")),  # Guessing col name
+                            "relayLtr": relay_ltr,
                         }
                     )
         else:
@@ -705,7 +706,7 @@ class MmToJsonConverter:
                 event.add_entry(
                     {
                         "name": names_str,
-                        "team": team_name,
+                        "team": f"{team_name} {relay_ltr}" if relay_ltr else team_name,
                         "heat": entry_info["heat"],
                         "lane": entry_info["lane"],
                         "seedTime": entry_info["seed"],

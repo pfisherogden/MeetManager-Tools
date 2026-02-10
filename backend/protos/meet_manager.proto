@@ -80,6 +80,8 @@ message Relay {
   int32 place = 11;
   string event_name = 12;
   string relay_letter = 13;
+  int32 heat = 14;
+  int32 lane = 15;
 }
 
 message RelayList {

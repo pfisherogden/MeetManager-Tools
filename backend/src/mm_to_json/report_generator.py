@@ -179,7 +179,7 @@ class ReportGenerator:
             for event in session.get('events', []):
                 elements.append(Paragraph(f"Results: {event['eventDesc']}", self.custom_styles['EventHeader']))
                 
-                table_data = [['Place', 'Name', 'Team', 'Seed Time', 'Final Time', 'Points']]
+                table_data = [['Place', 'Name', 'Team', 'Heat', 'Lane', 'Seed Time', 'Final Time', 'Points']]
                 # Results should have final time and place
                 entries = sorted(event.get('entries', []), key=lambda x: x.get('place', 999))
                 
@@ -188,16 +188,19 @@ class ReportGenerator:
                         entry.get('place', ''),
                         entry.get('name', ''),
                         entry.get('team', ''),
+                        entry.get('heat', ''),
+                        entry.get('lane', ''),
                         entry.get('seedTime', ''),
                         entry.get('psTime', entry.get('finalTime', '')), # psTime is often used for prelim/final in some apps
                         entry.get('points', '')
                     ])
 
-                t = Table(table_data, colWidths=[0.5*inch, 2.0*inch, 1.5*inch, 1.0*inch, 1.0*inch, 0.5*inch])
+                t = Table(table_data, colWidths=[0.5*inch, 2.0*inch, 1.5*inch, 0.4*inch, 0.4*inch, 0.9*inch, 0.9*inch, 0.5*inch])
                 t.setStyle(TableStyle([
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
                 ]))
                 elements.append(t)
                 elements.append(Spacer(1, 0.1*inch))
