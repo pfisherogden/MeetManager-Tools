@@ -8,10 +8,14 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Install Python dependencies
-RUN pip install grpcio grpcio-tools pytest
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 # Copy only the backend directory content
 COPY . .
+
+# Download Java libraries if not present
+RUN python3 src/mm_to_json/download_libs.py
 
 # Generate Python Protos (Fix for UNIMPLEMENTED error)
 RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src protos/meet_manager.proto

@@ -1,4 +1,5 @@
 .DS_Store
+.gemini/
 *.pyc
 __pycache__/
 .venv/
@@ -43,3 +44,14 @@ package-lock 2.json
 pnpm-lock.yaml
 web-client/package-lock 2.json
 web-client/pnpm-lock.yaml
+
+# Java Libraries (managed by download_libs.py)
+**/mm_to_json/lib/*.jar
+
+# Generated Reports
+backend/data/example_reports/
+backend/data/reference.pdf
+backend/data/reference.txt
+tmp/verification_entries_v*.png
+tmp/verification_entries_v*.pdf
+backend/src/test_touch

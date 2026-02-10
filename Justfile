@@ -12,8 +12,13 @@ clean:
     -rm -f backend/data/uploaded.mdb
     @echo "Cleanup complete."
 
+# Download required Java libraries
+setup:
+    @echo "Downloading Java libraries..."
+    python3 backend/src/mm_to_json/download_libs.py
+
 # Build Docker containers
-build: clean
+build: clean setup
     @echo "Preparing frontend build context..."
     mkdir -p web-client/backend_protos_temp
     cp -r backend/protos/* web-client/backend_protos_temp/
@@ -46,3 +51,25 @@ down:
 # View logs
 logs service="":
     docker-compose logs -f {{service}}
+
+# Generate a verification report PDF and PNG (V5)
+report-verify:
+    @echo "Generating verification report..."
+    docker-compose run --rm backend python src/verify_report_generation.py
+    @echo "Converting to PNG..."
+    docker-compose run --rm backend bash -c "apt-get update && apt-get install -y poppler-utils && pdftoppm -png -f 1 -l 1 /app/data/example_reports/verification_entries_v5.pdf /app/data/example_reports/verification_entries_v5"
+    @echo "Report generated in backend/data/example_reports/"
+
+# Run the relay/entries data verification test
+test-entries:
+    @echo "Running Relay/Entries Data Verification..."
+    docker-compose run --rm backend python src/tests/test_meet_entries_data.py
+
+# Run full backend tests
+test-full:
+    @echo "Running Full Backend Tests..."
+    docker-compose run --rm backend pytest tests/
+
+# Open a shell in the backend container
+shell:
+    docker-compose exec backend bash
