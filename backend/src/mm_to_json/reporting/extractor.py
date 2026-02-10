@@ -387,103 +387,89 @@ class ReportDataExtractor:
                  
                  # Separate list logic
                  flat_relays = []
+                 current_relay_seq = 1
                  for item in relay_teams_list:
                         flat_relays.append(item)
                  
                  flat_relays.sort(key=lambda x: int(''.join(filter(str.isdigit, str(x["evt_num"])))))
 
-                 for r in flat_relays:
-                     header = f"#{r['evt_num']} {r['evt_desc']}"
+                 for i, r in enumerate(flat_relays):
+                     # Match Relay Letter from Team Name or relayLtr
+                     rltr = r.get("relayLm", "") # Try legacy first? No, relayLtr is better.
+                     if not rltr: rltr = r.get("relayLtr", "")
                      
-                     # Heat/Lane in idx column
+                     ltr_str = f" - '{rltr}'" if rltr else ""
+                     
+                     # Construct Description: "TeamName - 'Ltr'   #EvtNum EventDesc"
+                     # Need Team Name? It's t_name from loop variable
+                     # Use fixed width spacing or just string concatenation?
+                     # Renderer table handles wrapping.
+                     # Format: "TeamName - 'A'                       #4 Event..."
+                     # Use non-breaking spaces? Or just spaces?
+                     # Let's use spaces.
+                     # Actually, `t_name` is available.
+                     
+                     # First line content
+                     line1_desc = f"{t_name}{ltr_str}        #{r['evt_num']} {r['evt_desc']}"
+                     
+                     # H/L
                      hl_text = ""
                      if r.get('heat'):
                          hl_text = f"{r['heat']}/{r['lane']}"
 
-                     # Match Relay Letter from Team Name?
-                     # r['team'] might be "Team - A"
-                     relay_ltr = r.get("relayLm", "") # Usually not present in flat entry?
-                     # Try to parse from team name if it has " - A"
-                     # Or check `relayLtr` if mm_to_json adds it
-                     # Actually mm_to_json adds relayLtr!
-                     rltr = r.get("relayLtr", "")
-                     if rltr:
-                         header += f" - Relay {rltr}"
-
-                     # Names formatting
+                     # Names formatting (Last, First; Last, First)
                      formatted_lines = []
-                     # Use relayAthletes list if available for better formatting
+                     names_parts = []
+                     
                      if "relayAthletes" in r:
-                         ras = r["relayAthletes"]
-                         # Format: Last, First; Last, First
-                         names_parts = []
-                         for ath in ras:
-                             f = ath.get('first', '')
-                             l = ath.get('last', '')
+                         for ath in r["relayAthletes"]:
+                             f = ath.get('first', '').strip()
+                             l = ath.get('last', '').strip()
                              names_parts.append(f"{l}, {f}")
-                         
-                         full_names_str = "; ".join(names_parts)
-                         # Split manually if too long? Renderer table handles wrapping text? 
-                         # ReportLab Table handles wrapping text if Paragraph used?
-                         # Extractor returns strings.
-                         # Let's split into 2 lines if > 2 names
-                         if len(names_parts) > 2:
-                             mid = (len(names_parts) + 1) // 2
-                             visited = False
-                             # Actually just split by length or count?
-                             # 4 names -> 2 and 2
-                             if len(names_parts) == 4:
-                                 formatted_lines.append("; ".join(names_parts[:2]))
-                                 formatted_lines.append("; ".join(names_parts[2:]))
-                             else:
-                                 formatted_lines.append(full_names_str)
-                         else:
-                             formatted_lines.append(full_names_str)
                      else:
-                         # Fallback string split
-                         # "First Last, First Last..."
+                         # Fallback
                          names_list = [n.strip() for n in r['name'].split(",")]
-                         names_parts = []
                          for n in names_list:
                              parts = n.split(" ")
                              if len(parts) >= 2:
                                  names_parts.append(f"{parts[-1]}, " + " ".join(parts[:-1]))
                              else:
                                  names_parts.append(n)
-                                 
-                         full_names_str = "; ".join(names_parts)
-                         if len(names_parts) > 2:
-                             if len(names_parts) == 4:
-                                 formatted_lines.append("; ".join(names_parts[:2]))
-                                 formatted_lines.append("; ".join(names_parts[2:]))
-                             else:
-                                 formatted_lines.append(full_names_str)
-                         else:
-                             formatted_lines.append(full_names_str)
 
-                     # Row 1
-                     # idx=HL, desc=Names1, time=SeedTime, hl=Empty
+                     full_names_str = "; ".join(names_parts)
+                     formatted_lines.append(full_names_str)
+
+                     # Prepare Sub-Items for Table (2 lines)
                      sub_items = []
+                     
+                     # Row 1: Seq | Team - 'Ltr' ... | Time | H/L
+                     # Using columns: idx, desc, time, heat_lane
+                     relay_seq = i + 1 # Assuming flat_relays loop index? No, need loop index.
+                     # Use enumerate in loop
+                     
                      sub_items.append({
-                         "idx": hl_text,
-                         "desc": formatted_lines[0] if formatted_lines else "",
+                         "idx": str(current_relay_seq),
+                         "desc": line1_desc,
                          "time": r.get("seedTime", r.get("time", "")),
-                         "heat_lane": "" 
+                         "heat_lane": hl_text 
                      })
                      
-                     # Row 2 (if needed)
-                     if len(formatted_lines) > 1:
-                          sub_items.append({
-                             "idx": "",
-                             "desc": formatted_lines[1],
-                             "time": "",
-                             "heat_lane": ""
-                          })
+                     # Row 2: Empty | Names | Empty | Empty
+                     # Indent names?
+                     # Just put in desc column.
+                     sub_items.append({
+                         "idx": "",
+                         "desc": "         " + full_names_str, # Indent with spaces
+                         "time": "",
+                         "heat_lane": ""
+                     })
 
                      team_items.append({
-                         "header": header,
+                         "header": "", # Empty header, using table for content
+                         "force_1col": True,
                          "sub_items": sub_items
                      })
+                     current_relay_seq += 1
 
             report_groups.append({
                 "header": f"Team Entries - {t_name}",

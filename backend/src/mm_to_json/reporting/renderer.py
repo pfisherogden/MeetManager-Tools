@@ -118,7 +118,7 @@ class PDFRenderer:
                 # If 2-column layout requested
                 sub_items = item.get("sub_items", [])
                 
-                if self.config.two_column_layout:
+                if self.config.two_column_layout and not item.get("force_1col"):
                     # Convert flat list to 2-column tabular data
                     # Col spec: 9 cols with spacer in middle:
                     # [idx, desc, time, H/L, SPACER, idx, desc, time, H/L]
@@ -178,12 +178,39 @@ class PDFRenderer:
                             
                             ('VALIGN', (0,0), (-1,-1), 'TOP'),
                             ('LEFTPADDING', (0,0), (-1,-1), 2),
-                            ('RIGHTPADDING', (0,0), (-1,-1), 2),
-                            ('TOPPADDING', (0,0), (-1,-1), 0),
-                            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
                         ]))
                         item_elements.append(t)
-                        item_elements.append(Spacer(1, 6)) # Small spacer
+                else: 
+                     # Single Column Layout (for Relays or non-2col config)
+                     # Treat as 4-Column Table: [idx, desc, time, H/L]
+                     grid_data = []
+                     for s in sub_items:
+                         row = [
+                             s.get("idx", ""),
+                             s.get("desc", ""),
+                             s.get("time", ""),
+                             s.get("heat_lane", ""),
+                         ]
+                         grid_data.append(row)
+
+                     if grid_data:
+                         # Full Width (approx 7.5 inch available?)
+                         # idx (0.5), desc (5.0), time (1.0), HL (1.0) -> 7.5 Total
+                         col_widths = [0.4*inch, 5.0*inch, 0.8*inch, 0.8*inch]
+                         t = Table(grid_data, colWidths=col_widths)
+                         t.setStyle(TableStyle([
+                            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+                            ('FONTSIZE', (0,0), (-1,-1), 9), # Slightly larger for single col
+                            ('ALIGN', (0,0), (0,-1), 'RIGHT'), # Idx
+                            ('ALIGN', (1,0), (1,-1), 'LEFT'),  # Desc
+                            ('ALIGN', (2,0), (2,-1), 'RIGHT'), # Time
+                            ('ALIGN', (3,0), (3,-1), 'CENTER'),# H/L
+                            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                            ('LEFTPADDING', (0,0), (-1,-1), 4),
+                         ]))
+                         item_elements.append(t)
+                         item_elements.append(Spacer(1, 4))
+
 
                 # Use KeepTogether so athlete block doesn't split awkwardly
                 elements.append(KeepTogether(item_elements))

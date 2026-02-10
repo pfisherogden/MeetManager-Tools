@@ -5,24 +5,36 @@ import os
 import sys
 
 # from access_parser import AccessParser DEPRECATED
-import mdb_writer
+try:
+    import mdb_writer
+except ImportError:
+    mdb_writer = None
 import pandas as pd
+from .report_generator import ReportGenerator
 
 
 class MmToJsonConverter:
-    def __init__(self, mdb_path, password=None):
-        if not os.path.exists(mdb_path):
-            raise FileNotFoundError(f"MDB file not found: {mdb_path}")
+    def __init__(self, mdb_path=None, password=None, table_data=None):
+        if mdb_path:
+            if not os.path.exists(mdb_path):
+                raise FileNotFoundError(f"MDB file not found: {mdb_path}")
 
-        # Security: Prefer env var or arg over hardcoding
-        if not password:
-            password = os.environ.get("MM_DB_PASSWORD")
+            # Security: Prefer env var or arg over hardcoding
+            if not password:
+                password = os.environ.get("MM_DB_PASSWORD")
 
-        print(f"Loading database: {mdb_path}")
+            print(f"Loading database: {mdb_path}")
 
-        # Initialize Jackcess
-        mdb_writer.ensure_jvm_started()
-        self.db = mdb_writer.open_db(mdb_path)
+            # Initialize Jackcess
+            if mdb_writer:
+                mdb_writer.ensure_jvm_started()
+                self.db = mdb_writer.open_db(mdb_path)
+            else:
+                raise ImportError("mdb_writer (Jackcess) is required for opening MDB files directly.")
+        elif table_data is not None:
+            self.db = None
+        else:
+            raise ValueError("Either mdb_path or table_data must be provided.")
 
         self.tables = {}
         self.cache_athlete_map = None
@@ -30,6 +42,55 @@ class MmToJsonConverter:
         self.cache_division_map = None
         self.schema_type = "A"  # A = Original C++ assumption, B = Singers23/Newer
 
+        if table_data is not None:
+            self._load_from_data(table_data)
+        else:
+            self._load_from_db()
+
+    def _load_from_data(self, table_data):
+        self.table_aliases = {
+            "Meet": ["Meet", "MEET"],
+            "Session": ["Session", "SESSIONS"],
+            "Sessitem": ["Sessitem", "SESSITEM"],
+            "Event": ["Event", "MTEVENT"],
+            "Entry": ["Entry", "ENTRY"],
+            "Relay": ["Relay", "RELAY"],
+            "RelayNames": ["RelayNames", "RELAYNAMES"],
+            "Athlete": ["Athlete", "ATHLETE"],
+            "Team": ["Team", "TEAM"],
+            "Divisions": ["Divisions", "DIVISIONS"],
+        }
+        
+        # Determine schema type
+        self.schema_type = "A"
+        for candidate in ["MTEVENT", "mtevent"]:
+            if candidate in table_data:
+                self.schema_type = "B"
+                break
+        
+        for logical, physical_candidates in self.table_aliases.items():
+            found_data = None
+            for candidate in physical_candidates:
+                if candidate in table_data:
+                    found_data = table_data[candidate]
+                    break
+                # Case insensitive check
+                for k in table_data.keys():
+                    if k.lower() == candidate.lower():
+                        found_data = table_data[k]
+                        break
+                if found_data:
+                    break
+            
+            if found_data is not None:
+                df = pd.DataFrame(found_data)
+                if not df.empty:
+                    df.columns = df.columns.astype(str)
+                self.tables[logical] = df
+            else:
+                self.tables[logical] = pd.DataFrame()
+
+    def _load_from_db(self):
         # Pre-load required tables into Pandas DataFrames
         self.table_aliases = {
             "Meet": ["Meet", "MEET"],
@@ -951,10 +1012,51 @@ def main():
         "-w", "--watch", action="store_true", help="Watch the mdb_file (Not implemented)"
     )
 
+    parser.add_argument(
+        "--report",
+        action="store_true",
+        help="Generate a PDF report instead of JSON.",
+    )
+    parser.add_argument(
+        "--report-type",
+        choices=["psych", "entries", "lineups", "results"],
+        default="psych",
+        help="Type of report to generate.",
+    )
+    parser.add_argument(
+        "--report-title",
+        help="Custom title for the report.",
+    )
+    parser.add_argument(
+        "--team-filter",
+        help="Filter entries by team name.",
+    )
+
     args = parser.parse_args()
 
     converter = MmToJsonConverter(args.mdb_file, args.password)
     try:
+        if args.report:
+            # Hierarchical data is needed for reports
+            data = converter.convert()
+            rg = ReportGenerator(data, title=args.report_title or f"{args.report_type.capitalize()} Sheet")
+            
+            # Determine output filename
+            base_name = os.path.splitext(os.path.basename(args.mdb_file))[0]
+            out_path = os.path.join(args.output_dir, f"{base_name}_{args.report_type}.pdf")
+            
+            if args.report_type == "psych":
+                rg.generate_psych_sheet(out_path)
+            elif args.report_type == "entries":
+                rg.generate_meet_entries(out_path, team_filter=args.team_filter)
+            elif args.report_type == "lineups":
+                rg.generate_lineup_sheets(out_path)
+            elif args.report_type == "results":
+                rg.generate_meet_results(out_path)
+            
+            print(f"Successfully generated report to {out_path}")
+            return
+
         if args.raw:
             data = converter.export_raw()
         else:
