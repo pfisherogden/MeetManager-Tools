@@ -25,6 +25,7 @@ class MockMeetManagerService(MeetManagerService):
                     self._data_cache[name] = json.load(f)
             except FileNotFoundError:
                 self._data_cache[name] = []
+        self.config = {"meet_name": "Mock Meet", "meet_description": "Mock Description"}
 
     def _get_table(self, table_name):
         return self._data_cache.get(table_name, [])
