@@ -110,3 +110,19 @@ def test_event_mapping_filters(service):
         
     assert has_stroke, "Critical Mapping Failure: No events have valid Stroke"
     assert has_gender, "Critical Mapping Failure: No events have valid Gender populated"
+
+def test_event_results_scoring_and_seed(service):
+    """Verify detailed event results include seed times and points."""
+    resp = service.GetEventScores(None, None)
+    assert len(resp.event_scores) > 0
+    
+    has_seed = False
+    has_points = False
+    
+    for ev in resp.event_scores:
+        for entry in ev.entries:
+            if entry.seed_time and entry.seed_time != "NT": has_seed = True
+            if entry.points > 0: has_points = True
+            
+    assert has_seed, "Critical Mapping Failure: No event results have valid Seed Times"
+    assert has_points, "Critical Mapping Failure: No event results have calculated Points"

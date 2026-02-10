@@ -154,9 +154,27 @@ def test_meet_entries_data():
                 if not sub: continue
                 # We expect 2 rows: Time/HL and Names
                 if len(sub) == 2:
-                    desc = sub[0].get("desc", "")
-                    if ";" not in desc and "," not in desc:
-                         print(f"WARN: Relay Entry names not formatted with names: '{desc}'")
+                    # Row 1: Seq in idx, Team/Info in desc, Time in time, H/L in heat_lane
+                    idx = sub[0].get("idx", "")
+                    info = sub[0].get("desc", "")
+                    time_val = sub[0].get("time", "")
+                    hl = sub[0].get("heat_lane", "")
+                    
+                    # Row 2: Names in desc
+                    names = sub[1].get("desc", "")
+
+                    # 3a. Check H/L format (e.g. "1/7")
+                    if "/" not in hl and hl != "":
+                        print(f"WARN: Relay H/L not formatted as 'H/L': '{hl}'")
+
+                    # 3b. Check Names format (Semicolon separated)
+                    if ";" not in names and "," not in names:
+                         print(f"WARN: Relay Entry names not formatted with names: '{names}'")
+
+                    # 3c. Check Relay Letter in Info (Team - 'A')
+                    if "Relay" not in info and "- '" not in info:
+                        # Expect "Team - 'A'"
+                        print(f"WARN: Relay Letter missing in info: '{info}'")
 
     print(f"Found {relay_sections} 'RELAY TEAMS' sections.")
 
