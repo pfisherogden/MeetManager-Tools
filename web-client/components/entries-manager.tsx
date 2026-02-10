@@ -86,8 +86,18 @@ interface EntriesManagerProps {
     initialEntries: Entry[]
 }
 
+import { useSearchParams } from "next/navigation"
+
 export function EntriesManager({ initialEntries }: EntriesManagerProps) {
-    const [data, setData] = useState<Entry[]>(initialEntries)
+    const searchParams = useSearchParams()
+    const eventFilter = searchParams.get('event')
+
+    // Filter initial data based on URL params
+    const filteredInitial = eventFilter
+        ? initialEntries.filter(e => e.eventId === eventFilter)
+        : initialEntries
+
+    const [data, setData] = useState<Entry[]>(filteredInitial)
 
     const handleAdd = () => {
         const newEntry: Entry = {

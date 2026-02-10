@@ -28,7 +28,7 @@ export default async function EventsPage() {
         stroke: e.stroke,
         gender: e.gender,
         ageGroup: formatAgeGroup(e.lowAge, e.highAge),
-        entryCount: 0 // Not yet provided by API
+        entryCount: e.entryCount || 0
       }));
     }
   } catch (e) {

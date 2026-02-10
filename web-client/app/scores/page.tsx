@@ -18,6 +18,7 @@ export default async function ScoresPage() {
       mappedScores = list.scores.map((s: any, index: number) => ({
         id: `sc-${index}-${s.teamId}`,
         meetId: "1", // Placeholder
+        meetName: s.meetName,
         teamId: s.teamId.toString(),
         teamName: s.teamName,
         individualPoints: s.individualPoints,
@@ -42,7 +43,8 @@ export default async function ScoresPage() {
           teamName: e.teamName,
           seedTime: e.seedTime,
           finalTime: e.finalTime,
-          place: e.place || null
+          place: e.place || null,
+          points: e.points || 0
         }))
       }));
     }

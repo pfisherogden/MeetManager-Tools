@@ -65,15 +65,40 @@ const columns: Column<SwimEvent>[] = [
         width: "w-24"
     },
     { key: "ageGroup", label: "Age Group", editable: true, width: "w-24", filterVariant: "faceted" },
-    { key: "entryCount", label: "Entries", editable: true, type: "number", width: "w-20" },
+    {
+        key: "entryCount",
+        label: "Entries",
+        editable: false,
+        width: "w-24",
+        render: (value, row) => (
+            <Link href={`/entries?event=${row.id}`} className="flex items-center gap-2 group">
+                <div className="relative w-8 h-8 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full border-2 border-muted" />
+                    <div className="absolute inset-0 rounded-full border-t-2 border-primary" style={{ transform: 'rotate(-45deg)' }} />
+                    <span className="text-xs font-medium">{value as number}</span>
+                </div>
+                <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">View</span>
+            </Link>
+        )
+    },
 ]
 
 interface EventsManagerProps {
     initialEvents: SwimEvent[]
 }
 
+import { useSearchParams } from "next/navigation"
+
 export function EventsManager({ initialEvents }: EventsManagerProps) {
-    const [data, setData] = useState<SwimEvent[]>(initialEvents)
+    const searchParams = useSearchParams()
+    const sessionFilter = searchParams.get('session')
+
+    // Filter initial data based on URL params
+    const filteredInitial = sessionFilter
+        ? initialEvents.filter(e => e.sessionId === sessionFilter)
+        : initialEvents
+
+    const [data, setData] = useState<SwimEvent[]>(filteredInitial)
 
     const handleAdd = () => {
         const newEvent: SwimEvent = {

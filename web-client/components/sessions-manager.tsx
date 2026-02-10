@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { DataTable, type Column } from "@/components/data-table"
 import type { Session } from "@/lib/swim-meet-types"
-
+import Link from "next/link"
 // We probably want to look up meets for the filter/select
 // But for now, we can just display the ID or pass meets as props if needed.
 // Passing meets as props is better.
@@ -19,7 +19,17 @@ export function SessionsManager({ initialSessions, meets = [] }: SessionsManager
     const getMeetName = (meetId: string) => meets.find(m => m.id === meetId)?.name || meetId
 
     const columns: Column<Session>[] = [
-        { key: "name", label: "Session Name", editable: false, width: "w-40" },
+        {
+            key: "name",
+            label: "Session Name",
+            editable: false,
+            width: "w-40",
+            render: (value, row) => (
+                <Link href={`/events?session=${row.id}`} className="hover:underline text-primary">
+                    {value as string}
+                </Link>
+            )
+        },
         {
             key: "meetId",
             label: "Meet",
