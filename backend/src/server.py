@@ -3,6 +3,7 @@ import logging
 import json
 import os
 import grpc
+import datetime
 
 # Import generated classes
 import meet_manager_pb2
@@ -11,6 +12,8 @@ import csv
 import subprocess
 import io
 import tempfile
+from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.report_generator import ReportGenerator
 
 
 # Defines where the source JSON data lives
@@ -154,8 +157,8 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             name = item.get('Meet_name') or item.get('MName') or 'Unknown Meet'
             loc = item.get('Location') or item.get('Meet_location') or ''
             loc = item.get('Location') or item.get('Meet_location') or ''
-            start = self._format_date(item.get('Start_date') or item.get('Start') or '')
-            end = self._format_date(item.get('End_date') or item.get('End') or '')
+            start = self._format_date(item.get('Start') or item.get('Start_date') or '')
+            end = self._format_date(item.get('End') or item.get('End_date') or '')
             
             meets.append(meet_manager_pb2.Meet(
                 id="1", 
@@ -603,8 +606,12 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
             except:
                  pass
 
+            # Bug 1: Use Entry_no if available
+            entry_id_val = item.get('Entry_no')
+            final_id = int(entry_id_val) if entry_id_val else idx
+
             result.append(meet_manager_pb2.Entry(
-                id=idx, 
+                id=final_id, 
                 event_id=self._safe_int(event_id),
                 athlete_id=self._safe_int(ath_id),
                 athlete_name=f"{athlete.get('First_name','')} {athlete.get('Last_name','')}",
@@ -804,72 +811,116 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
              
         return meet_manager_pb2.EventScoreList(event_scores=resp_list)
 
+    def GenerateReport(self, request, context):
+        print(f"Generating report: {request.type}, title: {request.title}")
+        
+        try:
+            # 1. Convert our flat _data_cache into hierarchical hierarchical data using MmToJsonConverter
+            converter = MmToJsonConverter(table_data=self._data_cache)
+            hierarchical_data = converter.convert()
+            
+            # 2. Use ReportGenerator to create the PDF in a temporary file
+            rg = ReportGenerator(hierarchical_data, title=request.title or "Meet Report")
+            
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                temp_path = tmp.name
+            
+            report_type_map = {
+                meet_manager_pb2.PSYCH: "psych",
+                meet_manager_pb2.ENTRIES: "entries",
+                meet_manager_pb2.LINEUPS: "lineups",
+                meet_manager_pb2.RESULTS: "results"
+            }
+            
+            rtype = report_type_map.get(request.type, "psych")
+            
+            if rtype == "psych":
+                rg.generate_psych_sheet(temp_path)
+            elif rtype == "entries":
+                rg.generate_meet_entries(temp_path, team_filter=request.team_filter)
+            elif rtype == "lineups":
+                rg.generate_lineup_sheets(temp_path)
+            elif rtype == "results":
+                rg.generate_meet_results(temp_path)
+            
+            # 3. Read the generated PDF and return it as bytes
+            with open(temp_path, 'rb') as f:
+                pdf_content = f.read()
+            
+            # Clean up
+            os.remove(temp_path)
+            
+            filename = f"report_{rtype}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            
+            return meet_manager_pb2.ReportResponse(
+                success=True,
+                message="Report generated successfully",
+                pdf_content=pdf_content,
+                filename=filename
+            )
+            
+        except Exception as e:
+            print(f"Error generating report: {e}")
+            import traceback
+            traceback.print_exc()
+            return meet_manager_pb2.ReportResponse(
+                success=False,
+                message=str(e)
+            )
 
     def GetSessions(self, request, context):
-        # Trying to find explicit sessions table first (often 'Session' or derived from Events)
-        # Assuming we might not have a Session table, we can infer from Events session column.
-        
-        # NOTE: MDBTools may not export Session table if we didn't ask for it, 
-        # but _load_mdb loads ALL tables.
-        
-        sessions_data = self._get_table('Session') 
-        if not sessions_data:
-             sessions_data = self._get_table('SESSION')
-        
-        events = self._get_table('Event')
-        
-        final_sessions = []
-        
-        if sessions_data:
-            for item in sessions_data:
-                 # Check event count for this session
-                 sess_no = int(item.get('Sess_no', 0))
-                 sess_events = [e for e in events if int(e.get('Sess_no', 0) if e.get('Sess_no') else 0) == sess_no]
-                 
-                 final_sessions.append(meet_manager_pb2.Session(
-                     id=str(item.get('Sess_no', '')),
-                     meet_id="1", 
-                     name=item.get('Sess_name', f"Session {sess_no}"),
-                     date=self._format_date(item.get('Sess_date', '')),
-                     warm_up_time=self._seconds_to_time(item.get('Sess_time', '')), 
-                     start_time=self._seconds_to_time(item.get('Sess_starttime', '')),
-                     event_count=len(sess_events),
-                     session_num=sess_no,
-                     day=int(item.get('Sess_day', 0))
-                 ))
-        
-        # If no session data found or empty, infer from events or return default
-        if not final_sessions:
-            if events:
-                 # Group by Sess_no
-                 sessions_map = {}
-                 for e in events:
-                     s_no = int(e.get('Sess_no', 0) if e.get('Sess_no') else 1) # Default to 1 if missing
-                     if s_no not in sessions_map:
-                         sessions_map[s_no] = 0
-                     sessions_map[s_no] += 1
-                 
-                 for s_no, count in sessions_map.items():
-                     final_sessions.append(meet_manager_pb2.Session(
-                         id=str(s_no),
-                         meet_id="1",
-                         name=f"Session {s_no}",
-                         event_count=count,
-                         session_num=s_no,
-                         day=1, # Default
-                         start_time="00:00 AM" 
-                     ))
+        data = self._get_table('Session')
+        # Need Meet Start Date to calculate session dates
+        meets = self._get_table('Meet')
+        meet_start = None
+        if meets:
+             # Try various keys for Start Date
+             m = meets[0]
+             date_str = m.get('Start') or m.get('Start_date') or ''
+             if date_str:
+                 try:
+                     # Parse 07/15/2025 or similar
+                     if " " in date_str: date_str = date_str.split(" ")[0]
+                     for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%m/%d/%y", "%d-%b-%y"):
+                         try:
+                             meet_start = datetime.datetime.strptime(date_str, fmt)
+                             break
+                         except ValueError:
+                             continue
+                 except:
+                     pass
+
+        sessions = []
+        for i, item in enumerate(data):
+            # Calculate date from Sess_day
+            sess_date = ""
+            day_offset = self._safe_int(item.get('Sess_day', 1)) - 1
+            if meet_start and day_offset >= 0:
+                 s_date = meet_start + datetime.timedelta(days=day_offset)
+                 sess_date = s_date.strftime("%Y-%m-%d")
             else:
-                 # Absolutely no data
-                 final_sessions.append(meet_manager_pb2.Session(
-                     id="0",
-                     meet_id="1",
-                     name="All Events",
-                     event_count=0,
-                     session_num=0
-                 ))
-                 
-        return meet_manager_pb2.SessionList(sessions=final_sessions)
+                 # Fallback to Sess_date if exists
+                 sess_date = self._format_date(item.get('Sess_date', ''))
+
+            # Calculate event count
+            s_no = item.get('Sess_no')
+            events = self._get_table('Event')
+            ev_count = 0
+            if s_no:
+                 ev_count = sum(1 for e in events if e.get('Sess_no') == s_no)
+
+            sessions.append(meet_manager_pb2.Session(
+                id=item.get('Sess_no', str(i)),
+                meet_id="1", 
+                name=item.get('Sess_name', f"Session {item.get('Sess_no')}"),
+                date=sess_date,
+                warm_up_time=self._seconds_to_time(item.get('Sess_warmup', 0)),
+                start_time=self._seconds_to_time(item.get('Sess_starttime', 0)),
+                event_count=item.get('Event_cnt') or ev_count,
+                session_num=self._safe_int(item.get('Sess_no', 0)),
+                day=self._safe_int(item.get('Sess_day', 1))
+            ))
+        return meet_manager_pb2.SessionList(sessions=sessions)
 
     def GetAdminConfig(self, request, context):
         return meet_manager_pb2.AdminConfig(
