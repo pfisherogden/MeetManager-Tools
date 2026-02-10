@@ -30,6 +30,7 @@ export function ScoresManager({ initialScores, initialEventScores = [] }: Scores
             place: e.place,
             athleteName: e.athleteName || "Relay Team",
             teamName: e.teamName,
+            seedTime: e.seedTime,
             finalTime: e.finalTime,
             points: e.points
         }))
@@ -40,7 +41,7 @@ export function ScoresManager({ initialScores, initialEventScores = [] }: Scores
 
     const columns = useMemo<Column<Score>[]>(() => {
         const uniqueTeams = Array.from(new Set(data.map(d => d.teamName))).sort()
-        const uniqueMeets = Array.from(new Set(data.map(d => d.meetId))).sort()
+        const uniqueMeets = Array.from(new Set(data.map(d => d.meetName))).sort()
         const uniqueRanks = Array.from(new Set(data.map(d => d.rank))).sort((a, b) => a - b)
 
         return [
@@ -86,14 +87,14 @@ export function ScoresManager({ initialScores, initialEventScores = [] }: Scores
                 }
             },
             {
-                key: "meetId",
+                key: "meetName",
                 label: "Meet",
-                editable: true,
+                editable: false,
                 type: "select",
                 filterVariant: "faceted",
                 options: uniqueMeets,
                 width: "w-48",
-                render: (value) => getMeetName(value as string)
+                render: (value) => <span className="font-medium">{value as string}</span>
             },
             {
                 key: "individualPoints",
@@ -138,6 +139,7 @@ export function ScoresManager({ initialScores, initialEventScores = [] }: Scores
             { key: "place", label: "Rank", editable: false, width: "w-16", type: "number", filterVariant: "faceted", options: uniqueRanks.map(String) },
             { key: "athleteName", label: "Athlete / Relay", editable: false, width: "w-48" },
             { key: "teamName", label: "Team", editable: false, width: "w-32", filterVariant: "faceted", options: uniqueTeams },
+            { key: "seedTime", label: "Seed", editable: false, width: "w-24" },
             { key: "finalTime", label: "Time", editable: false, width: "w-24" },
             { key: "points", label: "Points", editable: false, width: "w-20", type: "number" },
         ]
@@ -147,6 +149,7 @@ export function ScoresManager({ initialScores, initialEventScores = [] }: Scores
         const newScore: Score = {
             id: `sc${Date.now()}`,
             meetId: "1",
+            meetName: "Unknown Meet",
             teamId: "0",
             teamName: "New Team",
             individualPoints: 0,
