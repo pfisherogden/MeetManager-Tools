@@ -32,6 +32,8 @@ export function ScoresManager({ initialScores, initialEventScores = [] }: Scores
             teamName: e.teamName,
             seedTime: e.seedTime,
             finalTime: e.finalTime,
+            heat: e.heat,
+            lane: e.lane,
             points: e.points
         }))
     ).sort((a, b) => {
@@ -139,6 +141,8 @@ export function ScoresManager({ initialScores, initialEventScores = [] }: Scores
             { key: "place", label: "Rank", editable: false, width: "w-16", type: "number", filterVariant: "faceted", options: uniqueRanks.map(String) },
             { key: "athleteName", label: "Athlete / Relay", editable: false, width: "w-48" },
             { key: "teamName", label: "Team", editable: false, width: "w-32", filterVariant: "faceted", options: uniqueTeams },
+            { key: "heat", label: "Heat", editable: false, width: "w-16", type: "number" },
+            { key: "lane", label: "Lane", editable: false, width: "w-16", type: "number" },
             { key: "seedTime", label: "Seed", editable: false, width: "w-24" },
             { key: "finalTime", label: "Time", editable: false, width: "w-24" },
             { key: "points", label: "Points", editable: false, width: "w-20", type: "number" },

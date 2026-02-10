@@ -79,6 +79,8 @@ export interface Relay {
   finalTime: string | null
   place: number | null
   eventName?: string
+  heat?: number
+  lane?: number
 }
 
 export interface EventScore {
