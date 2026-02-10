@@ -45,8 +45,8 @@ pnpm-lock.yaml
 web-client/package-lock 2.json
 web-client/pnpm-lock.yaml
 
-# Java Libraries (managed by download_libs.py)
-**/mm_to_json/lib/*.jar
+# Java Libraries
+**/*.jar
 
 # Generated Reports
 backend/data/example_reports/
