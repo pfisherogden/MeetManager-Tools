@@ -35,8 +35,7 @@ service MeetManagerService {
   rpc GetAdminConfig (Empty) returns (AdminConfig);
   rpc UpdateAdminConfig (AdminConfig) returns (AdminConfig);
   rpc GetEventScores (Empty) returns (EventScoreList);
-
-
+  rpc GenerateReport (GenerateReportRequest) returns (ReportResponse);
 }
 
 message Dataset {
@@ -229,3 +228,22 @@ message EventList {
   repeated Event events = 1;
 }
 
+enum ReportType {
+  PSYCH = 0;
+  ENTRIES = 1;
+  LINEUPS = 2;
+  RESULTS = 3;
+}
+
+message GenerateReportRequest {
+  ReportType type = 1;
+  string title = 2;
+  string team_filter = 3;
+}
+
+message ReportResponse {
+  bool success = 1;
+  string message = 2;
+  bytes pdf_content = 3;
+  string filename = 4;
+}

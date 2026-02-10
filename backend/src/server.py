@@ -890,11 +890,47 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                  except:
                      pass
 
+        sessions_to_process = []
+        if data:
+            for item in data:
+                sessions_to_process.append({
+                    'id': item.get('Sess_no'),
+                    'name': item.get('Sess_name', f"Session {item.get('Sess_no')}"),
+                    'day': item.get('Sess_day', 1),
+                    'warmup': item.get('Sess_warmup', 0),
+                    'starttime': item.get('Sess_starttime', 0),
+                    'event_cnt': item.get('Event_cnt'),
+                    'source_item': item
+                })
+        else:
+            # Infer from Events
+            event_table = self._get_table('Event') or self._get_table('MTEVENT')
+            sess_ids = sorted(list(set(self._safe_int(e.get('Sess_no', e.get('sess_no', 1))) for e in event_table)))
+            if not sess_ids and not event_table:
+                 # Case: absolute zero data
+                 sess_ids = [1]
+            
+            for s_id in sess_ids:
+                sessions_to_process.append({
+                    'id': str(s_id),
+                    'name': "Session 1" if s_id == 1 and not event_table else f"Session {s_id}",
+                    'day': 1,
+                    'warmup': 0,
+                    'starttime': 0,
+                    'event_cnt': None,
+                    'source_item': {}
+                })
+            
+            # Override name for absolute zero case
+            if not event_table and sessions_to_process:
+                 sessions_to_process[0]['name'] = "All Events"
+
         sessions = []
-        for i, item in enumerate(data):
+        for i, s_info in enumerate(sessions_to_process):
+            item = s_info['source_item']
             # Calculate date from Sess_day
             sess_date = ""
-            day_offset = self._safe_int(item.get('Sess_day', 1)) - 1
+            day_offset = self._safe_int(s_info['day'], 1) - 1
             if meet_start and day_offset >= 0:
                  s_date = meet_start + datetime.timedelta(days=day_offset)
                  sess_date = s_date.strftime("%Y-%m-%d")
@@ -903,22 +939,22 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                  sess_date = self._format_date(item.get('Sess_date', ''))
 
             # Calculate event count
-            s_no = item.get('Sess_no')
-            events = self._get_table('Event')
+            s_no = s_info['id']
+            events = self._get_table('Event') or self._get_table('MTEVENT')
             ev_count = 0
             if s_no:
-                 ev_count = sum(1 for e in events if e.get('Sess_no') == s_no)
+                 ev_count = sum(1 for e in events if str(e.get('Sess_no', e.get('sess_no', 1))) == str(s_no))
 
             sessions.append(meet_manager_pb2.Session(
-                id=item.get('Sess_no', str(i)),
+                id=str(s_no),
                 meet_id="1", 
-                name=item.get('Sess_name', f"Session {item.get('Sess_no')}"),
+                name=s_info['name'],
                 date=sess_date,
-                warm_up_time=self._seconds_to_time(item.get('Sess_warmup', 0)),
-                start_time=self._seconds_to_time(item.get('Sess_starttime', 0)),
-                event_count=item.get('Event_cnt') or ev_count,
-                session_num=self._safe_int(item.get('Sess_no', 0)),
-                day=self._safe_int(item.get('Sess_day', 1))
+                warm_up_time=self._seconds_to_time(s_info['warmup']),
+                start_time=self._seconds_to_time(s_info['starttime']),
+                event_count=s_info.get('event_cnt') or ev_count,
+                session_num=self._safe_int(s_no, 0),
+                day=self._safe_int(s_info['day'], 1)
             ))
         return meet_manager_pb2.SessionList(sessions=sessions)
 

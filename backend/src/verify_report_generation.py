@@ -104,7 +104,7 @@ def verify_report_generation():
     )
 
     # 4. Render PDF
-    output_pdf = "/app/data/example_reports/verification_entries_v3.pdf"
+    output_pdf = "/app/data/example_reports/verification_entries_v5.pdf"
     print(f"Rendering PDF to {output_pdf}...")
     renderer = PDFRenderer(output_pdf, config)
     renderer.render(report_data)
