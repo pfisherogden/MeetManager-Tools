@@ -193,3 +193,28 @@ export async function getAthlete(id: number) {
         throw new Error(err.message);
     }
 }
+
+export async function generateReport(type: number, title: string, teamFilter: string = "") {
+    try {
+        console.log(`Generating report: type=${type}, title=${title}, teamFilter=${teamFilter}`);
+        // Using as any because local proto definitions might be out of sync
+        const response = await (client as any).generateReport({
+            type,
+            title,
+            teamFilter
+        });
+
+        if (!response.success) {
+            throw new Error(response.message);
+        }
+
+        return {
+            success: true,
+            pdfContent: Array.from(response.pdfContent as Uint8Array), // Convert to regular array for serialization
+            filename: response.filename
+        };
+    } catch (err: any) {
+        console.error("SERVER ACTION ERROR (generateReport):", err);
+        throw new Error(err.message);
+    }
+}

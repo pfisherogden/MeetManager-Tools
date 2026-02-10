@@ -63,7 +63,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "ts-proto": "^2.11.1",
+    "ts-proto": "^2.11.2",
     "vaul": "^1.1.2",
     "zod": "3.25.76"
   },
@@ -75,12 +75,12 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.2",
+    "grpc-tools": "^1.12.4",
     "jsdom": "^27.4.0",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5",
-    "vitest": "^4.0.18",
-    "grpc-tools": "^1.12.4"
+    "vitest": "^4.0.18"
   }
 }

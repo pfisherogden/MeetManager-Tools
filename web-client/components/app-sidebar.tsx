@@ -11,6 +11,7 @@ import {
   Medal,
   LayoutDashboard,
   Waves,
+  FileText,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -27,6 +28,7 @@ const navItems = [
   { name: "Entries", href: "/entries", icon: ClipboardList },
   { name: "Relays", href: "/relays", icon: GitBranch },
   { name: "Scores", href: "/scores", icon: Medal },
+  { name: "Reports", href: "/reports", icon: FileText },
   { name: "Admin", href: "/admin", icon: ClipboardList }, // Temporary icon
 ]
 
