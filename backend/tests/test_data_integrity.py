@@ -126,3 +126,42 @@ def test_event_results_scoring_and_seed(service):
             
     assert has_seed, "Critical Mapping Failure: No event results have valid Seed Times"
     assert has_points, "Critical Mapping Failure: No event results have calculated Points"
+
+def test_relay_heat_lane_mapping(service):
+    """Verify relays have heat, lane and letter mapping."""
+    resp = service.GetRelays(None, None)
+    assert len(resp.relays) > 0
+    
+    has_heat = False
+    has_lane = False
+    has_letter = False
+    
+    for r in resp.relays:
+        if r.heat > 0: has_heat = True
+        if r.lane > 0: has_lane = True
+        if r.relay_letter and len(r.relay_letter) >= 1: has_letter = True
+        
+    # These will fail before implementation
+    assert has_heat, "Relay Mapping Bug: No relays have Heat data"
+    assert has_lane, "Relay Mapping Bug: No relays have Lane data"
+    assert has_letter, "Relay Mapping Bug: No relays have Alpha Letter (A, B, C)"
+
+def test_event_relay_completeness(service):
+    """Verify relay entries in event results have letters and heat/lane."""
+    resp = service.GetEventScores(None, None)
+    
+    has_relay_with_letter = False
+    has_relay_with_heat = False
+    
+    found_any_relay = False
+    for ev in resp.event_scores:
+        for entry in ev.entries:
+            if "Relay" in entry.athlete_name:
+                found_any_relay = True
+                if "(" in entry.athlete_name and ")" in entry.athlete_name: # e.g. "Relay Team (A)"
+                     has_relay_with_letter = True
+                if entry.heat > 0: has_relay_with_heat = True
+                
+    assert found_any_relay, "Test Setup Error: No relays found in fixtures"
+    assert has_relay_with_letter, "Relay Result Bug: Relay team letter missing from athlete_name"
+    assert has_relay_with_heat, "Relay Result Bug: Relay entries missing Heat/Lane data"

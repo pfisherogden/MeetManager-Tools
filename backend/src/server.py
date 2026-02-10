@@ -505,7 +505,9 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                 final_time=str(item.get('Fin_Time', '')),
                 place=self._safe_int(item.get('Fin_place', item.get('Place'))),
                 event_name=events_map.get(event_ptr, f"Event {event_ptr}"),
-                relay_letter=item.get('Team_ltr', '')
+                relay_letter=item.get('Team_ltr', ''),
+                heat=self._safe_int(item.get('Fin_heat')),
+                lane=self._safe_int(item.get('Fin_lane'))
             ))
         return meet_manager_pb2.RelayList(relays=result)
 
@@ -764,6 +766,7 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                    
              t_id = item.get('Team_ptr') or item.get('Team_no')
              place = self._safe_int(item.get('Fin_place', item.get('Place', 0)))
+             rel_ltr = item.get('Team_ltr', '')
              
              # Lookup points
              ev_raw = event_raw_map.get(e_id, {})
@@ -783,13 +786,15 @@ class MeetManagerService(meet_manager_pb2_grpc.MeetManagerServiceServicer):
                  id=0,
                  event_id=int(e_id),
                  athlete_id=0,
-                 athlete_name="Relay Team",
+                 athlete_name=f"Relay Team ({rel_ltr})" if rel_ltr else "Relay Team",
                  team_id=int(t_id if t_id else 0),
                  team_name=teams_map.get(t_id, 'Unknown'),
                  seed_time=str(seed),
                  final_time=str(item.get('Fin_Time', '')),
                  place=place,
                  points=points,
+                 heat=self._safe_int(item.get('Fin_heat', 0)),
+                 lane=self._safe_int(item.get('Fin_lane', 0)),
                  event_name=events_map.get(e_id, "")
              )
              event_dict[e_id]['entries'].append(entry_obj)
