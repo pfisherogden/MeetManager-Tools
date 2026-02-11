@@ -3,6 +3,13 @@ set shell := ["bash", "-c"]
 # Default recipe
 default: test
 
+# Ensure Colima is started
+colima-start:
+    @if ! colima status >/dev/null 2>&1; then \
+        echo "Colima is not running. Starting Colima..."; \
+        colima start; \
+    fi
+
 # Clean up temporary cache files
 clean:
     @echo "Cleaning up..."
@@ -18,7 +25,7 @@ setup:
     python3 backend/src/mm_to_json/download_libs.py
 
 # Build Docker containers
-build: clean setup
+build: colima-start clean setup
     @echo "Preparing frontend build context..."
     mkdir -p web-client/backend_protos_temp
     cp -r backend/protos/* web-client/backend_protos_temp/
@@ -28,7 +35,7 @@ build: clean setup
     rm -rf web-client/backend_protos_temp
 
 # Start services in the background
-up:
+up: colima-start
     @echo "Starting services..."
     docker-compose up -d --remove-orphans
     @echo "Waiting for services to initialize..."
