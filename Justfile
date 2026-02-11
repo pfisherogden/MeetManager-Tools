@@ -18,6 +18,21 @@ build: clean
     @echo "Building containers..."
     docker-compose build
 
+# Build frontend application
+build-frontend:
+    @echo "Building frontend..."
+    cd web-client && npm run build
+
+# Reinstall frontend dependencies
+reinstall-frontend:
+    @echo "Reinstalling frontend dependencies (using local cache)..."
+    cd web-client && rm -rf node_modules package-lock.json && npm install --cache .npm-cache
+
+# Build frontend with debug options and increased memory
+build-frontend-debug:
+    @echo "Building frontend with debug options..."
+    cd web-client && NODE_OPTIONS="--max-old-space-size=4096" npm run build -- --debug
+
 # Start services in the background
 up:
     @echo "Starting services..."
