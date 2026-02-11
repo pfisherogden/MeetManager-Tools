@@ -64,19 +64,23 @@ graph TD
 - **Teams**: Detailed view at `/teams/[id]`.
 
 ## Build & Release Pipeline
-The project uses [`just`](https://github.com/casey/just) to manage the lifecycle of the application containers.
+The project uses [`just`](https://github.com/casey/just) to manage the lifecycle of the application containers and local development.
 
 ### Common Commands
-- **`just test`**: **(Recommended)** Runs the full pipeline: Clean -> Build -> Up -> Sync Protos -> Test.
-- **`just build`**: Rebuilds containers using optimised context (excludes `node_modules`, etc).
-- **`just clean`**: Safely removes cache artifacts (`.DS_Store`, `__pycache__`) that cause permission errors.
+- **`just verify`**: **(Recommended)** Runs the full verification pipeline: Lint -> Test.
+- **`just build`**: Rebuilds Docker containers from the root context.
+- **`just codegen`**: Regenerates gRPC Python and TypeScript code from the root `protos/` directory.
+- **`just clean`**: Safely removes cache artifacts (`.DS_Store`, `__pycache__`, `.next`).
 
-### Workflow Steps (Internal Logic)
-1. **Cleanup**: Removes cache artifacts to prevented context bloat.
-2. **Build**: Runs `docker-compose build` with `PYTHONDONTWRITEBYTECODE=1`.
-3. **Deploy**: Runs `docker-compose up -d`.
-4. **Sync**: Executes `protoc` via `docker-compose run` to regenerate Python gRPC definitions **before** startup to ensure version consistency.
-5. **Verify**: Runs `pytest` inside the backend container.
+### Workflow Steps
+1. **Contract Definition**: Protos are stored in `/protos` and shared by both services.
+2. **Hermetic Build**: Docker containers use the root directory as their build context, ensuring all shared assets are available during `docker build`.
+3. **Dependency Management**:
+   - **Backend**: Managed via `uv` in `backend/pyproject.toml`.
+   - **Frontend**: Managed via `npm` in `web-client/package.json`.
+4. **Verification**: 
+   - **Linting**: Uses `ruff` for Python and `biome`/`eslint` for TypeScript.
+   - **Testing**: Uses `pytest` (Backend) and `Vitest` (Frontend).
 
 ### Troubleshooting
 - **Permission Errors**: If you see errors deleting `__pycache__` or `.uv_cache`, you may need to run `sudo rm -rf ...` once to clear old root-owned artifacts. The new build process prevents them from recurring.
