@@ -84,6 +84,16 @@ class MeetManagerServiceStub(object):
                 request_serializer=meet__manager__pb2.UploadRequest.SerializeToString,
                 response_deserializer=meet__manager__pb2.UploadResponse.FromString,
                 _registered_method=True)
+        self.ClearDataset = channel.unary_unary(
+                '/meetmanager.MeetManagerService/ClearDataset',
+                request_serializer=meet__manager__pb2.DatasetRequest.SerializeToString,
+                response_deserializer=meet__manager__pb2.Empty.FromString,
+                _registered_method=True)
+        self.ClearAllDatasets = channel.unary_unary(
+                '/meetmanager.MeetManagerService/ClearAllDatasets',
+                request_serializer=meet__manager__pb2.Empty.SerializeToString,
+                response_deserializer=meet__manager__pb2.Empty.FromString,
+                _registered_method=True)
         self.GetRelays = channel.unary_unary(
                 '/meetmanager.MeetManagerService/GetRelays',
                 request_serializer=meet__manager__pb2.Empty.SerializeToString,
@@ -194,6 +204,18 @@ class MeetManagerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ClearDataset(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ClearAllDatasets(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetRelays(self, request, context):
         """New Data Operations
         """
@@ -297,6 +319,16 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
                     servicer.UploadDataset,
                     request_deserializer=meet__manager__pb2.UploadRequest.FromString,
                     response_serializer=meet__manager__pb2.UploadResponse.SerializeToString,
+            ),
+            'ClearDataset': grpc.unary_unary_rpc_method_handler(
+                    servicer.ClearDataset,
+                    request_deserializer=meet__manager__pb2.DatasetRequest.FromString,
+                    response_serializer=meet__manager__pb2.Empty.SerializeToString,
+            ),
+            'ClearAllDatasets': grpc.unary_unary_rpc_method_handler(
+                    servicer.ClearAllDatasets,
+                    request_deserializer=meet__manager__pb2.Empty.FromString,
+                    response_serializer=meet__manager__pb2.Empty.SerializeToString,
             ),
             'GetRelays': grpc.unary_unary_rpc_method_handler(
                     servicer.GetRelays,
@@ -609,6 +641,60 @@ class MeetManagerService(object):
             '/meetmanager.MeetManagerService/UploadDataset',
             meet__manager__pb2.UploadRequest.SerializeToString,
             meet__manager__pb2.UploadResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ClearDataset(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/ClearDataset',
+            meet__manager__pb2.DatasetRequest.SerializeToString,
+            meet__manager__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ClearAllDatasets(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.MeetManagerService/ClearAllDatasets',
+            meet__manager__pb2.Empty.SerializeToString,
+            meet__manager__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,

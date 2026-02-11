@@ -22,6 +22,8 @@ service MeetManagerService {
   rpc ListDatasets (Empty) returns (DatasetList);
   rpc SetActiveDataset (DatasetRequest) returns (Empty);
   rpc UploadDataset (stream UploadRequest) returns (UploadResponse);
+  rpc ClearDataset (DatasetRequest) returns (Empty);
+  rpc ClearAllDatasets (Empty) returns (Empty);
 
   // New Data Operations
   rpc GetRelays (Empty) returns (RelayList);
@@ -235,6 +237,7 @@ enum ReportType {
   ENTRIES = 1;
   LINEUPS = 2;
   RESULTS = 3;
+  MEET_PROGRAM = 4;
 }
 
 message GenerateReportRequest {
