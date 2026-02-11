@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+
 
 @dataclass
 class TextStyle:
@@ -9,16 +9,18 @@ class TextStyle:
     alignment: int = 0  # 0=Left, 1=Center, 2=Right
     space_after: int = 0
     space_before: int = 0
-    bg_color: Optional[str] = None
+    bg_color: str | None = None
     text_color: str = "black"
+
 
 @dataclass
 class ColumnConfig:
     header: str
     width: float  # in inches
     alignment: int = 0  # 0=Left, 1=Center, 2=Right
-    data_key: str = "" # Key in the data dict to populate this column
+    data_key: str = ""  # Key in the data dict to populate this column
     style: TextStyle = field(default_factory=TextStyle)
+
 
 @dataclass
 class GroupConfig:
@@ -28,6 +30,7 @@ class GroupConfig:
     page_break_after: bool = False
     new_page_per_group: bool = False
 
+
 @dataclass
 class ReportLayout:
     page_size: str = "Letter"
@@ -36,22 +39,24 @@ class ReportLayout:
     margin_bottom: float = 0.5
     margin_left: float = 0.5
     margin_right: float = 0.5
-    
+    columns_on_page: int = 1
+
+
 @dataclass
 class ReportConfig:
     title: str
     layout: ReportLayout = field(default_factory=ReportLayout)
     header_style: TextStyle = field(default_factory=lambda: TextStyle(font_size=14, alignment=1, space_after=12))
     subheader_style: TextStyle = field(default_factory=lambda: TextStyle(font_size=10, alignment=1, space_after=6))
-    
+
     # Main grouping (e.g., Team)
-    main_group: Optional[GroupConfig] = None
-    
+    main_group: GroupConfig | None = None
+
     # Item grouping (e.g., Athlete within Team)
-    item_group: Optional[GroupConfig] = None
-    
+    item_group: GroupConfig | None = None
+
     # Detailed data columns (e.g., Events within Athlete)
-    columns: List[ColumnConfig] = field(default_factory=list)
-    
+    columns: list[ColumnConfig] = field(default_factory=list)
+
     # Special flags
     two_column_layout: bool = False  # e.g., for 2-column event list

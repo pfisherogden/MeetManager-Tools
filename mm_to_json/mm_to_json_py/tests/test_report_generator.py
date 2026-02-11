@@ -1,7 +1,10 @@
-import pytest
 import os
 import tempfile
+
+import pytest
+
 from mm_to_json.report_generator import ReportGenerator
+
 
 @pytest.fixture
 def mock_meet_data():
@@ -25,7 +28,7 @@ def mock_meet_data():
                                 "heat": "1",
                                 "place": "1",
                                 "finalTime": "30.10",
-                                "points": "10"
+                                "points": "10",
                             },
                             {
                                 "lane": "2",
@@ -36,19 +39,20 @@ def mock_meet_data():
                                 "heat": "1",
                                 "place": "2",
                                 "finalTime": "31.50",
-                                "points": "8"
-                            }
-                        ]
+                                "points": "8",
+                            },
+                        ],
                     }
                 ]
             }
-        ]
+        ],
     }
+
 
 def test_generate_psych_sheet(mock_meet_data):
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         path = tmp.name
-    
+
     try:
         rg = ReportGenerator(mock_meet_data, title="Psych Sheet Test")
         rg.generate_psych_sheet(path)
@@ -58,10 +62,11 @@ def test_generate_psych_sheet(mock_meet_data):
         if os.path.exists(path):
             os.remove(path)
 
+
 def test_generate_meet_entries(mock_meet_data):
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         path = tmp.name
-    
+
     try:
         rg = ReportGenerator(mock_meet_data, title="Entries Test")
         rg.generate_meet_entries(path)
@@ -71,10 +76,11 @@ def test_generate_meet_entries(mock_meet_data):
         if os.path.exists(path):
             os.remove(path)
 
+
 def test_generate_lineup_sheets(mock_meet_data):
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         path = tmp.name
-    
+
     try:
         rg = ReportGenerator(mock_meet_data, title="Lineup Test")
         rg.generate_lineup_sheets(path)
@@ -84,10 +90,11 @@ def test_generate_lineup_sheets(mock_meet_data):
         if os.path.exists(path):
             os.remove(path)
 
+
 def test_generate_meet_results(mock_meet_data):
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         path = tmp.name
-    
+
     try:
         rg = ReportGenerator(mock_meet_data, title="Results Test")
         rg.generate_meet_results(path)
