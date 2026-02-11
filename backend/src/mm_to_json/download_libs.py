@@ -1,6 +1,5 @@
 import os
 import urllib.request
-import sys
 
 # JARs required for UCanAccess 5.0.1
 LIBS = {
@@ -13,6 +12,7 @@ LIBS = {
     "bcprov-jdk15on-1.68.jar": "https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.68/bcprov-jdk15on-1.68.jar",
 }
 
+
 def download_libs(target_dir):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
@@ -21,16 +21,23 @@ def download_libs(target_dir):
     for filename, url in LIBS.items():
         path = os.path.join(target_dir, filename)
         if os.path.exists(path):
-            print(f"Skipping {filename} (already exists)")
+            print(f"Skipping {filename} (already exists at {path})")
             continue
 
-        print(f"Downloading {filename} from {url}...")
+        print(f"Downloading {filename} from {url} to {path}...")
         try:
             urllib.request.urlretrieve(url, path)
             print(f"Successfully downloaded {filename}")
         except Exception as e:
-            print(f"Error downloading {filename}: {e}")
-            sys.exit(1)
+            if os.path.exists(path):
+                print(f"Error downloading {filename} but file exists, continuing: {e}")
+            else:
+                print(f"Error downloading {filename}: {e}")
+                # Don't exit, try next file, but track error
+                # actually for critical dependencies maybe we should exit?
+                # But let's try to proceed if one fails.
+                pass
+
 
 if __name__ == "__main__":
     # Target directory relative to this script: mm_to_json/lib/

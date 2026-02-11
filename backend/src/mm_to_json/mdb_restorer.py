@@ -9,7 +9,7 @@ def restore_db(json_path, target_mdb):
     """
     print(f"Restoring {target_mdb} from {json_path}...")
 
-    with open(json_path, "r") as f:
+    with open(json_path) as f:
         dump_data = json.load(f)
 
     start_jvm()
@@ -44,9 +44,7 @@ def restore_db(json_path, target_mdb):
                 try:
                     dtype = getattr(DataType, dtype_str)
                 except AttributeError:
-                    print(
-                        f"Warning: Unknown type {dtype_str} for {col['name']}, defaulting to TEXT"
-                    )
+                    print(f"Warning: Unknown type {dtype_str} for {col['name']}, defaulting to TEXT")
                     dtype = DataType.TEXT
 
                 cb = ColumnBuilder(col["name"])
@@ -163,6 +161,7 @@ def start_jvm():
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("json_path", help="Path to JSON dump")
     parser.add_argument("target_mdb", help="Output MDB path")

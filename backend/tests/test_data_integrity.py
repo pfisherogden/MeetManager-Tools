@@ -1,19 +1,21 @@
-import pytest
 import json
 import os
 import sys
 
+import pytest
+
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
 from server import MeetManagerService
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+
 
 class MockMeetManagerService(MeetManagerService):
     def __init__(self):
         self._data_cache = {}
-        for name in ['Relay', 'RelayNames', 'Entry', 'Event', 'Session', 'Team', 'Scoring', 'Athlete']:
+        for name in ["Relay", "RelayNames", "Entry", "Event", "Session", "Team", "Scoring", "Athlete"]:
             try:
                 with open(os.path.join(FIXTURES_DIR, f"{name}.json")) as f:
                     self._data_cache[name] = json.load(f)
@@ -23,49 +25,57 @@ class MockMeetManagerService(MeetManagerService):
     def _get_table(self, table_name):
         return self._data_cache.get(table_name, [])
 
+
 @pytest.fixture
 def service():
     return MockMeetManagerService()
+
 
 def test_entry_mapping_completeness(service):
     """Verify that entries have all required fields for UI display and filtering."""
     resp = service.GetEntries(None, None)
     assert len(resp.entries) > 0
-    
+
     # We want to see at least some real data for these
     has_heat = False
     has_lane = False
     has_points = False
     has_event_name = False
     has_athlete_name = False
-    
+
     for e in resp.entries:
-        if e.heat > 0: has_heat = True
-        if e.lane > 0: has_lane = True
-        if e.points > 0: has_points = True
-        if len(e.event_name) > 5: has_event_name = True
-        if len(e.athlete_name) > 2: has_athlete_name = True
-        
+        if e.heat > 0:
+            has_heat = True
+        if e.lane > 0:
+            has_lane = True
+        if e.points > 0:
+            has_points = True
+        if len(e.event_name) > 5:
+            has_event_name = True
+        if len(e.athlete_name) > 2:
+            has_athlete_name = True
+
         # Every entry MUST have these
         assert e.id is not None
         assert e.event_id > 0
         assert e.athlete_id > 0
-        
+
     assert has_heat, "Critical Mapping Failure: No entries have Heat data"
     assert has_lane, "Critical Mapping Failure: No entries have Lane data"
     assert has_points, "Critical Mapping Failure: No entries have Points data"
     assert has_event_name, "Critical Mapping Failure: No entries have valid Event Name"
     assert has_athlete_name, "Critical Mapping Failure: No entries have valid Athlete Name"
 
+
 def test_relay_mapping_completeness(service):
     """Verify relays have all legs and event metadata."""
     resp = service.GetRelays(None, None)
     assert len(resp.relays) > 0
-    
+
     has_legs = False
     has_event_name = False
     has_final_time = False
-    
+
     for r in resp.relays:
         if r.leg1_name and r.leg2_name and r.leg3_name and r.leg4_name:
             has_legs = True
@@ -73,95 +83,111 @@ def test_relay_mapping_completeness(service):
             has_event_name = True
         if r.final_time and r.final_time != "NT":
             has_final_time = True
-            
+
     assert has_legs, "Critical Mapping Failure: No relays have all 4 leg names"
     assert has_event_name, "Critical Mapping Failure: No relays have valid Event Name"
     assert has_final_time, "Critical Mapping Failure: No relays have results (final_time)"
+
 
 def test_athlete_mapping_completeness(service):
     """Verify athletes have gender and team info for faceted filtering."""
     resp = service.GetAthletes(None, None)
     assert len(resp.athletes) > 0
-    
+
     has_gender = False
     has_dob = False
     has_team = False
-    
+
     for a in resp.athletes:
-        if a.gender in ['M', 'F']: has_gender = True
-        if a.date_of_birth and len(a.date_of_birth) > 5: has_dob = True
-        if a.team_name and len(a.team_name) > 2: has_team = True
-        
+        if a.gender in ["M", "F"]:
+            has_gender = True
+        if a.date_of_birth and len(a.date_of_birth) > 5:
+            has_dob = True
+        if a.team_name and len(a.team_name) > 2:
+            has_team = True
+
     assert has_gender, "Critical Mapping Failure: No athletes have M/F gender"
     assert has_dob, "Critical Mapping Failure: No athletes have valid Date of Birth"
     assert has_team, "Critical Mapping Failure: No athletes have Team names"
+
 
 def test_event_mapping_filters(service):
     """Verify events have stroke and gender for filtering."""
     resp = service.GetEvents(None, None)
     assert len(resp.events) > 0
-    
+
     has_stroke = False
     has_gender = False
-    
+
     for e in resp.events:
-        if e.stroke and len(e.stroke) > 2: has_stroke = True
-        if e.gender and len(e.gender) >= 1: has_gender = True
-        
+        if e.stroke and len(e.stroke) > 2:
+            has_stroke = True
+        if e.gender and len(e.gender) >= 1:
+            has_gender = True
+
     assert has_stroke, "Critical Mapping Failure: No events have valid Stroke"
     assert has_gender, "Critical Mapping Failure: No events have valid Gender populated"
+
 
 def test_event_results_scoring_and_seed(service):
     """Verify detailed event results include seed times and points."""
     resp = service.GetEventScores(None, None)
     assert len(resp.event_scores) > 0
-    
+
     has_seed = False
     has_points = False
-    
+
     for ev in resp.event_scores:
         for entry in ev.entries:
-            if entry.seed_time and entry.seed_time != "NT": has_seed = True
-            if entry.points > 0: has_points = True
-            
+            if entry.seed_time and entry.seed_time != "NT":
+                has_seed = True
+            if entry.points > 0:
+                has_points = True
+
     assert has_seed, "Critical Mapping Failure: No event results have valid Seed Times"
     assert has_points, "Critical Mapping Failure: No event results have calculated Points"
+
 
 def test_relay_heat_lane_mapping(service):
     """Verify relays have heat, lane and letter mapping."""
     resp = service.GetRelays(None, None)
     assert len(resp.relays) > 0
-    
+
     has_heat = False
     has_lane = False
     has_letter = False
-    
+
     for r in resp.relays:
-        if r.heat > 0: has_heat = True
-        if r.lane > 0: has_lane = True
-        if r.relay_letter and len(r.relay_letter) >= 1: has_letter = True
-        
+        if r.heat > 0:
+            has_heat = True
+        if r.lane > 0:
+            has_lane = True
+        if r.relay_letter and len(r.relay_letter) >= 1:
+            has_letter = True
+
     # These will fail before implementation
     assert has_heat, "Relay Mapping Bug: No relays have Heat data"
     assert has_lane, "Relay Mapping Bug: No relays have Lane data"
     assert has_letter, "Relay Mapping Bug: No relays have Alpha Letter (A, B, C)"
 
+
 def test_event_relay_completeness(service):
     """Verify relay entries in event results have letters and heat/lane."""
     resp = service.GetEventScores(None, None)
-    
+
     has_relay_with_letter = False
     has_relay_with_heat = False
-    
+
     found_any_relay = False
     for ev in resp.event_scores:
         for entry in ev.entries:
             if "Relay" in entry.athlete_name:
                 found_any_relay = True
-                if "(" in entry.athlete_name and ")" in entry.athlete_name: # e.g. "Relay Team (A)"
-                     has_relay_with_letter = True
-                if entry.heat > 0: has_relay_with_heat = True
-                
+                if "(" in entry.athlete_name and ")" in entry.athlete_name:  # e.g. "Relay Team (A)"
+                    has_relay_with_letter = True
+                if entry.heat > 0:
+                    has_relay_with_heat = True
+
     assert found_any_relay, "Test Setup Error: No relays found in fixtures"
     assert has_relay_with_letter, "Relay Result Bug: Relay team letter missing from athlete_name"
     assert has_relay_with_heat, "Relay Result Bug: Relay entries missing Heat/Lane data"

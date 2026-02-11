@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 # Ensure mdb_writer can be imported
 from . import mdb_writer
@@ -10,7 +9,7 @@ class Team:
     abbr: str
     name: str
     lsc: str = "US"
-    team_id: Optional[int] = None
+    team_id: int | None = None
 
     def save(self, db):
         if self.team_id:
@@ -37,15 +36,13 @@ class Athlete:
     last_name: str
     gender: str
     age: int
-    birth_date: Optional[str] = None  # Or date object
-    athlete_id: Optional[int] = None
+    birth_date: str | None = None  # Or date object
+    athlete_id: int | None = None
 
     def save(self, db):
         # add_athlete(db, ath_id, team_id, last, first, gender, age, ...)
         a_id = self.athlete_id if self.athlete_id is not None else 0
-        new_id = mdb_writer.add_athlete(
-            db, a_id, self.team_id, self.last_name, self.first_name, self.gender, self.age
-        )
+        new_id = mdb_writer.add_athlete(db, a_id, self.team_id, self.last_name, self.first_name, self.gender, self.age)
         self.athlete_id = new_id
         return new_id
 
@@ -56,7 +53,7 @@ class Session:
     day: int
     start_time: str
     meet_id: int
-    session_id: Optional[int] = None
+    session_id: int | None = None
 
     def save(self, db):
         # add_session(db, sess_num, day, start_time, meet_id, ...)
@@ -78,7 +75,7 @@ class Event:
     age_low: int = 0
     age_high: int = 109
     is_relay: bool = False
-    event_id: Optional[int] = None
+    event_id: int | None = None
 
     def save(self, db):
         # add_event(db, event_id, session_num, event_no, distance, stroke, gender, meet_id, ...)
@@ -115,7 +112,7 @@ class Entry:
     lane: int = 0
     time: str = "NT"
     is_relay_entry: bool = False
-    entry_id: Optional[int] = None
+    entry_id: int | None = None
 
     def save(self, db):
         # add_entry(db, entry_id, ath_id, event_id, team_id, heat=0, lane=0,
@@ -144,8 +141,8 @@ class RelayTeam:
     team_id: int
     letter: str
     gender: str
-    athletes: List[int] = field(default_factory=list)
-    relay_id: Optional[int] = None
+    athletes: list[int] = field(default_factory=list)
+    relay_id: int | None = None
 
     def save(self, db):
         # add_relay_team(db, relay_id, meet_id, team_id, letter, gender, ...)

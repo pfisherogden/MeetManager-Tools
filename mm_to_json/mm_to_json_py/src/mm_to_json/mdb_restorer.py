@@ -163,6 +163,7 @@ def start_jvm():
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("json_path", help="Path to JSON dump")
     parser.add_argument("target_mdb", help="Output MDB path")

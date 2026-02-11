@@ -1,8 +1,7 @@
-import os
-import subprocess
 import csv
 import io
-import datetime
+import os
+import subprocess
 import sys
 
 # Add src to sys.path so we can import mm_to_json
@@ -15,13 +14,14 @@ except ImportError as e:
     print(f"Import error: {e}")
     sys.exit(1)
 
+
 def load_mdb(path):
     cache = {}
     try:
-        tables_out = subprocess.check_output(["mdb-tables", "-1", path]).decode('utf-8')
+        tables_out = subprocess.check_output(["mdb-tables", "-1", path]).decode("utf-8")
         tables = tables_out.strip().split()
         for table in tables:
-            csv_out = subprocess.check_output(["mdb-export", path, table]).decode('utf-8')
+            csv_out = subprocess.check_output(["mdb-export", path, table]).decode("utf-8")
             reader = csv.DictReader(io.StringIO(csv_out))
             cache[table] = list(reader)
         return cache
@@ -29,12 +29,13 @@ def load_mdb(path):
         print(f"Error loading MDB: {e}")
         return {}
 
+
 def main():
     # Use a real MDB from the data directory
     mdb_path = "data/2025-07-12 FAST @ DP-Meet2-MeetMgr.mdb"
     out_dir = "data/example_reports"
     os.makedirs(out_dir, exist_ok=True)
-    
+
     if not os.path.exists(mdb_path):
         print(f"Error: {mdb_path} not found.")
         # Try to find any MDB
@@ -49,20 +50,20 @@ def main():
 
     print(f"Loading {mdb_path}...")
     table_data = load_mdb(mdb_path)
-    
+
     # Initialize converter with table_data (skips mdb_writer/Jackcess)
     converter = MmToJsonConverter(table_data=table_data)
     hierarchical_data = converter.convert()
-    
+
     reports = [
         ("psych", "Psych Sheet"),
         ("entries", "Meet Entries"),
         ("lineups", "Lineup Sheets"),
-        ("results", "Meet Results")
+        ("results", "Meet Results"),
     ]
-    
+
     rg = ReportGenerator(hierarchical_data)
-    
+
     for rtype, rname in reports:
         out_path = os.path.join(out_dir, f"example_{rtype}.pdf")
         rg.title = rname
@@ -79,6 +80,7 @@ def main():
             print(f"Saved to {out_path}")
         except Exception as e:
             print(f"Failed to generate {rtype}: {e}")
+
 
 if __name__ == "__main__":
     main()

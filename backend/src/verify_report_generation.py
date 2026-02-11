@@ -1,18 +1,18 @@
-import sys
-import os
-import io
 import csv
+import io
+import os
 import subprocess
-from reportlab.lib.pagesizes import letter
+import sys
 
 # Ensure mm_to_json is in path
-sys.path.append(os.path.dirname(__file__)) # Add backend/src
+sys.path.append(os.path.dirname(__file__))  # Add backend/src
 
 # Correct imports
-from mm_to_json.reporting.config import ReportConfig, ReportLayout, TextStyle, GroupConfig, ColumnConfig
-from mm_to_json.reporting.renderer import PDFRenderer
-from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.reporting.config import GroupConfig, ReportConfig, ReportLayout, TextStyle
+from mm_to_json.reporting.extractor import ReportDataExtractor
+from mm_to_json.reporting.renderer import PDFRenderer
+
 
 def load_mdb(db_path):
     print(f"Exporting tables from {db_path} using mdb-export...")
@@ -24,15 +24,17 @@ def load_mdb(db_path):
 
     data = {}
     for t in tables:
-        if not t.strip(): continue
+        if not t.strip():
+            continue
         try:
-             # -Q prevents quoting issues sometimes, but standard CSV is better
+            # -Q prevents quoting issues sometimes, but standard CSV is better
             csv_out = subprocess.check_output(["mdb-export", db_path, t]).decode("utf-8")
             # Parse CSV to list of dicts
             data[t] = list(csv.DictReader(io.StringIO(csv_out)))
         except Exception as e:
             print(f"Skipping table {t}: {e}")
     return data
+
 
 def verify_report_generation():
     # 1. Load Data
@@ -50,14 +52,14 @@ def verify_report_generation():
     # 2. Extract Data
     print("Extracting Report Data...")
     extractor = ReportDataExtractor(converter)
-    
+
     # Try filtering for "Demon" team as in reference
     report_data = extractor.extract_meet_entries_data(team_filter="Demon")
 
     if not_data(report_data):
         print("Warning: No data for 'Demon'. Trying all teams...")
         report_data = extractor.extract_meet_entries_data(team_filter=None)
-    
+
     if not_data(report_data):
         print("Error: No data extracted at all.")
         return
@@ -66,41 +68,17 @@ def verify_report_generation():
     print("Configuring Report...")
     config = ReportConfig(
         title="Entries - All Events",
-        layout=ReportLayout(
-           page_size="Letter",
-           margin_top=0.75, 
-           margin_bottom=0.5,
-           margin_left=0.5,
-           margin_right=0.5
-        ),
-        header_style=TextStyle(
-            font_name="Helvetica-Bold",
-            font_size=14,
-            alignment=1, 
-            space_after=4
-        ),
-        subheader_style=TextStyle(
-            font_name="Helvetica",
-            font_size=10,
-            alignment=1, 
-            space_after=4
-        ),
+        layout=ReportLayout(page_size="Letter", margin_top=0.75, margin_bottom=0.5, margin_left=0.5, margin_right=0.5),
+        header_style=TextStyle(font_name="Helvetica-Bold", font_size=14, alignment=1, space_after=4),
+        subheader_style=TextStyle(font_name="Helvetica", font_size=10, alignment=1, space_after=4),
         main_group=GroupConfig(
             group_by="team_name",
-            header_style=TextStyle(
-                font_name="Helvetica-Bold",
-                font_size=12,
-                alignment=0, 
-                space_after=6
-            ),
+            header_style=TextStyle(font_name="Helvetica-Bold", font_size=12, alignment=0, space_after=6),
             page_break_after=False,
-            new_page_per_group=True
+            new_page_per_group=True,
         ),
-        item_group=GroupConfig(
-             group_by="athlete_name",
-             item_layout="2col_table"
-        ),
-        two_column_layout=True 
+        item_group=GroupConfig(group_by="athlete_name", item_layout="2col_table"),
+        two_column_layout=True,
     )
 
     # 4. Render PDF
@@ -110,9 +88,12 @@ def verify_report_generation():
     renderer.render(report_data)
     print("Done!")
 
+
 def not_data(data):
-    if not data.get("groups"): return True
+    if not data.get("groups"):
+        return True
     return False
+
 
 if __name__ == "__main__":
     verify_report_generation()
