@@ -26,6 +26,28 @@ export async function setActiveDataset(filename: string) {
     }
 }
 
+export async function clearDataset(filename: string) {
+    try {
+        // Cast to any because proto definition might be stale locally
+        await (client as any).clearDataset({ filename });
+        revalidatePath('/', 'layout');
+        return true;
+    } catch (err: any) {
+        throw new Error(err.message);
+    }
+}
+
+export async function clearAllDatasets() {
+    try {
+        // Cast to any because proto definition might be stale locally
+        await (client as any).clearAllDatasets(Empty.fromPartial({}));
+        revalidatePath('/', 'layout');
+        return true;
+    } catch (err: any) {
+        throw new Error(err.message);
+    }
+}
+
 export async function uploadDataset(formData: FormData) {
     console.log("SERVER ACTION: uploadDataset called");
     const file = formData.get('file') as File;

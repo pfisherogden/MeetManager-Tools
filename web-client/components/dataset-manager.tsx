@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { listDatasets, setActiveDataset, uploadDataset } from "@/app/actions"
-import { Loader2, Upload, Check, Database } from "lucide-react"
+import { listDatasets, setActiveDataset, uploadDataset, clearDataset, clearAllDatasets } from "@/app/actions"
+import { Loader2, Upload, Check, Database, Trash2 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 interface Dataset {
@@ -87,6 +87,30 @@ export function DatasetManager() {
         }
     }
 
+    const handleDelete = async (filename: string) => {
+        if (!confirm(`Are you sure you want to delete ${filename}?`)) return
+        try {
+            await clearDataset(filename)
+            toast.success(`Deleted ${filename}`)
+            fetchDatasets()
+        } catch (error: any) {
+            console.error(error)
+            toast.error(`Failed to delete dataset: ${error.message}`)
+        }
+    }
+
+    const handleClearAll = async () => {
+        if (!confirm("Are you sure you want to delete ALL datasets? This cannot be undone.")) return
+        try {
+            await clearAllDatasets()
+            toast.success("All datasets deleted")
+            fetchDatasets()
+        } catch (error: any) {
+            console.error(error)
+            toast.error(`Failed to clear datasets: ${error.message}`)
+        }
+    }
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -117,6 +141,15 @@ export function DatasetManager() {
                                 Upload Dataset
                             </>
                         )}
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        className="ml-2"
+                        onClick={handleClearAll}
+                        disabled={loading || datasets.length === 0}
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Clear All
                     </Button>
                 </div>
             </CardHeader>
@@ -168,7 +201,7 @@ export function DatasetManager() {
                                             })()
                                         ) : '-'}
                                     </TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right flex items-center justify-end gap-2">
                                         {!dataset.isActive && (
                                             <Button
                                                 variant="outline"
@@ -178,6 +211,14 @@ export function DatasetManager() {
                                                 Set Active
                                             </Button>
                                         )}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            onClick={() => handleDelete(dataset.filename)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))
