@@ -7,1529 +7,1689 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
-  type CallOptions,
-  type ChannelCredentials,
-  Client,
-  type ClientOptions,
-  type ClientUnaryCall,
-  type handleUnaryCall,
-  makeGenericClientConstructor,
-  type Metadata,
-  type ServiceError,
-  type UntypedServiceImplementation,
+	type CallOptions,
+	type ChannelCredentials,
+	type Client,
+	type ClientOptions,
+	type ClientUnaryCall,
+	type handleUnaryCall,
+	type Metadata,
+	makeGenericClientConstructor,
+	type ServiceError,
+	type UntypedServiceImplementation,
 } from "@grpc/grpc-js";
 
 export const protobufPackage = "meetmanager";
 
-export interface Empty {
-}
+export type Empty = {};
 
 export interface Meet {
-  id: string;
-  name: string;
-  location: string;
-  startDate: string;
-  endDate: string;
-  /** active, upcoming, completed */
-  status: string;
+	id: string;
+	name: string;
+	location: string;
+	startDate: string;
+	endDate: string;
+	/** active, upcoming, completed */
+	status: string;
 }
 
 export interface MeetList {
-  meets: Meet[];
+	meets: Meet[];
 }
 
 export interface DashboardStats {
-  meetCount: number;
-  teamCount: number;
-  athleteCount: number;
-  eventCount: number;
+	meetCount: number;
+	teamCount: number;
+	athleteCount: number;
+	eventCount: number;
 }
 
 export interface Team {
-  id: number;
-  name: string;
-  /** Abbreviation */
-  code: string;
-  lsc: string;
-  city: string;
-  state: string;
-  athleteCount: number;
+	id: number;
+	name: string;
+	/** Abbreviation */
+	code: string;
+	lsc: string;
+	city: string;
+	state: string;
+	athleteCount: number;
 }
 
 export interface TeamList {
-  teams: Team[];
+	teams: Team[];
 }
 
 export interface TeamRequest {
-  id: number;
+	id: number;
 }
 
 export interface Athlete {
-  id: number;
-  firstName: string;
-  lastName: string;
-  /** F or M */
-  gender: string;
-  age: number;
-  teamId: number;
-  teamName: string;
-  schoolYear: string;
-  regNo: string;
+	id: number;
+	firstName: string;
+	lastName: string;
+	/** F or M */
+	gender: string;
+	age: number;
+	teamId: number;
+	teamName: string;
+	schoolYear: string;
+	regNo: string;
 }
 
 export interface AthleteList {
-  athletes: Athlete[];
+	athletes: Athlete[];
 }
 
 export interface AthleteRequest {
-  id: number;
+	id: number;
 }
 
 export interface Event {
-  /** Event_no */
-  id: number;
-  gender: string;
-  distance: number;
-  stroke: string;
-  lowAge: number;
-  highAge: number;
-  session: number;
-  status: string;
+	/** Event_no */
+	id: number;
+	gender: string;
+	distance: number;
+	stroke: string;
+	lowAge: number;
+	highAge: number;
+	session: number;
+	status: string;
 }
 
 export interface EventList {
-  events: Event[];
+	events: Event[];
 }
 
 function createBaseEmpty(): Empty {
-  return {};
+	return {};
 }
 
 export const Empty: MessageFns<Empty> = {
-  encode(_: Empty, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    return writer;
-  },
+	encode(_: Empty, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Empty {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEmpty();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+	decode(input: BinaryReader | Uint8Array, length?: number): Empty {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseEmpty();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(_: any): Empty {
-    return {};
-  },
+	fromJSON(_: any): Empty {
+		return {};
+	},
 
-  toJSON(_: Empty): unknown {
-    const obj: any = {};
-    return obj;
-  },
+	toJSON(_: Empty): unknown {
+		const obj: any = {};
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<Empty>, I>>(base?: I): Empty {
-    return Empty.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Empty>, I>>(_: I): Empty {
-    const message = createBaseEmpty();
-    return message;
-  },
+	create<I extends Exact<DeepPartial<Empty>, I>>(base?: I): Empty {
+		return Empty.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<Empty>, I>>(_: I): Empty {
+		const message = createBaseEmpty();
+		return message;
+	},
 };
 
 function createBaseMeet(): Meet {
-  return { id: "", name: "", location: "", startDate: "", endDate: "", status: "" };
+	return {
+		id: "",
+		name: "",
+		location: "",
+		startDate: "",
+		endDate: "",
+		status: "",
+	};
 }
 
 export const Meet: MessageFns<Meet> = {
-  encode(message: Meet, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.name !== "") {
-      writer.uint32(18).string(message.name);
-    }
-    if (message.location !== "") {
-      writer.uint32(26).string(message.location);
-    }
-    if (message.startDate !== "") {
-      writer.uint32(34).string(message.startDate);
-    }
-    if (message.endDate !== "") {
-      writer.uint32(42).string(message.endDate);
-    }
-    if (message.status !== "") {
-      writer.uint32(50).string(message.status);
-    }
-    return writer;
-  },
+	encode(
+		message: Meet,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== "") {
+			writer.uint32(10).string(message.id);
+		}
+		if (message.name !== "") {
+			writer.uint32(18).string(message.name);
+		}
+		if (message.location !== "") {
+			writer.uint32(26).string(message.location);
+		}
+		if (message.startDate !== "") {
+			writer.uint32(34).string(message.startDate);
+		}
+		if (message.endDate !== "") {
+			writer.uint32(42).string(message.endDate);
+		}
+		if (message.status !== "") {
+			writer.uint32(50).string(message.status);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Meet {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMeet();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Meet {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseMeet();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.string();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.name = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
+					message.name = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 26) {
+						break;
+					}
 
-          message.location = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.location = reader.string();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.startDate = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
+					message.startDate = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 42) {
+						break;
+					}
 
-          message.endDate = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
+					message.endDate = reader.string();
+					continue;
+				}
+				case 6: {
+					if (tag !== 50) {
+						break;
+					}
 
-          message.status = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.status = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Meet {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      location: isSet(object.location) ? globalThis.String(object.location) : "",
-      startDate: isSet(object.startDate)
-        ? globalThis.String(object.startDate)
-        : isSet(object.start_date)
-        ? globalThis.String(object.start_date)
-        : "",
-      endDate: isSet(object.endDate)
-        ? globalThis.String(object.endDate)
-        : isSet(object.end_date)
-        ? globalThis.String(object.end_date)
-        : "",
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
-  },
+	fromJSON(object: any): Meet {
+		return {
+			id: isSet(object.id) ? globalThis.String(object.id) : "",
+			name: isSet(object.name) ? globalThis.String(object.name) : "",
+			location: isSet(object.location)
+				? globalThis.String(object.location)
+				: "",
+			startDate: isSet(object.startDate)
+				? globalThis.String(object.startDate)
+				: isSet(object.start_date)
+					? globalThis.String(object.start_date)
+					: "",
+			endDate: isSet(object.endDate)
+				? globalThis.String(object.endDate)
+				: isSet(object.end_date)
+					? globalThis.String(object.end_date)
+					: "",
+			status: isSet(object.status) ? globalThis.String(object.status) : "",
+		};
+	},
 
-  toJSON(message: Meet): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.location !== "") {
-      obj.location = message.location;
-    }
-    if (message.startDate !== "") {
-      obj.startDate = message.startDate;
-    }
-    if (message.endDate !== "") {
-      obj.endDate = message.endDate;
-    }
-    if (message.status !== "") {
-      obj.status = message.status;
-    }
-    return obj;
-  },
+	toJSON(message: Meet): unknown {
+		const obj: any = {};
+		if (message.id !== "") {
+			obj.id = message.id;
+		}
+		if (message.name !== "") {
+			obj.name = message.name;
+		}
+		if (message.location !== "") {
+			obj.location = message.location;
+		}
+		if (message.startDate !== "") {
+			obj.startDate = message.startDate;
+		}
+		if (message.endDate !== "") {
+			obj.endDate = message.endDate;
+		}
+		if (message.status !== "") {
+			obj.status = message.status;
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<Meet>, I>>(base?: I): Meet {
-    return Meet.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Meet>, I>>(object: I): Meet {
-    const message = createBaseMeet();
-    message.id = object.id ?? "";
-    message.name = object.name ?? "";
-    message.location = object.location ?? "";
-    message.startDate = object.startDate ?? "";
-    message.endDate = object.endDate ?? "";
-    message.status = object.status ?? "";
-    return message;
-  },
+	create<I extends Exact<DeepPartial<Meet>, I>>(base?: I): Meet {
+		return Meet.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<Meet>, I>>(object: I): Meet {
+		const message = createBaseMeet();
+		message.id = object.id ?? "";
+		message.name = object.name ?? "";
+		message.location = object.location ?? "";
+		message.startDate = object.startDate ?? "";
+		message.endDate = object.endDate ?? "";
+		message.status = object.status ?? "";
+		return message;
+	},
 };
 
 function createBaseMeetList(): MeetList {
-  return { meets: [] };
+	return { meets: [] };
 }
 
 export const MeetList: MessageFns<MeetList> = {
-  encode(message: MeetList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.meets) {
-      Meet.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: MeetList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.meets) {
+			Meet.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MeetList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMeetList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): MeetList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseMeetList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.meets.push(Meet.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.meets.push(Meet.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): MeetList {
-    return { meets: globalThis.Array.isArray(object?.meets) ? object.meets.map((e: any) => Meet.fromJSON(e)) : [] };
-  },
+	fromJSON(object: any): MeetList {
+		return {
+			meets: globalThis.Array.isArray(object?.meets)
+				? object.meets.map((e: any) => Meet.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: MeetList): unknown {
-    const obj: any = {};
-    if (message.meets?.length) {
-      obj.meets = message.meets.map((e) => Meet.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: MeetList): unknown {
+		const obj: any = {};
+		if (message.meets?.length) {
+			obj.meets = message.meets.map((e) => Meet.toJSON(e));
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<MeetList>, I>>(base?: I): MeetList {
-    return MeetList.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<MeetList>, I>>(object: I): MeetList {
-    const message = createBaseMeetList();
-    message.meets = object.meets?.map((e) => Meet.fromPartial(e)) || [];
-    return message;
-  },
+	create<I extends Exact<DeepPartial<MeetList>, I>>(base?: I): MeetList {
+		return MeetList.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<MeetList>, I>>(object: I): MeetList {
+		const message = createBaseMeetList();
+		message.meets = object.meets?.map((e) => Meet.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseDashboardStats(): DashboardStats {
-  return { meetCount: 0, teamCount: 0, athleteCount: 0, eventCount: 0 };
+	return { meetCount: 0, teamCount: 0, athleteCount: 0, eventCount: 0 };
 }
 
 export const DashboardStats: MessageFns<DashboardStats> = {
-  encode(message: DashboardStats, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.meetCount !== 0) {
-      writer.uint32(8).int32(message.meetCount);
-    }
-    if (message.teamCount !== 0) {
-      writer.uint32(16).int32(message.teamCount);
-    }
-    if (message.athleteCount !== 0) {
-      writer.uint32(24).int32(message.athleteCount);
-    }
-    if (message.eventCount !== 0) {
-      writer.uint32(32).int32(message.eventCount);
-    }
-    return writer;
-  },
+	encode(
+		message: DashboardStats,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.meetCount !== 0) {
+			writer.uint32(8).int32(message.meetCount);
+		}
+		if (message.teamCount !== 0) {
+			writer.uint32(16).int32(message.teamCount);
+		}
+		if (message.athleteCount !== 0) {
+			writer.uint32(24).int32(message.athleteCount);
+		}
+		if (message.eventCount !== 0) {
+			writer.uint32(32).int32(message.eventCount);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DashboardStats {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDashboardStats();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): DashboardStats {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseDashboardStats();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.meetCount = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
+					message.meetCount = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 16) {
+						break;
+					}
 
-          message.teamCount = reader.int32();
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
+					message.teamCount = reader.int32();
+					continue;
+				}
+				case 3: {
+					if (tag !== 24) {
+						break;
+					}
 
-          message.athleteCount = reader.int32();
-          continue;
-        }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
+					message.athleteCount = reader.int32();
+					continue;
+				}
+				case 4: {
+					if (tag !== 32) {
+						break;
+					}
 
-          message.eventCount = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.eventCount = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): DashboardStats {
-    return {
-      meetCount: isSet(object.meetCount)
-        ? globalThis.Number(object.meetCount)
-        : isSet(object.meet_count)
-        ? globalThis.Number(object.meet_count)
-        : 0,
-      teamCount: isSet(object.teamCount)
-        ? globalThis.Number(object.teamCount)
-        : isSet(object.team_count)
-        ? globalThis.Number(object.team_count)
-        : 0,
-      athleteCount: isSet(object.athleteCount)
-        ? globalThis.Number(object.athleteCount)
-        : isSet(object.athlete_count)
-        ? globalThis.Number(object.athlete_count)
-        : 0,
-      eventCount: isSet(object.eventCount)
-        ? globalThis.Number(object.eventCount)
-        : isSet(object.event_count)
-        ? globalThis.Number(object.event_count)
-        : 0,
-    };
-  },
+	fromJSON(object: any): DashboardStats {
+		return {
+			meetCount: isSet(object.meetCount)
+				? globalThis.Number(object.meetCount)
+				: isSet(object.meet_count)
+					? globalThis.Number(object.meet_count)
+					: 0,
+			teamCount: isSet(object.teamCount)
+				? globalThis.Number(object.teamCount)
+				: isSet(object.team_count)
+					? globalThis.Number(object.team_count)
+					: 0,
+			athleteCount: isSet(object.athleteCount)
+				? globalThis.Number(object.athleteCount)
+				: isSet(object.athlete_count)
+					? globalThis.Number(object.athlete_count)
+					: 0,
+			eventCount: isSet(object.eventCount)
+				? globalThis.Number(object.eventCount)
+				: isSet(object.event_count)
+					? globalThis.Number(object.event_count)
+					: 0,
+		};
+	},
 
-  toJSON(message: DashboardStats): unknown {
-    const obj: any = {};
-    if (message.meetCount !== 0) {
-      obj.meetCount = Math.round(message.meetCount);
-    }
-    if (message.teamCount !== 0) {
-      obj.teamCount = Math.round(message.teamCount);
-    }
-    if (message.athleteCount !== 0) {
-      obj.athleteCount = Math.round(message.athleteCount);
-    }
-    if (message.eventCount !== 0) {
-      obj.eventCount = Math.round(message.eventCount);
-    }
-    return obj;
-  },
+	toJSON(message: DashboardStats): unknown {
+		const obj: any = {};
+		if (message.meetCount !== 0) {
+			obj.meetCount = Math.round(message.meetCount);
+		}
+		if (message.teamCount !== 0) {
+			obj.teamCount = Math.round(message.teamCount);
+		}
+		if (message.athleteCount !== 0) {
+			obj.athleteCount = Math.round(message.athleteCount);
+		}
+		if (message.eventCount !== 0) {
+			obj.eventCount = Math.round(message.eventCount);
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<DashboardStats>, I>>(base?: I): DashboardStats {
-    return DashboardStats.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<DashboardStats>, I>>(object: I): DashboardStats {
-    const message = createBaseDashboardStats();
-    message.meetCount = object.meetCount ?? 0;
-    message.teamCount = object.teamCount ?? 0;
-    message.athleteCount = object.athleteCount ?? 0;
-    message.eventCount = object.eventCount ?? 0;
-    return message;
-  },
+	create<I extends Exact<DeepPartial<DashboardStats>, I>>(
+		base?: I,
+	): DashboardStats {
+		return DashboardStats.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<DashboardStats>, I>>(
+		object: I,
+	): DashboardStats {
+		const message = createBaseDashboardStats();
+		message.meetCount = object.meetCount ?? 0;
+		message.teamCount = object.teamCount ?? 0;
+		message.athleteCount = object.athleteCount ?? 0;
+		message.eventCount = object.eventCount ?? 0;
+		return message;
+	},
 };
 
 function createBaseTeam(): Team {
-  return { id: 0, name: "", code: "", lsc: "", city: "", state: "", athleteCount: 0 };
+	return {
+		id: 0,
+		name: "",
+		code: "",
+		lsc: "",
+		city: "",
+		state: "",
+		athleteCount: 0,
+	};
 }
 
 export const Team: MessageFns<Team> = {
-  encode(message: Team, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    if (message.name !== "") {
-      writer.uint32(18).string(message.name);
-    }
-    if (message.code !== "") {
-      writer.uint32(26).string(message.code);
-    }
-    if (message.lsc !== "") {
-      writer.uint32(34).string(message.lsc);
-    }
-    if (message.city !== "") {
-      writer.uint32(42).string(message.city);
-    }
-    if (message.state !== "") {
-      writer.uint32(50).string(message.state);
-    }
-    if (message.athleteCount !== 0) {
-      writer.uint32(56).int32(message.athleteCount);
-    }
-    return writer;
-  },
+	encode(
+		message: Team,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		if (message.name !== "") {
+			writer.uint32(18).string(message.name);
+		}
+		if (message.code !== "") {
+			writer.uint32(26).string(message.code);
+		}
+		if (message.lsc !== "") {
+			writer.uint32(34).string(message.lsc);
+		}
+		if (message.city !== "") {
+			writer.uint32(42).string(message.city);
+		}
+		if (message.state !== "") {
+			writer.uint32(50).string(message.state);
+		}
+		if (message.athleteCount !== 0) {
+			writer.uint32(56).int32(message.athleteCount);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Team {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTeam();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Team {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseTeam();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.name = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
+					message.name = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 26) {
+						break;
+					}
 
-          message.code = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.code = reader.string();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.lsc = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
+					message.lsc = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 42) {
+						break;
+					}
 
-          message.city = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
+					message.city = reader.string();
+					continue;
+				}
+				case 6: {
+					if (tag !== 50) {
+						break;
+					}
 
-          message.state = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 56) {
-            break;
-          }
+					message.state = reader.string();
+					continue;
+				}
+				case 7: {
+					if (tag !== 56) {
+						break;
+					}
 
-          message.athleteCount = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.athleteCount = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Team {
-    return {
-      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      code: isSet(object.code) ? globalThis.String(object.code) : "",
-      lsc: isSet(object.lsc) ? globalThis.String(object.lsc) : "",
-      city: isSet(object.city) ? globalThis.String(object.city) : "",
-      state: isSet(object.state) ? globalThis.String(object.state) : "",
-      athleteCount: isSet(object.athleteCount)
-        ? globalThis.Number(object.athleteCount)
-        : isSet(object.athlete_count)
-        ? globalThis.Number(object.athlete_count)
-        : 0,
-    };
-  },
+	fromJSON(object: any): Team {
+		return {
+			id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+			name: isSet(object.name) ? globalThis.String(object.name) : "",
+			code: isSet(object.code) ? globalThis.String(object.code) : "",
+			lsc: isSet(object.lsc) ? globalThis.String(object.lsc) : "",
+			city: isSet(object.city) ? globalThis.String(object.city) : "",
+			state: isSet(object.state) ? globalThis.String(object.state) : "",
+			athleteCount: isSet(object.athleteCount)
+				? globalThis.Number(object.athleteCount)
+				: isSet(object.athlete_count)
+					? globalThis.Number(object.athlete_count)
+					: 0,
+		};
+	},
 
-  toJSON(message: Team): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.code !== "") {
-      obj.code = message.code;
-    }
-    if (message.lsc !== "") {
-      obj.lsc = message.lsc;
-    }
-    if (message.city !== "") {
-      obj.city = message.city;
-    }
-    if (message.state !== "") {
-      obj.state = message.state;
-    }
-    if (message.athleteCount !== 0) {
-      obj.athleteCount = Math.round(message.athleteCount);
-    }
-    return obj;
-  },
+	toJSON(message: Team): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		if (message.name !== "") {
+			obj.name = message.name;
+		}
+		if (message.code !== "") {
+			obj.code = message.code;
+		}
+		if (message.lsc !== "") {
+			obj.lsc = message.lsc;
+		}
+		if (message.city !== "") {
+			obj.city = message.city;
+		}
+		if (message.state !== "") {
+			obj.state = message.state;
+		}
+		if (message.athleteCount !== 0) {
+			obj.athleteCount = Math.round(message.athleteCount);
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<Team>, I>>(base?: I): Team {
-    return Team.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Team>, I>>(object: I): Team {
-    const message = createBaseTeam();
-    message.id = object.id ?? 0;
-    message.name = object.name ?? "";
-    message.code = object.code ?? "";
-    message.lsc = object.lsc ?? "";
-    message.city = object.city ?? "";
-    message.state = object.state ?? "";
-    message.athleteCount = object.athleteCount ?? 0;
-    return message;
-  },
+	create<I extends Exact<DeepPartial<Team>, I>>(base?: I): Team {
+		return Team.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<Team>, I>>(object: I): Team {
+		const message = createBaseTeam();
+		message.id = object.id ?? 0;
+		message.name = object.name ?? "";
+		message.code = object.code ?? "";
+		message.lsc = object.lsc ?? "";
+		message.city = object.city ?? "";
+		message.state = object.state ?? "";
+		message.athleteCount = object.athleteCount ?? 0;
+		return message;
+	},
 };
 
 function createBaseTeamList(): TeamList {
-  return { teams: [] };
+	return { teams: [] };
 }
 
 export const TeamList: MessageFns<TeamList> = {
-  encode(message: TeamList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.teams) {
-      Team.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: TeamList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.teams) {
+			Team.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TeamList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTeamList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): TeamList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseTeamList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.teams.push(Team.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.teams.push(Team.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): TeamList {
-    return { teams: globalThis.Array.isArray(object?.teams) ? object.teams.map((e: any) => Team.fromJSON(e)) : [] };
-  },
+	fromJSON(object: any): TeamList {
+		return {
+			teams: globalThis.Array.isArray(object?.teams)
+				? object.teams.map((e: any) => Team.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: TeamList): unknown {
-    const obj: any = {};
-    if (message.teams?.length) {
-      obj.teams = message.teams.map((e) => Team.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: TeamList): unknown {
+		const obj: any = {};
+		if (message.teams?.length) {
+			obj.teams = message.teams.map((e) => Team.toJSON(e));
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<TeamList>, I>>(base?: I): TeamList {
-    return TeamList.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<TeamList>, I>>(object: I): TeamList {
-    const message = createBaseTeamList();
-    message.teams = object.teams?.map((e) => Team.fromPartial(e)) || [];
-    return message;
-  },
+	create<I extends Exact<DeepPartial<TeamList>, I>>(base?: I): TeamList {
+		return TeamList.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<TeamList>, I>>(object: I): TeamList {
+		const message = createBaseTeamList();
+		message.teams = object.teams?.map((e) => Team.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseTeamRequest(): TeamRequest {
-  return { id: 0 };
+	return { id: 0 };
 }
 
 export const TeamRequest: MessageFns<TeamRequest> = {
-  encode(message: TeamRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    return writer;
-  },
+	encode(
+		message: TeamRequest,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TeamRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTeamRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): TeamRequest {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseTeamRequest();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.id = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): TeamRequest {
-    return { id: isSet(object.id) ? globalThis.Number(object.id) : 0 };
-  },
+	fromJSON(object: any): TeamRequest {
+		return { id: isSet(object.id) ? globalThis.Number(object.id) : 0 };
+	},
 
-  toJSON(message: TeamRequest): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    return obj;
-  },
+	toJSON(message: TeamRequest): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<TeamRequest>, I>>(base?: I): TeamRequest {
-    return TeamRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<TeamRequest>, I>>(object: I): TeamRequest {
-    const message = createBaseTeamRequest();
-    message.id = object.id ?? 0;
-    return message;
-  },
+	create<I extends Exact<DeepPartial<TeamRequest>, I>>(base?: I): TeamRequest {
+		return TeamRequest.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<TeamRequest>, I>>(
+		object: I,
+	): TeamRequest {
+		const message = createBaseTeamRequest();
+		message.id = object.id ?? 0;
+		return message;
+	},
 };
 
 function createBaseAthlete(): Athlete {
-  return { id: 0, firstName: "", lastName: "", gender: "", age: 0, teamId: 0, teamName: "", schoolYear: "", regNo: "" };
+	return {
+		id: 0,
+		firstName: "",
+		lastName: "",
+		gender: "",
+		age: 0,
+		teamId: 0,
+		teamName: "",
+		schoolYear: "",
+		regNo: "",
+	};
 }
 
 export const Athlete: MessageFns<Athlete> = {
-  encode(message: Athlete, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    if (message.firstName !== "") {
-      writer.uint32(18).string(message.firstName);
-    }
-    if (message.lastName !== "") {
-      writer.uint32(26).string(message.lastName);
-    }
-    if (message.gender !== "") {
-      writer.uint32(34).string(message.gender);
-    }
-    if (message.age !== 0) {
-      writer.uint32(40).int32(message.age);
-    }
-    if (message.teamId !== 0) {
-      writer.uint32(48).int32(message.teamId);
-    }
-    if (message.teamName !== "") {
-      writer.uint32(58).string(message.teamName);
-    }
-    if (message.schoolYear !== "") {
-      writer.uint32(66).string(message.schoolYear);
-    }
-    if (message.regNo !== "") {
-      writer.uint32(74).string(message.regNo);
-    }
-    return writer;
-  },
+	encode(
+		message: Athlete,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		if (message.firstName !== "") {
+			writer.uint32(18).string(message.firstName);
+		}
+		if (message.lastName !== "") {
+			writer.uint32(26).string(message.lastName);
+		}
+		if (message.gender !== "") {
+			writer.uint32(34).string(message.gender);
+		}
+		if (message.age !== 0) {
+			writer.uint32(40).int32(message.age);
+		}
+		if (message.teamId !== 0) {
+			writer.uint32(48).int32(message.teamId);
+		}
+		if (message.teamName !== "") {
+			writer.uint32(58).string(message.teamName);
+		}
+		if (message.schoolYear !== "") {
+			writer.uint32(66).string(message.schoolYear);
+		}
+		if (message.regNo !== "") {
+			writer.uint32(74).string(message.regNo);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Athlete {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAthlete();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Athlete {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseAthlete();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.firstName = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
+					message.firstName = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 26) {
+						break;
+					}
 
-          message.lastName = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.lastName = reader.string();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.gender = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 40) {
-            break;
-          }
+					message.gender = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 40) {
+						break;
+					}
 
-          message.age = reader.int32();
-          continue;
-        }
-        case 6: {
-          if (tag !== 48) {
-            break;
-          }
+					message.age = reader.int32();
+					continue;
+				}
+				case 6: {
+					if (tag !== 48) {
+						break;
+					}
 
-          message.teamId = reader.int32();
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
+					message.teamId = reader.int32();
+					continue;
+				}
+				case 7: {
+					if (tag !== 58) {
+						break;
+					}
 
-          message.teamName = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
+					message.teamName = reader.string();
+					continue;
+				}
+				case 8: {
+					if (tag !== 66) {
+						break;
+					}
 
-          message.schoolYear = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
+					message.schoolYear = reader.string();
+					continue;
+				}
+				case 9: {
+					if (tag !== 74) {
+						break;
+					}
 
-          message.regNo = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.regNo = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Athlete {
-    return {
-      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      firstName: isSet(object.firstName)
-        ? globalThis.String(object.firstName)
-        : isSet(object.first_name)
-        ? globalThis.String(object.first_name)
-        : "",
-      lastName: isSet(object.lastName)
-        ? globalThis.String(object.lastName)
-        : isSet(object.last_name)
-        ? globalThis.String(object.last_name)
-        : "",
-      gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
-      age: isSet(object.age) ? globalThis.Number(object.age) : 0,
-      teamId: isSet(object.teamId)
-        ? globalThis.Number(object.teamId)
-        : isSet(object.team_id)
-        ? globalThis.Number(object.team_id)
-        : 0,
-      teamName: isSet(object.teamName)
-        ? globalThis.String(object.teamName)
-        : isSet(object.team_name)
-        ? globalThis.String(object.team_name)
-        : "",
-      schoolYear: isSet(object.schoolYear)
-        ? globalThis.String(object.schoolYear)
-        : isSet(object.school_year)
-        ? globalThis.String(object.school_year)
-        : "",
-      regNo: isSet(object.regNo)
-        ? globalThis.String(object.regNo)
-        : isSet(object.reg_no)
-        ? globalThis.String(object.reg_no)
-        : "",
-    };
-  },
+	fromJSON(object: any): Athlete {
+		return {
+			id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+			firstName: isSet(object.firstName)
+				? globalThis.String(object.firstName)
+				: isSet(object.first_name)
+					? globalThis.String(object.first_name)
+					: "",
+			lastName: isSet(object.lastName)
+				? globalThis.String(object.lastName)
+				: isSet(object.last_name)
+					? globalThis.String(object.last_name)
+					: "",
+			gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
+			age: isSet(object.age) ? globalThis.Number(object.age) : 0,
+			teamId: isSet(object.teamId)
+				? globalThis.Number(object.teamId)
+				: isSet(object.team_id)
+					? globalThis.Number(object.team_id)
+					: 0,
+			teamName: isSet(object.teamName)
+				? globalThis.String(object.teamName)
+				: isSet(object.team_name)
+					? globalThis.String(object.team_name)
+					: "",
+			schoolYear: isSet(object.schoolYear)
+				? globalThis.String(object.schoolYear)
+				: isSet(object.school_year)
+					? globalThis.String(object.school_year)
+					: "",
+			regNo: isSet(object.regNo)
+				? globalThis.String(object.regNo)
+				: isSet(object.reg_no)
+					? globalThis.String(object.reg_no)
+					: "",
+		};
+	},
 
-  toJSON(message: Athlete): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    if (message.firstName !== "") {
-      obj.firstName = message.firstName;
-    }
-    if (message.lastName !== "") {
-      obj.lastName = message.lastName;
-    }
-    if (message.gender !== "") {
-      obj.gender = message.gender;
-    }
-    if (message.age !== 0) {
-      obj.age = Math.round(message.age);
-    }
-    if (message.teamId !== 0) {
-      obj.teamId = Math.round(message.teamId);
-    }
-    if (message.teamName !== "") {
-      obj.teamName = message.teamName;
-    }
-    if (message.schoolYear !== "") {
-      obj.schoolYear = message.schoolYear;
-    }
-    if (message.regNo !== "") {
-      obj.regNo = message.regNo;
-    }
-    return obj;
-  },
+	toJSON(message: Athlete): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		if (message.firstName !== "") {
+			obj.firstName = message.firstName;
+		}
+		if (message.lastName !== "") {
+			obj.lastName = message.lastName;
+		}
+		if (message.gender !== "") {
+			obj.gender = message.gender;
+		}
+		if (message.age !== 0) {
+			obj.age = Math.round(message.age);
+		}
+		if (message.teamId !== 0) {
+			obj.teamId = Math.round(message.teamId);
+		}
+		if (message.teamName !== "") {
+			obj.teamName = message.teamName;
+		}
+		if (message.schoolYear !== "") {
+			obj.schoolYear = message.schoolYear;
+		}
+		if (message.regNo !== "") {
+			obj.regNo = message.regNo;
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<Athlete>, I>>(base?: I): Athlete {
-    return Athlete.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Athlete>, I>>(object: I): Athlete {
-    const message = createBaseAthlete();
-    message.id = object.id ?? 0;
-    message.firstName = object.firstName ?? "";
-    message.lastName = object.lastName ?? "";
-    message.gender = object.gender ?? "";
-    message.age = object.age ?? 0;
-    message.teamId = object.teamId ?? 0;
-    message.teamName = object.teamName ?? "";
-    message.schoolYear = object.schoolYear ?? "";
-    message.regNo = object.regNo ?? "";
-    return message;
-  },
+	create<I extends Exact<DeepPartial<Athlete>, I>>(base?: I): Athlete {
+		return Athlete.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<Athlete>, I>>(object: I): Athlete {
+		const message = createBaseAthlete();
+		message.id = object.id ?? 0;
+		message.firstName = object.firstName ?? "";
+		message.lastName = object.lastName ?? "";
+		message.gender = object.gender ?? "";
+		message.age = object.age ?? 0;
+		message.teamId = object.teamId ?? 0;
+		message.teamName = object.teamName ?? "";
+		message.schoolYear = object.schoolYear ?? "";
+		message.regNo = object.regNo ?? "";
+		return message;
+	},
 };
 
 function createBaseAthleteList(): AthleteList {
-  return { athletes: [] };
+	return { athletes: [] };
 }
 
 export const AthleteList: MessageFns<AthleteList> = {
-  encode(message: AthleteList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.athletes) {
-      Athlete.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: AthleteList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.athletes) {
+			Athlete.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AthleteList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAthleteList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): AthleteList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseAthleteList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.athletes.push(Athlete.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.athletes.push(Athlete.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): AthleteList {
-    return {
-      athletes: globalThis.Array.isArray(object?.athletes) ? object.athletes.map((e: any) => Athlete.fromJSON(e)) : [],
-    };
-  },
+	fromJSON(object: any): AthleteList {
+		return {
+			athletes: globalThis.Array.isArray(object?.athletes)
+				? object.athletes.map((e: any) => Athlete.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: AthleteList): unknown {
-    const obj: any = {};
-    if (message.athletes?.length) {
-      obj.athletes = message.athletes.map((e) => Athlete.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: AthleteList): unknown {
+		const obj: any = {};
+		if (message.athletes?.length) {
+			obj.athletes = message.athletes.map((e) => Athlete.toJSON(e));
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<AthleteList>, I>>(base?: I): AthleteList {
-    return AthleteList.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<AthleteList>, I>>(object: I): AthleteList {
-    const message = createBaseAthleteList();
-    message.athletes = object.athletes?.map((e) => Athlete.fromPartial(e)) || [];
-    return message;
-  },
+	create<I extends Exact<DeepPartial<AthleteList>, I>>(base?: I): AthleteList {
+		return AthleteList.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<AthleteList>, I>>(
+		object: I,
+	): AthleteList {
+		const message = createBaseAthleteList();
+		message.athletes =
+			object.athletes?.map((e) => Athlete.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseAthleteRequest(): AthleteRequest {
-  return { id: 0 };
+	return { id: 0 };
 }
 
 export const AthleteRequest: MessageFns<AthleteRequest> = {
-  encode(message: AthleteRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    return writer;
-  },
+	encode(
+		message: AthleteRequest,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AthleteRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAthleteRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): AthleteRequest {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseAthleteRequest();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.id = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): AthleteRequest {
-    return { id: isSet(object.id) ? globalThis.Number(object.id) : 0 };
-  },
+	fromJSON(object: any): AthleteRequest {
+		return { id: isSet(object.id) ? globalThis.Number(object.id) : 0 };
+	},
 
-  toJSON(message: AthleteRequest): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    return obj;
-  },
+	toJSON(message: AthleteRequest): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<AthleteRequest>, I>>(base?: I): AthleteRequest {
-    return AthleteRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<AthleteRequest>, I>>(object: I): AthleteRequest {
-    const message = createBaseAthleteRequest();
-    message.id = object.id ?? 0;
-    return message;
-  },
+	create<I extends Exact<DeepPartial<AthleteRequest>, I>>(
+		base?: I,
+	): AthleteRequest {
+		return AthleteRequest.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<AthleteRequest>, I>>(
+		object: I,
+	): AthleteRequest {
+		const message = createBaseAthleteRequest();
+		message.id = object.id ?? 0;
+		return message;
+	},
 };
 
 function createBaseEvent(): Event {
-  return { id: 0, gender: "", distance: 0, stroke: "", lowAge: 0, highAge: 0, session: 0, status: "" };
+	return {
+		id: 0,
+		gender: "",
+		distance: 0,
+		stroke: "",
+		lowAge: 0,
+		highAge: 0,
+		session: 0,
+		status: "",
+	};
 }
 
 export const Event: MessageFns<Event> = {
-  encode(message: Event, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    if (message.gender !== "") {
-      writer.uint32(18).string(message.gender);
-    }
-    if (message.distance !== 0) {
-      writer.uint32(24).int32(message.distance);
-    }
-    if (message.stroke !== "") {
-      writer.uint32(34).string(message.stroke);
-    }
-    if (message.lowAge !== 0) {
-      writer.uint32(40).int32(message.lowAge);
-    }
-    if (message.highAge !== 0) {
-      writer.uint32(48).int32(message.highAge);
-    }
-    if (message.session !== 0) {
-      writer.uint32(56).int32(message.session);
-    }
-    if (message.status !== "") {
-      writer.uint32(66).string(message.status);
-    }
-    return writer;
-  },
+	encode(
+		message: Event,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		if (message.gender !== "") {
+			writer.uint32(18).string(message.gender);
+		}
+		if (message.distance !== 0) {
+			writer.uint32(24).int32(message.distance);
+		}
+		if (message.stroke !== "") {
+			writer.uint32(34).string(message.stroke);
+		}
+		if (message.lowAge !== 0) {
+			writer.uint32(40).int32(message.lowAge);
+		}
+		if (message.highAge !== 0) {
+			writer.uint32(48).int32(message.highAge);
+		}
+		if (message.session !== 0) {
+			writer.uint32(56).int32(message.session);
+		}
+		if (message.status !== "") {
+			writer.uint32(66).string(message.status);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Event {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEvent();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Event {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseEvent();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.gender = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
+					message.gender = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 24) {
+						break;
+					}
 
-          message.distance = reader.int32();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.distance = reader.int32();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.stroke = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 40) {
-            break;
-          }
+					message.stroke = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 40) {
+						break;
+					}
 
-          message.lowAge = reader.int32();
-          continue;
-        }
-        case 6: {
-          if (tag !== 48) {
-            break;
-          }
+					message.lowAge = reader.int32();
+					continue;
+				}
+				case 6: {
+					if (tag !== 48) {
+						break;
+					}
 
-          message.highAge = reader.int32();
-          continue;
-        }
-        case 7: {
-          if (tag !== 56) {
-            break;
-          }
+					message.highAge = reader.int32();
+					continue;
+				}
+				case 7: {
+					if (tag !== 56) {
+						break;
+					}
 
-          message.session = reader.int32();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
+					message.session = reader.int32();
+					continue;
+				}
+				case 8: {
+					if (tag !== 66) {
+						break;
+					}
 
-          message.status = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.status = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Event {
-    return {
-      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
-      distance: isSet(object.distance) ? globalThis.Number(object.distance) : 0,
-      stroke: isSet(object.stroke) ? globalThis.String(object.stroke) : "",
-      lowAge: isSet(object.lowAge)
-        ? globalThis.Number(object.lowAge)
-        : isSet(object.low_age)
-        ? globalThis.Number(object.low_age)
-        : 0,
-      highAge: isSet(object.highAge)
-        ? globalThis.Number(object.highAge)
-        : isSet(object.high_age)
-        ? globalThis.Number(object.high_age)
-        : 0,
-      session: isSet(object.session) ? globalThis.Number(object.session) : 0,
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
-  },
+	fromJSON(object: any): Event {
+		return {
+			id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+			gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
+			distance: isSet(object.distance) ? globalThis.Number(object.distance) : 0,
+			stroke: isSet(object.stroke) ? globalThis.String(object.stroke) : "",
+			lowAge: isSet(object.lowAge)
+				? globalThis.Number(object.lowAge)
+				: isSet(object.low_age)
+					? globalThis.Number(object.low_age)
+					: 0,
+			highAge: isSet(object.highAge)
+				? globalThis.Number(object.highAge)
+				: isSet(object.high_age)
+					? globalThis.Number(object.high_age)
+					: 0,
+			session: isSet(object.session) ? globalThis.Number(object.session) : 0,
+			status: isSet(object.status) ? globalThis.String(object.status) : "",
+		};
+	},
 
-  toJSON(message: Event): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    if (message.gender !== "") {
-      obj.gender = message.gender;
-    }
-    if (message.distance !== 0) {
-      obj.distance = Math.round(message.distance);
-    }
-    if (message.stroke !== "") {
-      obj.stroke = message.stroke;
-    }
-    if (message.lowAge !== 0) {
-      obj.lowAge = Math.round(message.lowAge);
-    }
-    if (message.highAge !== 0) {
-      obj.highAge = Math.round(message.highAge);
-    }
-    if (message.session !== 0) {
-      obj.session = Math.round(message.session);
-    }
-    if (message.status !== "") {
-      obj.status = message.status;
-    }
-    return obj;
-  },
+	toJSON(message: Event): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		if (message.gender !== "") {
+			obj.gender = message.gender;
+		}
+		if (message.distance !== 0) {
+			obj.distance = Math.round(message.distance);
+		}
+		if (message.stroke !== "") {
+			obj.stroke = message.stroke;
+		}
+		if (message.lowAge !== 0) {
+			obj.lowAge = Math.round(message.lowAge);
+		}
+		if (message.highAge !== 0) {
+			obj.highAge = Math.round(message.highAge);
+		}
+		if (message.session !== 0) {
+			obj.session = Math.round(message.session);
+		}
+		if (message.status !== "") {
+			obj.status = message.status;
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<Event>, I>>(base?: I): Event {
-    return Event.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Event>, I>>(object: I): Event {
-    const message = createBaseEvent();
-    message.id = object.id ?? 0;
-    message.gender = object.gender ?? "";
-    message.distance = object.distance ?? 0;
-    message.stroke = object.stroke ?? "";
-    message.lowAge = object.lowAge ?? 0;
-    message.highAge = object.highAge ?? 0;
-    message.session = object.session ?? 0;
-    message.status = object.status ?? "";
-    return message;
-  },
+	create<I extends Exact<DeepPartial<Event>, I>>(base?: I): Event {
+		return Event.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<Event>, I>>(object: I): Event {
+		const message = createBaseEvent();
+		message.id = object.id ?? 0;
+		message.gender = object.gender ?? "";
+		message.distance = object.distance ?? 0;
+		message.stroke = object.stroke ?? "";
+		message.lowAge = object.lowAge ?? 0;
+		message.highAge = object.highAge ?? 0;
+		message.session = object.session ?? 0;
+		message.status = object.status ?? "";
+		return message;
+	},
 };
 
 function createBaseEventList(): EventList {
-  return { events: [] };
+	return { events: [] };
 }
 
 export const EventList: MessageFns<EventList> = {
-  encode(message: EventList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.events) {
-      Event.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: EventList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.events) {
+			Event.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EventList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEventList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): EventList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseEventList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.events.push(Event.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.events.push(Event.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): EventList {
-    return { events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => Event.fromJSON(e)) : [] };
-  },
+	fromJSON(object: any): EventList {
+		return {
+			events: globalThis.Array.isArray(object?.events)
+				? object.events.map((e: any) => Event.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: EventList): unknown {
-    const obj: any = {};
-    if (message.events?.length) {
-      obj.events = message.events.map((e) => Event.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: EventList): unknown {
+		const obj: any = {};
+		if (message.events?.length) {
+			obj.events = message.events.map((e) => Event.toJSON(e));
+		}
+		return obj;
+	},
 
-  create<I extends Exact<DeepPartial<EventList>, I>>(base?: I): EventList {
-    return EventList.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<EventList>, I>>(object: I): EventList {
-    const message = createBaseEventList();
-    message.events = object.events?.map((e) => Event.fromPartial(e)) || [];
-    return message;
-  },
+	create<I extends Exact<DeepPartial<EventList>, I>>(base?: I): EventList {
+		return EventList.fromPartial(base ?? ({} as any));
+	},
+	fromPartial<I extends Exact<DeepPartial<EventList>, I>>(
+		object: I,
+	): EventList {
+		const message = createBaseEventList();
+		message.events = object.events?.map((e) => Event.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 export type MeetManagerServiceService = typeof MeetManagerServiceService;
 export const MeetManagerServiceService = {
-  /** Meet Operations */
-  getMeets: {
-    path: "/meetmanager.MeetManagerService/GetMeets",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: MeetList): Buffer => Buffer.from(MeetList.encode(value).finish()),
-    responseDeserialize: (value: Buffer): MeetList => MeetList.decode(value),
-  },
-  getDashboardStats: {
-    path: "/meetmanager.MeetManagerService/GetDashboardStats",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: DashboardStats): Buffer => Buffer.from(DashboardStats.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DashboardStats => DashboardStats.decode(value),
-  },
-  /** Team Operations */
-  getTeams: {
-    path: "/meetmanager.MeetManagerService/GetTeams",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: TeamList): Buffer => Buffer.from(TeamList.encode(value).finish()),
-    responseDeserialize: (value: Buffer): TeamList => TeamList.decode(value),
-  },
-  getTeam: {
-    path: "/meetmanager.MeetManagerService/GetTeam",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: TeamRequest): Buffer => Buffer.from(TeamRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): TeamRequest => TeamRequest.decode(value),
-    responseSerialize: (value: Team): Buffer => Buffer.from(Team.encode(value).finish()),
-    responseDeserialize: (value: Buffer): Team => Team.decode(value),
-  },
-  /** Athlete Operations */
-  getAthletes: {
-    path: "/meetmanager.MeetManagerService/GetAthletes",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: AthleteList): Buffer => Buffer.from(AthleteList.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AthleteList => AthleteList.decode(value),
-  },
-  getAthlete: {
-    path: "/meetmanager.MeetManagerService/GetAthlete",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: AthleteRequest): Buffer => Buffer.from(AthleteRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AthleteRequest => AthleteRequest.decode(value),
-    responseSerialize: (value: Athlete): Buffer => Buffer.from(Athlete.encode(value).finish()),
-    responseDeserialize: (value: Buffer): Athlete => Athlete.decode(value),
-  },
-  /** Event Operations */
-  getEvents: {
-    path: "/meetmanager.MeetManagerService/GetEvents",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: Empty): Buffer => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
-    responseSerialize: (value: EventList): Buffer => Buffer.from(EventList.encode(value).finish()),
-    responseDeserialize: (value: Buffer): EventList => EventList.decode(value),
-  },
+	/** Meet Operations */
+	getMeets: {
+		path: "/meetmanager.MeetManagerService/GetMeets",
+		requestStream: false,
+		responseStream: false,
+		requestSerialize: (value: Empty): Buffer =>
+			Buffer.from(Empty.encode(value).finish()),
+		requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
+		responseSerialize: (value: MeetList): Buffer =>
+			Buffer.from(MeetList.encode(value).finish()),
+		responseDeserialize: (value: Buffer): MeetList => MeetList.decode(value),
+	},
+	getDashboardStats: {
+		path: "/meetmanager.MeetManagerService/GetDashboardStats",
+		requestStream: false,
+		responseStream: false,
+		requestSerialize: (value: Empty): Buffer =>
+			Buffer.from(Empty.encode(value).finish()),
+		requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
+		responseSerialize: (value: DashboardStats): Buffer =>
+			Buffer.from(DashboardStats.encode(value).finish()),
+		responseDeserialize: (value: Buffer): DashboardStats =>
+			DashboardStats.decode(value),
+	},
+	/** Team Operations */
+	getTeams: {
+		path: "/meetmanager.MeetManagerService/GetTeams",
+		requestStream: false,
+		responseStream: false,
+		requestSerialize: (value: Empty): Buffer =>
+			Buffer.from(Empty.encode(value).finish()),
+		requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
+		responseSerialize: (value: TeamList): Buffer =>
+			Buffer.from(TeamList.encode(value).finish()),
+		responseDeserialize: (value: Buffer): TeamList => TeamList.decode(value),
+	},
+	getTeam: {
+		path: "/meetmanager.MeetManagerService/GetTeam",
+		requestStream: false,
+		responseStream: false,
+		requestSerialize: (value: TeamRequest): Buffer =>
+			Buffer.from(TeamRequest.encode(value).finish()),
+		requestDeserialize: (value: Buffer): TeamRequest =>
+			TeamRequest.decode(value),
+		responseSerialize: (value: Team): Buffer =>
+			Buffer.from(Team.encode(value).finish()),
+		responseDeserialize: (value: Buffer): Team => Team.decode(value),
+	},
+	/** Athlete Operations */
+	getAthletes: {
+		path: "/meetmanager.MeetManagerService/GetAthletes",
+		requestStream: false,
+		responseStream: false,
+		requestSerialize: (value: Empty): Buffer =>
+			Buffer.from(Empty.encode(value).finish()),
+		requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
+		responseSerialize: (value: AthleteList): Buffer =>
+			Buffer.from(AthleteList.encode(value).finish()),
+		responseDeserialize: (value: Buffer): AthleteList =>
+			AthleteList.decode(value),
+	},
+	getAthlete: {
+		path: "/meetmanager.MeetManagerService/GetAthlete",
+		requestStream: false,
+		responseStream: false,
+		requestSerialize: (value: AthleteRequest): Buffer =>
+			Buffer.from(AthleteRequest.encode(value).finish()),
+		requestDeserialize: (value: Buffer): AthleteRequest =>
+			AthleteRequest.decode(value),
+		responseSerialize: (value: Athlete): Buffer =>
+			Buffer.from(Athlete.encode(value).finish()),
+		responseDeserialize: (value: Buffer): Athlete => Athlete.decode(value),
+	},
+	/** Event Operations */
+	getEvents: {
+		path: "/meetmanager.MeetManagerService/GetEvents",
+		requestStream: false,
+		responseStream: false,
+		requestSerialize: (value: Empty): Buffer =>
+			Buffer.from(Empty.encode(value).finish()),
+		requestDeserialize: (value: Buffer): Empty => Empty.decode(value),
+		responseSerialize: (value: EventList): Buffer =>
+			Buffer.from(EventList.encode(value).finish()),
+		responseDeserialize: (value: Buffer): EventList => EventList.decode(value),
+	},
 } as const;
 
 export interface MeetManagerServiceServer extends UntypedServiceImplementation {
-  /** Meet Operations */
-  getMeets: handleUnaryCall<Empty, MeetList>;
-  getDashboardStats: handleUnaryCall<Empty, DashboardStats>;
-  /** Team Operations */
-  getTeams: handleUnaryCall<Empty, TeamList>;
-  getTeam: handleUnaryCall<TeamRequest, Team>;
-  /** Athlete Operations */
-  getAthletes: handleUnaryCall<Empty, AthleteList>;
-  getAthlete: handleUnaryCall<AthleteRequest, Athlete>;
-  /** Event Operations */
-  getEvents: handleUnaryCall<Empty, EventList>;
+	/** Meet Operations */
+	getMeets: handleUnaryCall<Empty, MeetList>;
+	getDashboardStats: handleUnaryCall<Empty, DashboardStats>;
+	/** Team Operations */
+	getTeams: handleUnaryCall<Empty, TeamList>;
+	getTeam: handleUnaryCall<TeamRequest, Team>;
+	/** Athlete Operations */
+	getAthletes: handleUnaryCall<Empty, AthleteList>;
+	getAthlete: handleUnaryCall<AthleteRequest, Athlete>;
+	/** Event Operations */
+	getEvents: handleUnaryCall<Empty, EventList>;
 }
 
 export interface MeetManagerServiceClient extends Client {
-  /** Meet Operations */
-  getMeets(request: Empty, callback: (error: ServiceError | null, response: MeetList) => void): ClientUnaryCall;
-  getMeets(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: MeetList) => void,
-  ): ClientUnaryCall;
-  getMeets(
-    request: Empty,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: MeetList) => void,
-  ): ClientUnaryCall;
-  getDashboardStats(
-    request: Empty,
-    callback: (error: ServiceError | null, response: DashboardStats) => void,
-  ): ClientUnaryCall;
-  getDashboardStats(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: DashboardStats) => void,
-  ): ClientUnaryCall;
-  getDashboardStats(
-    request: Empty,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DashboardStats) => void,
-  ): ClientUnaryCall;
-  /** Team Operations */
-  getTeams(request: Empty, callback: (error: ServiceError | null, response: TeamList) => void): ClientUnaryCall;
-  getTeams(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: TeamList) => void,
-  ): ClientUnaryCall;
-  getTeams(
-    request: Empty,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: TeamList) => void,
-  ): ClientUnaryCall;
-  getTeam(request: TeamRequest, callback: (error: ServiceError | null, response: Team) => void): ClientUnaryCall;
-  getTeam(
-    request: TeamRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: Team) => void,
-  ): ClientUnaryCall;
-  getTeam(
-    request: TeamRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: Team) => void,
-  ): ClientUnaryCall;
-  /** Athlete Operations */
-  getAthletes(request: Empty, callback: (error: ServiceError | null, response: AthleteList) => void): ClientUnaryCall;
-  getAthletes(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: AthleteList) => void,
-  ): ClientUnaryCall;
-  getAthletes(
-    request: Empty,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AthleteList) => void,
-  ): ClientUnaryCall;
-  getAthlete(
-    request: AthleteRequest,
-    callback: (error: ServiceError | null, response: Athlete) => void,
-  ): ClientUnaryCall;
-  getAthlete(
-    request: AthleteRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: Athlete) => void,
-  ): ClientUnaryCall;
-  getAthlete(
-    request: AthleteRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: Athlete) => void,
-  ): ClientUnaryCall;
-  /** Event Operations */
-  getEvents(request: Empty, callback: (error: ServiceError | null, response: EventList) => void): ClientUnaryCall;
-  getEvents(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: EventList) => void,
-  ): ClientUnaryCall;
-  getEvents(
-    request: Empty,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: EventList) => void,
-  ): ClientUnaryCall;
+	/** Meet Operations */
+	getMeets(
+		request: Empty,
+		callback: (error: ServiceError | null, response: MeetList) => void,
+	): ClientUnaryCall;
+	getMeets(
+		request: Empty,
+		metadata: Metadata,
+		callback: (error: ServiceError | null, response: MeetList) => void,
+	): ClientUnaryCall;
+	getMeets(
+		request: Empty,
+		metadata: Metadata,
+		options: Partial<CallOptions>,
+		callback: (error: ServiceError | null, response: MeetList) => void,
+	): ClientUnaryCall;
+	getDashboardStats(
+		request: Empty,
+		callback: (error: ServiceError | null, response: DashboardStats) => void,
+	): ClientUnaryCall;
+	getDashboardStats(
+		request: Empty,
+		metadata: Metadata,
+		callback: (error: ServiceError | null, response: DashboardStats) => void,
+	): ClientUnaryCall;
+	getDashboardStats(
+		request: Empty,
+		metadata: Metadata,
+		options: Partial<CallOptions>,
+		callback: (error: ServiceError | null, response: DashboardStats) => void,
+	): ClientUnaryCall;
+	/** Team Operations */
+	getTeams(
+		request: Empty,
+		callback: (error: ServiceError | null, response: TeamList) => void,
+	): ClientUnaryCall;
+	getTeams(
+		request: Empty,
+		metadata: Metadata,
+		callback: (error: ServiceError | null, response: TeamList) => void,
+	): ClientUnaryCall;
+	getTeams(
+		request: Empty,
+		metadata: Metadata,
+		options: Partial<CallOptions>,
+		callback: (error: ServiceError | null, response: TeamList) => void,
+	): ClientUnaryCall;
+	getTeam(
+		request: TeamRequest,
+		callback: (error: ServiceError | null, response: Team) => void,
+	): ClientUnaryCall;
+	getTeam(
+		request: TeamRequest,
+		metadata: Metadata,
+		callback: (error: ServiceError | null, response: Team) => void,
+	): ClientUnaryCall;
+	getTeam(
+		request: TeamRequest,
+		metadata: Metadata,
+		options: Partial<CallOptions>,
+		callback: (error: ServiceError | null, response: Team) => void,
+	): ClientUnaryCall;
+	/** Athlete Operations */
+	getAthletes(
+		request: Empty,
+		callback: (error: ServiceError | null, response: AthleteList) => void,
+	): ClientUnaryCall;
+	getAthletes(
+		request: Empty,
+		metadata: Metadata,
+		callback: (error: ServiceError | null, response: AthleteList) => void,
+	): ClientUnaryCall;
+	getAthletes(
+		request: Empty,
+		metadata: Metadata,
+		options: Partial<CallOptions>,
+		callback: (error: ServiceError | null, response: AthleteList) => void,
+	): ClientUnaryCall;
+	getAthlete(
+		request: AthleteRequest,
+		callback: (error: ServiceError | null, response: Athlete) => void,
+	): ClientUnaryCall;
+	getAthlete(
+		request: AthleteRequest,
+		metadata: Metadata,
+		callback: (error: ServiceError | null, response: Athlete) => void,
+	): ClientUnaryCall;
+	getAthlete(
+		request: AthleteRequest,
+		metadata: Metadata,
+		options: Partial<CallOptions>,
+		callback: (error: ServiceError | null, response: Athlete) => void,
+	): ClientUnaryCall;
+	/** Event Operations */
+	getEvents(
+		request: Empty,
+		callback: (error: ServiceError | null, response: EventList) => void,
+	): ClientUnaryCall;
+	getEvents(
+		request: Empty,
+		metadata: Metadata,
+		callback: (error: ServiceError | null, response: EventList) => void,
+	): ClientUnaryCall;
+	getEvents(
+		request: Empty,
+		metadata: Metadata,
+		options: Partial<CallOptions>,
+		callback: (error: ServiceError | null, response: EventList) => void,
+	): ClientUnaryCall;
 }
 
 export const MeetManagerServiceClient = makeGenericClientConstructor(
-  MeetManagerServiceService,
-  "meetmanager.MeetManagerService",
+	MeetManagerServiceService,
+	"meetmanager.MeetManagerService",
 ) as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): MeetManagerServiceClient;
-  service: typeof MeetManagerServiceService;
-  serviceName: string;
+	new (
+		address: string,
+		credentials: ChannelCredentials,
+		options?: Partial<ClientOptions>,
+	): MeetManagerServiceClient;
+	service: typeof MeetManagerServiceService;
+	serviceName: string;
 };
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+	| Date
+	| Function
+	| Uint8Array
+	| string
+	| number
+	| boolean
+	| undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+	? T
+	: T extends globalThis.Array<infer U>
+		? globalThis.Array<DeepPartial<U>>
+		: T extends ReadonlyArray<infer U>
+			? ReadonlyArray<DeepPartial<U>>
+			: T extends {}
+				? { [K in keyof T]?: DeepPartial<T[K]> }
+				: Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+export type Exact<P, I extends P> = P extends Builtin
+	? P
+	: P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+			[K in Exclude<keyof I, KeysOfUnion<P>>]: never;
+		};
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+	return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-  encode(message: T, writer?: BinaryWriter): BinaryWriter;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
-  fromJSON(object: any): T;
-  toJSON(message: T): unknown;
-  create<I extends Exact<DeepPartial<T>, I>>(base?: I): T;
-  fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T;
+	encode(message: T, writer?: BinaryWriter): BinaryWriter;
+	decode(input: BinaryReader | Uint8Array, length?: number): T;
+	fromJSON(object: any): T;
+	toJSON(message: T): unknown;
+	create<I extends Exact<DeepPartial<T>, I>>(base?: I): T;
+	fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T;
 }

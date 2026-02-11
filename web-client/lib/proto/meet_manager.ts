@@ -11,3210 +11,3495 @@ import type { CallContext, CallOptions } from "nice-grpc-common";
 export const protobufPackage = "meetmanager";
 
 export interface Dataset {
-  filename: string;
-  isActive: boolean;
-  lastModified: string;
+	filename: string;
+	isActive: boolean;
+	lastModified: string;
 }
 
 export interface DatasetList {
-  datasets: Dataset[];
+	datasets: Dataset[];
 }
 
 export interface DatasetRequest {
-  filename: string;
+	filename: string;
 }
 
 export interface UploadRequest {
-  filename?: string | undefined;
-  chunk?: Uint8Array | undefined;
+	filename?: string | undefined;
+	chunk?: Uint8Array | undefined;
 }
 
 export interface UploadResponse {
-  success: boolean;
-  message: string;
+	success: boolean;
+	message: string;
 }
 
 export interface Relay {
-  /** Uniq combination of RELAY_no? Or just index? */
-  id: number;
-  /** Event_ptr */
-  eventId: number;
-  /** Team_no */
-  teamId: number;
-  teamName: string;
-  leg1Name: string;
-  leg2Name: string;
-  leg3Name: string;
-  leg4Name: string;
-  seedTime: string;
-  finalTime: string;
-  place: number;
+	/** Uniq combination of RELAY_no? Or just index? */
+	id: number;
+	/** Event_ptr */
+	eventId: number;
+	/** Team_no */
+	teamId: number;
+	teamName: string;
+	leg1Name: string;
+	leg2Name: string;
+	leg3Name: string;
+	leg4Name: string;
+	seedTime: string;
+	finalTime: string;
+	place: number;
 }
 
 export interface RelayList {
-  relays: Relay[];
+	relays: Relay[];
 }
 
 export interface Score {
-  teamId: number;
-  teamName: string;
-  individualPoints: number;
-  relayPoints: number;
-  totalPoints: number;
-  rank: number;
+	teamId: number;
+	teamName: string;
+	individualPoints: number;
+	relayPoints: number;
+	totalPoints: number;
+	rank: number;
 }
 
 export interface ScoreList {
-  scores: Score[];
+	scores: Score[];
 }
 
 export interface Entry {
-  /** Entry_no */
-  id: number;
-  /** Event_ptr */
-  eventId: number;
-  /** Ath_no */
-  athleteId: number;
-  athleteName: string;
-  /** Team_no */
-  teamId: number;
-  teamName: string;
-  seedTime: string;
-  finalTime: string;
-  place: number;
+	/** Entry_no */
+	id: number;
+	/** Event_ptr */
+	eventId: number;
+	/** Ath_no */
+	athleteId: number;
+	athleteName: string;
+	/** Team_no */
+	teamId: number;
+	teamName: string;
+	seedTime: string;
+	finalTime: string;
+	place: number;
 }
 
 export interface EntryList {
-  entries: Entry[];
+	entries: Entry[];
 }
 
 export interface Session {
-  id: string;
-  meetId: string;
-  name: string;
-  date: string;
-  warmUpTime: string;
-  startTime: string;
-  eventCount: number;
-  sessionNum: number;
-  day: number;
+	id: string;
+	meetId: string;
+	name: string;
+	date: string;
+	warmUpTime: string;
+	startTime: string;
+	eventCount: number;
+	sessionNum: number;
+	day: number;
 }
 
 export interface SessionList {
-  sessions: Session[];
+	sessions: Session[];
 }
 
 export interface AdminConfig {
-  meetName: string;
-  /** Details like location, dates */
-  meetDescription: string;
+	meetName: string;
+	/** Details like location, dates */
+	meetDescription: string;
 }
 
-export interface Empty {
-}
+export type Empty = {};
 
 export interface Meet {
-  id: string;
-  name: string;
-  location: string;
-  startDate: string;
-  endDate: string;
-  /** active, upcoming, completed */
-  status: string;
+	id: string;
+	name: string;
+	location: string;
+	startDate: string;
+	endDate: string;
+	/** active, upcoming, completed */
+	status: string;
 }
 
 export interface MeetList {
-  meets: Meet[];
+	meets: Meet[];
 }
 
 export interface DashboardStats {
-  meetCount: number;
-  teamCount: number;
-  athleteCount: number;
-  eventCount: number;
+	meetCount: number;
+	teamCount: number;
+	athleteCount: number;
+	eventCount: number;
 }
 
 export interface Team {
-  id: number;
-  name: string;
-  /** Abbreviation */
-  code: string;
-  lsc: string;
-  city: string;
-  state: string;
-  athleteCount: number;
+	id: number;
+	name: string;
+	/** Abbreviation */
+	code: string;
+	lsc: string;
+	city: string;
+	state: string;
+	athleteCount: number;
 }
 
 export interface TeamList {
-  teams: Team[];
+	teams: Team[];
 }
 
 export interface TeamRequest {
-  id: number;
+	id: number;
 }
 
 export interface Athlete {
-  id: number;
-  firstName: string;
-  lastName: string;
-  /** F or M */
-  gender: string;
-  age: number;
-  teamId: number;
-  teamName: string;
-  schoolYear: string;
-  regNo: string;
+	id: number;
+	firstName: string;
+	lastName: string;
+	/** F or M */
+	gender: string;
+	age: number;
+	teamId: number;
+	teamName: string;
+	schoolYear: string;
+	regNo: string;
 }
 
 export interface AthleteList {
-  athletes: Athlete[];
+	athletes: Athlete[];
 }
 
 export interface AthleteRequest {
-  id: number;
+	id: number;
 }
 
 export interface Event {
-  /** Event_no */
-  id: number;
-  gender: string;
-  distance: number;
-  stroke: string;
-  lowAge: number;
-  highAge: number;
-  session: number;
-  status: string;
+	/** Event_no */
+	id: number;
+	gender: string;
+	distance: number;
+	stroke: string;
+	lowAge: number;
+	highAge: number;
+	session: number;
+	status: string;
 }
 
 export interface EventList {
-  events: Event[];
+	events: Event[];
 }
 
 function createBaseDataset(): Dataset {
-  return { filename: "", isActive: false, lastModified: "" };
+	return { filename: "", isActive: false, lastModified: "" };
 }
 
 export const Dataset: MessageFns<Dataset> = {
-  encode(message: Dataset, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.filename !== "") {
-      writer.uint32(10).string(message.filename);
-    }
-    if (message.isActive !== false) {
-      writer.uint32(16).bool(message.isActive);
-    }
-    if (message.lastModified !== "") {
-      writer.uint32(26).string(message.lastModified);
-    }
-    return writer;
-  },
+	encode(
+		message: Dataset,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.filename !== "") {
+			writer.uint32(10).string(message.filename);
+		}
+		if (message.isActive !== false) {
+			writer.uint32(16).bool(message.isActive);
+		}
+		if (message.lastModified !== "") {
+			writer.uint32(26).string(message.lastModified);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Dataset {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDataset();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Dataset {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseDataset();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.filename = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
+					message.filename = reader.string();
+					continue;
+				}
+				case 2: {
+					if (tag !== 16) {
+						break;
+					}
 
-          message.isActive = reader.bool();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
+					message.isActive = reader.bool();
+					continue;
+				}
+				case 3: {
+					if (tag !== 26) {
+						break;
+					}
 
-          message.lastModified = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.lastModified = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Dataset {
-    return {
-      filename: isSet(object.filename) ? globalThis.String(object.filename) : "",
-      isActive: isSet(object.isActive)
-        ? globalThis.Boolean(object.isActive)
-        : isSet(object.is_active)
-        ? globalThis.Boolean(object.is_active)
-        : false,
-      lastModified: isSet(object.lastModified)
-        ? globalThis.String(object.lastModified)
-        : isSet(object.last_modified)
-        ? globalThis.String(object.last_modified)
-        : "",
-    };
-  },
+	fromJSON(object: any): Dataset {
+		return {
+			filename: isSet(object.filename)
+				? globalThis.String(object.filename)
+				: "",
+			isActive: isSet(object.isActive)
+				? globalThis.Boolean(object.isActive)
+				: isSet(object.is_active)
+					? globalThis.Boolean(object.is_active)
+					: false,
+			lastModified: isSet(object.lastModified)
+				? globalThis.String(object.lastModified)
+				: isSet(object.last_modified)
+					? globalThis.String(object.last_modified)
+					: "",
+		};
+	},
 
-  toJSON(message: Dataset): unknown {
-    const obj: any = {};
-    if (message.filename !== "") {
-      obj.filename = message.filename;
-    }
-    if (message.isActive !== false) {
-      obj.isActive = message.isActive;
-    }
-    if (message.lastModified !== "") {
-      obj.lastModified = message.lastModified;
-    }
-    return obj;
-  },
+	toJSON(message: Dataset): unknown {
+		const obj: any = {};
+		if (message.filename !== "") {
+			obj.filename = message.filename;
+		}
+		if (message.isActive !== false) {
+			obj.isActive = message.isActive;
+		}
+		if (message.lastModified !== "") {
+			obj.lastModified = message.lastModified;
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Dataset>): Dataset {
-    return Dataset.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Dataset>): Dataset {
-    const message = createBaseDataset();
-    message.filename = object.filename ?? "";
-    message.isActive = object.isActive ?? false;
-    message.lastModified = object.lastModified ?? "";
-    return message;
-  },
+	create(base?: DeepPartial<Dataset>): Dataset {
+		return Dataset.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Dataset>): Dataset {
+		const message = createBaseDataset();
+		message.filename = object.filename ?? "";
+		message.isActive = object.isActive ?? false;
+		message.lastModified = object.lastModified ?? "";
+		return message;
+	},
 };
 
 function createBaseDatasetList(): DatasetList {
-  return { datasets: [] };
+	return { datasets: [] };
 }
 
 export const DatasetList: MessageFns<DatasetList> = {
-  encode(message: DatasetList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.datasets) {
-      Dataset.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: DatasetList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.datasets) {
+			Dataset.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DatasetList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDatasetList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): DatasetList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseDatasetList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.datasets.push(Dataset.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.datasets.push(Dataset.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): DatasetList {
-    return {
-      datasets: globalThis.Array.isArray(object?.datasets) ? object.datasets.map((e: any) => Dataset.fromJSON(e)) : [],
-    };
-  },
+	fromJSON(object: any): DatasetList {
+		return {
+			datasets: globalThis.Array.isArray(object?.datasets)
+				? object.datasets.map((e: any) => Dataset.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: DatasetList): unknown {
-    const obj: any = {};
-    if (message.datasets?.length) {
-      obj.datasets = message.datasets.map((e) => Dataset.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: DatasetList): unknown {
+		const obj: any = {};
+		if (message.datasets?.length) {
+			obj.datasets = message.datasets.map((e) => Dataset.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<DatasetList>): DatasetList {
-    return DatasetList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<DatasetList>): DatasetList {
-    const message = createBaseDatasetList();
-    message.datasets = object.datasets?.map((e) => Dataset.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<DatasetList>): DatasetList {
+		return DatasetList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<DatasetList>): DatasetList {
+		const message = createBaseDatasetList();
+		message.datasets =
+			object.datasets?.map((e) => Dataset.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseDatasetRequest(): DatasetRequest {
-  return { filename: "" };
+	return { filename: "" };
 }
 
 export const DatasetRequest: MessageFns<DatasetRequest> = {
-  encode(message: DatasetRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.filename !== "") {
-      writer.uint32(10).string(message.filename);
-    }
-    return writer;
-  },
+	encode(
+		message: DatasetRequest,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.filename !== "") {
+			writer.uint32(10).string(message.filename);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DatasetRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDatasetRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): DatasetRequest {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseDatasetRequest();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.filename = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.filename = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): DatasetRequest {
-    return { filename: isSet(object.filename) ? globalThis.String(object.filename) : "" };
-  },
+	fromJSON(object: any): DatasetRequest {
+		return {
+			filename: isSet(object.filename)
+				? globalThis.String(object.filename)
+				: "",
+		};
+	},
 
-  toJSON(message: DatasetRequest): unknown {
-    const obj: any = {};
-    if (message.filename !== "") {
-      obj.filename = message.filename;
-    }
-    return obj;
-  },
+	toJSON(message: DatasetRequest): unknown {
+		const obj: any = {};
+		if (message.filename !== "") {
+			obj.filename = message.filename;
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<DatasetRequest>): DatasetRequest {
-    return DatasetRequest.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<DatasetRequest>): DatasetRequest {
-    const message = createBaseDatasetRequest();
-    message.filename = object.filename ?? "";
-    return message;
-  },
+	create(base?: DeepPartial<DatasetRequest>): DatasetRequest {
+		return DatasetRequest.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<DatasetRequest>): DatasetRequest {
+		const message = createBaseDatasetRequest();
+		message.filename = object.filename ?? "";
+		return message;
+	},
 };
 
 function createBaseUploadRequest(): UploadRequest {
-  return { filename: undefined, chunk: undefined };
+	return { filename: undefined, chunk: undefined };
 }
 
 export const UploadRequest: MessageFns<UploadRequest> = {
-  encode(message: UploadRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.filename !== undefined) {
-      writer.uint32(10).string(message.filename);
-    }
-    if (message.chunk !== undefined) {
-      writer.uint32(18).bytes(message.chunk);
-    }
-    return writer;
-  },
+	encode(
+		message: UploadRequest,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.filename !== undefined) {
+			writer.uint32(10).string(message.filename);
+		}
+		if (message.chunk !== undefined) {
+			writer.uint32(18).bytes(message.chunk);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UploadRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUploadRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): UploadRequest {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseUploadRequest();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.filename = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.filename = reader.string();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.chunk = reader.bytes();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.chunk = reader.bytes();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): UploadRequest {
-    return {
-      filename: isSet(object.filename) ? globalThis.String(object.filename) : undefined,
-      chunk: isSet(object.chunk) ? bytesFromBase64(object.chunk) : undefined,
-    };
-  },
+	fromJSON(object: any): UploadRequest {
+		return {
+			filename: isSet(object.filename)
+				? globalThis.String(object.filename)
+				: undefined,
+			chunk: isSet(object.chunk) ? bytesFromBase64(object.chunk) : undefined,
+		};
+	},
 
-  toJSON(message: UploadRequest): unknown {
-    const obj: any = {};
-    if (message.filename !== undefined) {
-      obj.filename = message.filename;
-    }
-    if (message.chunk !== undefined) {
-      obj.chunk = base64FromBytes(message.chunk);
-    }
-    return obj;
-  },
+	toJSON(message: UploadRequest): unknown {
+		const obj: any = {};
+		if (message.filename !== undefined) {
+			obj.filename = message.filename;
+		}
+		if (message.chunk !== undefined) {
+			obj.chunk = base64FromBytes(message.chunk);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<UploadRequest>): UploadRequest {
-    return UploadRequest.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<UploadRequest>): UploadRequest {
-    const message = createBaseUploadRequest();
-    message.filename = object.filename ?? undefined;
-    message.chunk = object.chunk ?? undefined;
-    return message;
-  },
+	create(base?: DeepPartial<UploadRequest>): UploadRequest {
+		return UploadRequest.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<UploadRequest>): UploadRequest {
+		const message = createBaseUploadRequest();
+		message.filename = object.filename ?? undefined;
+		message.chunk = object.chunk ?? undefined;
+		return message;
+	},
 };
 
 function createBaseUploadResponse(): UploadResponse {
-  return { success: false, message: "" };
+	return { success: false, message: "" };
 }
 
 export const UploadResponse: MessageFns<UploadResponse> = {
-  encode(message: UploadResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
-    }
-    if (message.message !== "") {
-      writer.uint32(18).string(message.message);
-    }
-    return writer;
-  },
+	encode(
+		message: UploadResponse,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.success !== false) {
+			writer.uint32(8).bool(message.success);
+		}
+		if (message.message !== "") {
+			writer.uint32(18).string(message.message);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UploadResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUploadResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): UploadResponse {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseUploadResponse();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.success = reader.bool();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.success = reader.bool();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.message = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.message = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): UploadResponse {
-    return {
-      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      message: isSet(object.message) ? globalThis.String(object.message) : "",
-    };
-  },
+	fromJSON(object: any): UploadResponse {
+		return {
+			success: isSet(object.success)
+				? globalThis.Boolean(object.success)
+				: false,
+			message: isSet(object.message) ? globalThis.String(object.message) : "",
+		};
+	},
 
-  toJSON(message: UploadResponse): unknown {
-    const obj: any = {};
-    if (message.success !== false) {
-      obj.success = message.success;
-    }
-    if (message.message !== "") {
-      obj.message = message.message;
-    }
-    return obj;
-  },
+	toJSON(message: UploadResponse): unknown {
+		const obj: any = {};
+		if (message.success !== false) {
+			obj.success = message.success;
+		}
+		if (message.message !== "") {
+			obj.message = message.message;
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<UploadResponse>): UploadResponse {
-    return UploadResponse.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<UploadResponse>): UploadResponse {
-    const message = createBaseUploadResponse();
-    message.success = object.success ?? false;
-    message.message = object.message ?? "";
-    return message;
-  },
+	create(base?: DeepPartial<UploadResponse>): UploadResponse {
+		return UploadResponse.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<UploadResponse>): UploadResponse {
+		const message = createBaseUploadResponse();
+		message.success = object.success ?? false;
+		message.message = object.message ?? "";
+		return message;
+	},
 };
 
 function createBaseRelay(): Relay {
-  return {
-    id: 0,
-    eventId: 0,
-    teamId: 0,
-    teamName: "",
-    leg1Name: "",
-    leg2Name: "",
-    leg3Name: "",
-    leg4Name: "",
-    seedTime: "",
-    finalTime: "",
-    place: 0,
-  };
+	return {
+		id: 0,
+		eventId: 0,
+		teamId: 0,
+		teamName: "",
+		leg1Name: "",
+		leg2Name: "",
+		leg3Name: "",
+		leg4Name: "",
+		seedTime: "",
+		finalTime: "",
+		place: 0,
+	};
 }
 
 export const Relay: MessageFns<Relay> = {
-  encode(message: Relay, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    if (message.eventId !== 0) {
-      writer.uint32(16).int32(message.eventId);
-    }
-    if (message.teamId !== 0) {
-      writer.uint32(24).int32(message.teamId);
-    }
-    if (message.teamName !== "") {
-      writer.uint32(34).string(message.teamName);
-    }
-    if (message.leg1Name !== "") {
-      writer.uint32(42).string(message.leg1Name);
-    }
-    if (message.leg2Name !== "") {
-      writer.uint32(50).string(message.leg2Name);
-    }
-    if (message.leg3Name !== "") {
-      writer.uint32(58).string(message.leg3Name);
-    }
-    if (message.leg4Name !== "") {
-      writer.uint32(66).string(message.leg4Name);
-    }
-    if (message.seedTime !== "") {
-      writer.uint32(74).string(message.seedTime);
-    }
-    if (message.finalTime !== "") {
-      writer.uint32(82).string(message.finalTime);
-    }
-    if (message.place !== 0) {
-      writer.uint32(88).int32(message.place);
-    }
-    return writer;
-  },
+	encode(
+		message: Relay,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		if (message.eventId !== 0) {
+			writer.uint32(16).int32(message.eventId);
+		}
+		if (message.teamId !== 0) {
+			writer.uint32(24).int32(message.teamId);
+		}
+		if (message.teamName !== "") {
+			writer.uint32(34).string(message.teamName);
+		}
+		if (message.leg1Name !== "") {
+			writer.uint32(42).string(message.leg1Name);
+		}
+		if (message.leg2Name !== "") {
+			writer.uint32(50).string(message.leg2Name);
+		}
+		if (message.leg3Name !== "") {
+			writer.uint32(58).string(message.leg3Name);
+		}
+		if (message.leg4Name !== "") {
+			writer.uint32(66).string(message.leg4Name);
+		}
+		if (message.seedTime !== "") {
+			writer.uint32(74).string(message.seedTime);
+		}
+		if (message.finalTime !== "") {
+			writer.uint32(82).string(message.finalTime);
+		}
+		if (message.place !== 0) {
+			writer.uint32(88).int32(message.place);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Relay {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRelay();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Relay {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseRelay();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
+					message.id = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 16) {
+						break;
+					}
 
-          message.eventId = reader.int32();
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
+					message.eventId = reader.int32();
+					continue;
+				}
+				case 3: {
+					if (tag !== 24) {
+						break;
+					}
 
-          message.teamId = reader.int32();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.teamId = reader.int32();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.teamName = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
+					message.teamName = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 42) {
+						break;
+					}
 
-          message.leg1Name = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
+					message.leg1Name = reader.string();
+					continue;
+				}
+				case 6: {
+					if (tag !== 50) {
+						break;
+					}
 
-          message.leg2Name = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
+					message.leg2Name = reader.string();
+					continue;
+				}
+				case 7: {
+					if (tag !== 58) {
+						break;
+					}
 
-          message.leg3Name = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
+					message.leg3Name = reader.string();
+					continue;
+				}
+				case 8: {
+					if (tag !== 66) {
+						break;
+					}
 
-          message.leg4Name = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
+					message.leg4Name = reader.string();
+					continue;
+				}
+				case 9: {
+					if (tag !== 74) {
+						break;
+					}
 
-          message.seedTime = reader.string();
-          continue;
-        }
-        case 10: {
-          if (tag !== 82) {
-            break;
-          }
+					message.seedTime = reader.string();
+					continue;
+				}
+				case 10: {
+					if (tag !== 82) {
+						break;
+					}
 
-          message.finalTime = reader.string();
-          continue;
-        }
-        case 11: {
-          if (tag !== 88) {
-            break;
-          }
+					message.finalTime = reader.string();
+					continue;
+				}
+				case 11: {
+					if (tag !== 88) {
+						break;
+					}
 
-          message.place = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.place = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Relay {
-    return {
-      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      eventId: isSet(object.eventId)
-        ? globalThis.Number(object.eventId)
-        : isSet(object.event_id)
-        ? globalThis.Number(object.event_id)
-        : 0,
-      teamId: isSet(object.teamId)
-        ? globalThis.Number(object.teamId)
-        : isSet(object.team_id)
-        ? globalThis.Number(object.team_id)
-        : 0,
-      teamName: isSet(object.teamName)
-        ? globalThis.String(object.teamName)
-        : isSet(object.team_name)
-        ? globalThis.String(object.team_name)
-        : "",
-      leg1Name: isSet(object.leg1Name)
-        ? globalThis.String(object.leg1Name)
-        : isSet(object.leg1_name)
-        ? globalThis.String(object.leg1_name)
-        : "",
-      leg2Name: isSet(object.leg2Name)
-        ? globalThis.String(object.leg2Name)
-        : isSet(object.leg2_name)
-        ? globalThis.String(object.leg2_name)
-        : "",
-      leg3Name: isSet(object.leg3Name)
-        ? globalThis.String(object.leg3Name)
-        : isSet(object.leg3_name)
-        ? globalThis.String(object.leg3_name)
-        : "",
-      leg4Name: isSet(object.leg4Name)
-        ? globalThis.String(object.leg4Name)
-        : isSet(object.leg4_name)
-        ? globalThis.String(object.leg4_name)
-        : "",
-      seedTime: isSet(object.seedTime)
-        ? globalThis.String(object.seedTime)
-        : isSet(object.seed_time)
-        ? globalThis.String(object.seed_time)
-        : "",
-      finalTime: isSet(object.finalTime)
-        ? globalThis.String(object.finalTime)
-        : isSet(object.final_time)
-        ? globalThis.String(object.final_time)
-        : "",
-      place: isSet(object.place) ? globalThis.Number(object.place) : 0,
-    };
-  },
+	fromJSON(object: any): Relay {
+		return {
+			id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+			eventId: isSet(object.eventId)
+				? globalThis.Number(object.eventId)
+				: isSet(object.event_id)
+					? globalThis.Number(object.event_id)
+					: 0,
+			teamId: isSet(object.teamId)
+				? globalThis.Number(object.teamId)
+				: isSet(object.team_id)
+					? globalThis.Number(object.team_id)
+					: 0,
+			teamName: isSet(object.teamName)
+				? globalThis.String(object.teamName)
+				: isSet(object.team_name)
+					? globalThis.String(object.team_name)
+					: "",
+			leg1Name: isSet(object.leg1Name)
+				? globalThis.String(object.leg1Name)
+				: isSet(object.leg1_name)
+					? globalThis.String(object.leg1_name)
+					: "",
+			leg2Name: isSet(object.leg2Name)
+				? globalThis.String(object.leg2Name)
+				: isSet(object.leg2_name)
+					? globalThis.String(object.leg2_name)
+					: "",
+			leg3Name: isSet(object.leg3Name)
+				? globalThis.String(object.leg3Name)
+				: isSet(object.leg3_name)
+					? globalThis.String(object.leg3_name)
+					: "",
+			leg4Name: isSet(object.leg4Name)
+				? globalThis.String(object.leg4Name)
+				: isSet(object.leg4_name)
+					? globalThis.String(object.leg4_name)
+					: "",
+			seedTime: isSet(object.seedTime)
+				? globalThis.String(object.seedTime)
+				: isSet(object.seed_time)
+					? globalThis.String(object.seed_time)
+					: "",
+			finalTime: isSet(object.finalTime)
+				? globalThis.String(object.finalTime)
+				: isSet(object.final_time)
+					? globalThis.String(object.final_time)
+					: "",
+			place: isSet(object.place) ? globalThis.Number(object.place) : 0,
+		};
+	},
 
-  toJSON(message: Relay): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    if (message.eventId !== 0) {
-      obj.eventId = Math.round(message.eventId);
-    }
-    if (message.teamId !== 0) {
-      obj.teamId = Math.round(message.teamId);
-    }
-    if (message.teamName !== "") {
-      obj.teamName = message.teamName;
-    }
-    if (message.leg1Name !== "") {
-      obj.leg1Name = message.leg1Name;
-    }
-    if (message.leg2Name !== "") {
-      obj.leg2Name = message.leg2Name;
-    }
-    if (message.leg3Name !== "") {
-      obj.leg3Name = message.leg3Name;
-    }
-    if (message.leg4Name !== "") {
-      obj.leg4Name = message.leg4Name;
-    }
-    if (message.seedTime !== "") {
-      obj.seedTime = message.seedTime;
-    }
-    if (message.finalTime !== "") {
-      obj.finalTime = message.finalTime;
-    }
-    if (message.place !== 0) {
-      obj.place = Math.round(message.place);
-    }
-    return obj;
-  },
+	toJSON(message: Relay): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		if (message.eventId !== 0) {
+			obj.eventId = Math.round(message.eventId);
+		}
+		if (message.teamId !== 0) {
+			obj.teamId = Math.round(message.teamId);
+		}
+		if (message.teamName !== "") {
+			obj.teamName = message.teamName;
+		}
+		if (message.leg1Name !== "") {
+			obj.leg1Name = message.leg1Name;
+		}
+		if (message.leg2Name !== "") {
+			obj.leg2Name = message.leg2Name;
+		}
+		if (message.leg3Name !== "") {
+			obj.leg3Name = message.leg3Name;
+		}
+		if (message.leg4Name !== "") {
+			obj.leg4Name = message.leg4Name;
+		}
+		if (message.seedTime !== "") {
+			obj.seedTime = message.seedTime;
+		}
+		if (message.finalTime !== "") {
+			obj.finalTime = message.finalTime;
+		}
+		if (message.place !== 0) {
+			obj.place = Math.round(message.place);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Relay>): Relay {
-    return Relay.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Relay>): Relay {
-    const message = createBaseRelay();
-    message.id = object.id ?? 0;
-    message.eventId = object.eventId ?? 0;
-    message.teamId = object.teamId ?? 0;
-    message.teamName = object.teamName ?? "";
-    message.leg1Name = object.leg1Name ?? "";
-    message.leg2Name = object.leg2Name ?? "";
-    message.leg3Name = object.leg3Name ?? "";
-    message.leg4Name = object.leg4Name ?? "";
-    message.seedTime = object.seedTime ?? "";
-    message.finalTime = object.finalTime ?? "";
-    message.place = object.place ?? 0;
-    return message;
-  },
+	create(base?: DeepPartial<Relay>): Relay {
+		return Relay.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Relay>): Relay {
+		const message = createBaseRelay();
+		message.id = object.id ?? 0;
+		message.eventId = object.eventId ?? 0;
+		message.teamId = object.teamId ?? 0;
+		message.teamName = object.teamName ?? "";
+		message.leg1Name = object.leg1Name ?? "";
+		message.leg2Name = object.leg2Name ?? "";
+		message.leg3Name = object.leg3Name ?? "";
+		message.leg4Name = object.leg4Name ?? "";
+		message.seedTime = object.seedTime ?? "";
+		message.finalTime = object.finalTime ?? "";
+		message.place = object.place ?? 0;
+		return message;
+	},
 };
 
 function createBaseRelayList(): RelayList {
-  return { relays: [] };
+	return { relays: [] };
 }
 
 export const RelayList: MessageFns<RelayList> = {
-  encode(message: RelayList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.relays) {
-      Relay.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: RelayList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.relays) {
+			Relay.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): RelayList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRelayList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): RelayList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseRelayList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.relays.push(Relay.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.relays.push(Relay.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): RelayList {
-    return { relays: globalThis.Array.isArray(object?.relays) ? object.relays.map((e: any) => Relay.fromJSON(e)) : [] };
-  },
+	fromJSON(object: any): RelayList {
+		return {
+			relays: globalThis.Array.isArray(object?.relays)
+				? object.relays.map((e: any) => Relay.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: RelayList): unknown {
-    const obj: any = {};
-    if (message.relays?.length) {
-      obj.relays = message.relays.map((e) => Relay.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: RelayList): unknown {
+		const obj: any = {};
+		if (message.relays?.length) {
+			obj.relays = message.relays.map((e) => Relay.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<RelayList>): RelayList {
-    return RelayList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<RelayList>): RelayList {
-    const message = createBaseRelayList();
-    message.relays = object.relays?.map((e) => Relay.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<RelayList>): RelayList {
+		return RelayList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<RelayList>): RelayList {
+		const message = createBaseRelayList();
+		message.relays = object.relays?.map((e) => Relay.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseScore(): Score {
-  return { teamId: 0, teamName: "", individualPoints: 0, relayPoints: 0, totalPoints: 0, rank: 0 };
+	return {
+		teamId: 0,
+		teamName: "",
+		individualPoints: 0,
+		relayPoints: 0,
+		totalPoints: 0,
+		rank: 0,
+	};
 }
 
 export const Score: MessageFns<Score> = {
-  encode(message: Score, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.teamId !== 0) {
-      writer.uint32(8).int32(message.teamId);
-    }
-    if (message.teamName !== "") {
-      writer.uint32(18).string(message.teamName);
-    }
-    if (message.individualPoints !== 0) {
-      writer.uint32(29).float(message.individualPoints);
-    }
-    if (message.relayPoints !== 0) {
-      writer.uint32(37).float(message.relayPoints);
-    }
-    if (message.totalPoints !== 0) {
-      writer.uint32(45).float(message.totalPoints);
-    }
-    if (message.rank !== 0) {
-      writer.uint32(48).int32(message.rank);
-    }
-    return writer;
-  },
+	encode(
+		message: Score,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.teamId !== 0) {
+			writer.uint32(8).int32(message.teamId);
+		}
+		if (message.teamName !== "") {
+			writer.uint32(18).string(message.teamName);
+		}
+		if (message.individualPoints !== 0) {
+			writer.uint32(29).float(message.individualPoints);
+		}
+		if (message.relayPoints !== 0) {
+			writer.uint32(37).float(message.relayPoints);
+		}
+		if (message.totalPoints !== 0) {
+			writer.uint32(45).float(message.totalPoints);
+		}
+		if (message.rank !== 0) {
+			writer.uint32(48).int32(message.rank);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Score {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseScore();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Score {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseScore();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.teamId = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.teamId = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.teamName = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 29) {
-            break;
-          }
+					message.teamName = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 29) {
+						break;
+					}
 
-          message.individualPoints = reader.float();
-          continue;
-        }
-        case 4: {
-          if (tag !== 37) {
-            break;
-          }
+					message.individualPoints = reader.float();
+					continue;
+				}
+				case 4: {
+					if (tag !== 37) {
+						break;
+					}
 
-          message.relayPoints = reader.float();
-          continue;
-        }
-        case 5: {
-          if (tag !== 45) {
-            break;
-          }
+					message.relayPoints = reader.float();
+					continue;
+				}
+				case 5: {
+					if (tag !== 45) {
+						break;
+					}
 
-          message.totalPoints = reader.float();
-          continue;
-        }
-        case 6: {
-          if (tag !== 48) {
-            break;
-          }
+					message.totalPoints = reader.float();
+					continue;
+				}
+				case 6: {
+					if (tag !== 48) {
+						break;
+					}
 
-          message.rank = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.rank = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Score {
-    return {
-      teamId: isSet(object.teamId)
-        ? globalThis.Number(object.teamId)
-        : isSet(object.team_id)
-        ? globalThis.Number(object.team_id)
-        : 0,
-      teamName: isSet(object.teamName)
-        ? globalThis.String(object.teamName)
-        : isSet(object.team_name)
-        ? globalThis.String(object.team_name)
-        : "",
-      individualPoints: isSet(object.individualPoints)
-        ? globalThis.Number(object.individualPoints)
-        : isSet(object.individual_points)
-        ? globalThis.Number(object.individual_points)
-        : 0,
-      relayPoints: isSet(object.relayPoints)
-        ? globalThis.Number(object.relayPoints)
-        : isSet(object.relay_points)
-        ? globalThis.Number(object.relay_points)
-        : 0,
-      totalPoints: isSet(object.totalPoints)
-        ? globalThis.Number(object.totalPoints)
-        : isSet(object.total_points)
-        ? globalThis.Number(object.total_points)
-        : 0,
-      rank: isSet(object.rank) ? globalThis.Number(object.rank) : 0,
-    };
-  },
+	fromJSON(object: any): Score {
+		return {
+			teamId: isSet(object.teamId)
+				? globalThis.Number(object.teamId)
+				: isSet(object.team_id)
+					? globalThis.Number(object.team_id)
+					: 0,
+			teamName: isSet(object.teamName)
+				? globalThis.String(object.teamName)
+				: isSet(object.team_name)
+					? globalThis.String(object.team_name)
+					: "",
+			individualPoints: isSet(object.individualPoints)
+				? globalThis.Number(object.individualPoints)
+				: isSet(object.individual_points)
+					? globalThis.Number(object.individual_points)
+					: 0,
+			relayPoints: isSet(object.relayPoints)
+				? globalThis.Number(object.relayPoints)
+				: isSet(object.relay_points)
+					? globalThis.Number(object.relay_points)
+					: 0,
+			totalPoints: isSet(object.totalPoints)
+				? globalThis.Number(object.totalPoints)
+				: isSet(object.total_points)
+					? globalThis.Number(object.total_points)
+					: 0,
+			rank: isSet(object.rank) ? globalThis.Number(object.rank) : 0,
+		};
+	},
 
-  toJSON(message: Score): unknown {
-    const obj: any = {};
-    if (message.teamId !== 0) {
-      obj.teamId = Math.round(message.teamId);
-    }
-    if (message.teamName !== "") {
-      obj.teamName = message.teamName;
-    }
-    if (message.individualPoints !== 0) {
-      obj.individualPoints = message.individualPoints;
-    }
-    if (message.relayPoints !== 0) {
-      obj.relayPoints = message.relayPoints;
-    }
-    if (message.totalPoints !== 0) {
-      obj.totalPoints = message.totalPoints;
-    }
-    if (message.rank !== 0) {
-      obj.rank = Math.round(message.rank);
-    }
-    return obj;
-  },
+	toJSON(message: Score): unknown {
+		const obj: any = {};
+		if (message.teamId !== 0) {
+			obj.teamId = Math.round(message.teamId);
+		}
+		if (message.teamName !== "") {
+			obj.teamName = message.teamName;
+		}
+		if (message.individualPoints !== 0) {
+			obj.individualPoints = message.individualPoints;
+		}
+		if (message.relayPoints !== 0) {
+			obj.relayPoints = message.relayPoints;
+		}
+		if (message.totalPoints !== 0) {
+			obj.totalPoints = message.totalPoints;
+		}
+		if (message.rank !== 0) {
+			obj.rank = Math.round(message.rank);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Score>): Score {
-    return Score.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Score>): Score {
-    const message = createBaseScore();
-    message.teamId = object.teamId ?? 0;
-    message.teamName = object.teamName ?? "";
-    message.individualPoints = object.individualPoints ?? 0;
-    message.relayPoints = object.relayPoints ?? 0;
-    message.totalPoints = object.totalPoints ?? 0;
-    message.rank = object.rank ?? 0;
-    return message;
-  },
+	create(base?: DeepPartial<Score>): Score {
+		return Score.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Score>): Score {
+		const message = createBaseScore();
+		message.teamId = object.teamId ?? 0;
+		message.teamName = object.teamName ?? "";
+		message.individualPoints = object.individualPoints ?? 0;
+		message.relayPoints = object.relayPoints ?? 0;
+		message.totalPoints = object.totalPoints ?? 0;
+		message.rank = object.rank ?? 0;
+		return message;
+	},
 };
 
 function createBaseScoreList(): ScoreList {
-  return { scores: [] };
+	return { scores: [] };
 }
 
 export const ScoreList: MessageFns<ScoreList> = {
-  encode(message: ScoreList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.scores) {
-      Score.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: ScoreList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.scores) {
+			Score.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ScoreList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseScoreList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): ScoreList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseScoreList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.scores.push(Score.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.scores.push(Score.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): ScoreList {
-    return { scores: globalThis.Array.isArray(object?.scores) ? object.scores.map((e: any) => Score.fromJSON(e)) : [] };
-  },
+	fromJSON(object: any): ScoreList {
+		return {
+			scores: globalThis.Array.isArray(object?.scores)
+				? object.scores.map((e: any) => Score.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: ScoreList): unknown {
-    const obj: any = {};
-    if (message.scores?.length) {
-      obj.scores = message.scores.map((e) => Score.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: ScoreList): unknown {
+		const obj: any = {};
+		if (message.scores?.length) {
+			obj.scores = message.scores.map((e) => Score.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<ScoreList>): ScoreList {
-    return ScoreList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<ScoreList>): ScoreList {
-    const message = createBaseScoreList();
-    message.scores = object.scores?.map((e) => Score.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<ScoreList>): ScoreList {
+		return ScoreList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<ScoreList>): ScoreList {
+		const message = createBaseScoreList();
+		message.scores = object.scores?.map((e) => Score.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseEntry(): Entry {
-  return {
-    id: 0,
-    eventId: 0,
-    athleteId: 0,
-    athleteName: "",
-    teamId: 0,
-    teamName: "",
-    seedTime: "",
-    finalTime: "",
-    place: 0,
-  };
+	return {
+		id: 0,
+		eventId: 0,
+		athleteId: 0,
+		athleteName: "",
+		teamId: 0,
+		teamName: "",
+		seedTime: "",
+		finalTime: "",
+		place: 0,
+	};
 }
 
 export const Entry: MessageFns<Entry> = {
-  encode(message: Entry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    if (message.eventId !== 0) {
-      writer.uint32(16).int32(message.eventId);
-    }
-    if (message.athleteId !== 0) {
-      writer.uint32(24).int32(message.athleteId);
-    }
-    if (message.athleteName !== "") {
-      writer.uint32(34).string(message.athleteName);
-    }
-    if (message.teamId !== 0) {
-      writer.uint32(40).int32(message.teamId);
-    }
-    if (message.teamName !== "") {
-      writer.uint32(50).string(message.teamName);
-    }
-    if (message.seedTime !== "") {
-      writer.uint32(58).string(message.seedTime);
-    }
-    if (message.finalTime !== "") {
-      writer.uint32(66).string(message.finalTime);
-    }
-    if (message.place !== 0) {
-      writer.uint32(72).int32(message.place);
-    }
-    return writer;
-  },
+	encode(
+		message: Entry,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		if (message.eventId !== 0) {
+			writer.uint32(16).int32(message.eventId);
+		}
+		if (message.athleteId !== 0) {
+			writer.uint32(24).int32(message.athleteId);
+		}
+		if (message.athleteName !== "") {
+			writer.uint32(34).string(message.athleteName);
+		}
+		if (message.teamId !== 0) {
+			writer.uint32(40).int32(message.teamId);
+		}
+		if (message.teamName !== "") {
+			writer.uint32(50).string(message.teamName);
+		}
+		if (message.seedTime !== "") {
+			writer.uint32(58).string(message.seedTime);
+		}
+		if (message.finalTime !== "") {
+			writer.uint32(66).string(message.finalTime);
+		}
+		if (message.place !== 0) {
+			writer.uint32(72).int32(message.place);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Entry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Entry {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseEntry();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
+					message.id = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 16) {
+						break;
+					}
 
-          message.eventId = reader.int32();
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
+					message.eventId = reader.int32();
+					continue;
+				}
+				case 3: {
+					if (tag !== 24) {
+						break;
+					}
 
-          message.athleteId = reader.int32();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.athleteId = reader.int32();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.athleteName = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 40) {
-            break;
-          }
+					message.athleteName = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 40) {
+						break;
+					}
 
-          message.teamId = reader.int32();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
+					message.teamId = reader.int32();
+					continue;
+				}
+				case 6: {
+					if (tag !== 50) {
+						break;
+					}
 
-          message.teamName = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
+					message.teamName = reader.string();
+					continue;
+				}
+				case 7: {
+					if (tag !== 58) {
+						break;
+					}
 
-          message.seedTime = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
+					message.seedTime = reader.string();
+					continue;
+				}
+				case 8: {
+					if (tag !== 66) {
+						break;
+					}
 
-          message.finalTime = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 72) {
-            break;
-          }
+					message.finalTime = reader.string();
+					continue;
+				}
+				case 9: {
+					if (tag !== 72) {
+						break;
+					}
 
-          message.place = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.place = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Entry {
-    return {
-      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      eventId: isSet(object.eventId)
-        ? globalThis.Number(object.eventId)
-        : isSet(object.event_id)
-        ? globalThis.Number(object.event_id)
-        : 0,
-      athleteId: isSet(object.athleteId)
-        ? globalThis.Number(object.athleteId)
-        : isSet(object.athlete_id)
-        ? globalThis.Number(object.athlete_id)
-        : 0,
-      athleteName: isSet(object.athleteName)
-        ? globalThis.String(object.athleteName)
-        : isSet(object.athlete_name)
-        ? globalThis.String(object.athlete_name)
-        : "",
-      teamId: isSet(object.teamId)
-        ? globalThis.Number(object.teamId)
-        : isSet(object.team_id)
-        ? globalThis.Number(object.team_id)
-        : 0,
-      teamName: isSet(object.teamName)
-        ? globalThis.String(object.teamName)
-        : isSet(object.team_name)
-        ? globalThis.String(object.team_name)
-        : "",
-      seedTime: isSet(object.seedTime)
-        ? globalThis.String(object.seedTime)
-        : isSet(object.seed_time)
-        ? globalThis.String(object.seed_time)
-        : "",
-      finalTime: isSet(object.finalTime)
-        ? globalThis.String(object.finalTime)
-        : isSet(object.final_time)
-        ? globalThis.String(object.final_time)
-        : "",
-      place: isSet(object.place) ? globalThis.Number(object.place) : 0,
-    };
-  },
+	fromJSON(object: any): Entry {
+		return {
+			id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+			eventId: isSet(object.eventId)
+				? globalThis.Number(object.eventId)
+				: isSet(object.event_id)
+					? globalThis.Number(object.event_id)
+					: 0,
+			athleteId: isSet(object.athleteId)
+				? globalThis.Number(object.athleteId)
+				: isSet(object.athlete_id)
+					? globalThis.Number(object.athlete_id)
+					: 0,
+			athleteName: isSet(object.athleteName)
+				? globalThis.String(object.athleteName)
+				: isSet(object.athlete_name)
+					? globalThis.String(object.athlete_name)
+					: "",
+			teamId: isSet(object.teamId)
+				? globalThis.Number(object.teamId)
+				: isSet(object.team_id)
+					? globalThis.Number(object.team_id)
+					: 0,
+			teamName: isSet(object.teamName)
+				? globalThis.String(object.teamName)
+				: isSet(object.team_name)
+					? globalThis.String(object.team_name)
+					: "",
+			seedTime: isSet(object.seedTime)
+				? globalThis.String(object.seedTime)
+				: isSet(object.seed_time)
+					? globalThis.String(object.seed_time)
+					: "",
+			finalTime: isSet(object.finalTime)
+				? globalThis.String(object.finalTime)
+				: isSet(object.final_time)
+					? globalThis.String(object.final_time)
+					: "",
+			place: isSet(object.place) ? globalThis.Number(object.place) : 0,
+		};
+	},
 
-  toJSON(message: Entry): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    if (message.eventId !== 0) {
-      obj.eventId = Math.round(message.eventId);
-    }
-    if (message.athleteId !== 0) {
-      obj.athleteId = Math.round(message.athleteId);
-    }
-    if (message.athleteName !== "") {
-      obj.athleteName = message.athleteName;
-    }
-    if (message.teamId !== 0) {
-      obj.teamId = Math.round(message.teamId);
-    }
-    if (message.teamName !== "") {
-      obj.teamName = message.teamName;
-    }
-    if (message.seedTime !== "") {
-      obj.seedTime = message.seedTime;
-    }
-    if (message.finalTime !== "") {
-      obj.finalTime = message.finalTime;
-    }
-    if (message.place !== 0) {
-      obj.place = Math.round(message.place);
-    }
-    return obj;
-  },
+	toJSON(message: Entry): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		if (message.eventId !== 0) {
+			obj.eventId = Math.round(message.eventId);
+		}
+		if (message.athleteId !== 0) {
+			obj.athleteId = Math.round(message.athleteId);
+		}
+		if (message.athleteName !== "") {
+			obj.athleteName = message.athleteName;
+		}
+		if (message.teamId !== 0) {
+			obj.teamId = Math.round(message.teamId);
+		}
+		if (message.teamName !== "") {
+			obj.teamName = message.teamName;
+		}
+		if (message.seedTime !== "") {
+			obj.seedTime = message.seedTime;
+		}
+		if (message.finalTime !== "") {
+			obj.finalTime = message.finalTime;
+		}
+		if (message.place !== 0) {
+			obj.place = Math.round(message.place);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Entry>): Entry {
-    return Entry.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Entry>): Entry {
-    const message = createBaseEntry();
-    message.id = object.id ?? 0;
-    message.eventId = object.eventId ?? 0;
-    message.athleteId = object.athleteId ?? 0;
-    message.athleteName = object.athleteName ?? "";
-    message.teamId = object.teamId ?? 0;
-    message.teamName = object.teamName ?? "";
-    message.seedTime = object.seedTime ?? "";
-    message.finalTime = object.finalTime ?? "";
-    message.place = object.place ?? 0;
-    return message;
-  },
+	create(base?: DeepPartial<Entry>): Entry {
+		return Entry.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Entry>): Entry {
+		const message = createBaseEntry();
+		message.id = object.id ?? 0;
+		message.eventId = object.eventId ?? 0;
+		message.athleteId = object.athleteId ?? 0;
+		message.athleteName = object.athleteName ?? "";
+		message.teamId = object.teamId ?? 0;
+		message.teamName = object.teamName ?? "";
+		message.seedTime = object.seedTime ?? "";
+		message.finalTime = object.finalTime ?? "";
+		message.place = object.place ?? 0;
+		return message;
+	},
 };
 
 function createBaseEntryList(): EntryList {
-  return { entries: [] };
+	return { entries: [] };
 }
 
 export const EntryList: MessageFns<EntryList> = {
-  encode(message: EntryList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.entries) {
-      Entry.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: EntryList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.entries) {
+			Entry.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EntryList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEntryList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): EntryList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseEntryList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.entries.push(Entry.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.entries.push(Entry.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): EntryList {
-    return {
-      entries: globalThis.Array.isArray(object?.entries) ? object.entries.map((e: any) => Entry.fromJSON(e)) : [],
-    };
-  },
+	fromJSON(object: any): EntryList {
+		return {
+			entries: globalThis.Array.isArray(object?.entries)
+				? object.entries.map((e: any) => Entry.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: EntryList): unknown {
-    const obj: any = {};
-    if (message.entries?.length) {
-      obj.entries = message.entries.map((e) => Entry.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: EntryList): unknown {
+		const obj: any = {};
+		if (message.entries?.length) {
+			obj.entries = message.entries.map((e) => Entry.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<EntryList>): EntryList {
-    return EntryList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<EntryList>): EntryList {
-    const message = createBaseEntryList();
-    message.entries = object.entries?.map((e) => Entry.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<EntryList>): EntryList {
+		return EntryList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<EntryList>): EntryList {
+		const message = createBaseEntryList();
+		message.entries = object.entries?.map((e) => Entry.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseSession(): Session {
-  return {
-    id: "",
-    meetId: "",
-    name: "",
-    date: "",
-    warmUpTime: "",
-    startTime: "",
-    eventCount: 0,
-    sessionNum: 0,
-    day: 0,
-  };
+	return {
+		id: "",
+		meetId: "",
+		name: "",
+		date: "",
+		warmUpTime: "",
+		startTime: "",
+		eventCount: 0,
+		sessionNum: 0,
+		day: 0,
+	};
 }
 
 export const Session: MessageFns<Session> = {
-  encode(message: Session, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.meetId !== "") {
-      writer.uint32(18).string(message.meetId);
-    }
-    if (message.name !== "") {
-      writer.uint32(26).string(message.name);
-    }
-    if (message.date !== "") {
-      writer.uint32(34).string(message.date);
-    }
-    if (message.warmUpTime !== "") {
-      writer.uint32(42).string(message.warmUpTime);
-    }
-    if (message.startTime !== "") {
-      writer.uint32(50).string(message.startTime);
-    }
-    if (message.eventCount !== 0) {
-      writer.uint32(56).int32(message.eventCount);
-    }
-    if (message.sessionNum !== 0) {
-      writer.uint32(64).int32(message.sessionNum);
-    }
-    if (message.day !== 0) {
-      writer.uint32(72).int32(message.day);
-    }
-    return writer;
-  },
+	encode(
+		message: Session,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== "") {
+			writer.uint32(10).string(message.id);
+		}
+		if (message.meetId !== "") {
+			writer.uint32(18).string(message.meetId);
+		}
+		if (message.name !== "") {
+			writer.uint32(26).string(message.name);
+		}
+		if (message.date !== "") {
+			writer.uint32(34).string(message.date);
+		}
+		if (message.warmUpTime !== "") {
+			writer.uint32(42).string(message.warmUpTime);
+		}
+		if (message.startTime !== "") {
+			writer.uint32(50).string(message.startTime);
+		}
+		if (message.eventCount !== 0) {
+			writer.uint32(56).int32(message.eventCount);
+		}
+		if (message.sessionNum !== 0) {
+			writer.uint32(64).int32(message.sessionNum);
+		}
+		if (message.day !== 0) {
+			writer.uint32(72).int32(message.day);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Session {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSession();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Session {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseSession();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.string();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.meetId = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
+					message.meetId = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 26) {
+						break;
+					}
 
-          message.name = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.name = reader.string();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.date = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
+					message.date = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 42) {
+						break;
+					}
 
-          message.warmUpTime = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
+					message.warmUpTime = reader.string();
+					continue;
+				}
+				case 6: {
+					if (tag !== 50) {
+						break;
+					}
 
-          message.startTime = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 56) {
-            break;
-          }
+					message.startTime = reader.string();
+					continue;
+				}
+				case 7: {
+					if (tag !== 56) {
+						break;
+					}
 
-          message.eventCount = reader.int32();
-          continue;
-        }
-        case 8: {
-          if (tag !== 64) {
-            break;
-          }
+					message.eventCount = reader.int32();
+					continue;
+				}
+				case 8: {
+					if (tag !== 64) {
+						break;
+					}
 
-          message.sessionNum = reader.int32();
-          continue;
-        }
-        case 9: {
-          if (tag !== 72) {
-            break;
-          }
+					message.sessionNum = reader.int32();
+					continue;
+				}
+				case 9: {
+					if (tag !== 72) {
+						break;
+					}
 
-          message.day = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.day = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Session {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      meetId: isSet(object.meetId)
-        ? globalThis.String(object.meetId)
-        : isSet(object.meet_id)
-        ? globalThis.String(object.meet_id)
-        : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      date: isSet(object.date) ? globalThis.String(object.date) : "",
-      warmUpTime: isSet(object.warmUpTime)
-        ? globalThis.String(object.warmUpTime)
-        : isSet(object.warm_up_time)
-        ? globalThis.String(object.warm_up_time)
-        : "",
-      startTime: isSet(object.startTime)
-        ? globalThis.String(object.startTime)
-        : isSet(object.start_time)
-        ? globalThis.String(object.start_time)
-        : "",
-      eventCount: isSet(object.eventCount)
-        ? globalThis.Number(object.eventCount)
-        : isSet(object.event_count)
-        ? globalThis.Number(object.event_count)
-        : 0,
-      sessionNum: isSet(object.sessionNum)
-        ? globalThis.Number(object.sessionNum)
-        : isSet(object.session_num)
-        ? globalThis.Number(object.session_num)
-        : 0,
-      day: isSet(object.day) ? globalThis.Number(object.day) : 0,
-    };
-  },
+	fromJSON(object: any): Session {
+		return {
+			id: isSet(object.id) ? globalThis.String(object.id) : "",
+			meetId: isSet(object.meetId)
+				? globalThis.String(object.meetId)
+				: isSet(object.meet_id)
+					? globalThis.String(object.meet_id)
+					: "",
+			name: isSet(object.name) ? globalThis.String(object.name) : "",
+			date: isSet(object.date) ? globalThis.String(object.date) : "",
+			warmUpTime: isSet(object.warmUpTime)
+				? globalThis.String(object.warmUpTime)
+				: isSet(object.warm_up_time)
+					? globalThis.String(object.warm_up_time)
+					: "",
+			startTime: isSet(object.startTime)
+				? globalThis.String(object.startTime)
+				: isSet(object.start_time)
+					? globalThis.String(object.start_time)
+					: "",
+			eventCount: isSet(object.eventCount)
+				? globalThis.Number(object.eventCount)
+				: isSet(object.event_count)
+					? globalThis.Number(object.event_count)
+					: 0,
+			sessionNum: isSet(object.sessionNum)
+				? globalThis.Number(object.sessionNum)
+				: isSet(object.session_num)
+					? globalThis.Number(object.session_num)
+					: 0,
+			day: isSet(object.day) ? globalThis.Number(object.day) : 0,
+		};
+	},
 
-  toJSON(message: Session): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.meetId !== "") {
-      obj.meetId = message.meetId;
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.date !== "") {
-      obj.date = message.date;
-    }
-    if (message.warmUpTime !== "") {
-      obj.warmUpTime = message.warmUpTime;
-    }
-    if (message.startTime !== "") {
-      obj.startTime = message.startTime;
-    }
-    if (message.eventCount !== 0) {
-      obj.eventCount = Math.round(message.eventCount);
-    }
-    if (message.sessionNum !== 0) {
-      obj.sessionNum = Math.round(message.sessionNum);
-    }
-    if (message.day !== 0) {
-      obj.day = Math.round(message.day);
-    }
-    return obj;
-  },
+	toJSON(message: Session): unknown {
+		const obj: any = {};
+		if (message.id !== "") {
+			obj.id = message.id;
+		}
+		if (message.meetId !== "") {
+			obj.meetId = message.meetId;
+		}
+		if (message.name !== "") {
+			obj.name = message.name;
+		}
+		if (message.date !== "") {
+			obj.date = message.date;
+		}
+		if (message.warmUpTime !== "") {
+			obj.warmUpTime = message.warmUpTime;
+		}
+		if (message.startTime !== "") {
+			obj.startTime = message.startTime;
+		}
+		if (message.eventCount !== 0) {
+			obj.eventCount = Math.round(message.eventCount);
+		}
+		if (message.sessionNum !== 0) {
+			obj.sessionNum = Math.round(message.sessionNum);
+		}
+		if (message.day !== 0) {
+			obj.day = Math.round(message.day);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Session>): Session {
-    return Session.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Session>): Session {
-    const message = createBaseSession();
-    message.id = object.id ?? "";
-    message.meetId = object.meetId ?? "";
-    message.name = object.name ?? "";
-    message.date = object.date ?? "";
-    message.warmUpTime = object.warmUpTime ?? "";
-    message.startTime = object.startTime ?? "";
-    message.eventCount = object.eventCount ?? 0;
-    message.sessionNum = object.sessionNum ?? 0;
-    message.day = object.day ?? 0;
-    return message;
-  },
+	create(base?: DeepPartial<Session>): Session {
+		return Session.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Session>): Session {
+		const message = createBaseSession();
+		message.id = object.id ?? "";
+		message.meetId = object.meetId ?? "";
+		message.name = object.name ?? "";
+		message.date = object.date ?? "";
+		message.warmUpTime = object.warmUpTime ?? "";
+		message.startTime = object.startTime ?? "";
+		message.eventCount = object.eventCount ?? 0;
+		message.sessionNum = object.sessionNum ?? 0;
+		message.day = object.day ?? 0;
+		return message;
+	},
 };
 
 function createBaseSessionList(): SessionList {
-  return { sessions: [] };
+	return { sessions: [] };
 }
 
 export const SessionList: MessageFns<SessionList> = {
-  encode(message: SessionList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.sessions) {
-      Session.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: SessionList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.sessions) {
+			Session.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): SessionList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseSessionList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.sessions.push(Session.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.sessions.push(Session.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): SessionList {
-    return {
-      sessions: globalThis.Array.isArray(object?.sessions) ? object.sessions.map((e: any) => Session.fromJSON(e)) : [],
-    };
-  },
+	fromJSON(object: any): SessionList {
+		return {
+			sessions: globalThis.Array.isArray(object?.sessions)
+				? object.sessions.map((e: any) => Session.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: SessionList): unknown {
-    const obj: any = {};
-    if (message.sessions?.length) {
-      obj.sessions = message.sessions.map((e) => Session.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: SessionList): unknown {
+		const obj: any = {};
+		if (message.sessions?.length) {
+			obj.sessions = message.sessions.map((e) => Session.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<SessionList>): SessionList {
-    return SessionList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<SessionList>): SessionList {
-    const message = createBaseSessionList();
-    message.sessions = object.sessions?.map((e) => Session.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<SessionList>): SessionList {
+		return SessionList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<SessionList>): SessionList {
+		const message = createBaseSessionList();
+		message.sessions =
+			object.sessions?.map((e) => Session.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseAdminConfig(): AdminConfig {
-  return { meetName: "", meetDescription: "" };
+	return { meetName: "", meetDescription: "" };
 }
 
 export const AdminConfig: MessageFns<AdminConfig> = {
-  encode(message: AdminConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.meetName !== "") {
-      writer.uint32(10).string(message.meetName);
-    }
-    if (message.meetDescription !== "") {
-      writer.uint32(18).string(message.meetDescription);
-    }
-    return writer;
-  },
+	encode(
+		message: AdminConfig,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.meetName !== "") {
+			writer.uint32(10).string(message.meetName);
+		}
+		if (message.meetDescription !== "") {
+			writer.uint32(18).string(message.meetDescription);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AdminConfig {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAdminConfig();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): AdminConfig {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseAdminConfig();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.meetName = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.meetName = reader.string();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.meetDescription = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.meetDescription = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): AdminConfig {
-    return {
-      meetName: isSet(object.meetName)
-        ? globalThis.String(object.meetName)
-        : isSet(object.meet_name)
-        ? globalThis.String(object.meet_name)
-        : "",
-      meetDescription: isSet(object.meetDescription)
-        ? globalThis.String(object.meetDescription)
-        : isSet(object.meet_description)
-        ? globalThis.String(object.meet_description)
-        : "",
-    };
-  },
+	fromJSON(object: any): AdminConfig {
+		return {
+			meetName: isSet(object.meetName)
+				? globalThis.String(object.meetName)
+				: isSet(object.meet_name)
+					? globalThis.String(object.meet_name)
+					: "",
+			meetDescription: isSet(object.meetDescription)
+				? globalThis.String(object.meetDescription)
+				: isSet(object.meet_description)
+					? globalThis.String(object.meet_description)
+					: "",
+		};
+	},
 
-  toJSON(message: AdminConfig): unknown {
-    const obj: any = {};
-    if (message.meetName !== "") {
-      obj.meetName = message.meetName;
-    }
-    if (message.meetDescription !== "") {
-      obj.meetDescription = message.meetDescription;
-    }
-    return obj;
-  },
+	toJSON(message: AdminConfig): unknown {
+		const obj: any = {};
+		if (message.meetName !== "") {
+			obj.meetName = message.meetName;
+		}
+		if (message.meetDescription !== "") {
+			obj.meetDescription = message.meetDescription;
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<AdminConfig>): AdminConfig {
-    return AdminConfig.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<AdminConfig>): AdminConfig {
-    const message = createBaseAdminConfig();
-    message.meetName = object.meetName ?? "";
-    message.meetDescription = object.meetDescription ?? "";
-    return message;
-  },
+	create(base?: DeepPartial<AdminConfig>): AdminConfig {
+		return AdminConfig.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<AdminConfig>): AdminConfig {
+		const message = createBaseAdminConfig();
+		message.meetName = object.meetName ?? "";
+		message.meetDescription = object.meetDescription ?? "";
+		return message;
+	},
 };
 
 function createBaseEmpty(): Empty {
-  return {};
+	return {};
 }
 
 export const Empty: MessageFns<Empty> = {
-  encode(_: Empty, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    return writer;
-  },
+	encode(_: Empty, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Empty {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEmpty();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+	decode(input: BinaryReader | Uint8Array, length?: number): Empty {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseEmpty();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(_: any): Empty {
-    return {};
-  },
+	fromJSON(_: any): Empty {
+		return {};
+	},
 
-  toJSON(_: Empty): unknown {
-    const obj: any = {};
-    return obj;
-  },
+	toJSON(_: Empty): unknown {
+		const obj: any = {};
+		return obj;
+	},
 
-  create(base?: DeepPartial<Empty>): Empty {
-    return Empty.fromPartial(base ?? {});
-  },
-  fromPartial(_: DeepPartial<Empty>): Empty {
-    const message = createBaseEmpty();
-    return message;
-  },
+	create(base?: DeepPartial<Empty>): Empty {
+		return Empty.fromPartial(base ?? {});
+	},
+	fromPartial(_: DeepPartial<Empty>): Empty {
+		const message = createBaseEmpty();
+		return message;
+	},
 };
 
 function createBaseMeet(): Meet {
-  return { id: "", name: "", location: "", startDate: "", endDate: "", status: "" };
+	return {
+		id: "",
+		name: "",
+		location: "",
+		startDate: "",
+		endDate: "",
+		status: "",
+	};
 }
 
 export const Meet: MessageFns<Meet> = {
-  encode(message: Meet, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
-    }
-    if (message.name !== "") {
-      writer.uint32(18).string(message.name);
-    }
-    if (message.location !== "") {
-      writer.uint32(26).string(message.location);
-    }
-    if (message.startDate !== "") {
-      writer.uint32(34).string(message.startDate);
-    }
-    if (message.endDate !== "") {
-      writer.uint32(42).string(message.endDate);
-    }
-    if (message.status !== "") {
-      writer.uint32(50).string(message.status);
-    }
-    return writer;
-  },
+	encode(
+		message: Meet,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== "") {
+			writer.uint32(10).string(message.id);
+		}
+		if (message.name !== "") {
+			writer.uint32(18).string(message.name);
+		}
+		if (message.location !== "") {
+			writer.uint32(26).string(message.location);
+		}
+		if (message.startDate !== "") {
+			writer.uint32(34).string(message.startDate);
+		}
+		if (message.endDate !== "") {
+			writer.uint32(42).string(message.endDate);
+		}
+		if (message.status !== "") {
+			writer.uint32(50).string(message.status);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Meet {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMeet();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Meet {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseMeet();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.string();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.name = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
+					message.name = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 26) {
+						break;
+					}
 
-          message.location = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.location = reader.string();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.startDate = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
+					message.startDate = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 42) {
+						break;
+					}
 
-          message.endDate = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
+					message.endDate = reader.string();
+					continue;
+				}
+				case 6: {
+					if (tag !== 50) {
+						break;
+					}
 
-          message.status = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.status = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Meet {
-    return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      location: isSet(object.location) ? globalThis.String(object.location) : "",
-      startDate: isSet(object.startDate)
-        ? globalThis.String(object.startDate)
-        : isSet(object.start_date)
-        ? globalThis.String(object.start_date)
-        : "",
-      endDate: isSet(object.endDate)
-        ? globalThis.String(object.endDate)
-        : isSet(object.end_date)
-        ? globalThis.String(object.end_date)
-        : "",
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
-  },
+	fromJSON(object: any): Meet {
+		return {
+			id: isSet(object.id) ? globalThis.String(object.id) : "",
+			name: isSet(object.name) ? globalThis.String(object.name) : "",
+			location: isSet(object.location)
+				? globalThis.String(object.location)
+				: "",
+			startDate: isSet(object.startDate)
+				? globalThis.String(object.startDate)
+				: isSet(object.start_date)
+					? globalThis.String(object.start_date)
+					: "",
+			endDate: isSet(object.endDate)
+				? globalThis.String(object.endDate)
+				: isSet(object.end_date)
+					? globalThis.String(object.end_date)
+					: "",
+			status: isSet(object.status) ? globalThis.String(object.status) : "",
+		};
+	},
 
-  toJSON(message: Meet): unknown {
-    const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.location !== "") {
-      obj.location = message.location;
-    }
-    if (message.startDate !== "") {
-      obj.startDate = message.startDate;
-    }
-    if (message.endDate !== "") {
-      obj.endDate = message.endDate;
-    }
-    if (message.status !== "") {
-      obj.status = message.status;
-    }
-    return obj;
-  },
+	toJSON(message: Meet): unknown {
+		const obj: any = {};
+		if (message.id !== "") {
+			obj.id = message.id;
+		}
+		if (message.name !== "") {
+			obj.name = message.name;
+		}
+		if (message.location !== "") {
+			obj.location = message.location;
+		}
+		if (message.startDate !== "") {
+			obj.startDate = message.startDate;
+		}
+		if (message.endDate !== "") {
+			obj.endDate = message.endDate;
+		}
+		if (message.status !== "") {
+			obj.status = message.status;
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Meet>): Meet {
-    return Meet.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Meet>): Meet {
-    const message = createBaseMeet();
-    message.id = object.id ?? "";
-    message.name = object.name ?? "";
-    message.location = object.location ?? "";
-    message.startDate = object.startDate ?? "";
-    message.endDate = object.endDate ?? "";
-    message.status = object.status ?? "";
-    return message;
-  },
+	create(base?: DeepPartial<Meet>): Meet {
+		return Meet.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Meet>): Meet {
+		const message = createBaseMeet();
+		message.id = object.id ?? "";
+		message.name = object.name ?? "";
+		message.location = object.location ?? "";
+		message.startDate = object.startDate ?? "";
+		message.endDate = object.endDate ?? "";
+		message.status = object.status ?? "";
+		return message;
+	},
 };
 
 function createBaseMeetList(): MeetList {
-  return { meets: [] };
+	return { meets: [] };
 }
 
 export const MeetList: MessageFns<MeetList> = {
-  encode(message: MeetList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.meets) {
-      Meet.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: MeetList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.meets) {
+			Meet.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MeetList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMeetList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): MeetList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseMeetList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.meets.push(Meet.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.meets.push(Meet.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): MeetList {
-    return { meets: globalThis.Array.isArray(object?.meets) ? object.meets.map((e: any) => Meet.fromJSON(e)) : [] };
-  },
+	fromJSON(object: any): MeetList {
+		return {
+			meets: globalThis.Array.isArray(object?.meets)
+				? object.meets.map((e: any) => Meet.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: MeetList): unknown {
-    const obj: any = {};
-    if (message.meets?.length) {
-      obj.meets = message.meets.map((e) => Meet.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: MeetList): unknown {
+		const obj: any = {};
+		if (message.meets?.length) {
+			obj.meets = message.meets.map((e) => Meet.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<MeetList>): MeetList {
-    return MeetList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<MeetList>): MeetList {
-    const message = createBaseMeetList();
-    message.meets = object.meets?.map((e) => Meet.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<MeetList>): MeetList {
+		return MeetList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<MeetList>): MeetList {
+		const message = createBaseMeetList();
+		message.meets = object.meets?.map((e) => Meet.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseDashboardStats(): DashboardStats {
-  return { meetCount: 0, teamCount: 0, athleteCount: 0, eventCount: 0 };
+	return { meetCount: 0, teamCount: 0, athleteCount: 0, eventCount: 0 };
 }
 
 export const DashboardStats: MessageFns<DashboardStats> = {
-  encode(message: DashboardStats, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.meetCount !== 0) {
-      writer.uint32(8).int32(message.meetCount);
-    }
-    if (message.teamCount !== 0) {
-      writer.uint32(16).int32(message.teamCount);
-    }
-    if (message.athleteCount !== 0) {
-      writer.uint32(24).int32(message.athleteCount);
-    }
-    if (message.eventCount !== 0) {
-      writer.uint32(32).int32(message.eventCount);
-    }
-    return writer;
-  },
+	encode(
+		message: DashboardStats,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.meetCount !== 0) {
+			writer.uint32(8).int32(message.meetCount);
+		}
+		if (message.teamCount !== 0) {
+			writer.uint32(16).int32(message.teamCount);
+		}
+		if (message.athleteCount !== 0) {
+			writer.uint32(24).int32(message.athleteCount);
+		}
+		if (message.eventCount !== 0) {
+			writer.uint32(32).int32(message.eventCount);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DashboardStats {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDashboardStats();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): DashboardStats {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseDashboardStats();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.meetCount = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
+					message.meetCount = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 16) {
+						break;
+					}
 
-          message.teamCount = reader.int32();
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
+					message.teamCount = reader.int32();
+					continue;
+				}
+				case 3: {
+					if (tag !== 24) {
+						break;
+					}
 
-          message.athleteCount = reader.int32();
-          continue;
-        }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
+					message.athleteCount = reader.int32();
+					continue;
+				}
+				case 4: {
+					if (tag !== 32) {
+						break;
+					}
 
-          message.eventCount = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.eventCount = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): DashboardStats {
-    return {
-      meetCount: isSet(object.meetCount)
-        ? globalThis.Number(object.meetCount)
-        : isSet(object.meet_count)
-        ? globalThis.Number(object.meet_count)
-        : 0,
-      teamCount: isSet(object.teamCount)
-        ? globalThis.Number(object.teamCount)
-        : isSet(object.team_count)
-        ? globalThis.Number(object.team_count)
-        : 0,
-      athleteCount: isSet(object.athleteCount)
-        ? globalThis.Number(object.athleteCount)
-        : isSet(object.athlete_count)
-        ? globalThis.Number(object.athlete_count)
-        : 0,
-      eventCount: isSet(object.eventCount)
-        ? globalThis.Number(object.eventCount)
-        : isSet(object.event_count)
-        ? globalThis.Number(object.event_count)
-        : 0,
-    };
-  },
+	fromJSON(object: any): DashboardStats {
+		return {
+			meetCount: isSet(object.meetCount)
+				? globalThis.Number(object.meetCount)
+				: isSet(object.meet_count)
+					? globalThis.Number(object.meet_count)
+					: 0,
+			teamCount: isSet(object.teamCount)
+				? globalThis.Number(object.teamCount)
+				: isSet(object.team_count)
+					? globalThis.Number(object.team_count)
+					: 0,
+			athleteCount: isSet(object.athleteCount)
+				? globalThis.Number(object.athleteCount)
+				: isSet(object.athlete_count)
+					? globalThis.Number(object.athlete_count)
+					: 0,
+			eventCount: isSet(object.eventCount)
+				? globalThis.Number(object.eventCount)
+				: isSet(object.event_count)
+					? globalThis.Number(object.event_count)
+					: 0,
+		};
+	},
 
-  toJSON(message: DashboardStats): unknown {
-    const obj: any = {};
-    if (message.meetCount !== 0) {
-      obj.meetCount = Math.round(message.meetCount);
-    }
-    if (message.teamCount !== 0) {
-      obj.teamCount = Math.round(message.teamCount);
-    }
-    if (message.athleteCount !== 0) {
-      obj.athleteCount = Math.round(message.athleteCount);
-    }
-    if (message.eventCount !== 0) {
-      obj.eventCount = Math.round(message.eventCount);
-    }
-    return obj;
-  },
+	toJSON(message: DashboardStats): unknown {
+		const obj: any = {};
+		if (message.meetCount !== 0) {
+			obj.meetCount = Math.round(message.meetCount);
+		}
+		if (message.teamCount !== 0) {
+			obj.teamCount = Math.round(message.teamCount);
+		}
+		if (message.athleteCount !== 0) {
+			obj.athleteCount = Math.round(message.athleteCount);
+		}
+		if (message.eventCount !== 0) {
+			obj.eventCount = Math.round(message.eventCount);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<DashboardStats>): DashboardStats {
-    return DashboardStats.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<DashboardStats>): DashboardStats {
-    const message = createBaseDashboardStats();
-    message.meetCount = object.meetCount ?? 0;
-    message.teamCount = object.teamCount ?? 0;
-    message.athleteCount = object.athleteCount ?? 0;
-    message.eventCount = object.eventCount ?? 0;
-    return message;
-  },
+	create(base?: DeepPartial<DashboardStats>): DashboardStats {
+		return DashboardStats.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<DashboardStats>): DashboardStats {
+		const message = createBaseDashboardStats();
+		message.meetCount = object.meetCount ?? 0;
+		message.teamCount = object.teamCount ?? 0;
+		message.athleteCount = object.athleteCount ?? 0;
+		message.eventCount = object.eventCount ?? 0;
+		return message;
+	},
 };
 
 function createBaseTeam(): Team {
-  return { id: 0, name: "", code: "", lsc: "", city: "", state: "", athleteCount: 0 };
+	return {
+		id: 0,
+		name: "",
+		code: "",
+		lsc: "",
+		city: "",
+		state: "",
+		athleteCount: 0,
+	};
 }
 
 export const Team: MessageFns<Team> = {
-  encode(message: Team, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    if (message.name !== "") {
-      writer.uint32(18).string(message.name);
-    }
-    if (message.code !== "") {
-      writer.uint32(26).string(message.code);
-    }
-    if (message.lsc !== "") {
-      writer.uint32(34).string(message.lsc);
-    }
-    if (message.city !== "") {
-      writer.uint32(42).string(message.city);
-    }
-    if (message.state !== "") {
-      writer.uint32(50).string(message.state);
-    }
-    if (message.athleteCount !== 0) {
-      writer.uint32(56).int32(message.athleteCount);
-    }
-    return writer;
-  },
+	encode(
+		message: Team,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		if (message.name !== "") {
+			writer.uint32(18).string(message.name);
+		}
+		if (message.code !== "") {
+			writer.uint32(26).string(message.code);
+		}
+		if (message.lsc !== "") {
+			writer.uint32(34).string(message.lsc);
+		}
+		if (message.city !== "") {
+			writer.uint32(42).string(message.city);
+		}
+		if (message.state !== "") {
+			writer.uint32(50).string(message.state);
+		}
+		if (message.athleteCount !== 0) {
+			writer.uint32(56).int32(message.athleteCount);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Team {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTeam();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Team {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseTeam();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.name = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
+					message.name = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 26) {
+						break;
+					}
 
-          message.code = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.code = reader.string();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.lsc = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
-            break;
-          }
+					message.lsc = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 42) {
+						break;
+					}
 
-          message.city = reader.string();
-          continue;
-        }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
+					message.city = reader.string();
+					continue;
+				}
+				case 6: {
+					if (tag !== 50) {
+						break;
+					}
 
-          message.state = reader.string();
-          continue;
-        }
-        case 7: {
-          if (tag !== 56) {
-            break;
-          }
+					message.state = reader.string();
+					continue;
+				}
+				case 7: {
+					if (tag !== 56) {
+						break;
+					}
 
-          message.athleteCount = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.athleteCount = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Team {
-    return {
-      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      code: isSet(object.code) ? globalThis.String(object.code) : "",
-      lsc: isSet(object.lsc) ? globalThis.String(object.lsc) : "",
-      city: isSet(object.city) ? globalThis.String(object.city) : "",
-      state: isSet(object.state) ? globalThis.String(object.state) : "",
-      athleteCount: isSet(object.athleteCount)
-        ? globalThis.Number(object.athleteCount)
-        : isSet(object.athlete_count)
-        ? globalThis.Number(object.athlete_count)
-        : 0,
-    };
-  },
+	fromJSON(object: any): Team {
+		return {
+			id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+			name: isSet(object.name) ? globalThis.String(object.name) : "",
+			code: isSet(object.code) ? globalThis.String(object.code) : "",
+			lsc: isSet(object.lsc) ? globalThis.String(object.lsc) : "",
+			city: isSet(object.city) ? globalThis.String(object.city) : "",
+			state: isSet(object.state) ? globalThis.String(object.state) : "",
+			athleteCount: isSet(object.athleteCount)
+				? globalThis.Number(object.athleteCount)
+				: isSet(object.athlete_count)
+					? globalThis.Number(object.athlete_count)
+					: 0,
+		};
+	},
 
-  toJSON(message: Team): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    if (message.name !== "") {
-      obj.name = message.name;
-    }
-    if (message.code !== "") {
-      obj.code = message.code;
-    }
-    if (message.lsc !== "") {
-      obj.lsc = message.lsc;
-    }
-    if (message.city !== "") {
-      obj.city = message.city;
-    }
-    if (message.state !== "") {
-      obj.state = message.state;
-    }
-    if (message.athleteCount !== 0) {
-      obj.athleteCount = Math.round(message.athleteCount);
-    }
-    return obj;
-  },
+	toJSON(message: Team): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		if (message.name !== "") {
+			obj.name = message.name;
+		}
+		if (message.code !== "") {
+			obj.code = message.code;
+		}
+		if (message.lsc !== "") {
+			obj.lsc = message.lsc;
+		}
+		if (message.city !== "") {
+			obj.city = message.city;
+		}
+		if (message.state !== "") {
+			obj.state = message.state;
+		}
+		if (message.athleteCount !== 0) {
+			obj.athleteCount = Math.round(message.athleteCount);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Team>): Team {
-    return Team.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Team>): Team {
-    const message = createBaseTeam();
-    message.id = object.id ?? 0;
-    message.name = object.name ?? "";
-    message.code = object.code ?? "";
-    message.lsc = object.lsc ?? "";
-    message.city = object.city ?? "";
-    message.state = object.state ?? "";
-    message.athleteCount = object.athleteCount ?? 0;
-    return message;
-  },
+	create(base?: DeepPartial<Team>): Team {
+		return Team.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Team>): Team {
+		const message = createBaseTeam();
+		message.id = object.id ?? 0;
+		message.name = object.name ?? "";
+		message.code = object.code ?? "";
+		message.lsc = object.lsc ?? "";
+		message.city = object.city ?? "";
+		message.state = object.state ?? "";
+		message.athleteCount = object.athleteCount ?? 0;
+		return message;
+	},
 };
 
 function createBaseTeamList(): TeamList {
-  return { teams: [] };
+	return { teams: [] };
 }
 
 export const TeamList: MessageFns<TeamList> = {
-  encode(message: TeamList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.teams) {
-      Team.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: TeamList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.teams) {
+			Team.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TeamList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTeamList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): TeamList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseTeamList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.teams.push(Team.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.teams.push(Team.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): TeamList {
-    return { teams: globalThis.Array.isArray(object?.teams) ? object.teams.map((e: any) => Team.fromJSON(e)) : [] };
-  },
+	fromJSON(object: any): TeamList {
+		return {
+			teams: globalThis.Array.isArray(object?.teams)
+				? object.teams.map((e: any) => Team.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: TeamList): unknown {
-    const obj: any = {};
-    if (message.teams?.length) {
-      obj.teams = message.teams.map((e) => Team.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: TeamList): unknown {
+		const obj: any = {};
+		if (message.teams?.length) {
+			obj.teams = message.teams.map((e) => Team.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<TeamList>): TeamList {
-    return TeamList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<TeamList>): TeamList {
-    const message = createBaseTeamList();
-    message.teams = object.teams?.map((e) => Team.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<TeamList>): TeamList {
+		return TeamList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<TeamList>): TeamList {
+		const message = createBaseTeamList();
+		message.teams = object.teams?.map((e) => Team.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseTeamRequest(): TeamRequest {
-  return { id: 0 };
+	return { id: 0 };
 }
 
 export const TeamRequest: MessageFns<TeamRequest> = {
-  encode(message: TeamRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    return writer;
-  },
+	encode(
+		message: TeamRequest,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TeamRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTeamRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): TeamRequest {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseTeamRequest();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.id = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): TeamRequest {
-    return { id: isSet(object.id) ? globalThis.Number(object.id) : 0 };
-  },
+	fromJSON(object: any): TeamRequest {
+		return { id: isSet(object.id) ? globalThis.Number(object.id) : 0 };
+	},
 
-  toJSON(message: TeamRequest): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    return obj;
-  },
+	toJSON(message: TeamRequest): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<TeamRequest>): TeamRequest {
-    return TeamRequest.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<TeamRequest>): TeamRequest {
-    const message = createBaseTeamRequest();
-    message.id = object.id ?? 0;
-    return message;
-  },
+	create(base?: DeepPartial<TeamRequest>): TeamRequest {
+		return TeamRequest.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<TeamRequest>): TeamRequest {
+		const message = createBaseTeamRequest();
+		message.id = object.id ?? 0;
+		return message;
+	},
 };
 
 function createBaseAthlete(): Athlete {
-  return { id: 0, firstName: "", lastName: "", gender: "", age: 0, teamId: 0, teamName: "", schoolYear: "", regNo: "" };
+	return {
+		id: 0,
+		firstName: "",
+		lastName: "",
+		gender: "",
+		age: 0,
+		teamId: 0,
+		teamName: "",
+		schoolYear: "",
+		regNo: "",
+	};
 }
 
 export const Athlete: MessageFns<Athlete> = {
-  encode(message: Athlete, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    if (message.firstName !== "") {
-      writer.uint32(18).string(message.firstName);
-    }
-    if (message.lastName !== "") {
-      writer.uint32(26).string(message.lastName);
-    }
-    if (message.gender !== "") {
-      writer.uint32(34).string(message.gender);
-    }
-    if (message.age !== 0) {
-      writer.uint32(40).int32(message.age);
-    }
-    if (message.teamId !== 0) {
-      writer.uint32(48).int32(message.teamId);
-    }
-    if (message.teamName !== "") {
-      writer.uint32(58).string(message.teamName);
-    }
-    if (message.schoolYear !== "") {
-      writer.uint32(66).string(message.schoolYear);
-    }
-    if (message.regNo !== "") {
-      writer.uint32(74).string(message.regNo);
-    }
-    return writer;
-  },
+	encode(
+		message: Athlete,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		if (message.firstName !== "") {
+			writer.uint32(18).string(message.firstName);
+		}
+		if (message.lastName !== "") {
+			writer.uint32(26).string(message.lastName);
+		}
+		if (message.gender !== "") {
+			writer.uint32(34).string(message.gender);
+		}
+		if (message.age !== 0) {
+			writer.uint32(40).int32(message.age);
+		}
+		if (message.teamId !== 0) {
+			writer.uint32(48).int32(message.teamId);
+		}
+		if (message.teamName !== "") {
+			writer.uint32(58).string(message.teamName);
+		}
+		if (message.schoolYear !== "") {
+			writer.uint32(66).string(message.schoolYear);
+		}
+		if (message.regNo !== "") {
+			writer.uint32(74).string(message.regNo);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Athlete {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAthlete();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Athlete {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseAthlete();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.firstName = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
+					message.firstName = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 26) {
+						break;
+					}
 
-          message.lastName = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.lastName = reader.string();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.gender = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 40) {
-            break;
-          }
+					message.gender = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 40) {
+						break;
+					}
 
-          message.age = reader.int32();
-          continue;
-        }
-        case 6: {
-          if (tag !== 48) {
-            break;
-          }
+					message.age = reader.int32();
+					continue;
+				}
+				case 6: {
+					if (tag !== 48) {
+						break;
+					}
 
-          message.teamId = reader.int32();
-          continue;
-        }
-        case 7: {
-          if (tag !== 58) {
-            break;
-          }
+					message.teamId = reader.int32();
+					continue;
+				}
+				case 7: {
+					if (tag !== 58) {
+						break;
+					}
 
-          message.teamName = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
+					message.teamName = reader.string();
+					continue;
+				}
+				case 8: {
+					if (tag !== 66) {
+						break;
+					}
 
-          message.schoolYear = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
+					message.schoolYear = reader.string();
+					continue;
+				}
+				case 9: {
+					if (tag !== 74) {
+						break;
+					}
 
-          message.regNo = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.regNo = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Athlete {
-    return {
-      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      firstName: isSet(object.firstName)
-        ? globalThis.String(object.firstName)
-        : isSet(object.first_name)
-        ? globalThis.String(object.first_name)
-        : "",
-      lastName: isSet(object.lastName)
-        ? globalThis.String(object.lastName)
-        : isSet(object.last_name)
-        ? globalThis.String(object.last_name)
-        : "",
-      gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
-      age: isSet(object.age) ? globalThis.Number(object.age) : 0,
-      teamId: isSet(object.teamId)
-        ? globalThis.Number(object.teamId)
-        : isSet(object.team_id)
-        ? globalThis.Number(object.team_id)
-        : 0,
-      teamName: isSet(object.teamName)
-        ? globalThis.String(object.teamName)
-        : isSet(object.team_name)
-        ? globalThis.String(object.team_name)
-        : "",
-      schoolYear: isSet(object.schoolYear)
-        ? globalThis.String(object.schoolYear)
-        : isSet(object.school_year)
-        ? globalThis.String(object.school_year)
-        : "",
-      regNo: isSet(object.regNo)
-        ? globalThis.String(object.regNo)
-        : isSet(object.reg_no)
-        ? globalThis.String(object.reg_no)
-        : "",
-    };
-  },
+	fromJSON(object: any): Athlete {
+		return {
+			id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+			firstName: isSet(object.firstName)
+				? globalThis.String(object.firstName)
+				: isSet(object.first_name)
+					? globalThis.String(object.first_name)
+					: "",
+			lastName: isSet(object.lastName)
+				? globalThis.String(object.lastName)
+				: isSet(object.last_name)
+					? globalThis.String(object.last_name)
+					: "",
+			gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
+			age: isSet(object.age) ? globalThis.Number(object.age) : 0,
+			teamId: isSet(object.teamId)
+				? globalThis.Number(object.teamId)
+				: isSet(object.team_id)
+					? globalThis.Number(object.team_id)
+					: 0,
+			teamName: isSet(object.teamName)
+				? globalThis.String(object.teamName)
+				: isSet(object.team_name)
+					? globalThis.String(object.team_name)
+					: "",
+			schoolYear: isSet(object.schoolYear)
+				? globalThis.String(object.schoolYear)
+				: isSet(object.school_year)
+					? globalThis.String(object.school_year)
+					: "",
+			regNo: isSet(object.regNo)
+				? globalThis.String(object.regNo)
+				: isSet(object.reg_no)
+					? globalThis.String(object.reg_no)
+					: "",
+		};
+	},
 
-  toJSON(message: Athlete): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    if (message.firstName !== "") {
-      obj.firstName = message.firstName;
-    }
-    if (message.lastName !== "") {
-      obj.lastName = message.lastName;
-    }
-    if (message.gender !== "") {
-      obj.gender = message.gender;
-    }
-    if (message.age !== 0) {
-      obj.age = Math.round(message.age);
-    }
-    if (message.teamId !== 0) {
-      obj.teamId = Math.round(message.teamId);
-    }
-    if (message.teamName !== "") {
-      obj.teamName = message.teamName;
-    }
-    if (message.schoolYear !== "") {
-      obj.schoolYear = message.schoolYear;
-    }
-    if (message.regNo !== "") {
-      obj.regNo = message.regNo;
-    }
-    return obj;
-  },
+	toJSON(message: Athlete): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		if (message.firstName !== "") {
+			obj.firstName = message.firstName;
+		}
+		if (message.lastName !== "") {
+			obj.lastName = message.lastName;
+		}
+		if (message.gender !== "") {
+			obj.gender = message.gender;
+		}
+		if (message.age !== 0) {
+			obj.age = Math.round(message.age);
+		}
+		if (message.teamId !== 0) {
+			obj.teamId = Math.round(message.teamId);
+		}
+		if (message.teamName !== "") {
+			obj.teamName = message.teamName;
+		}
+		if (message.schoolYear !== "") {
+			obj.schoolYear = message.schoolYear;
+		}
+		if (message.regNo !== "") {
+			obj.regNo = message.regNo;
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Athlete>): Athlete {
-    return Athlete.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Athlete>): Athlete {
-    const message = createBaseAthlete();
-    message.id = object.id ?? 0;
-    message.firstName = object.firstName ?? "";
-    message.lastName = object.lastName ?? "";
-    message.gender = object.gender ?? "";
-    message.age = object.age ?? 0;
-    message.teamId = object.teamId ?? 0;
-    message.teamName = object.teamName ?? "";
-    message.schoolYear = object.schoolYear ?? "";
-    message.regNo = object.regNo ?? "";
-    return message;
-  },
+	create(base?: DeepPartial<Athlete>): Athlete {
+		return Athlete.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Athlete>): Athlete {
+		const message = createBaseAthlete();
+		message.id = object.id ?? 0;
+		message.firstName = object.firstName ?? "";
+		message.lastName = object.lastName ?? "";
+		message.gender = object.gender ?? "";
+		message.age = object.age ?? 0;
+		message.teamId = object.teamId ?? 0;
+		message.teamName = object.teamName ?? "";
+		message.schoolYear = object.schoolYear ?? "";
+		message.regNo = object.regNo ?? "";
+		return message;
+	},
 };
 
 function createBaseAthleteList(): AthleteList {
-  return { athletes: [] };
+	return { athletes: [] };
 }
 
 export const AthleteList: MessageFns<AthleteList> = {
-  encode(message: AthleteList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.athletes) {
-      Athlete.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: AthleteList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.athletes) {
+			Athlete.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AthleteList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAthleteList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): AthleteList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseAthleteList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.athletes.push(Athlete.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.athletes.push(Athlete.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): AthleteList {
-    return {
-      athletes: globalThis.Array.isArray(object?.athletes) ? object.athletes.map((e: any) => Athlete.fromJSON(e)) : [],
-    };
-  },
+	fromJSON(object: any): AthleteList {
+		return {
+			athletes: globalThis.Array.isArray(object?.athletes)
+				? object.athletes.map((e: any) => Athlete.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: AthleteList): unknown {
-    const obj: any = {};
-    if (message.athletes?.length) {
-      obj.athletes = message.athletes.map((e) => Athlete.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: AthleteList): unknown {
+		const obj: any = {};
+		if (message.athletes?.length) {
+			obj.athletes = message.athletes.map((e) => Athlete.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<AthleteList>): AthleteList {
-    return AthleteList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<AthleteList>): AthleteList {
-    const message = createBaseAthleteList();
-    message.athletes = object.athletes?.map((e) => Athlete.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<AthleteList>): AthleteList {
+		return AthleteList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<AthleteList>): AthleteList {
+		const message = createBaseAthleteList();
+		message.athletes =
+			object.athletes?.map((e) => Athlete.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 function createBaseAthleteRequest(): AthleteRequest {
-  return { id: 0 };
+	return { id: 0 };
 }
 
 export const AthleteRequest: MessageFns<AthleteRequest> = {
-  encode(message: AthleteRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    return writer;
-  },
+	encode(
+		message: AthleteRequest,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AthleteRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAthleteRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): AthleteRequest {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseAthleteRequest();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.id = reader.int32();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): AthleteRequest {
-    return { id: isSet(object.id) ? globalThis.Number(object.id) : 0 };
-  },
+	fromJSON(object: any): AthleteRequest {
+		return { id: isSet(object.id) ? globalThis.Number(object.id) : 0 };
+	},
 
-  toJSON(message: AthleteRequest): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    return obj;
-  },
+	toJSON(message: AthleteRequest): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<AthleteRequest>): AthleteRequest {
-    return AthleteRequest.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<AthleteRequest>): AthleteRequest {
-    const message = createBaseAthleteRequest();
-    message.id = object.id ?? 0;
-    return message;
-  },
+	create(base?: DeepPartial<AthleteRequest>): AthleteRequest {
+		return AthleteRequest.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<AthleteRequest>): AthleteRequest {
+		const message = createBaseAthleteRequest();
+		message.id = object.id ?? 0;
+		return message;
+	},
 };
 
 function createBaseEvent(): Event {
-  return { id: 0, gender: "", distance: 0, stroke: "", lowAge: 0, highAge: 0, session: 0, status: "" };
+	return {
+		id: 0,
+		gender: "",
+		distance: 0,
+		stroke: "",
+		lowAge: 0,
+		highAge: 0,
+		session: 0,
+		status: "",
+	};
 }
 
 export const Event: MessageFns<Event> = {
-  encode(message: Event, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== 0) {
-      writer.uint32(8).int32(message.id);
-    }
-    if (message.gender !== "") {
-      writer.uint32(18).string(message.gender);
-    }
-    if (message.distance !== 0) {
-      writer.uint32(24).int32(message.distance);
-    }
-    if (message.stroke !== "") {
-      writer.uint32(34).string(message.stroke);
-    }
-    if (message.lowAge !== 0) {
-      writer.uint32(40).int32(message.lowAge);
-    }
-    if (message.highAge !== 0) {
-      writer.uint32(48).int32(message.highAge);
-    }
-    if (message.session !== 0) {
-      writer.uint32(56).int32(message.session);
-    }
-    if (message.status !== "") {
-      writer.uint32(66).string(message.status);
-    }
-    return writer;
-  },
+	encode(
+		message: Event,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		if (message.id !== 0) {
+			writer.uint32(8).int32(message.id);
+		}
+		if (message.gender !== "") {
+			writer.uint32(18).string(message.gender);
+		}
+		if (message.distance !== 0) {
+			writer.uint32(24).int32(message.distance);
+		}
+		if (message.stroke !== "") {
+			writer.uint32(34).string(message.stroke);
+		}
+		if (message.lowAge !== 0) {
+			writer.uint32(40).int32(message.lowAge);
+		}
+		if (message.highAge !== 0) {
+			writer.uint32(48).int32(message.highAge);
+		}
+		if (message.session !== 0) {
+			writer.uint32(56).int32(message.session);
+		}
+		if (message.status !== "") {
+			writer.uint32(66).string(message.status);
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Event {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEvent();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): Event {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseEvent();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 8) {
+						break;
+					}
 
-          message.id = reader.int32();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
+					message.id = reader.int32();
+					continue;
+				}
+				case 2: {
+					if (tag !== 18) {
+						break;
+					}
 
-          message.gender = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
-            break;
-          }
+					message.gender = reader.string();
+					continue;
+				}
+				case 3: {
+					if (tag !== 24) {
+						break;
+					}
 
-          message.distance = reader.int32();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
+					message.distance = reader.int32();
+					continue;
+				}
+				case 4: {
+					if (tag !== 34) {
+						break;
+					}
 
-          message.stroke = reader.string();
-          continue;
-        }
-        case 5: {
-          if (tag !== 40) {
-            break;
-          }
+					message.stroke = reader.string();
+					continue;
+				}
+				case 5: {
+					if (tag !== 40) {
+						break;
+					}
 
-          message.lowAge = reader.int32();
-          continue;
-        }
-        case 6: {
-          if (tag !== 48) {
-            break;
-          }
+					message.lowAge = reader.int32();
+					continue;
+				}
+				case 6: {
+					if (tag !== 48) {
+						break;
+					}
 
-          message.highAge = reader.int32();
-          continue;
-        }
-        case 7: {
-          if (tag !== 56) {
-            break;
-          }
+					message.highAge = reader.int32();
+					continue;
+				}
+				case 7: {
+					if (tag !== 56) {
+						break;
+					}
 
-          message.session = reader.int32();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
+					message.session = reader.int32();
+					continue;
+				}
+				case 8: {
+					if (tag !== 66) {
+						break;
+					}
 
-          message.status = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.status = reader.string();
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): Event {
-    return {
-      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
-      distance: isSet(object.distance) ? globalThis.Number(object.distance) : 0,
-      stroke: isSet(object.stroke) ? globalThis.String(object.stroke) : "",
-      lowAge: isSet(object.lowAge)
-        ? globalThis.Number(object.lowAge)
-        : isSet(object.low_age)
-        ? globalThis.Number(object.low_age)
-        : 0,
-      highAge: isSet(object.highAge)
-        ? globalThis.Number(object.highAge)
-        : isSet(object.high_age)
-        ? globalThis.Number(object.high_age)
-        : 0,
-      session: isSet(object.session) ? globalThis.Number(object.session) : 0,
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
-  },
+	fromJSON(object: any): Event {
+		return {
+			id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+			gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
+			distance: isSet(object.distance) ? globalThis.Number(object.distance) : 0,
+			stroke: isSet(object.stroke) ? globalThis.String(object.stroke) : "",
+			lowAge: isSet(object.lowAge)
+				? globalThis.Number(object.lowAge)
+				: isSet(object.low_age)
+					? globalThis.Number(object.low_age)
+					: 0,
+			highAge: isSet(object.highAge)
+				? globalThis.Number(object.highAge)
+				: isSet(object.high_age)
+					? globalThis.Number(object.high_age)
+					: 0,
+			session: isSet(object.session) ? globalThis.Number(object.session) : 0,
+			status: isSet(object.status) ? globalThis.String(object.status) : "",
+		};
+	},
 
-  toJSON(message: Event): unknown {
-    const obj: any = {};
-    if (message.id !== 0) {
-      obj.id = Math.round(message.id);
-    }
-    if (message.gender !== "") {
-      obj.gender = message.gender;
-    }
-    if (message.distance !== 0) {
-      obj.distance = Math.round(message.distance);
-    }
-    if (message.stroke !== "") {
-      obj.stroke = message.stroke;
-    }
-    if (message.lowAge !== 0) {
-      obj.lowAge = Math.round(message.lowAge);
-    }
-    if (message.highAge !== 0) {
-      obj.highAge = Math.round(message.highAge);
-    }
-    if (message.session !== 0) {
-      obj.session = Math.round(message.session);
-    }
-    if (message.status !== "") {
-      obj.status = message.status;
-    }
-    return obj;
-  },
+	toJSON(message: Event): unknown {
+		const obj: any = {};
+		if (message.id !== 0) {
+			obj.id = Math.round(message.id);
+		}
+		if (message.gender !== "") {
+			obj.gender = message.gender;
+		}
+		if (message.distance !== 0) {
+			obj.distance = Math.round(message.distance);
+		}
+		if (message.stroke !== "") {
+			obj.stroke = message.stroke;
+		}
+		if (message.lowAge !== 0) {
+			obj.lowAge = Math.round(message.lowAge);
+		}
+		if (message.highAge !== 0) {
+			obj.highAge = Math.round(message.highAge);
+		}
+		if (message.session !== 0) {
+			obj.session = Math.round(message.session);
+		}
+		if (message.status !== "") {
+			obj.status = message.status;
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<Event>): Event {
-    return Event.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<Event>): Event {
-    const message = createBaseEvent();
-    message.id = object.id ?? 0;
-    message.gender = object.gender ?? "";
-    message.distance = object.distance ?? 0;
-    message.stroke = object.stroke ?? "";
-    message.lowAge = object.lowAge ?? 0;
-    message.highAge = object.highAge ?? 0;
-    message.session = object.session ?? 0;
-    message.status = object.status ?? "";
-    return message;
-  },
+	create(base?: DeepPartial<Event>): Event {
+		return Event.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<Event>): Event {
+		const message = createBaseEvent();
+		message.id = object.id ?? 0;
+		message.gender = object.gender ?? "";
+		message.distance = object.distance ?? 0;
+		message.stroke = object.stroke ?? "";
+		message.lowAge = object.lowAge ?? 0;
+		message.highAge = object.highAge ?? 0;
+		message.session = object.session ?? 0;
+		message.status = object.status ?? "";
+		return message;
+	},
 };
 
 function createBaseEventList(): EventList {
-  return { events: [] };
+	return { events: [] };
 }
 
 export const EventList: MessageFns<EventList> = {
-  encode(message: EventList, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.events) {
-      Event.encode(v!, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
+	encode(
+		message: EventList,
+		writer: BinaryWriter = new BinaryWriter(),
+	): BinaryWriter {
+		for (const v of message.events) {
+			Event.encode(v!, writer.uint32(10).fork()).join();
+		}
+		return writer;
+	},
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EventList {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEventList();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
+	decode(input: BinaryReader | Uint8Array, length?: number): EventList {
+		const reader =
+			input instanceof BinaryReader ? input : new BinaryReader(input);
+		const end = length === undefined ? reader.len : reader.pos + length;
+		const message = createBaseEventList();
+		while (reader.pos < end) {
+			const tag = reader.uint32();
+			switch (tag >>> 3) {
+				case 1: {
+					if (tag !== 10) {
+						break;
+					}
 
-          message.events.push(Event.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
+					message.events.push(Event.decode(reader, reader.uint32()));
+					continue;
+				}
+			}
+			if ((tag & 7) === 4 || tag === 0) {
+				break;
+			}
+			reader.skip(tag & 7);
+		}
+		return message;
+	},
 
-  fromJSON(object: any): EventList {
-    return { events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => Event.fromJSON(e)) : [] };
-  },
+	fromJSON(object: any): EventList {
+		return {
+			events: globalThis.Array.isArray(object?.events)
+				? object.events.map((e: any) => Event.fromJSON(e))
+				: [],
+		};
+	},
 
-  toJSON(message: EventList): unknown {
-    const obj: any = {};
-    if (message.events?.length) {
-      obj.events = message.events.map((e) => Event.toJSON(e));
-    }
-    return obj;
-  },
+	toJSON(message: EventList): unknown {
+		const obj: any = {};
+		if (message.events?.length) {
+			obj.events = message.events.map((e) => Event.toJSON(e));
+		}
+		return obj;
+	},
 
-  create(base?: DeepPartial<EventList>): EventList {
-    return EventList.fromPartial(base ?? {});
-  },
-  fromPartial(object: DeepPartial<EventList>): EventList {
-    const message = createBaseEventList();
-    message.events = object.events?.map((e) => Event.fromPartial(e)) || [];
-    return message;
-  },
+	create(base?: DeepPartial<EventList>): EventList {
+		return EventList.fromPartial(base ?? {});
+	},
+	fromPartial(object: DeepPartial<EventList>): EventList {
+		const message = createBaseEventList();
+		message.events = object.events?.map((e) => Event.fromPartial(e)) || [];
+		return message;
+	},
 };
 
 export type MeetManagerServiceDefinition = typeof MeetManagerServiceDefinition;
 export const MeetManagerServiceDefinition = {
-  name: "MeetManagerService",
-  fullName: "meetmanager.MeetManagerService",
-  methods: {
-    /** Meet Operations */
-    getMeets: {
-      name: "GetMeets",
-      requestType: Empty,
-      requestStream: false,
-      responseType: MeetList,
-      responseStream: false,
-      options: {},
-    },
-    getDashboardStats: {
-      name: "GetDashboardStats",
-      requestType: Empty,
-      requestStream: false,
-      responseType: DashboardStats,
-      responseStream: false,
-      options: {},
-    },
-    /** Team Operations */
-    getTeams: {
-      name: "GetTeams",
-      requestType: Empty,
-      requestStream: false,
-      responseType: TeamList,
-      responseStream: false,
-      options: {},
-    },
-    getTeam: {
-      name: "GetTeam",
-      requestType: TeamRequest,
-      requestStream: false,
-      responseType: Team,
-      responseStream: false,
-      options: {},
-    },
-    /** Athlete Operations */
-    getAthletes: {
-      name: "GetAthletes",
-      requestType: Empty,
-      requestStream: false,
-      responseType: AthleteList,
-      responseStream: false,
-      options: {},
-    },
-    getAthlete: {
-      name: "GetAthlete",
-      requestType: AthleteRequest,
-      requestStream: false,
-      responseType: Athlete,
-      responseStream: false,
-      options: {},
-    },
-    /** Event Operations */
-    getEvents: {
-      name: "GetEvents",
-      requestType: Empty,
-      requestStream: false,
-      responseType: EventList,
-      responseStream: false,
-      options: {},
-    },
-    /** Admin Operations */
-    listDatasets: {
-      name: "ListDatasets",
-      requestType: Empty,
-      requestStream: false,
-      responseType: DatasetList,
-      responseStream: false,
-      options: {},
-    },
-    setActiveDataset: {
-      name: "SetActiveDataset",
-      requestType: DatasetRequest,
-      requestStream: false,
-      responseType: Empty,
-      responseStream: false,
-      options: {},
-    },
-    uploadDataset: {
-      name: "UploadDataset",
-      requestType: UploadRequest,
-      requestStream: true,
-      responseType: UploadResponse,
-      responseStream: false,
-      options: {},
-    },
-    /** New Data Operations */
-    getRelays: {
-      name: "GetRelays",
-      requestType: Empty,
-      requestStream: false,
-      responseType: RelayList,
-      responseStream: false,
-      options: {},
-    },
-    getScores: {
-      name: "GetScores",
-      requestType: Empty,
-      requestStream: false,
-      responseType: ScoreList,
-      responseStream: false,
-      options: {},
-    },
-    getEntries: {
-      name: "GetEntries",
-      requestType: Empty,
-      requestStream: false,
-      responseType: EntryList,
-      responseStream: false,
-      options: {},
-    },
-    /** Session Operations */
-    getSessions: {
-      name: "GetSessions",
-      requestType: Empty,
-      requestStream: false,
-      responseType: SessionList,
-      responseStream: false,
-      options: {},
-    },
-    /** Configuration */
-    getAdminConfig: {
-      name: "GetAdminConfig",
-      requestType: Empty,
-      requestStream: false,
-      responseType: AdminConfig,
-      responseStream: false,
-      options: {},
-    },
-    updateAdminConfig: {
-      name: "UpdateAdminConfig",
-      requestType: AdminConfig,
-      requestStream: false,
-      responseType: AdminConfig,
-      responseStream: false,
-      options: {},
-    },
-  },
+	name: "MeetManagerService",
+	fullName: "meetmanager.MeetManagerService",
+	methods: {
+		/** Meet Operations */
+		getMeets: {
+			name: "GetMeets",
+			requestType: Empty,
+			requestStream: false,
+			responseType: MeetList,
+			responseStream: false,
+			options: {},
+		},
+		getDashboardStats: {
+			name: "GetDashboardStats",
+			requestType: Empty,
+			requestStream: false,
+			responseType: DashboardStats,
+			responseStream: false,
+			options: {},
+		},
+		/** Team Operations */
+		getTeams: {
+			name: "GetTeams",
+			requestType: Empty,
+			requestStream: false,
+			responseType: TeamList,
+			responseStream: false,
+			options: {},
+		},
+		getTeam: {
+			name: "GetTeam",
+			requestType: TeamRequest,
+			requestStream: false,
+			responseType: Team,
+			responseStream: false,
+			options: {},
+		},
+		/** Athlete Operations */
+		getAthletes: {
+			name: "GetAthletes",
+			requestType: Empty,
+			requestStream: false,
+			responseType: AthleteList,
+			responseStream: false,
+			options: {},
+		},
+		getAthlete: {
+			name: "GetAthlete",
+			requestType: AthleteRequest,
+			requestStream: false,
+			responseType: Athlete,
+			responseStream: false,
+			options: {},
+		},
+		/** Event Operations */
+		getEvents: {
+			name: "GetEvents",
+			requestType: Empty,
+			requestStream: false,
+			responseType: EventList,
+			responseStream: false,
+			options: {},
+		},
+		/** Admin Operations */
+		listDatasets: {
+			name: "ListDatasets",
+			requestType: Empty,
+			requestStream: false,
+			responseType: DatasetList,
+			responseStream: false,
+			options: {},
+		},
+		setActiveDataset: {
+			name: "SetActiveDataset",
+			requestType: DatasetRequest,
+			requestStream: false,
+			responseType: Empty,
+			responseStream: false,
+			options: {},
+		},
+		uploadDataset: {
+			name: "UploadDataset",
+			requestType: UploadRequest,
+			requestStream: true,
+			responseType: UploadResponse,
+			responseStream: false,
+			options: {},
+		},
+		/** New Data Operations */
+		getRelays: {
+			name: "GetRelays",
+			requestType: Empty,
+			requestStream: false,
+			responseType: RelayList,
+			responseStream: false,
+			options: {},
+		},
+		getScores: {
+			name: "GetScores",
+			requestType: Empty,
+			requestStream: false,
+			responseType: ScoreList,
+			responseStream: false,
+			options: {},
+		},
+		getEntries: {
+			name: "GetEntries",
+			requestType: Empty,
+			requestStream: false,
+			responseType: EntryList,
+			responseStream: false,
+			options: {},
+		},
+		/** Session Operations */
+		getSessions: {
+			name: "GetSessions",
+			requestType: Empty,
+			requestStream: false,
+			responseType: SessionList,
+			responseStream: false,
+			options: {},
+		},
+		/** Configuration */
+		getAdminConfig: {
+			name: "GetAdminConfig",
+			requestType: Empty,
+			requestStream: false,
+			responseType: AdminConfig,
+			responseStream: false,
+			options: {},
+		},
+		updateAdminConfig: {
+			name: "UpdateAdminConfig",
+			requestType: AdminConfig,
+			requestStream: false,
+			responseType: AdminConfig,
+			responseStream: false,
+			options: {},
+		},
+	},
 } as const;
 
 export interface MeetManagerServiceImplementation<CallContextExt = {}> {
-  /** Meet Operations */
-  getMeets(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<MeetList>>;
-  getDashboardStats(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<DashboardStats>>;
-  /** Team Operations */
-  getTeams(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<TeamList>>;
-  getTeam(request: TeamRequest, context: CallContext & CallContextExt): Promise<DeepPartial<Team>>;
-  /** Athlete Operations */
-  getAthletes(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<AthleteList>>;
-  getAthlete(request: AthleteRequest, context: CallContext & CallContextExt): Promise<DeepPartial<Athlete>>;
-  /** Event Operations */
-  getEvents(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<EventList>>;
-  /** Admin Operations */
-  listDatasets(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<DatasetList>>;
-  setActiveDataset(request: DatasetRequest, context: CallContext & CallContextExt): Promise<DeepPartial<Empty>>;
-  uploadDataset(
-    request: AsyncIterable<UploadRequest>,
-    context: CallContext & CallContextExt,
-  ): Promise<DeepPartial<UploadResponse>>;
-  /** New Data Operations */
-  getRelays(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<RelayList>>;
-  getScores(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<ScoreList>>;
-  getEntries(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<EntryList>>;
-  /** Session Operations */
-  getSessions(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<SessionList>>;
-  /** Configuration */
-  getAdminConfig(request: Empty, context: CallContext & CallContextExt): Promise<DeepPartial<AdminConfig>>;
-  updateAdminConfig(request: AdminConfig, context: CallContext & CallContextExt): Promise<DeepPartial<AdminConfig>>;
+	/** Meet Operations */
+	getMeets(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<MeetList>>;
+	getDashboardStats(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<DashboardStats>>;
+	/** Team Operations */
+	getTeams(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<TeamList>>;
+	getTeam(
+		request: TeamRequest,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<Team>>;
+	/** Athlete Operations */
+	getAthletes(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<AthleteList>>;
+	getAthlete(
+		request: AthleteRequest,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<Athlete>>;
+	/** Event Operations */
+	getEvents(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<EventList>>;
+	/** Admin Operations */
+	listDatasets(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<DatasetList>>;
+	setActiveDataset(
+		request: DatasetRequest,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<Empty>>;
+	uploadDataset(
+		request: AsyncIterable<UploadRequest>,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<UploadResponse>>;
+	/** New Data Operations */
+	getRelays(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<RelayList>>;
+	getScores(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<ScoreList>>;
+	getEntries(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<EntryList>>;
+	/** Session Operations */
+	getSessions(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<SessionList>>;
+	/** Configuration */
+	getAdminConfig(
+		request: Empty,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<AdminConfig>>;
+	updateAdminConfig(
+		request: AdminConfig,
+		context: CallContext & CallContextExt,
+	): Promise<DeepPartial<AdminConfig>>;
 }
 
 export interface MeetManagerServiceClient<CallOptionsExt = {}> {
-  /** Meet Operations */
-  getMeets(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<MeetList>;
-  getDashboardStats(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<DashboardStats>;
-  /** Team Operations */
-  getTeams(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<TeamList>;
-  getTeam(request: DeepPartial<TeamRequest>, options?: CallOptions & CallOptionsExt): Promise<Team>;
-  /** Athlete Operations */
-  getAthletes(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<AthleteList>;
-  getAthlete(request: DeepPartial<AthleteRequest>, options?: CallOptions & CallOptionsExt): Promise<Athlete>;
-  /** Event Operations */
-  getEvents(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<EventList>;
-  /** Admin Operations */
-  listDatasets(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<DatasetList>;
-  setActiveDataset(request: DeepPartial<DatasetRequest>, options?: CallOptions & CallOptionsExt): Promise<Empty>;
-  uploadDataset(
-    request: AsyncIterable<DeepPartial<UploadRequest>>,
-    options?: CallOptions & CallOptionsExt,
-  ): Promise<UploadResponse>;
-  /** New Data Operations */
-  getRelays(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<RelayList>;
-  getScores(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<ScoreList>;
-  getEntries(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<EntryList>;
-  /** Session Operations */
-  getSessions(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<SessionList>;
-  /** Configuration */
-  getAdminConfig(request: DeepPartial<Empty>, options?: CallOptions & CallOptionsExt): Promise<AdminConfig>;
-  updateAdminConfig(request: DeepPartial<AdminConfig>, options?: CallOptions & CallOptionsExt): Promise<AdminConfig>;
+	/** Meet Operations */
+	getMeets(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<MeetList>;
+	getDashboardStats(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<DashboardStats>;
+	/** Team Operations */
+	getTeams(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<TeamList>;
+	getTeam(
+		request: DeepPartial<TeamRequest>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<Team>;
+	/** Athlete Operations */
+	getAthletes(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<AthleteList>;
+	getAthlete(
+		request: DeepPartial<AthleteRequest>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<Athlete>;
+	/** Event Operations */
+	getEvents(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<EventList>;
+	/** Admin Operations */
+	listDatasets(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<DatasetList>;
+	setActiveDataset(
+		request: DeepPartial<DatasetRequest>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<Empty>;
+	uploadDataset(
+		request: AsyncIterable<DeepPartial<UploadRequest>>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<UploadResponse>;
+	/** New Data Operations */
+	getRelays(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<RelayList>;
+	getScores(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<ScoreList>;
+	getEntries(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<EntryList>;
+	/** Session Operations */
+	getSessions(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<SessionList>;
+	/** Configuration */
+	getAdminConfig(
+		request: DeepPartial<Empty>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<AdminConfig>;
+	updateAdminConfig(
+		request: DeepPartial<AdminConfig>,
+		options?: CallOptions & CallOptionsExt,
+	): Promise<AdminConfig>;
 }
 
 function bytesFromBase64(b64: string): Uint8Array {
-  if ((globalThis as any).Buffer) {
-    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
-  } else {
-    const bin = globalThis.atob(b64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; ++i) {
-      arr[i] = bin.charCodeAt(i);
-    }
-    return arr;
-  }
+	if ((globalThis as any).Buffer) {
+		return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+	} else {
+		const bin = globalThis.atob(b64);
+		const arr = new Uint8Array(bin.length);
+		for (let i = 0; i < bin.length; ++i) {
+			arr[i] = bin.charCodeAt(i);
+		}
+		return arr;
+	}
 }
 
 function base64FromBytes(arr: Uint8Array): string {
-  if ((globalThis as any).Buffer) {
-    return globalThis.Buffer.from(arr).toString("base64");
-  } else {
-    const bin: string[] = [];
-    arr.forEach((byte) => {
-      bin.push(globalThis.String.fromCharCode(byte));
-    });
-    return globalThis.btoa(bin.join(""));
-  }
+	if ((globalThis as any).Buffer) {
+		return globalThis.Buffer.from(arr).toString("base64");
+	} else {
+		const bin: string[] = [];
+		arr.forEach((byte) => {
+			bin.push(globalThis.String.fromCharCode(byte));
+		});
+		return globalThis.btoa(bin.join(""));
+	}
 }
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+	| Date
+	| Function
+	| Uint8Array
+	| string
+	| number
+	| boolean
+	| undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+	? T
+	: T extends globalThis.Array<infer U>
+		? globalThis.Array<DeepPartial<U>>
+		: T extends ReadonlyArray<infer U>
+			? ReadonlyArray<DeepPartial<U>>
+			: T extends {}
+				? { [K in keyof T]?: DeepPartial<T[K]> }
+				: Partial<T>;
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+	return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-  encode(message: T, writer?: BinaryWriter): BinaryWriter;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
-  fromJSON(object: any): T;
-  toJSON(message: T): unknown;
-  create(base?: DeepPartial<T>): T;
-  fromPartial(object: DeepPartial<T>): T;
+	encode(message: T, writer?: BinaryWriter): BinaryWriter;
+	decode(input: BinaryReader | Uint8Array, length?: number): T;
+	fromJSON(object: any): T;
+	toJSON(message: T): unknown;
+	create(base?: DeepPartial<T>): T;
+	fromPartial(object: DeepPartial<T>): T;
 }

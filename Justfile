@@ -38,7 +38,7 @@ codegen:
     cd web-client && npm run codegen
 
 # Run all linting and formatting checks
-lint: lint-backend lint-mm-to-json
+lint: lint-backend lint-mm-to-json lint-frontend format-frontend-check
 
 lint-backend:
     @echo "Linting backend..."
@@ -51,8 +51,20 @@ lint-mm-to-json:
     cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff format --check .
 
 lint-frontend:
-    @echo "Linting frontend (skipping as 'next lint' is unavailable in current version)..."
-    # cd web-client && npm run lint
+    @echo "Linting frontend..."
+    cd web-client && npm run lint
+
+lint-frontend-fix:
+    @echo "Applying fixes for frontend linting issues..."
+    cd web-client && npm run format && npm run lint:fix
+
+format-frontend:
+    @echo "Formatting frontend..."
+    cd web-client && npm run format
+
+format-frontend-check:
+    @echo "Checking frontend formatting..."
+    cd web-client && npm run format:check
 
 # Run all tests
 test: test-backend test-frontend
