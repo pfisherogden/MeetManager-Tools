@@ -2,7 +2,6 @@ import argparse
 import datetime
 import json
 import os
-import sys
 
 # from access_parser import AccessParser DEPRECATED
 try:
@@ -10,6 +9,7 @@ try:
 except ImportError:
     mdb_writer = None
 import pandas as pd
+
 from .report_generator import ReportGenerator
 
 
@@ -30,7 +30,9 @@ class MmToJsonConverter:
                 mdb_writer.ensure_jvm_started()
                 self.db = mdb_writer.open_db(mdb_path)
             else:
-                raise ImportError("mdb_writer (Jackcess) is required for opening MDB files directly.")
+                raise ImportError(
+                    "mdb_writer (Jackcess) is required for opening MDB files directly."
+                )
         elif table_data is not None:
             self.db = None
         else:
@@ -60,14 +62,14 @@ class MmToJsonConverter:
             "Team": ["Team", "TEAM"],
             "Divisions": ["Divisions", "DIVISIONS"],
         }
-        
+
         # Determine schema type
         self.schema_type = "A"
         for candidate in ["MTEVENT", "mtevent"]:
             if candidate in table_data:
                 self.schema_type = "B"
                 break
-        
+
         for logical, physical_candidates in self.table_aliases.items():
             found_data = None
             for candidate in physical_candidates:
@@ -81,7 +83,7 @@ class MmToJsonConverter:
                         break
                 if found_data:
                     break
-            
+
             if found_data is not None:
                 df = pd.DataFrame(found_data)
                 if not df.empty:
@@ -257,8 +259,17 @@ class MmToJsonConverter:
         """
         raw_data = {}
         # List of tables we care about for the API
-        target_tables = ["Meet", "Team", "Athlete", "Event", "Session", "Entry", "Relay", "Divisions"]
-        
+        target_tables = [
+            "Meet",
+            "Team",
+            "Athlete",
+            "Event",
+            "Session",
+            "Entry",
+            "Relay",
+            "Divisions",
+        ]
+
         for table_name in target_tables:
             df = self.tables.get(table_name)
             if df is not None and not df.empty:
@@ -268,18 +279,13 @@ class MmToJsonConverter:
                 raw_data[table_name] = records
             else:
                 raw_data[table_name] = []
-        
+
         return raw_data
 
     def create_default_session(self):
         """Creates a default session if none exist in the MDB."""
         return Session(
-            sess_id=1,
-            number=1,
-            name="Session 1",
-            day=1,
-            start_time="08:00",
-            is_default=True
+            sess_id=1, number=1, name="Session 1", day=1, start_time="08:00", is_default=True
         )
 
     # --- Data Retrieval Methods ---
@@ -677,7 +683,14 @@ class MmToJsonConverter:
                     relay_athletes = self.get_relay_athletes(
                         event.event_ptr, team_no, relay_ltr, event.round_ltr
                     )
-                    names_str = ", ".join([f"{a['first']} {a['last']}" for a in relay_athletes])
+
+                    # Format names: "F. Last"
+                    swimmers_list = []
+                    for a in relay_athletes:
+                        initial = a["first"][0] if a["first"] else ""
+                        swimmers_list.append(f"{initial}. {a['last']}")
+
+                    names_str = ", ".join(swimmers_list)
 
                     event.add_entry(
                         {
@@ -689,6 +702,7 @@ class MmToJsonConverter:
                             "psTime": entry_info["time"],
                             "isRelay": True,
                             "relayLtr": relay_ltr,
+                            "relaySwimmers": swimmers_list,
                         }
                     )
 
@@ -994,6 +1008,7 @@ def json_serial(obj):
         return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
 
+
 def main():
     parser = argparse.ArgumentParser(description="mm_to_json (Python)")
     parser.add_argument("mdb_file", help="Path to the .mdb file")
@@ -1039,12 +1054,14 @@ def main():
         if args.report:
             # Hierarchical data is needed for reports
             data = converter.convert()
-            rg = ReportGenerator(data, title=args.report_title or f"{args.report_type.capitalize()} Sheet")
-            
+            rg = ReportGenerator(
+                data, title=args.report_title or f"{args.report_type.capitalize()} Sheet"
+            )
+
             # Determine output filename
             base_name = os.path.splitext(os.path.basename(args.mdb_file))[0]
             out_path = os.path.join(args.output_dir, f"{base_name}_{args.report_type}.pdf")
-            
+
             if args.report_type == "psych":
                 rg.generate_psych_sheet(out_path)
             elif args.report_type == "entries":
@@ -1053,7 +1070,7 @@ def main():
                 rg.generate_lineup_sheets(out_path)
             elif args.report_type == "results":
                 rg.generate_meet_results(out_path)
-            
+
             print(f"Successfully generated report to {out_path}")
             return
 
