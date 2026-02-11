@@ -26,7 +26,7 @@ build-frontend:
 # Reinstall frontend dependencies
 reinstall-frontend:
     @echo "Reinstalling frontend dependencies (using local cache)..."
-    cd web-client && rm -rf node_modules package-lock.json && npm install --cache .npm-cache
+    cd web-client && rm -rf node_modules package-lock.json && npm install --verbose --cache .npm-cache
 
 # Build frontend with debug options and increased memory
 build-frontend-debug:
