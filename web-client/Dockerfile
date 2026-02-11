@@ -2,25 +2,22 @@ FROM node:20-alpine AS builder
 RUN apk add --no-cache libc6-compat protobuf
 WORKDIR /app
 
-# Install dependencies (single stage to avoid COPY --from hang)
+# Install dependencies (only web-client files)
+COPY web-client/package.json web-client/package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-# Install dependencies (single stage to avoid COPY --from hang)
-# Install dependencies
-COPY package.json package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else echo "Lockfile not found. Running npm install." && npm install; fi
+# Copy web-client source and shared protos
+COPY web-client/ .
+COPY protos/ /protos/
 
-# Copy source
-COPY . .
-# Protos are now in backend_protos_temp (copied by Justfile)
-
-# Generate TS Code
+# Generate TS Code from shared protos
 RUN mkdir -p lib/proto && \
   ./node_modules/.bin/grpc_tools_node_protoc \
   --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
   --ts_proto_out=./lib/proto \
   --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,esModuleInterop=true \
-  -I./backend_protos_temp \
-  ./backend_protos_temp/meet_manager.proto
+  -I/protos \
+  /protos/meet_manager.proto
 
 # Build
 ENV NEXT_TELEMETRY_DISABLED 1

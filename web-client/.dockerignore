@@ -1,15 +1,10 @@
-# Ignore everything by default
-node_modules
 node_modules/
-**/node_modules
-.next
 .next/
-**/.next
-.npm-cache
-.npm_cache
+.npm-cache/
+.npm_cache/
 .DS_Store
 **/.DS_Store
-.git
+.git/
 .npmrc
 *.mdb
 *.log
@@ -18,4 +13,7 @@ coverage/
 dist/
 build/
 backend_protos_temp/
-!backend_protos_temp
+!backend_protos_temp/
+large_test_2mb.mdb
+package-lock 2.json
+pnpm-lock.yaml

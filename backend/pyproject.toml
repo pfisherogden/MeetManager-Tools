@@ -1,3 +1,29 @@
+[project]
+name = "meetmanager-backend"
+version = "0.1.0"
+description = "Backend for MeetManager Tools"
+requires-python = ">=3.11"
+dependencies = [
+    "grpcio>=1.60.0",
+    "grpcio-tools>=1.60.0",
+    "pytest>=7.0.0",
+    "reportlab>=4.0.0",
+    "pandas>=2.0.0",
+    "protobuf>=4.25.0",
+    "ruff>=0.3.0",
+]
+
 [tool.ruff]
-extend-exclude = ["*_pb2.py", "*_pb2_grpc.py"]
 line-length = 120
+target-version = "py311"
+extend-exclude = ["*_pb2.py", "*_pb2_grpc.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "B", "C4", "UP"]
+ignore = [
+    "N802", # Function name should be lowercase (gRPC methods match proto)
+    "E501", # Line too long (acceptable in complex report generators)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]

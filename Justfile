@@ -1,14 +1,7 @@
 set shell := ["bash", "-c"]
 
 # Default recipe
-default: test
-
-# Ensure Colima is started
-colima-start:
-    @if ! colima status >/dev/null 2>&1; then \
-        echo "Colima is not running. Starting Colima..."; \
-        colima start; \
-    fi
+default: verify
 
 # Clean up temporary cache files
 clean:
@@ -16,50 +9,76 @@ clean:
     -rm -rf .tmp
     -rm -rf .npm_cache
     -rm -rf backend/src/__pycache__
+    -rm -rf web-client/.next
     -rm -f backend/data/uploaded.mdb
     @echo "Cleanup complete."
 
-# Download required Java libraries
-setup:
-    @echo "Downloading Java libraries..."
-    python3 backend/src/mm_to_json/download_libs.py
-
 # Build Docker containers
-build: colima-start clean setup
-    @echo "Preparing frontend build context..."
-    mkdir -p web-client/backend_protos_temp
-    cp -r backend/protos/* web-client/backend_protos_temp/
+build: clean
     @echo "Building containers..."
     docker-compose build
-    @echo "Cleaning up temp protos..."
-    rm -rf web-client/backend_protos_temp
 
 # Start services in the background
-up: colima-start
+up:
     @echo "Starting services..."
     docker-compose up -d --remove-orphans
     @echo "Waiting for services to initialize..."
     sleep 5
 
-# Regenerate gRPC protos inside the container
-codegen:
-    @echo "Regenerating Protos inside container..."
-    docker-compose run --rm backend python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src protos/meet_manager.proto
-
-# Run backend tests
-test: build codegen up
-    @echo "Running Backend Tests..."
-    docker-compose exec -T backend python -m pytest tests/
-
 # Stop services
 down:
     docker-compose down
+
+# Regenerate gRPC protos (local)
+codegen:
+    @echo "Regenerating Protos..."
+    # Backend
+    cd backend && uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src ../protos/meet_manager.proto
+    # Frontend
+    cd web-client && npm run codegen
+
+# Run all linting and formatting checks
+lint: lint-backend lint-mm-to-json
+
+lint-backend:
+    @echo "Linting backend..."
+    cd backend && uv run ruff check .
+    cd backend && uv run ruff format --check .
+
+lint-mm-to-json:
+    @echo "Linting mm_to_json..."
+    cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff check .
+    cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff format --check .
+
+lint-frontend:
+    @echo "Linting frontend (skipping as 'next lint' is unavailable in current version)..."
+    # cd web-client && npm run lint
+
+# Run all tests
+test: test-backend test-frontend
+
+test-backend:
+    @echo "Running Backend Tests..."
+    docker-compose exec -T backend python -m pytest tests/
+
+test-frontend:
+    @echo "Running Frontend Tests..."
+    cd web-client && npm test
+
+# Full verification pipeline
+verify: lint test
 
 # View logs
 logs service="":
     docker-compose logs -f {{service}}
 
-# Generate a verification report PDF and PNG (V5)
+# Open a shell in the backend container
+shell:
+    docker-compose exec backend bash
+
+# --- Reporting & Verification (Support for Report Code Agent) ---
+
+# Generate a verification report PDF and PNG
 report-verify:
     @echo "Generating verification report..."
     docker-compose run --rm backend python src/verify_report_generation.py
@@ -71,12 +90,3 @@ report-verify:
 test-entries:
     @echo "Running Relay/Entries Data Verification..."
     docker-compose run --rm backend python src/tests/test_meet_entries_data.py
-
-# Run full backend tests
-test-full:
-    @echo "Running Full Backend Tests..."
-    docker-compose run --rm backend pytest tests/
-
-# Open a shell in the backend container
-shell:
-    docker-compose exec backend bash

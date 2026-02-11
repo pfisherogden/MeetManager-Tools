@@ -1,24 +1,26 @@
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "50051:50051"
     volumes:
       - ./backend/data:/app/data
-      - ./backend/src:/app/src # Mount source code for live updates (requires restart if no auto-reload)
+      - ./backend/src:/app/src
       - ./backend/tests:/app/tests
-      - ./backend/protos:/app/protos
+      - ./protos:/app/protos
     environment:
       - PYTHONUNBUFFERED=1
 
   frontend:
     build:
-      context: ./web-client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: web-client/Dockerfile
     ports:
       - "3000:3000"
+    volumes:
+      - ./protos:/app/protos
     environment:
       - BACKEND_INTERNAL_HOST=backend:50051
     depends_on:

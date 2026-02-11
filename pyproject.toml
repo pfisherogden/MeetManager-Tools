@@ -1,0 +1,7 @@
+[project]
+name = "meetmanager-tools"
+version = "1.0.0"
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["backend", "mm_to_json/mm_to_json_py"]
