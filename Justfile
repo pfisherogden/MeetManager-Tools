@@ -106,7 +106,12 @@ test-backend:
     @echo "Running Backend Tests..."
     docker-compose exec -T backend python -m pytest tests/
 
-test-backend-local:
+# Setup Java dependencies (JARs and local JRE if needed)
+setup-java:
+    @echo "Setting up Java dependencies..."
+    cd backend && uv run python src/mm_to_json/download_libs.py
+
+test-backend-local: setup-java
     @echo "Running Backend Tests locally..."
     cd backend && uv run pytest tests/
 
