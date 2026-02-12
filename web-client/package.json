@@ -6,13 +6,13 @@
 		"build": "next build",
 		"dev": "next dev",
 		"lint": "biome check . --no-errors-on-unmatched",
-		"lint:fix": "biome check --apply --unsafe --max-diagnostics=0 .",
+		"lint:fix": "biome check --write --unsafe . --max-diagnostics=0",
 		"format": "biome format --write .",
 		"format:check": "biome format --check .",
 		"start": "next start",
 		"start:prod": "next build && next start",
 		"test": "vitest",
-		"codegen": "grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./lib/proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,esModuleInterop=true -I ../protos ../protos/meet_manager.proto"
+		"codegen": "grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./lib/proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,esModuleInterop=true,forceLong=string -I ../protos ../protos/meet_manager.proto"
 	},
 	"dependencies": {
 		"@grpc/grpc-js": "^1.14.3",
