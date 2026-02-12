@@ -13,6 +13,7 @@ jobs:
       github.event_name == 'push' ||
       contains(github.event.pull_request.changed_files, 'backend/') ||
       contains(github.event.pull_request.changed_files, 'mm_to_json/') ||
+      contains(github.event.pull_request.changed_files, 'protos/') ||
       contains(github.event.pull_request.changed_files, 'Justfile') ||
       contains(github.event.pull_request.changed_files, '.github/workflows/ci.yml')
     steps:
@@ -43,6 +44,14 @@ jobs:
           uv sync --all-packages --dev
           cd web-client && npm install
 
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lint Protos
+        run: just lint-protos
+
       - name: Generate Protos
         run: just codegen
 
@@ -50,6 +59,9 @@ jobs:
         run: |
           just lint-backend
           just lint-mm-to-json
+
+      - name: Type Check Backend
+        run: just type-check-backend
 
       - name: Test with Pytest
         run: uv run pytest backend/tests/
@@ -78,6 +90,9 @@ jobs:
 
       - name: Lint (Biome)
         run: npm run lint
+
+      - name: Build
+        run: npm run build
 
       - name: Test (Vitest)
         run: npm test

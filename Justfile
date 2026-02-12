@@ -53,7 +53,15 @@ codegen:
     cd web-client && npm run codegen
 
 # Run all linting and formatting checks
-lint: fix-backend fix-mm-to-json lint-frontend format-frontend
+lint: fix-backend fix-mm-to-json lint-frontend format-frontend type-check-backend lint-protos
+
+lint-protos:
+    @echo "Linting protos..."
+    buf lint protos
+
+type-check-backend:
+    @echo "Type checking backend..."
+    cd backend && uv run mypy .
 
 lint-backend:
     @echo "Linting backend..."
@@ -98,12 +106,20 @@ test-backend:
     @echo "Running Backend Tests..."
     docker-compose exec -T backend python -m pytest tests/
 
+test-backend-local:
+    @echo "Running Backend Tests locally..."
+    cd backend && uv run pytest tests/
+
 test-frontend:
     @echo "Running Frontend Tests..."
     cd web-client && npm test
 
+test-local: test-backend-local test-frontend
+
 # Full verification pipeline
 verify: lint test
+
+verify-local: lint test-local
 
 # Local CI simulation
 verify-ci:
