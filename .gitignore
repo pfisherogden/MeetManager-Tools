@@ -1,5 +1,4 @@
 .DS_Store
-.gemini/
 *.pyc
 __pycache__/
 .venv/
@@ -55,3 +54,8 @@ backend/data/reference.txt
 tmp/verification_entries_v*.png
 tmp/verification_entries_v*.pdf
 backend/src/test_touch
+
+# ALLOW the agent to read/write its own skills and instructions
+.gemini/*
+!.gemini/skills/
+!.gemini/agents/

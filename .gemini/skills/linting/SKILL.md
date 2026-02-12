@@ -10,6 +10,7 @@ description: Enforcement of code style and quality checks.
 - **Tool**: Ruff (Linter & Formatter)
 - **Rules**: Defined in `backend/pyproject.toml`.
 - **Command**: `just lint-backend` (runs `uv run ruff check .` and `uv run ruff format --check .`).
+- **CI Verification**: Ensure `ruff` is explicitly installed in the CI environment to avoid execution failures.
 
 ## Frontend (Typescript)
 - **Tool**: Biome (Linter & Formatter)
@@ -29,3 +30,4 @@ description: Enforcement of code style and quality checks.
 
 ## Global
 - **Command**: `just lint` should run all linting tasks across the project.
+- **CI/CD Integration**: All linting commands must be integrated into the CI pipeline with verified tool installation steps.
