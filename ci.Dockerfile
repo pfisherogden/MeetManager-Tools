@@ -29,5 +29,5 @@ COPY . .
 RUN uv sync --all-packages --dev
 RUN cd web-client && npm install
 
-# The rest will be handled by running 'just verify'
-CMD ["just", "verify"]
+# The rest will be handled by running 'just verify-local'
+CMD ["just", "verify-local"]
