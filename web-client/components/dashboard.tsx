@@ -2,7 +2,7 @@
 import { Timer, Trophy, User, Users, Waves } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import type { DashboardStats } from "@/lib/proto/meet_manager";
+import type { DashboardStats } from "@/lib/proto/meetmanager/v1/meet_manager";
 
 interface DashboardProps {
 	stats: DashboardStats;

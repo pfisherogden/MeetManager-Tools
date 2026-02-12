@@ -1,7 +1,7 @@
 import { getDashboardStats } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Dashboard } from "@/components/dashboard";
-import type { DashboardStats } from "@/lib/proto/meet_manager";
+import type { DashboardStats } from "@/lib/proto/meetmanager/v1/meet_manager";
 
 export const dynamic = "force-dynamic";
 

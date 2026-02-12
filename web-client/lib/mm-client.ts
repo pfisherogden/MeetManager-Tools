@@ -6,7 +6,7 @@ import {
 import {
 	type MeetManagerServiceClient,
 	MeetManagerServiceDefinition,
-} from "./proto/meet_manager";
+} from "./proto/meetmanager/v1/meet_manager";
 
 // Determine host:
 // - Server Side (Docker): use 'backend:50051' (or env var)

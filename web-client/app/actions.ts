@@ -2,11 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import client from "@/lib/mm-client";
-import { Empty } from "@/lib/proto/meet_manager";
 
 export async function listDatasets() {
 	try {
-		const response = await client.listDatasets(Empty.fromPartial({}));
+		const response = await client.listDatasets({});
 		console.log("SERVER ACTION SUCCESS (listDatasets):", response);
 		return response;
 	} catch (err: unknown) {
@@ -33,7 +32,7 @@ export async function setActiveDataset(filename: string) {
 
 export async function clearDataset(filename: string) {
 	try {
-		await (client as any).clearDataset({ filename });
+		await client.clearDataset({ filename });
 		revalidatePath("/", "layout");
 		return true;
 	} catch (err: unknown) {
@@ -46,7 +45,7 @@ export async function clearDataset(filename: string) {
 
 export async function clearAllDatasets() {
 	try {
-		await (client as any).clearAllDatasets(Empty.fromPartial({}));
+		await client.clearAllDatasets({});
 		revalidatePath("/", "layout");
 		return true;
 	} catch (err: unknown) {
@@ -98,7 +97,7 @@ export async function uploadDataset(formData: FormData) {
 
 export async function getSessions() {
 	try {
-		return await client.getSessions(Empty.fromPartial({}));
+		return await client.getSessions({});
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getSessions):", err);
 		if (err instanceof Error) {
@@ -110,7 +109,7 @@ export async function getSessions() {
 
 export async function getAdminConfig() {
 	try {
-		return await client.getAdminConfig(Empty.fromPartial({}));
+		return await client.getAdminConfig({});
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getAdminConfig):", err);
 		// Return empty default if fails, to avoid breaking UI?
@@ -139,7 +138,7 @@ export async function updateAdminConfig(
 
 export async function getEntries() {
 	try {
-		return await client.getEntries(Empty.fromPartial({}));
+		return await client.getEntries({});
 	} catch (_err) {
 		return { entries: [] };
 	}
@@ -147,7 +146,7 @@ export async function getEntries() {
 
 export async function getRelays() {
 	try {
-		return await client.getRelays(Empty.fromPartial({}));
+		return await client.getRelays({});
 	} catch (_err) {
 		return { relays: [] };
 	}
@@ -155,7 +154,7 @@ export async function getRelays() {
 
 export async function getScores() {
 	try {
-		return await client.getScores(Empty.fromPartial({}));
+		return await client.getScores({});
 	} catch (_err) {
 		return { scores: [] };
 	}
@@ -163,7 +162,7 @@ export async function getScores() {
 
 export async function getEventScores() {
 	try {
-		return await (client as any).getEventScores(Empty.fromPartial({}));
+		return await client.getEventScores({});
 	} catch (_err) {
 		return { eventScores: [] };
 	}
@@ -171,7 +170,7 @@ export async function getEventScores() {
 
 export async function getTeams() {
 	try {
-		return await client.getTeams(Empty.fromPartial({}));
+		return await client.getTeams({});
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getTeams):", err);
 		if (err instanceof Error) {
@@ -183,7 +182,7 @@ export async function getTeams() {
 
 export async function getAthletes() {
 	try {
-		return await client.getAthletes(Empty.fromPartial({}));
+		return await client.getAthletes({});
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getAthletes):", err);
 		if (err instanceof Error) {
@@ -195,7 +194,7 @@ export async function getAthletes() {
 
 export async function getEvents() {
 	try {
-		return await client.getEvents(Empty.fromPartial({}));
+		return await client.getEvents({});
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getEvents):", err);
 		if (err instanceof Error) {
@@ -207,7 +206,7 @@ export async function getEvents() {
 
 export async function getMeets() {
 	try {
-		return await client.getMeets(Empty.fromPartial({}));
+		return await client.getMeets({});
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getMeets):", err);
 		if (err instanceof Error) {
@@ -219,7 +218,7 @@ export async function getMeets() {
 
 export async function getDashboardStats() {
 	try {
-		const response = await client.getDashboardStats(Empty.fromPartial({}));
+		const response = await client.getDashboardStats({});
 		return response;
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getDashboardStats):", err);
@@ -267,7 +266,7 @@ export async function generateReport(
 		console.log(
 			`Generating report: type=${type}, title=${title}, teamFilter=${teamFilter}`,
 		);
-		const response = await (client as any).generateReport({
+		const response = await client.generateReport({
 			type,
 			title,
 			teamFilter,
