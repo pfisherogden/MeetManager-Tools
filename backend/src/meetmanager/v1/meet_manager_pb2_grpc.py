@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import meet_manager_pb2 as meet__manager__pb2
+from meetmanager.v1 import meet_manager_pb2 as meetmanager_dot_v1_dot_meet__manager__pb2
 
 GRPC_GENERATED_VERSION = '1.78.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in meet_manager_pb2_grpc.py depends on'
+        + ' but the generated code in meetmanager/v1/meet_manager_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -35,104 +35,104 @@ class MeetManagerServiceStub(object):
             channel: A grpc.Channel.
         """
         self.GetMeets = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetMeets',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.MeetList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetMeets',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetMeetsRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetMeetsResponse.FromString,
                 _registered_method=True)
         self.GetDashboardStats = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetDashboardStats',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.DashboardStats.FromString,
+                '/meetmanager.v1.MeetManagerService/GetDashboardStats',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetDashboardStatsRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetDashboardStatsResponse.FromString,
                 _registered_method=True)
         self.GetTeams = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetTeams',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.TeamList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetTeams',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamsRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamsResponse.FromString,
                 _registered_method=True)
         self.GetTeam = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetTeam',
-                request_serializer=meet__manager__pb2.TeamRequest.SerializeToString,
-                response_deserializer=meet__manager__pb2.Team.FromString,
+                '/meetmanager.v1.MeetManagerService/GetTeam',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamResponse.FromString,
                 _registered_method=True)
         self.GetAthletes = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetAthletes',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.AthleteList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetAthletes',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAthletesRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAthletesResponse.FromString,
                 _registered_method=True)
         self.GetAthlete = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetAthlete',
-                request_serializer=meet__manager__pb2.AthleteRequest.SerializeToString,
-                response_deserializer=meet__manager__pb2.Athlete.FromString,
+                '/meetmanager.v1.MeetManagerService/GetAthlete',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAthleteRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAthleteResponse.FromString,
                 _registered_method=True)
         self.GetEvents = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetEvents',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.EventList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetEvents',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEventsRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEventsResponse.FromString,
                 _registered_method=True)
         self.ListDatasets = channel.unary_unary(
-                '/meetmanager.MeetManagerService/ListDatasets',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.DatasetList.FromString,
+                '/meetmanager.v1.MeetManagerService/ListDatasets',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.ListDatasetsRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.ListDatasetsResponse.FromString,
                 _registered_method=True)
         self.SetActiveDataset = channel.unary_unary(
-                '/meetmanager.MeetManagerService/SetActiveDataset',
-                request_serializer=meet__manager__pb2.DatasetRequest.SerializeToString,
-                response_deserializer=meet__manager__pb2.Empty.FromString,
+                '/meetmanager.v1.MeetManagerService/SetActiveDataset',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.SetActiveDatasetRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.SetActiveDatasetResponse.FromString,
                 _registered_method=True)
         self.UploadDataset = channel.stream_unary(
-                '/meetmanager.MeetManagerService/UploadDataset',
-                request_serializer=meet__manager__pb2.UploadRequest.SerializeToString,
-                response_deserializer=meet__manager__pb2.UploadResponse.FromString,
+                '/meetmanager.v1.MeetManagerService/UploadDataset',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.UploadDatasetRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.UploadDatasetResponse.FromString,
                 _registered_method=True)
         self.ClearDataset = channel.unary_unary(
-                '/meetmanager.MeetManagerService/ClearDataset',
-                request_serializer=meet__manager__pb2.DatasetRequest.SerializeToString,
-                response_deserializer=meet__manager__pb2.Empty.FromString,
+                '/meetmanager.v1.MeetManagerService/ClearDataset',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.ClearDatasetRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.ClearDatasetResponse.FromString,
                 _registered_method=True)
         self.ClearAllDatasets = channel.unary_unary(
-                '/meetmanager.MeetManagerService/ClearAllDatasets',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.Empty.FromString,
+                '/meetmanager.v1.MeetManagerService/ClearAllDatasets',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.ClearAllDatasetsRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.ClearAllDatasetsResponse.FromString,
                 _registered_method=True)
         self.GetRelays = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetRelays',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.RelayList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetRelays',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetRelaysRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetRelaysResponse.FromString,
                 _registered_method=True)
         self.GetScores = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetScores',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.ScoreList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetScores',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetScoresRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetScoresResponse.FromString,
                 _registered_method=True)
         self.GetEntries = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetEntries',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.EntryList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetEntries',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEntriesRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEntriesResponse.FromString,
                 _registered_method=True)
         self.GetSessions = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetSessions',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.SessionList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetSessions',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetSessionsRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetSessionsResponse.FromString,
                 _registered_method=True)
         self.GetAdminConfig = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetAdminConfig',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.AdminConfig.FromString,
+                '/meetmanager.v1.MeetManagerService/GetAdminConfig',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAdminConfigRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAdminConfigResponse.FromString,
                 _registered_method=True)
         self.UpdateAdminConfig = channel.unary_unary(
-                '/meetmanager.MeetManagerService/UpdateAdminConfig',
-                request_serializer=meet__manager__pb2.AdminConfig.SerializeToString,
-                response_deserializer=meet__manager__pb2.AdminConfig.FromString,
+                '/meetmanager.v1.MeetManagerService/UpdateAdminConfig',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.UpdateAdminConfigRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.UpdateAdminConfigResponse.FromString,
                 _registered_method=True)
         self.GetEventScores = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GetEventScores',
-                request_serializer=meet__manager__pb2.Empty.SerializeToString,
-                response_deserializer=meet__manager__pb2.EventScoreList.FromString,
+                '/meetmanager.v1.MeetManagerService/GetEventScores',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEventScoresRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEventScoresResponse.FromString,
                 _registered_method=True)
         self.GenerateReport = channel.unary_unary(
-                '/meetmanager.MeetManagerService/GenerateReport',
-                request_serializer=meet__manager__pb2.GenerateReportRequest.SerializeToString,
-                response_deserializer=meet__manager__pb2.ReportResponse.FromString,
+                '/meetmanager.v1.MeetManagerService/GenerateReport',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportResponse.FromString,
                 _registered_method=True)
 
 
@@ -272,109 +272,109 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GetMeets': grpc.unary_unary_rpc_method_handler(
                     servicer.GetMeets,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.MeetList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetMeetsRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetMeetsResponse.SerializeToString,
             ),
             'GetDashboardStats': grpc.unary_unary_rpc_method_handler(
                     servicer.GetDashboardStats,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.DashboardStats.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetDashboardStatsRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetDashboardStatsResponse.SerializeToString,
             ),
             'GetTeams': grpc.unary_unary_rpc_method_handler(
                     servicer.GetTeams,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.TeamList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamsRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamsResponse.SerializeToString,
             ),
             'GetTeam': grpc.unary_unary_rpc_method_handler(
                     servicer.GetTeam,
-                    request_deserializer=meet__manager__pb2.TeamRequest.FromString,
-                    response_serializer=meet__manager__pb2.Team.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamResponse.SerializeToString,
             ),
             'GetAthletes': grpc.unary_unary_rpc_method_handler(
                     servicer.GetAthletes,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.AthleteList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAthletesRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAthletesResponse.SerializeToString,
             ),
             'GetAthlete': grpc.unary_unary_rpc_method_handler(
                     servicer.GetAthlete,
-                    request_deserializer=meet__manager__pb2.AthleteRequest.FromString,
-                    response_serializer=meet__manager__pb2.Athlete.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAthleteRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAthleteResponse.SerializeToString,
             ),
             'GetEvents': grpc.unary_unary_rpc_method_handler(
                     servicer.GetEvents,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.EventList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEventsRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEventsResponse.SerializeToString,
             ),
             'ListDatasets': grpc.unary_unary_rpc_method_handler(
                     servicer.ListDatasets,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.DatasetList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.ListDatasetsRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.ListDatasetsResponse.SerializeToString,
             ),
             'SetActiveDataset': grpc.unary_unary_rpc_method_handler(
                     servicer.SetActiveDataset,
-                    request_deserializer=meet__manager__pb2.DatasetRequest.FromString,
-                    response_serializer=meet__manager__pb2.Empty.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.SetActiveDatasetRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.SetActiveDatasetResponse.SerializeToString,
             ),
             'UploadDataset': grpc.stream_unary_rpc_method_handler(
                     servicer.UploadDataset,
-                    request_deserializer=meet__manager__pb2.UploadRequest.FromString,
-                    response_serializer=meet__manager__pb2.UploadResponse.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.UploadDatasetRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.UploadDatasetResponse.SerializeToString,
             ),
             'ClearDataset': grpc.unary_unary_rpc_method_handler(
                     servicer.ClearDataset,
-                    request_deserializer=meet__manager__pb2.DatasetRequest.FromString,
-                    response_serializer=meet__manager__pb2.Empty.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.ClearDatasetRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.ClearDatasetResponse.SerializeToString,
             ),
             'ClearAllDatasets': grpc.unary_unary_rpc_method_handler(
                     servicer.ClearAllDatasets,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.Empty.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.ClearAllDatasetsRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.ClearAllDatasetsResponse.SerializeToString,
             ),
             'GetRelays': grpc.unary_unary_rpc_method_handler(
                     servicer.GetRelays,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.RelayList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetRelaysRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetRelaysResponse.SerializeToString,
             ),
             'GetScores': grpc.unary_unary_rpc_method_handler(
                     servicer.GetScores,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.ScoreList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetScoresRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetScoresResponse.SerializeToString,
             ),
             'GetEntries': grpc.unary_unary_rpc_method_handler(
                     servicer.GetEntries,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.EntryList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEntriesRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEntriesResponse.SerializeToString,
             ),
             'GetSessions': grpc.unary_unary_rpc_method_handler(
                     servicer.GetSessions,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.SessionList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetSessionsRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetSessionsResponse.SerializeToString,
             ),
             'GetAdminConfig': grpc.unary_unary_rpc_method_handler(
                     servicer.GetAdminConfig,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.AdminConfig.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAdminConfigRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetAdminConfigResponse.SerializeToString,
             ),
             'UpdateAdminConfig': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateAdminConfig,
-                    request_deserializer=meet__manager__pb2.AdminConfig.FromString,
-                    response_serializer=meet__manager__pb2.AdminConfig.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.UpdateAdminConfigRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.UpdateAdminConfigResponse.SerializeToString,
             ),
             'GetEventScores': grpc.unary_unary_rpc_method_handler(
                     servicer.GetEventScores,
-                    request_deserializer=meet__manager__pb2.Empty.FromString,
-                    response_serializer=meet__manager__pb2.EventScoreList.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEventScoresRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetEventScoresResponse.SerializeToString,
             ),
             'GenerateReport': grpc.unary_unary_rpc_method_handler(
                     servicer.GenerateReport,
-                    request_deserializer=meet__manager__pb2.GenerateReportRequest.FromString,
-                    response_serializer=meet__manager__pb2.ReportResponse.SerializeToString,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'meetmanager.MeetManagerService', rpc_method_handlers)
+            'meetmanager.v1.MeetManagerService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('meetmanager.MeetManagerService', rpc_method_handlers)
+    server.add_registered_method_handlers('meetmanager.v1.MeetManagerService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -395,9 +395,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetMeets',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.MeetList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetMeets',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetMeetsRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetMeetsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -422,9 +422,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetDashboardStats',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.DashboardStats.FromString,
+            '/meetmanager.v1.MeetManagerService/GetDashboardStats',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetDashboardStatsRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetDashboardStatsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -449,9 +449,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetTeams',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.TeamList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetTeams',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamsRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -476,9 +476,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetTeam',
-            meet__manager__pb2.TeamRequest.SerializeToString,
-            meet__manager__pb2.Team.FromString,
+            '/meetmanager.v1.MeetManagerService/GetTeam',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetTeamResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -503,9 +503,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetAthletes',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.AthleteList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetAthletes',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetAthletesRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetAthletesResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -530,9 +530,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetAthlete',
-            meet__manager__pb2.AthleteRequest.SerializeToString,
-            meet__manager__pb2.Athlete.FromString,
+            '/meetmanager.v1.MeetManagerService/GetAthlete',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetAthleteRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetAthleteResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -557,9 +557,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetEvents',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.EventList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetEvents',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetEventsRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetEventsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -584,9 +584,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/ListDatasets',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.DatasetList.FromString,
+            '/meetmanager.v1.MeetManagerService/ListDatasets',
+            meetmanager_dot_v1_dot_meet__manager__pb2.ListDatasetsRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.ListDatasetsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -611,9 +611,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/SetActiveDataset',
-            meet__manager__pb2.DatasetRequest.SerializeToString,
-            meet__manager__pb2.Empty.FromString,
+            '/meetmanager.v1.MeetManagerService/SetActiveDataset',
+            meetmanager_dot_v1_dot_meet__manager__pb2.SetActiveDatasetRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.SetActiveDatasetResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -638,9 +638,9 @@ class MeetManagerService(object):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/meetmanager.MeetManagerService/UploadDataset',
-            meet__manager__pb2.UploadRequest.SerializeToString,
-            meet__manager__pb2.UploadResponse.FromString,
+            '/meetmanager.v1.MeetManagerService/UploadDataset',
+            meetmanager_dot_v1_dot_meet__manager__pb2.UploadDatasetRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.UploadDatasetResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -665,9 +665,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/ClearDataset',
-            meet__manager__pb2.DatasetRequest.SerializeToString,
-            meet__manager__pb2.Empty.FromString,
+            '/meetmanager.v1.MeetManagerService/ClearDataset',
+            meetmanager_dot_v1_dot_meet__manager__pb2.ClearDatasetRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.ClearDatasetResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -692,9 +692,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/ClearAllDatasets',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.Empty.FromString,
+            '/meetmanager.v1.MeetManagerService/ClearAllDatasets',
+            meetmanager_dot_v1_dot_meet__manager__pb2.ClearAllDatasetsRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.ClearAllDatasetsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -719,9 +719,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetRelays',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.RelayList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetRelays',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetRelaysRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetRelaysResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -746,9 +746,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetScores',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.ScoreList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetScores',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetScoresRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetScoresResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -773,9 +773,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetEntries',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.EntryList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetEntries',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetEntriesRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetEntriesResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -800,9 +800,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetSessions',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.SessionList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetSessions',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetSessionsRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetSessionsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -827,9 +827,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetAdminConfig',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.AdminConfig.FromString,
+            '/meetmanager.v1.MeetManagerService/GetAdminConfig',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetAdminConfigRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetAdminConfigResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -854,9 +854,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/UpdateAdminConfig',
-            meet__manager__pb2.AdminConfig.SerializeToString,
-            meet__manager__pb2.AdminConfig.FromString,
+            '/meetmanager.v1.MeetManagerService/UpdateAdminConfig',
+            meetmanager_dot_v1_dot_meet__manager__pb2.UpdateAdminConfigRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.UpdateAdminConfigResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -881,9 +881,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GetEventScores',
-            meet__manager__pb2.Empty.SerializeToString,
-            meet__manager__pb2.EventScoreList.FromString,
+            '/meetmanager.v1.MeetManagerService/GetEventScores',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetEventScoresRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetEventScoresResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -908,9 +908,9 @@ class MeetManagerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/meetmanager.MeetManagerService/GenerateReport',
-            meet__manager__pb2.GenerateReportRequest.SerializeToString,
-            meet__manager__pb2.ReportResponse.FromString,
+            '/meetmanager.v1.MeetManagerService/GenerateReport',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportResponse.FromString,
             options,
             channel_credentials,
             insecure,

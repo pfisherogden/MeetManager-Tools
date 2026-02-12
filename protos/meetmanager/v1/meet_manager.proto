@@ -1,0 +1,292 @@
+syntax = "proto3";
+
+package meetmanager.v1;
+
+service MeetManagerService {
+  // Meet Operations
+  rpc GetMeets(GetMeetsRequest) returns (GetMeetsResponse);
+  rpc GetDashboardStats(GetDashboardStatsRequest) returns (GetDashboardStatsResponse);
+
+  // Team Operations
+  rpc GetTeams(GetTeamsRequest) returns (GetTeamsResponse);
+  rpc GetTeam(GetTeamRequest) returns (GetTeamResponse);
+
+  // Athlete Operations
+  rpc GetAthletes(GetAthletesRequest) returns (GetAthletesResponse);
+  rpc GetAthlete(GetAthleteRequest) returns (GetAthleteResponse);
+
+  // Event Operations
+  rpc GetEvents(GetEventsRequest) returns (GetEventsResponse);
+
+  // Admin Operations
+  rpc ListDatasets(ListDatasetsRequest) returns (ListDatasetsResponse);
+  rpc SetActiveDataset(SetActiveDatasetRequest) returns (SetActiveDatasetResponse);
+  rpc UploadDataset(stream UploadDatasetRequest) returns (UploadDatasetResponse);
+  rpc ClearDataset(ClearDatasetRequest) returns (ClearDatasetResponse);
+  rpc ClearAllDatasets(ClearAllDatasetsRequest) returns (ClearAllDatasetsResponse);
+
+  // New Data Operations
+  rpc GetRelays(GetRelaysRequest) returns (GetRelaysResponse);
+  rpc GetScores(GetScoresRequest) returns (GetScoresResponse);
+  rpc GetEntries(GetEntriesRequest) returns (GetEntriesResponse);
+
+  // Session Operations
+  rpc GetSessions(GetSessionsRequest) returns (GetSessionsResponse);
+
+  // Configuration
+  rpc GetAdminConfig(GetAdminConfigRequest) returns (GetAdminConfigResponse);
+  rpc UpdateAdminConfig(UpdateAdminConfigRequest) returns (UpdateAdminConfigResponse);
+  rpc GetEventScores(GetEventScoresRequest) returns (GetEventScoresResponse);
+  rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
+}
+
+message GetMeetsRequest {}
+message GetMeetsResponse {
+  repeated Meet meets = 1;
+}
+
+message GetDashboardStatsRequest {}
+message GetDashboardStatsResponse {
+  int32 meet_count = 1;
+  int32 team_count = 2;
+  int32 athlete_count = 3;
+  int32 event_count = 4;
+}
+
+message GetTeamsRequest {}
+message GetTeamsResponse {
+  repeated Team teams = 1;
+}
+
+message GetTeamRequest {
+  int32 id = 1;
+}
+message GetTeamResponse {
+  Team team = 1;
+}
+
+message GetAthletesRequest {
+  optional string team_id = 1;
+}
+message GetAthletesResponse {
+  repeated Athlete athletes = 1;
+}
+
+message GetAthleteRequest {
+  int32 id = 1;
+}
+message GetAthleteResponse {
+  Athlete athlete = 1;
+}
+
+message GetEventsRequest {}
+message GetEventsResponse {
+  repeated Event events = 1;
+}
+
+message ListDatasetsRequest {}
+message ListDatasetsResponse {
+  repeated Dataset datasets = 1;
+}
+
+message SetActiveDatasetRequest {
+  string filename = 1;
+}
+message SetActiveDatasetResponse {}
+
+message UploadDatasetRequest {
+  oneof data {
+    string filename = 1;
+    bytes chunk = 2;
+  }
+}
+message UploadDatasetResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ClearDatasetRequest {
+  string filename = 1;
+}
+message ClearDatasetResponse {}
+
+message ClearAllDatasetsRequest {}
+message ClearAllDatasetsResponse {}
+
+message GetRelaysRequest {}
+message GetRelaysResponse {
+  repeated Relay relays = 1;
+}
+
+message GetScoresRequest {}
+message GetScoresResponse {
+  repeated Score scores = 1;
+}
+
+message GetEntriesRequest {
+  optional string athlete_id = 1;
+  optional string event_id = 2;
+}
+message GetEntriesResponse {
+  repeated Entry entries = 1;
+}
+
+message GetSessionsRequest {}
+message GetSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message GetAdminConfigRequest {}
+message GetAdminConfigResponse {
+  string meet_name = 1;
+  string meet_description = 2;
+}
+
+message UpdateAdminConfigRequest {
+  string meet_name = 1;
+  string meet_description = 2;
+}
+message UpdateAdminConfigResponse {
+  string meet_name = 1;
+  string meet_description = 2;
+}
+
+message GetEventScoresRequest {}
+message GetEventScoresResponse {
+  repeated EventScore event_scores = 1;
+}
+
+message Dataset {
+  string filename = 1;
+  bool is_active = 2;
+  string last_modified = 3;
+}
+
+// Data Entities
+
+message Relay {
+  int32 id = 1;
+  int32 event_id = 2;
+  int32 team_id = 3;
+  string team_name = 4;
+  string leg1_name = 5;
+  string leg2_name = 6;
+  string leg3_name = 7;
+  string leg4_name = 8;
+  string seed_time = 9;
+  string final_time = 10;
+  int32 place = 11;
+  string event_name = 12;
+  string relay_letter = 13;
+  int32 heat = 14;
+  int32 lane = 15;
+}
+
+message Score {
+  int32 team_id = 1;
+  string team_name = 2;
+  float individual_points = 3;
+  float relay_points = 4;
+  float total_points = 5;
+  int32 rank = 6;
+  string meet_name = 7;
+}
+
+message EventScore {
+  int32 event_id = 1;
+  string event_name = 2;
+  repeated Entry entries = 3;
+}
+
+message Entry {
+  int32 id = 1;
+  int32 event_id = 2;
+  int32 athlete_id = 3;
+  string athlete_name = 4;
+  int32 team_id = 5;
+  string team_name = 6;
+  string seed_time = 7;
+  string final_time = 8;
+  int32 place = 9;
+  string event_name = 10;
+  int32 heat = 11;
+  int32 lane = 12;
+  float points = 14;
+}
+
+message Session {
+  string id = 1;
+  string meet_id = 2;
+  string name = 3;
+  string date = 4;
+  string warm_up_time = 5;
+  string start_time = 6;
+  int32 event_count = 7;
+  int32 session_num = 8;
+  int32 day = 9;
+}
+
+message Meet {
+  string id = 1;
+  string name = 2;
+  string location = 3;
+  string start_date = 4;
+  string end_date = 5;
+  string status = 6;
+}
+
+message Team {
+  int32 id = 1;
+  string name = 2;
+  string code = 3;
+  string lsc = 4;
+  string city = 5;
+  string state = 6;
+  int32 athlete_count = 7;
+}
+
+message Athlete {
+  int32 id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string gender = 4;
+  int32 age = 5;
+  int32 team_id = 6;
+  string team_name = 7;
+  string school_year = 8;
+  string reg_no = 9;
+  string date_of_birth = 10;
+}
+
+message Event {
+  int32 id = 1;
+  string gender = 2;
+  int32 distance = 3;
+  string stroke = 4;
+  int32 low_age = 5;
+  int32 high_age = 6;
+  int32 session = 7;
+  string status = 8;
+  int32 entry_count = 9;
+}
+
+enum ReportType {
+  REPORT_TYPE_PSYCH_UNSPECIFIED = 0;
+  REPORT_TYPE_ENTRIES = 1;
+  REPORT_TYPE_LINEUPS = 2;
+  REPORT_TYPE_RESULTS = 3;
+  REPORT_TYPE_MEET_PROGRAM = 4;
+}
+
+message GenerateReportRequest {
+  ReportType type = 1;
+  string title = 2;
+  string team_filter = 3;
+}
+
+message GenerateReportResponse {
+  bool success = 1;
+  string message = 2;
+  bytes pdf_content = 3;
+  string filename = 4;
+}
