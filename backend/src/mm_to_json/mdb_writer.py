@@ -22,14 +22,36 @@ def ensure_jvm_started():
 
     logger.debug("Starting JVM...")
 
+    # Discover JVM path
+    jvm_path = None
+    try:
+        jvm_path = jpype.getDefaultJVMPath()
+    except Exception:
+        # Try local JRE
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        local_jre = os.path.join(base_dir, "jre")
+        if os.path.exists(local_jre):
+            # macOS Corretto location: jre/Contents/Home/lib/server/libjvm.dylib
+            # Linux Corretto location: jre/lib/server/libjvm.so
+            import platform
+            if platform.system() == "Darwin":
+                potential = os.path.join(local_jre, "Contents", "Home", "lib", "server", "libjvm.dylib")
+            else:
+                potential = os.path.join(local_jre, "lib", "server", "libjvm.so")
+            
+            if os.path.exists(potential):
+                jvm_path = potential
+                logger.debug(f"Using local JRE at {jvm_path}")
+
+    if not jvm_path:
+        raise RuntimeError("Java Runtime (JRE) not found. Please install Java or run download_libs.py.")
+
     jars = get_classpath()
     if not jars:
         raise RuntimeError("No libraries found in lib/. Cannot start JVM for Jackcess.")
 
     classpath = os.pathsep.join(jars)
     logger.debug(f"Classpath: {classpath}")
-    
-    jvm_path = jpype.getDefaultJVMPath()
     logger.debug(f"JVM Path: {jvm_path}")
 
     # -Djava.class.path must be set at startup
