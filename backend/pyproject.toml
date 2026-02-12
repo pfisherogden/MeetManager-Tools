@@ -11,6 +11,9 @@ dependencies = [
     "pandas>=2.0.0",
     "protobuf>=4.25.0",
     "ruff>=0.3.0",
+    "faker>=20.0.0",
+    "pdfplumber>=0.10.0",
+    "JPype1>=1.5.0",
 ]
 
 [tool.ruff]

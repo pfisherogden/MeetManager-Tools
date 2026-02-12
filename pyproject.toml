@@ -2,6 +2,14 @@
 name = "meetmanager-tools"
 version = "1.0.0"
 requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0.0",
+    "faker>=20.0.0",
+    "pdfplumber>=0.10.0",
+    "JPype1>=1.5.0",
+    "reportlab>=4.0.0",
+    "pytest>=7.0.0",
+]
 
 [tool.uv.workspace]
 members = ["backend", "mm_to_json/mm_to_json_py"]
