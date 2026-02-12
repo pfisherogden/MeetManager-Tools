@@ -29,15 +29,18 @@ jobs:
           python-version-file: "pyproject.toml"
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev && uv pip install ruff
+        run: uv sync --all-packages --dev && uv pip install ruff
+
+      - name: Generate Protos
+        run: just codegen
 
       - name: Lint with Ruff
         run: |
-          uv run ruff check .
-          uv run ruff format --check .
+          just lint-backend
+          just lint-mm-to-json
 
       - name: Test with Pytest
-        run: uv run pytest
+        run: uv run pytest backend/tests/
 
   web-client:
     runs-on: ubuntu-latest
