@@ -45,7 +45,6 @@ export function DatasetManager() {
 	const fetchDatasets = useCallback(async () => {
 		try {
 			setLoading(true);
-			// biome-ignore lint/suspicious/noExplicitAny: library return type
 			const res: any = await listDatasets();
 			if (res?.datasets) {
 				setDatasets(res.datasets);

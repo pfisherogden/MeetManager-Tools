@@ -33,7 +33,6 @@ export async function setActiveDataset(filename: string) {
 
 export async function clearDataset(filename: string) {
 	try {
-		// biome-ignore lint/suspicious/noExplicitAny: Proto definition is stale locally
 		await (client as any).clearDataset({ filename });
 		revalidatePath("/", "layout");
 		return true;
@@ -47,7 +46,6 @@ export async function clearDataset(filename: string) {
 
 export async function clearAllDatasets() {
 	try {
-		// biome-ignore lint/suspicious/noExplicitAny: Proto definition is stale locally
 		await (client as any).clearAllDatasets(Empty.fromPartial({}));
 		revalidatePath("/", "layout");
 		return true;
@@ -165,7 +163,6 @@ export async function getScores() {
 
 export async function getEventScores() {
 	try {
-		// biome-ignore lint/suspicious/noExplicitAny: Proto definition is stale locally
 		return await (client as any).getEventScores(Empty.fromPartial({}));
 	} catch (_err) {
 		return { eventScores: [] };
@@ -270,7 +267,6 @@ export async function generateReport(
 		console.log(
 			`Generating report: type=${type}, title=${title}, teamFilter=${teamFilter}`,
 		);
-		// biome-ignore lint/suspicious/noExplicitAny: Proto definition is stale locally
 		const response = await (client as any).generateReport({
 			type,
 			title,

@@ -147,7 +147,6 @@ export function ScoresManager({
 		];
 	}, [data]);
 
-	// biome-ignore lint/suspicious/noExplicitAny: complex table type
 	const eventColumns = useMemo<Column<any>[]>(() => {
 		const uniqueEvents = Array.from(
 			new Set(eventRows.map((r) => r.eventName)),
