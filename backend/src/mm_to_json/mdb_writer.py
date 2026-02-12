@@ -34,11 +34,12 @@ def ensure_jvm_started():
             # macOS Corretto location: jre/Contents/Home/lib/server/libjvm.dylib
             # Linux Corretto location: jre/lib/server/libjvm.so
             import platform
+
             if platform.system() == "Darwin":
                 potential = os.path.join(local_jre, "Contents", "Home", "lib", "server", "libjvm.dylib")
             else:
                 potential = os.path.join(local_jre, "lib", "server", "libjvm.so")
-            
+
             if os.path.exists(potential):
                 jvm_path = potential
                 logger.debug(f"Using local JRE at {jvm_path}")

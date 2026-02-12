@@ -1,8 +1,8 @@
+import logging
 import os
 import platform
 import tarfile
 import urllib.request
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,7 @@ LIBS = {
 # JRE download constants
 ADOPTIUM_API = "https://api.adoptium.net/v3/binary/latest/21/ga/{os}/{arch}/jre/hotspot/normal/eclipse?project=jdk"
 
+
 def download_libs(target_dir):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
@@ -36,9 +37,11 @@ def download_libs(target_dir):
         except Exception as e:
             logger.error(f"Error downloading {filename}: {e}")
 
+
 def check_and_download_jre(base_dir):
     # Check if a JVM is already found by jpype
     import jpype
+
     try:
         # If this returns a path, jpype found a system-wide or environment Java
         if jpype.getDefaultJVMPath():
@@ -72,24 +75,26 @@ def check_and_download_jre(base_dir):
 
     url = ADOPTIUM_API.format(os=os_name, arch=arch_name)
     logger.info(f"Downloading portable JRE for {os_name}/{arch_name} from Adoptium...")
-    
+
     jre_archive = os.path.join(base_dir, "jre_temp.tar.gz")
     try:
         # Use a proper User-Agent to avoid some API blocks
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as response, open(jre_archive, 'wb') as out_file:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req) as response, open(jre_archive, "wb") as out_file:
             out_file.write(response.read())
 
         logger.info("Extracting JRE...")
         with tarfile.open(jre_archive, "r:gz") as tar:
             tar.extractall(path=base_dir)
-        
+
         # Temurin folders usually look like 'jdk-21.0.6+7-jre'
         # Let's find the new directory that isn't 'lib', 'jre', or other known ones
-        extracted_dirs = [d for d in os.listdir(base_dir) 
-                         if os.path.isdir(os.path.join(base_dir, d)) 
-                         and (d.startswith("jdk") or d.startswith("OpenJDK"))]
-        
+        extracted_dirs = [
+            d
+            for d in os.listdir(base_dir)
+            if os.path.isdir(os.path.join(base_dir, d)) and (d.startswith("jdk") or d.startswith("OpenJDK"))
+        ]
+
         if extracted_dirs:
             # Sort by modification time to find the newest one
             extracted_dirs.sort(key=lambda x: os.path.getmtime(os.path.join(base_dir, x)), reverse=True)
@@ -98,11 +103,12 @@ def check_and_download_jre(base_dir):
             logger.info(f"JRE installed successfully to {jre_dir}")
         else:
             logger.error("Failed to identify extracted JRE directory.")
-        
+
         if os.path.exists(jre_archive):
             os.remove(jre_archive)
     except Exception as e:
         logger.error(f"Error installing JRE: {e}")
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

@@ -6,7 +6,6 @@ import logging
 import os
 import subprocess
 import tempfile
-from typing import Any, Optional
 from concurrent import futures
 
 import grpc
@@ -148,9 +147,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             start = self._format_date(item.get("Start") or item.get("Start_date") or "")
             end = self._format_date(item.get("End") or item.get("End_date") or "")
 
-            meets.append(
-                pb2.Meet(id="1", name=name, location=loc, start_date=start, end_date=end, status="active")
-            )
+            meets.append(pb2.Meet(id="1", name=name, location=loc, start_date=start, end_date=end, status="active"))
         return pb2.GetMeetsResponse(meets=meets)
 
     def GetTeams(self, request, context):
@@ -309,9 +306,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
                     is_active = filename == self.current_file
 
-                    datasets.append(
-                        pb2.Dataset(filename=filename, is_active=is_active, last_modified=str(mod_time))
-                    )
+                    datasets.append(pb2.Dataset(filename=filename, is_active=is_active, last_modified=str(mod_time)))
         except Exception as e:
             print(f"Error listing datasets: {e}")
 
@@ -447,9 +442,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             relay_no = item.get("Relay_no")
 
             legs = relay_legs_map.get((event_ptr, t_id, relay_no), [])
-            legs.sort(
-                key=lambda x: int(x.get("Pos_no", 0) if str(x.get("Pos_no")).strip().isdigit() else 99)
-            )
+            legs.sort(key=lambda x: int(x.get("Pos_no", 0) if str(x.get("Pos_no")).strip().isdigit() else 99))
 
             leg_names = ["", "", "", ""]
             for leg in legs:
@@ -577,7 +570,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             ath_id = item.get("Ath_no", 0)
             if request.athlete_id and str(ath_id) != request.athlete_id:
                 continue
-            
+
             athlete = athletes.get(ath_id, {})
             t_id = athlete.get("Team_no", 0)
             event_id = item.get("Event_ptr")
@@ -774,9 +767,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             ev = event_dict[k]
             ev["entries"].sort(key=lambda x: x.place if x.place > 0 else 9999)
 
-            resp_list.append(
-                pb2.EventScore(event_id=ev["id"], event_name=ev["name"], entries=ev["entries"])
-            )
+            resp_list.append(pb2.EventScore(event_id=ev["id"], event_name=ev["name"], entries=ev["entries"]))
 
         return pb2.GetEventScoresResponse(event_scores=resp_list)
 

@@ -15,5 +15,10 @@ description: Enforcement of code style and quality checks.
 - **Exclusions**: Use the project's `.gitignore` to exclude directories from Biome scanning. Ensure `vcs.useIgnoreFile` is enabled in `biome.json`.
 - **Generated Code**: Always ignore generated gRPC/Proto files (e.g., `web-client/lib/proto/`) to avoid duplicate declaration errors.
 
+## Protocol Buffers (gRPC)
+- **Buf**: Use Buf for linting and formatting proto files.
+- **Organization**: Protos must be versioned (e.g., `protos/meetmanager/v1/`).
+- **Automation**: Run `just lint-protos` to verify.
+
 ## CI Integration
 - **Verification**: Linting MUST pass in CI. Locally, verify with `just lint` or the hermetic `just verify-ci` to catch architecture-specific issues (like Biome binary mismatches).

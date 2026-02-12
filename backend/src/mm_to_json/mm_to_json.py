@@ -3,7 +3,11 @@ import datetime
 import json
 import logging
 import os
-from typing import Any, Optional, List, Dict
+from typing import Any
+
+import pandas as pd
+
+from .report_generator import ReportGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +17,6 @@ try:
 except ImportError as e:
     logger.debug(f"Failed to import mdb_writer: {e}")
     mdb_writer = None
-import pandas as pd
-
-from .report_generator import ReportGenerator
 
 
 class MmToJsonConverter:
@@ -183,7 +184,7 @@ class MmToJsonConverter:
                     logger.warning(f"Warning: Logical table {logical} not found (checked {physical_candidates}).")
                 self.tables[logical] = pd.DataFrame()
 
-    def _read_table_jackcess(self, table_name: str) -> Optional[List[Dict[str, Any]]]:
+    def _read_table_jackcess(self, table_name: str) -> list[dict[str, Any]] | None:
         import base64
 
         t = self.db.getTable(table_name)
@@ -192,9 +193,9 @@ class MmToJsonConverter:
 
         columns = [str(c.getName()) for c in t.getColumns()]
 
-        rows: List[Dict[str, Any]] = []
+        rows: list[dict[str, Any]] = []
         for row in t:
-            row_data: Dict[str, Any] = {}
+            row_data: dict[str, Any] = {}
             for cname in columns:
                 val = row.get(cname)
                 if val is None:
@@ -223,9 +224,9 @@ class MmToJsonConverter:
             rows.append(row_data)
         return rows
 
-    def convert(self) -> Dict[str, Any]:
+    def convert(self) -> dict[str, Any]:
         meet = self.get_meet_info()
-        sessions: List[Session] = self.get_session_info()
+        sessions: list[Session] = self.get_session_info()
 
         if not sessions:
             if self.schema_type == "B":
@@ -268,7 +269,18 @@ class MmToJsonConverter:
         """
         raw_data = {}
         # List of tables we care about for the API
-        target_tables = ["Meet", "Team", "Athlete", "Event", "Session", "Sessitem", "Entry", "Relay", "RelayNames", "Divisions"]
+        target_tables = [
+            "Meet",
+            "Team",
+            "Athlete",
+            "Event",
+            "Session",
+            "Sessitem",
+            "Entry",
+            "Relay",
+            "RelayNames",
+            "Divisions",
+        ]
 
         for table_name in target_tables:
             df = self.tables.get(table_name)
@@ -404,12 +416,12 @@ class MmToJsonConverter:
                 if items.empty:
                     # Try string comparison just in case
                     items = df_sessitem[df_sessitem["Sess_ptr"].astype(str) == str(target)]
-                
+
                 if not items.empty:
                     logger.debug(f"Found {len(items)} events for session {target} in Sessitem")
                 else:
                     logger.debug(f"No events found for session {target} in Sessitem (df size {len(df_sessitem)})")
-                
+
                 if "Sess_order" in items.columns:
                     items = items.sort_values("Sess_order")
 

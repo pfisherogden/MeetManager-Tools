@@ -15,6 +15,7 @@ description: Preferred tools for development and dependency management.
 ## Frontend & Codegen
 - **Node.js**: Use Node v20 for the `web-client`. 
 - **CI Codegen**: GitHub Actions MUST run `npm install` in the `web-client` directory before `just codegen`. This is critical because `grpc-tools` requires native binaries that only exist after a fresh install.
+- **Buf**: Use Buf for managing and linting Protocol Buffer files. Protos are located in versioned directories (e.g., `protos/meetmanager/v1/`).
 
 ## Docker & Hermeticity
 - **Context Bloat**: Maintain `.dockerignore` to exclude host-side artifacts (`node_modules`, `.venv`, `.jdk`). This prevents build hangs and architecture mismatches.
