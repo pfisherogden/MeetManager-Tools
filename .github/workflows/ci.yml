@@ -33,11 +33,11 @@ jobs:
 
       - name: Lint with Ruff
         run: |
-          uv run ruff check .
-          uv run ruff format --check .
+          .venv/bin/ruff check .
+          .venv/bin/ruff format --check .
 
       - name: Test with Pytest
-        run: uv run pytest
+        run: uv run python -m pytest
 
   web-client:
     runs-on: ubuntu-latest
