@@ -17,7 +17,7 @@ jobs:
       contains(github.event.pull_request.changed_files, 'Justfile') ||
       contains(github.event.pull_request.changed_files, '.github/workflows/ci.yml')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -76,7 +76,7 @@ jobs:
       run:
         working-directory: web-client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
