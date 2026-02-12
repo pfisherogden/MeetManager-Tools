@@ -1,6 +1,9 @@
-
+import csv
+import io
 import logging
 import os
+import re
+import subprocess
 
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
@@ -8,11 +11,6 @@ from mm_to_json.reporting.extractor import ReportDataExtractor
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-import csv
-import io
-import subprocess
 
 
 def load_mdb(db_path):
@@ -25,15 +23,17 @@ def load_mdb(db_path):
 
     data = {}
     for t in tables:
-        if not t.strip(): continue
+        if not t.strip():
+            continue
         try:
-             # -Q prevents quoting issues sometimes, but standard CSV is better
+            # -Q prevents quoting issues sometimes, but standard CSV is better
             csv_out = subprocess.check_output(["mdb-export", db_path, t]).decode("utf-8")
             # Parse CSV to list of dicts
             data[t] = list(csv.DictReader(io.StringIO(csv_out)))
         except Exception as e:
             print(f"Skipping table {t}: {e}")
     return data
+
 
 def test_meet_entries_data():
     mdb_file = "/app/data/2025-07-12 FAST @ DP-Meet2-MeetMgr.mdb"
@@ -59,7 +59,7 @@ def test_meet_entries_data():
     age_group_errors = 0
     for group in groups:
         for item in group.get("items", []):
-            if "sub_items" in item: # Individual or Relay Team
+            if "sub_items" in item:  # Individual or Relay Team
                 # Check headers for "0&U" or "7-0"
                 header = item.get("header", "")
 
@@ -68,14 +68,15 @@ def test_meet_entries_data():
                     desc = sub.get("desc", "")
                     # Look for suspicious patterns
                     if "0&U" in desc or "0-0" in desc or "9-0" in desc or "7-0" in desc:
-                         print(f"WARN: Suspicious Age Group in Event: '{desc}' (Team: {group['header']}, Header: {header})")
-                         age_group_errors += 1
+                        print(
+                            f"WARN: Suspicious Age Group in Event: '{desc}' (Team: {group['header']}, Header: {header})"
+                        )
+                        age_group_errors += 1
 
                     # Also check for "0" as single age if likely error?
-                    import re
-                    if re.search(r'\b0\b', desc) and "Open" not in desc and "10" not in desc:
-                         # e.g. "Girls 0 25 Free"
-                         pass
+                    if re.search(r"\b0\b", desc) and "Open" not in desc and "10" not in desc:
+                        # e.g. "Girls 0 25 Free"
+                        pass
 
     if age_group_errors == 0:
         print("No obvious Age Group errors found in descriptions (searching for 0&U, 9-0, etc).")
@@ -91,7 +92,7 @@ def test_meet_entries_data():
 
     dupe_errors = 0
     for group in groups:
-        team_name = group['header']
+        team_name = group["header"]
         seen_names = set()
 
         in_relay_section = False
@@ -111,13 +112,13 @@ def test_meet_entries_data():
             try:
                 # "1  Morrow, Katelyn - Female - Age: 11 - FAST - Ind/Rel: 0 / 2"
                 parts = header.split(" - ")
-                if not parts: continue
-                name_part = parts[0] # "1  Morrow, Katelyn"
+                if not parts:
+                    continue
+                name_part = parts[0]  # "1  Morrow, Katelyn"
                 # Strip sequence number
-                name = " ".join(name_part.split(" ")[2:]) # remove "1  "
+                name = " ".join(name_part.split(" ")[2:])  # remove "1  "
                 # Actually sequence might be single digit.
                 # Regex for "Seq  Name"
-                import re
                 m = re.match(r"^\d+\s+(.+)$", name_part)
                 if m:
                     name = m.group(1).strip()
@@ -141,16 +142,17 @@ def test_meet_entries_data():
         title_found = False
         for item in group.get("items", []):
             if "RELAY TEAMS" in item.get("header", ""):
-                 title_found = True
-                 relay_sections += 1
-                 # Check sub_items are empty?
-                 pass
+                title_found = True
+                relay_sections += 1
+                # Check sub_items are empty?
+                pass
 
             if title_found and "RELAY TEAMS" not in item.get("header", ""):
                 # These should be relay entries
                 # Check format "Semicolon separated names"
                 sub = item.get("sub_items", [])
-                if not sub: continue
+                if not sub:
+                    continue
                 # We expect 2 rows: Time/HL and Names
                 if len(sub) == 2:
                     # Row 1: Seq in idx, Team/Info in desc, Time in time, H/L in heat_lane
@@ -168,7 +170,7 @@ def test_meet_entries_data():
 
                     # 3b. Check Names format (Semicolon separated)
                     if ";" not in names and "," not in names:
-                         print(f"WARN: Relay Entry names not formatted with names: '{names}'")
+                        print(f"WARN: Relay Entry names not formatted with names: '{names}'")
 
                     # 3c. Check Relay Letter in Info (Team - 'A')
                     if "Relay" not in info and "- '" not in info:
@@ -185,7 +187,8 @@ def test_meet_entries_data():
     for group in groups:
         # iterate items
         for item in group.get("items", []):
-            if "RELAY TEAMS" in item.get("header", ""): continue
+            if "RELAY TEAMS" in item.get("header", ""):
+                continue
 
             # Check Ind/Rel counts in header
             # "1  Last, First - ... - Ind/Rel: X / Y"
@@ -206,10 +209,12 @@ def test_meet_entries_data():
                         total_relay_events_in_ind += len(relay_evts)
 
                         if len(relay_evts) != rel_c:
-                            print(f"ERROR: Relay Count Mismatch for '{header}'. Expected {rel_c}, Found {len(relay_evts)}")
+                            print(
+                                f"ERROR: Relay Count Mismatch for '{header}'. Expected {rel_c}, Found {len(relay_evts)}"
+                            )
 
                     elif len(relay_evts) > 0:
-                         print(f"ERROR: Found Relay Events but Count is 0 for '{header}'")
+                        print(f"ERROR: Found Relay Events but Count is 0 for '{header}'")
 
             except Exception:
                 # print(f"Error checking counts: {e}")
@@ -226,10 +231,10 @@ def test_meet_entries_data():
     if "Event" in table_data:
         events = table_data["Event"]
         if events:
-             # print(f"Event Table Columns: {list(events[0].keys())}")
-             # import sys
-             # sys.exit(0)
-             pass
+            # print(f"Event Table Columns: {list(events[0].keys())}")
+            # import sys
+            # sys.exit(0)
+            pass
 
         for row in events:
             # Check for suspicious ages
@@ -244,15 +249,16 @@ def test_meet_entries_data():
                 suspicious = False
                 msg = ""
                 if low == 0 and high == 0:
-                     msg = "Low=0, High=0 (0&U?)"
-                     suspicious = True
+                    msg = "Low=0, High=0 (0&U?)"
+                    suspicious = True
                 elif low > 0 and high == 0:
-                     msg = f"Low={low}, High=0 ({low}-0?)"
-                     suspicious = True
+                    msg = f"Low={low}, High=0 ({low}-0?)"
+                    suspicious = True
 
                 if suspicious:
                     print(f"EVENT #{evt_no} {dist}m {stroke}: {msg}")
-            except: pass
+            except Exception:
+                pass
 
     # 5. Check Relay Athlete IDs Availability
     print("\n--- Inspecting Relay Athlete Data Availability ---")
@@ -262,6 +268,6 @@ def test_meet_entries_data():
     else:
         print("RelayNames table NOT found in extract.")
 
+
 if __name__ == "__main__":
     test_meet_entries_data()
-
