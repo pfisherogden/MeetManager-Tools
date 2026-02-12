@@ -17,7 +17,7 @@ RUN mkdir -p lib/proto && \
   --ts_proto_out=./lib/proto \
   --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,esModuleInterop=true \
   -I/protos \
-  /protos/meet_manager.proto
+  /protos/meetmanager/v1/meet_manager.proto
 
 # Build
 ENV NEXT_TELEMETRY_DISABLED 1

@@ -1,10 +1,11 @@
 FROM python:3.11-slim
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uv/bin/uv
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     mdbtools \
-    openjdk-17-jre-headless \
+    openjdk-21-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -24,7 +25,7 @@ COPY backend/data ./data
 RUN python3 src/mm_to_json/download_libs.py
 
 # Generate Python Protos
-RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src protos/meet_manager.proto
+RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src protos/meetmanager/v1/meet_manager.proto
 
 ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1
