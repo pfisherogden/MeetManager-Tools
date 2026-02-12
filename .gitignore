@@ -18,12 +18,15 @@ web-client/backend_protos_temp/
 
 # mm_to_json specific ignores
 **/venv/
+**/venv*/
 **/uv_cache/
 **/.uv_cache/
 **/.ruff_cache/
 **/.venv/
 **/tmp/
 **/__pycache__/
+*.jdk/
+**/*.jdk/
 mm_to_json/mm_to_json_py/verification_output/
 mm_to_json/mm_to_json_py/verification_report.md
 # Ignore large generated JSON files in mm_to_json_py

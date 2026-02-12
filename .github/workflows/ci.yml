@@ -31,8 +31,17 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "web-client/package-lock.json"
+
       - name: Install dependencies
-        run: uv sync --all-packages --dev && uv pip install ruff
+        run: |
+          uv sync --all-packages --dev
+          cd web-client && npm install
 
       - name: Generate Protos
         run: just codegen
