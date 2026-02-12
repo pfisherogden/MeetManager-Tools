@@ -2,6 +2,7 @@ import argparse
 import datetime
 import json
 import os
+from typing import Any, Optional, List, Dict
 
 # from access_parser import AccessParser DEPRECATED
 try:
@@ -178,7 +179,7 @@ class MmToJsonConverter:
                     print(f"Warning: Logical table {logical} not found (checked {physical_candidates}).")
                 self.tables[logical] = pd.DataFrame()
 
-    def _read_table_jackcess(self, table_name):
+    def _read_table_jackcess(self, table_name: str) -> Optional[List[Dict[str, Any]]]:
         import base64
 
         t = self.db.getTable(table_name)
@@ -187,9 +188,9 @@ class MmToJsonConverter:
 
         columns = [str(c.getName()) for c in t.getColumns()]
 
-        rows = []
+        rows: List[Dict[str, Any]] = []
         for row in t:
-            row_data = {}
+            row_data: Dict[str, Any] = {}
             for cname in columns:
                 val = row.get(cname)
                 if val is None:
@@ -218,9 +219,9 @@ class MmToJsonConverter:
             rows.append(row_data)
         return rows
 
-    def convert(self):
+    def convert(self) -> Dict[str, Any]:
         meet = self.get_meet_info()
-        sessions = self.get_session_info()
+        sessions: List[Session] = self.get_session_info()
 
         if not sessions:
             if self.schema_type == "B":

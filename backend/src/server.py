@@ -6,13 +6,14 @@ import logging
 import os
 import subprocess
 import tempfile
+from typing import Any, Optional
 from concurrent import futures
 
 import grpc
 
 # Import generated classes
-import meet_manager_pb2
-import meet_manager_pb2_grpc
+import meet_manager_pb2 # type: ignore
+import meet_manager_pb2_grpc # type: ignore
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.report_generator import ReportGenerator
 

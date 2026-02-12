@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from ..mm_to_json import MmToJsonConverter
 
@@ -7,7 +7,7 @@ class ReportDataExtractor:
     def __init__(self, converter: MmToJsonConverter):
         self.converter = converter
 
-    def extract_meet_entries_data(self, team_filter: str = None) -> dict[str, Any]:
+    def extract_meet_entries_data(self, team_filter: Optional[str] = None) -> dict[str, Any]:
         """
         Extracts data for the Meet Entries report.
         Hierarchy: Team -> Athlete -> Events
@@ -488,7 +488,7 @@ class ReportDataExtractor:
             "groups": report_groups,
         }
 
-    def extract_meet_program_data(self, team_filter: str = None) -> dict[str, Any]:
+    def extract_meet_program_data(self, team_filter: Optional[str] = None) -> dict[str, Any]:
         """
         Extracts data for the Meet Program report.
 
