@@ -45,4 +45,4 @@ docker-compose up backend
 ```
 
 ## API Definition
-See `protos/meet_manager.proto` for the full Service definition.
+See `protos/meetmanager/v1/meet_manager.proto` for the full Service definition.
