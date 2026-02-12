@@ -1,17 +1,11 @@
+import logging
 import os
 
 import jpype
 import jpype.imports
 from jpype.types import *  # noqa: F403
 
-# Path to the local JDK we installed
-# Adjust if the extracted folder name differs
-JDK_HOME = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-    "jdk-17.0.2.jdk",
-    "Contents",
-    "Home",
-)
+logger = logging.getLogger(__name__)
 
 
 def get_classpath():
@@ -26,16 +20,21 @@ def ensure_jvm_started():
     if jpype.isJVMStarted():
         return
 
-    if not os.environ.get("JAVA_HOME") and os.path.exists(JDK_HOME):
-        os.environ["JAVA_HOME"] = JDK_HOME
+    logger.debug("Starting JVM...")
 
     jars = get_classpath()
     if not jars:
         raise RuntimeError("No libraries found in lib/. Cannot start JVM for Jackcess.")
 
     classpath = os.pathsep.join(jars)
+    logger.debug(f"Classpath: {classpath}")
+    
+    jvm_path = jpype.getDefaultJVMPath()
+    logger.debug(f"JVM Path: {jvm_path}")
+
     # -Djava.class.path must be set at startup
-    jpype.startJVM(jpype.getDefaultJVMPath(), "-Djava.class.path=" + classpath)
+    jpype.startJVM(jvm_path, "-Djava.class.path=" + classpath)
+    logger.debug("JVM started successfully.")
 
 
 def open_db(mdb_path):
@@ -48,10 +47,13 @@ def open_db(mdb_path):
     from com.healthmarketscience.jackcess import DatabaseBuilder
     from java.io import File
 
+    logger.debug(f"Opening file via Jackcess: {mdb_path}")
     # Open in read/write mode (default)
     # Jackcess 3.x+ usually auto-detects version and handling
     # If the DB has no password (which verified tests show), simple open works.
-    return DatabaseBuilder.open(File(mdb_path))
+    db = DatabaseBuilder.open(File(mdb_path))
+    logger.debug("Database opened successfully via Jackcess.")
+    return db
 
 
 def _add_row(db, table_name, **kwargs):

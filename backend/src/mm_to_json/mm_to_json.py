@@ -1,13 +1,17 @@
 import argparse
 import datetime
 import json
+import logging
 import os
 from typing import Any, Optional, List, Dict
 
+logger = logging.getLogger(__name__)
+
 # from access_parser import AccessParser DEPRECATED
 try:
-    import mdb_writer
-except ImportError:
+    from . import mdb_writer
+except ImportError as e:
+    logger.debug(f"Failed to import mdb_writer: {e}")
     mdb_writer = None
 import pandas as pd
 
@@ -24,7 +28,7 @@ class MmToJsonConverter:
             if not password:
                 password = os.environ.get("MM_DB_PASSWORD")
 
-            print(f"Loading database: {mdb_path}")
+            logger.info(f"Loading database: {mdb_path}")
 
             # Initialize Jackcess
             if mdb_writer:
@@ -125,18 +129,18 @@ class MmToJsonConverter:
                     break
 
             if found_name:
-                print(f"DEBUG: Parsing table {found_name}...")
+                logger.debug(f"Parsing table {found_name}...")
                 rows = None
                 try:
                     # Detect Schema Type based on Event table name
                     if logical == "Event" and found_name == "MTEVENT":
                         self.schema_type = "B"
-                        print("Detected Schema Type B (MTEVENT structure)")
+                        logger.info("Detected Schema Type B (MTEVENT structure)")
 
                     rows = self._read_table_jackcess(found_name)
                 except Exception as e:
-                    print(f"ERROR: Failed to parse table {found_name}: {e}")
-                    print("SKIPPING TABLE due to parse error.")
+                    logger.error(f"Failed to parse table {found_name}: {e}")
+                    logger.error("SKIPPING TABLE due to parse error.")
                     rows = None
 
                 df = pd.DataFrame()
@@ -172,11 +176,11 @@ class MmToJsonConverter:
                     df.columns = df.columns.astype(str)
 
                 self.tables[logical] = df
-                print(f"Loaded {logical} from {found_name} ({len(df)} rows)")
+                logger.info(f"Loaded {logical} from {found_name} ({len(df)} rows)")
             else:
                 # If Schema B, Sessitem might be missing, which is fine
                 if logical not in ["Sessitem", "RelayNames", "Divisions"]:
-                    print(f"Warning: Logical table {logical} not found (checked {physical_candidates}).")
+                    logger.warning(f"Warning: Logical table {logical} not found (checked {physical_candidates}).")
                 self.tables[logical] = pd.DataFrame()
 
     def _read_table_jackcess(self, table_name: str) -> Optional[List[Dict[str, Any]]]:
@@ -238,7 +242,9 @@ class MmToJsonConverter:
         meet_sessions_data = []
 
         for session in sessions:
+            logger.debug(f"Processing session {session.sess_id} ({session.name})")
             events = self.get_events_by_session(session)
+            logger.debug(f"Found {len(events)} events for session {session.sess_id}")
             session_events_data = []
 
             for event in events:
@@ -262,7 +268,7 @@ class MmToJsonConverter:
         """
         raw_data = {}
         # List of tables we care about for the API
-        target_tables = ["Meet", "Team", "Athlete", "Event", "Session", "Entry", "Relay", "Divisions"]
+        target_tables = ["Meet", "Team", "Athlete", "Event", "Session", "Sessitem", "Entry", "Relay", "RelayNames", "Divisions"]
 
         for table_name in target_tables:
             df = self.tables.get(table_name)
@@ -393,7 +399,17 @@ class MmToJsonConverter:
             # Schema A: Link via Sessitem
             df_sessitem = self.tables["Sessitem"]
             if not df_sessitem.empty and "Sess_ptr" in df_sessitem.columns:
-                items = df_sessitem[df_sessitem["Sess_ptr"] == session.sess_id]
+                target = session.sess_id
+                items = df_sessitem[df_sessitem["Sess_ptr"] == target]
+                if items.empty:
+                    # Try string comparison just in case
+                    items = df_sessitem[df_sessitem["Sess_ptr"].astype(str) == str(target)]
+                
+                if not items.empty:
+                    logger.debug(f"Found {len(items)} events for session {target} in Sessitem")
+                else:
+                    logger.debug(f"No events found for session {target} in Sessitem (df size {len(df_sessitem)})")
+                
                 if "Sess_order" in items.columns:
                     items = items.sort_values("Sess_order")
 
@@ -403,6 +419,8 @@ class MmToJsonConverter:
                     event = self.get_event_by_id(evt_ptr, round_ltr)
                     if event:
                         events.append(event)
+                    else:
+                        logger.debug(f"Failed to find event_ptr {evt_ptr} in Event table")
         return events
 
     def get_all_events(self):
@@ -564,6 +582,8 @@ class MmToJsonConverter:
                                 # Using Score as seed/time (unknown distinction in this schema)
                                 "seedTime": time_str,
                                 "psTime": "NT",
+                                "athleteId": ath_no,
+                                "teamId": athlete.get("teamId"),
                             }
                         )
         else:
@@ -572,6 +592,8 @@ class MmToJsonConverter:
                 return
 
             entries = df[df["Event_ptr"] == event.event_ptr]
+            if not entries.empty:
+                logger.debug(f"Found {len(entries)} entries for Event {event.event_no} (ptr {event.event_ptr})")
             for _, row in entries.iterrows():
                 entry_info = self.get_heat_lane_time(event.round_ltr, event.stroke, row)
                 if entry_info["heat"] != 0 and entry_info["lane"] != 0:
@@ -588,6 +610,8 @@ class MmToJsonConverter:
                                 "lane": entry_info["lane"],
                                 "seedTime": entry_info["seed"],
                                 "psTime": entry_info["time"],
+                                "athleteId": ath_no,
+                                "teamId": athlete.get("teamId"),
                             }
                         )
 
@@ -1058,7 +1082,7 @@ def main():
             elif args.report_type == "results":
                 rg.generate_meet_results(out_path)
 
-            print(f"Successfully generated report to {out_path}")
+            logger.info(f"Successfully generated report to {out_path}")
             return
 
         if args.raw:
@@ -1073,13 +1097,11 @@ def main():
         with open(out_path, "w") as f:
             json.dump(data, f, indent=4, default=json_serial)
 
-        print(f"Successfully converted to {out_path}")
+        logger.info(f"Successfully converted to {out_path}")
 
     except Exception as e:
-        print(f"Error during conversion: {e}")
-        import traceback
-
-        traceback.print_exc()
+        logger.error(f"Error during conversion: {e}")
+        logger.exception("Conversion traceback:")
 
 
 if __name__ == "__main__":
