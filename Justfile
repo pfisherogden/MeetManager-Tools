@@ -105,6 +105,12 @@ test-frontend:
 # Full verification pipeline
 verify: lint test
 
+# Local CI simulation
+verify-ci:
+    @echo "Running verification in a clean CI-like container..."
+    docker build -t meetmanager-ci -f ci.Dockerfile .
+    docker run --rm -v $(pwd):/app meetmanager-ci
+
 # View logs
 logs service="":
     docker-compose logs -f {{service}}

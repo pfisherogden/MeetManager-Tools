@@ -23,6 +23,9 @@ jobs:
         with:
           version: "latest"
 
+      - name: Set up Just
+        uses: extractions/setup-just@v2
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
