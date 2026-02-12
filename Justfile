@@ -53,17 +53,27 @@ codegen:
     cd web-client && npm run codegen
 
 # Run all linting and formatting checks
-lint: lint-backend lint-mm-to-json lint-frontend format-frontend-check
+lint: fix-backend fix-mm-to-json lint-frontend format-frontend
 
 lint-backend:
     @echo "Linting backend..."
     cd backend && uv run ruff check .
     cd backend && uv run ruff format --check .
 
+fix-backend:
+    @echo "Fixing backend linting and formatting..."
+    cd backend && uv run ruff check --fix .
+    cd backend && uv run ruff format .
+
 lint-mm-to-json:
     @echo "Linting mm_to_json..."
     cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff check .
     cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff format --check .
+
+fix-mm-to-json:
+    @echo "Fixing mm_to_json linting and formatting..."
+    cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff check --fix .
+    cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff format .
 
 lint-frontend:
     @echo "Linting frontend..."

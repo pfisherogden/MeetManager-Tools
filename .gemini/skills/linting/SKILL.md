@@ -6,10 +6,16 @@ description: Enforcement of code style and quality checks.
 
 **Requirement**: All code must pass linting and formatting checks before merging.
 
+## Automation First
+- **Auto-Fix**: Always run `just lint` (or specific `just fix-*` commands) to automatically resolve safe linting issues and apply formatting before committing code.
+- **Mandatory Formatting**: All Python code must be formatted using `ruff format`.
+
 ## Backend (Python)
 - **Tool**: Ruff (Linter & Formatter)
 - **Rules**: Defined in `backend/pyproject.toml`.
-- **Command**: `just lint-backend` (runs `uv run ruff check .` and `uv run ruff format --check .`).
+- **Commands**:
+    - `just lint-backend`: Checks for issues without modifying code (used in CI).
+    - `just fix-backend`: Automatically fixes safe issues and applies formatting (preferred for local development).
 - **CI Verification**: Ensure `ruff` is explicitly installed in the CI environment to avoid execution failures.
 
 ## Frontend (Typescript)
@@ -22,12 +28,9 @@ description: Enforcement of code style and quality checks.
     - `just format-frontend-check` (runs `cd web-client && npm run format:check`): Checks only for formatting issues.
 - **Common Issues Addressed**:
     - `lint/suspicious/noExplicitAny`: Avoid explicit `any` types for improved type safety.
-    - `lint/style/useNodejsImportProtocol`: Use `node:` protocol for built-in Node.js modules (e.g., `import path from 'node:path'`).
-    - `assist/source/organizeImports`: Ensures consistent sorting of import and export statements.
-    - `lint/complexity/useOptionalChain`: Promotes using optional chaining (`?.`) for safer property access.
-    - **Tailwind CSS Directives**: Correct parsing of `@apply`, `@screen`, `@tailwind`, etc., in CSS files.
-
+    - `lint/style/useNodejsImportProtocol`: Use `node:` protocol for built-in Node.js modules.
+    - `assist/source/organizeImports`: Ensures consistent sorting of imports.
 
 ## Global
-- **Command**: `just lint` should run all linting tasks across the project.
-- **CI/CD Integration**: All linting commands must be integrated into the CI pipeline with verified tool installation steps.
+- **Command**: `just lint` runs all linting and **fixing** tasks across the project. Use this as your primary verification step.
+- **CI/CD Integration**: CI pipelines run `just lint-backend` and `just lint-frontend` to verify code quality without modifying files.
