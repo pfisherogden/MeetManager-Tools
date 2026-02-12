@@ -8,6 +8,10 @@ description: Guidelines for running and writing tests in this project.
 - **Mandatory Verification**: Every feature or fix must include tests.
 - **Unified Entry Point**: Use `just test` to run all project tests.
 
+## Preparation (CI & Local)
+- **Dependency Sync**: Before running tests, ensure all dependencies are synced. In CI, use `uv sync --all-packages --dev`.
+- **Code Generation**: Tests that depend on generated code (e.g., gRPC protos) must run `just codegen` as a prerequisite.
+
 ## Backend (Python)
 - **Framework**: `pytest`.
 - **Logic Tests**: Cover data parsing and gRPC service logic.

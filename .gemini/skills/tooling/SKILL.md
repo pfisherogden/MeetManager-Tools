@@ -10,6 +10,7 @@ description: Preferred tools for development and dependency management.
 
 ## Python (Backend)
 - **Dependency Manager**: **uv** is the mandatory tool for Python.
+- **Workspace Management**: This is a multi-package workspace. When syncing dependencies at the root (especially in CI), use `uv sync --all-packages` to ensure all member dependencies (like `pytest`) are installed in the root virtual environment.
 - **Workflow**: 
   - Use `uv sync` for local environment setup.
   - Dependencies are managed in `backend/pyproject.toml`.
@@ -26,5 +27,6 @@ description: Preferred tools for development and dependency management.
 - **Proto Sync**: Handle protobuf generation within the Docker build process rather than copying files manually on the host.
 
 ## CI/CD Environment
-- **Environment Parity**: CI environments (e.g., GitHub Actions) must explicitly install all mandatory tools (`uv`, `ruff`, `biome`) to mirror the local development environment.
-- **Tool Installation**: Always verify that tools used in CI steps are either part of the project dependencies or explicitly installed (e.g., using `astral-sh/setup-uv` and `uv pip install ruff`).
+- **Environment Parity**: CI environments (e.g., GitHub Actions) must mirror the local development environment exactly. Use `just` commands where possible for consistency.
+- **Tool Installation**: Ensure tools (`uv`, `ruff`, `just`) are provisioned. In CI, use `uv sync --all-packages` to guarantee all required binaries (like `pytest`) are available.
+- **Build Artifacts**: Any step requiring generated code (e.g., gRPC protos) must explicitly run the generation step (e.g., `just codegen`) before execution.
