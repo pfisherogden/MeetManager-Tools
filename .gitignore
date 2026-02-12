@@ -27,6 +27,8 @@ web-client/backend_protos_temp/
 **/__pycache__/
 *.jdk/
 **/*.jdk/
+jre/
+**/jre/
 mm_to_json/mm_to_json_py/verification_output/
 mm_to_json/mm_to_json_py/verification_report.md
 # Ignore large generated JSON files in mm_to_json_py
