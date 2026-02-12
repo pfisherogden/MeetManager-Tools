@@ -109,7 +109,7 @@ verify: lint test
 verify-ci:
     @echo "Running verification in a clean CI-like container..."
     docker build -t meetmanager-ci -f ci.Dockerfile .
-    docker run --rm -v $(pwd):/app meetmanager-ci
+    docker run --rm meetmanager-ci
 
 # View logs
 logs service="":
