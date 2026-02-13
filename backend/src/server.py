@@ -787,7 +787,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             converter = MmToJsonConverter(table_data=self._data_cache)
             hierarchical_data = converter.convert()
-            
+
             title = "Meet Report"
             rtype_val = 0
             team_filter = None
