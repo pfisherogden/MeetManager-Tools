@@ -12,12 +12,14 @@ export default async function TeamPage({
 }: {
 	params: Promise<{ id: string }>;
 }) {
-	const { id } = await params;
+	const resolvedParams = await params;
+	const { id } = resolvedParams;
 	const teamId = parseInt(id, 10);
 
 	let team: any = null;
 	try {
-		team = await getTeam(teamId);
+		const response = await getTeam(teamId);
+		team = response.team;
 	} catch (e) {
 		console.error("Failed to load team", e);
 	}
