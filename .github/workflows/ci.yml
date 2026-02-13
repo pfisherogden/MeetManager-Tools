@@ -91,6 +91,9 @@ jobs:
       - name: Lint (Biome)
         run: npm run lint
 
+      - name: Generate Protos
+        run: npm run codegen
+
       - name: Build
         run: npm run build
 
