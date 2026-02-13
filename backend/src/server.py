@@ -789,7 +789,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             hierarchical_data = converter.convert()
 
             title = "Meet Report"
-            rtype_val = 0
+            rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
             team_filter = None
             if request:
                 title = request.title or "Meet Report"
