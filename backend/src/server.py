@@ -211,6 +211,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetTeamRequest()
         team_id = request.id
         data = self._get_table("Team")
+        athlete_data = self._get_table("Athlete")
+        athlete_counts: dict[int, int] = {}
+        for a in athlete_data:
+            t_no = self._safe_int(a.get("Team_no") or a.get("team_no"))
+            if t_no:
+                athlete_counts[t_no] = athlete_counts.get(t_no, 0) + 1
+
         for item in data:
             if int(item.get("Team_no", 0)) == team_id:
                 return pb2.GetTeamResponse(
@@ -221,7 +228,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         lsc=item.get("Team_lsc", ""),
                         city=item.get("Team_city", ""),
                         state=item.get("Team_statenew", ""),
-                        athlete_count=0,
+                        athlete_count=athlete_counts.get(team_id, 0),
                     )
                 )
 
@@ -300,6 +307,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if evt_ptr:
                 entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
 
+        relays = self._get_table("Relay") or self._get_table("RELAY")
+        for r in relays:
+            evt_ptr = r.get("Event_ptr")
+            if evt_ptr:
+                entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
+
         for item in data:
             raw_stroke = item.get("Event_stroke", "").upper().strip()
             stroke_desc = stroke_map.get(raw_stroke, raw_stroke)
@@ -321,7 +334,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     stroke=stroke_desc,
                     low_age=int(item.get("Low_age", 0)),
                     high_age=int(item.get("High_Age", 0)),
-                    session=self._safe_int(item.get("Sess_no", 1)),
+                    session=max(1, self._safe_int(item.get("Sess_no", 1))),
                     entry_count=entry_counts.get(item.get("Event_no") or item.get("Event_ptr"), 0),
                 )
             )

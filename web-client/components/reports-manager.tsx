@@ -37,6 +37,11 @@ const reportTypes = [
 		name: "Meet Results",
 		description: "Final times, places, and points by event.",
 	},
+	{
+		id: 4,
+		name: "Meet Program",
+		description: "Traditional 2-column program with heat/lane assignments.",
+	},
 ];
 
 export function ReportsManager() {
