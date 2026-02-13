@@ -6,11 +6,13 @@ description: Enforcement of code style and quality checks.
 
 ## Python (Backend & Tools)
 - **Ruff**: Use Ruff for both linting and formatting.
-- **Automation**: Always run `just fix-backend` and `just fix-mm-to-json` before committing.
+- **Automation**: Always run `just fix` before committing to apply automatic formatting and lint fixes.
 - **Rules**: Adhere to the configurations in `pyproject.toml`. Bare `except` and unused imports are strictly prohibited.
+- **Stub Files**: Ruff should ignore `.pyi` files for formatting to avoid conflicts with `mypy` requirements. Ensure `pyproject.toml` excludes them.
 
 ## TypeScript/React (Frontend)
 - **Biome**: Use Biome for linting and formatting.
+- **Versioning**: If CI reports a configuration schema mismatch (e.g., Expected 2.3.15, Found 2.3.14), run `just fix` locally. This recipe includes `biome migrate --write` to update `biome.json`.
 - **Configuration Compatibility**: Avoid the `files.ignore` key in `biome.json` as it causes schema errors in some CI environments. 
 - **Exclusions**: Use the project's `.gitignore` to exclude directories from Biome scanning. Ensure `vcs.useIgnoreFile` is enabled in `biome.json`.
 - **Generated Code**: Always ignore generated gRPC/Proto files (e.g., `web-client/lib/proto/`) to avoid duplicate declaration errors.

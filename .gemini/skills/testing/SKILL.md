@@ -7,10 +7,11 @@ description: Guidelines for running and writing tests in this project.
 ## Principles
 - **Mandatory Verification**: Every feature or fix must include tests.
 - **Unified Entry Point**: Use `just test` to run all project tests.
+- **Robustness**: Server methods MUST handle `request=None` gracefully. Tests often pass `None` for requests when verifying internal logic, and the service should not crash with `AttributeError`.
 
 ## Preparation (CI & Local)
 - **Dependency Sync**: Before running tests, ensure all dependencies are synced. In CI, use `uv sync --all-packages --dev`.
-- **Code Generation**: Tests that depend on generated code (e.g., gRPC protos) must run `just codegen` as a prerequisite.
+- **Code Generation**: Tests that depend on generated code (e.g., gRPC protos) must run `just codegen` as a prerequisite. `just test` handles this automatically.
 
 ## Backend (Python)
 - **Framework**: `pytest`.

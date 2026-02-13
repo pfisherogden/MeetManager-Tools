@@ -20,4 +20,5 @@ description: Project structure and decoupling principles.
 
 ## DevOps & Infrastructure
 - **Environment Parity**: Maintain strict tool parity between local development, Docker environments, and CI/CD pipelines.
-- **Local CI Verification**: Before pushing changes, run `just verify-ci`. This executes the full pipeline in a clean room Docker container (`ci.Dockerfile`) to catch missing dependencies or configuration errors that only appear in hermetic environments.
+- **Local Comprehensive Verification**: Before pushing, run `just verify-local`. This runs `codegen`, `fix`, `lint`, and all tests locally.
+- **Hermetic CI Verification**: For a final check before PR merge, run `just verify-ci`. This executes the full pipeline in a clean room Docker container (`ci.Dockerfile`) to catch missing dependencies or configuration errors that only appear in hermetic environments.

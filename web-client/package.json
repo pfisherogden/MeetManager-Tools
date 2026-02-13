@@ -8,10 +8,10 @@
 		"lint": "biome check . --no-errors-on-unmatched",
 		"lint:fix": "biome check --write --unsafe . --max-diagnostics=0",
 		"format": "biome format --write .",
-		"format:check": "biome format --check .",
+		"format:check": "biome check --linter-enabled=false --assist-enabled=false .",
 		"start": "next start",
 		"start:prod": "next build && next start",
-		"test": "vitest",
+		"test": "vitest run",
 		"codegen": "mkdir -p ./lib/proto && grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./lib/proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,esModuleInterop=true,forceLong=string,unrecognizedEnum=false,outputPartialMethods=false -I ../protos ../protos/meetmanager/v1/meet_manager.proto"
 	},
 	"dependencies": {

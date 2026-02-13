@@ -52,14 +52,17 @@ codegen:
     # Frontend
     cd web-client && npm run codegen
 
-# Run all linting and formatting checks
-lint: fix-backend fix-mm-to-json lint-frontend format-frontend type-check-backend lint-protos
+# Run all linting and formatting checks (read-only)
+lint: lint-backend lint-mm-to-json lint-frontend format-frontend-check lint-protos type-check-backend
+
+# Apply all automatic fixes
+fix: fix-backend fix-mm-to-json lint-frontend-fix
 
 lint-protos:
     @echo "Linting protos..."
     buf lint protos
 
-type-check-backend:
+type-check-backend: codegen
     @echo "Type checking backend..."
     cd backend && MYPYPATH=src uv run mypy src
 
@@ -89,7 +92,7 @@ lint-frontend:
 
 lint-frontend-fix:
     @echo "Applying fixes for frontend linting issues..."
-    cd web-client && npm run format && npm run lint:fix
+    cd web-client && npx @biomejs/biome migrate --write && npm run format && npm run lint:fix
 
 format-frontend:
     @echo "Formatting frontend..."
@@ -100,7 +103,7 @@ format-frontend-check:
     cd web-client && npm run format:check
 
 # Run all tests (enforces linting first)
-test: lint test-backend test-frontend
+test: codegen lint test-backend test-frontend
 
 test-backend:
     @echo "Running Backend Tests..."
@@ -111,11 +114,11 @@ setup-java:
     @echo "Setting up Java dependencies..."
     cd backend && uv run python src/mm_to_json/download_libs.py
 
-test-backend-local: setup-java
+test-backend-local: setup-java codegen
     @echo "Running Backend Tests locally..."
     cd backend && uv run pytest tests/
 
-test-frontend:
+test-frontend: codegen
     @echo "Running Frontend Tests..."
     cd web-client && npm test
 
@@ -124,7 +127,7 @@ test-local: test-backend-local test-frontend
 # Full verification pipeline
 verify: lint test
 
-verify-local: lint test-local
+verify-local: codegen fix lint test-local
 
 # Local CI simulation
 verify-ci:
