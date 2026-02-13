@@ -1,22 +1,24 @@
 ---
 name: Tooling Preferences
-description: Preferred tools for development and dependency management.
+description: Preferred tools for development and dependency management in MeetManager-Tools. Use when setting up environments or running project commands.
 ---
+
 # Tooling Preferences
 
-## Task Runner
-- **Just**: Use `just` for all project-level commands. Never run complex shell strings manually if a recipe exists.
-- **CI/CD**: Ensure `extractions/setup-just` is present in GitHub Actions to avoid 'command not found' errors.
+## Task Execution
+- **Use Just**: Execute all project commands via `just`. Avoid manual shell strings for complex tasks.
+- **Workflow**: Run `just --list` to discover available recipes.
 
-## Python Management
-- **UV**: Use `uv` for dependency management and virtual environments.
-- **Workspace Sync**: In the root directory, always use `uv sync --all-packages --dev` to ensure all workspace members have their dependencies installed.
+## Python & Dependencies
+- **Use UV**: Manage Python dependencies and virtual environments with `uv`.
+- **Sync Workspace**: Run `uv sync --all-packages --dev` from the root to synchronize all workspace members.
 
 ## Frontend & Codegen
-- **Node.js**: Use Node v20 for the `web-client`. 
-- **CI Codegen**: GitHub Actions MUST run `npm install` in the `web-client` directory before `just codegen`. This is critical because `grpc-tools` requires native binaries that only exist after a fresh install.
-- **Buf**: Use Buf for managing and linting Protocol Buffer files. Protos are located in versioned directories (e.g., `protos/meetmanager/v1/`).
+- **Node v20**: Use Node.js v20 for all frontend development.
+- **Dependency First**: Always run `npm install` in `web-client/` before `just codegen` to ensure native binaries (like `grpc-tools`) are available.
+- **Buf**: Use Buf for Protocol Buffer management.
 
-## Docker & Hermeticity
-- **Context Bloat**: Maintain `.dockerignore` to exclude host-side artifacts (`node_modules`, `.venv`, `.jdk`). This prevents build hangs and architecture mismatches.
-- **Clean Room**: Use `just verify-ci` to validate changes in a Docker container mirroring the CI environment. This is the only way to catch architecture-specific binary issues locally.
+## Docker & Parity
+- **Optimize Context**: Maintain `.dockerignore` to exclude `node_modules`, `.venv`, and other host-side artifacts.
+- **Build Caching**: Design Dockerfiles to cache dependencies separately from source code by copying `package.json` or `pyproject.toml` first.
+- **Verify Locally**: Use `just verify-ci` to run the full verification pipeline in a container that mirrors the CI environment.

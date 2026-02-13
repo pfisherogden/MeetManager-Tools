@@ -1,29 +1,21 @@
 ---
 name: Type Safety & Protobuf
-description: Best practices for handling Protobuf enums and type safety in Python.
+description: Best practices for handling Protobuf enums and type safety in Python and gRPC. Use when modifying protos or implementing service logic.
 ---
+
 # Type Safety & Protobuf
 
-## Mypy & Protobuf Enums
-- **Type Mismatch**: Mypy treats Protobuf enums as distinct types, not just integers.
-- **Initialization**: Never initialize an enum variable with `0` or other literal integers if it will be used in a dictionary lookup where keys are the enum type.
-- **Correct Usage**: Always use the generated enum constant (e.g., `pb2.REPORT_TYPE_PSYCH_UNSPECIFIED`) for initialization and comparison.
-- **Overload Variants**: If you see `No overload variant of "get" of "dict" matches argument types "int", "str"`, it's usually because the key type is an enum and you provided an `int`.
+## Protobuf Enums
+- **Use Constants**: Always use generated enum constants (e.g., `pb2.MY_ENUM_VALUE`) instead of literal integers. Mypy treats them as distinct types.
+- **Avoid Int Initialization**: Do not initialize enum-typed variables with `0`. Use the `_UNSPECIFIED` constant.
+- **Fix Overload Errors**: Resolve `No overload variant` errors by ensuring dictionary keys use the exact enum type rather than `int`.
 
-## Null Safety in gRPC
-- **Optional Fields**: Protobuf 3 fields are optional by default. Always check if a field is set if it's critical.
-- **None Requests**: In Python gRPC implementations, always add a guard for `request is None` at the beginning of service methods, or ensure default values are used.
-- **Example**:
-  ```python
-  def MyMethod(self, request, context):
-      if request is None:
-          # Use defaults or return error
-          return pb2.MyResponse(success=False, message="Missing request")
-      
-      title = request.title or "Default Title"
-      # ...
-  ```
+## gRPC Null Safety
+- **Validate Requests**: Always add a `if request is None` guard at the entry of service methods.
+- **Check Optional Fields**: Explicitly check if critical optional fields are set before access.
+- **Safe Defaults**: Use the `or` operator or `getattr` with defaults for optional string/numeric fields.
 
-## Code Generation
-- **Local Staleness**: If `mypy` or `ruff` report errors in files that seem correct, run `just codegen` to ensure local stubs (`.pyi`) and generated code are in sync with `protos/`.
-- **CI Dependency**: CI workflows must run `codegen` before any linting or testing steps that import the `meetmanager.v1` package.
+## Tooling & Sync
+- **Refresh Stubs**: Run `just codegen` if `mypy` or `ruff` report errors on recently modified proto definitions.
+- **CI Sequence**: Ensure `codegen` runs before linting or type-checking in all CI pipelines.
+

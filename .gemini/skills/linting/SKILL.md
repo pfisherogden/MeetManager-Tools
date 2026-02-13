@@ -1,26 +1,25 @@
 ---
 name: Linting Standards
-description: Enforcement of code style and quality checks.
+description: Enforcement of code style and quality checks for MeetManager-Tools. Use when formatting code or resolving linting errors.
 ---
+
 # Linting Standards
 
-## Python (Backend & Tools)
-- **Ruff**: Use Ruff for both linting and formatting.
-- **Automation**: Always run `just fix` before committing to apply automatic formatting and lint fixes.
-- **Rules**: Adhere to the configurations in `pyproject.toml`. Bare `except` and unused imports are strictly prohibited.
-- **Stub Files**: Ruff should ignore `.pyi` files for formatting to avoid conflicts with `mypy` requirements. Ensure `pyproject.toml` excludes them.
+## Python (Backend)
+- **Use Ruff**: Apply Ruff for both linting and formatting.
+- **Auto-Fix**: Run `just fix` to automatically resolve formatting and basic lint issues.
+- **Prohibit Exceptions**: Avoid bare `except` blocks and unused imports.
+- **Protect Stubs**: Exclude `.pyi` files from Ruff formatting to prevent conflicts with type stubs.
 
 ## TypeScript/React (Frontend)
-- **Biome**: Use Biome for linting and formatting.
-- **Versioning**: If CI reports a configuration schema mismatch (e.g., Expected 2.3.15, Found 2.3.14), run `just fix` locally. This recipe includes `biome migrate --write` to update `biome.json`.
-- **Configuration Compatibility**: Avoid the `files.ignore` key in `biome.json` as it causes schema errors in some CI environments. 
-- **Exclusions**: Use the project's `.gitignore` to exclude directories from Biome scanning. Ensure `vcs.useIgnoreFile` is enabled in `biome.json`.
-- **Generated Code**: Always ignore generated gRPC/Proto files (e.g., `web-client/lib/proto/`) to avoid duplicate declaration errors.
+- **Use Biome**: Apply Biome for linting and formatting the `web-client`.
+- **Sync Version**: If CI reports schema mismatches, run `just fix` to execute `biome migrate`.
+- **Ignore Strategy**: Leverage `.gitignore` for exclusions and explicitly ignore generated files in `web-client/lib/proto/`.
 
-## Protocol Buffers (gRPC)
-- **Buf**: Use Buf for linting and formatting proto files.
-- **Organization**: Protos must be versioned (e.g., `protos/meetmanager/v1/`).
-- **Automation**: Run `just lint-protos` to verify.
+## Protocol Buffers
+- **Use Buf**: Apply Buf for linting and formatting files in `protos/`.
+- **Structure**: Maintain versioned directories (e.g., `v1/`).
 
-## CI Integration
-- **Verification**: Linting MUST pass in CI. Locally, verify with `just lint` or the hermetic `just verify-ci` to catch architecture-specific issues (like Biome binary mismatches).
+## Verification
+- **Local Check**: Run `just lint` before pushing.
+- **Hermetic Check**: Use `just verify-ci` to catch environment-specific linting issues (e.g., binary mismatches).

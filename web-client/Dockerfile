@@ -2,15 +2,12 @@ FROM node:20-alpine AS builder
 RUN apk add --no-cache libc6-compat protobuf
 WORKDIR /app
 
-# Install dependencies (only web-client files)
+# 1. Install dependencies first (layer 1)
 COPY web-client/package.json web-client/package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-# Copy web-client source and shared protos
-COPY web-client/ .
+# 2. Copy protos and generate code (layer 2)
 COPY protos/ /protos/
-
-# Generate TS Code from shared protos
 RUN mkdir -p lib/proto && \
   ./node_modules/.bin/grpc_tools_node_protoc \
   --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
@@ -19,7 +16,8 @@ RUN mkdir -p lib/proto && \
   -I/protos \
   /protos/meetmanager/v1/meet_manager.proto
 
-# Build
+# 3. Copy web-client source and build (layer 3)
+COPY web-client/ .
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
 

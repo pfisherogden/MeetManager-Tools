@@ -22,12 +22,18 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash 
 
 WORKDIR /app
 
-# Copy source code (respecting .dockerignore)
-COPY . .
-
-# Install dependencies (this makes the image large but the run fast)
+# 1. Install Python dependencies first (layer 1)
+COPY pyproject.toml uv.lock ./
+COPY backend/pyproject.toml backend/uv.lock ./backend/
+COPY mm_to_json/mm_to_json_py/pyproject.toml mm_to_json/mm_to_json_py/uv.lock ./mm_to_json/mm_to_json_py/
 RUN uv sync --all-packages --dev
+
+# 2. Install Node dependencies (layer 2)
+COPY web-client/package.json web-client/package-lock.json* ./web-client/
 RUN cd web-client && npm install
+
+# 3. Copy the rest of the source code (layer 3)
+COPY . .
 
 # The rest will be handled by running 'just verify-local'
 CMD ["just", "verify-local"]

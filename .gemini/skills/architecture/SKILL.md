@@ -1,24 +1,28 @@
 ---
 name: Architecture Guidelines
-description: Project structure and decoupling principles.
+description: Project structure and decoupling principles for MeetManager-Tools. Use when refactoring, adding new services, or modifying system-wide communication.
 ---
+
 # Architecture Guidelines
 
-## Project Structure
-- **Service Isolation**: The repository consists of `backend` (Python) and `web-client` (Next.js) as independent services.
-- **Contract-First**: gRPC Protobuf definitions are the single source of truth for communication. They reside in the root `protos/` directory.
-- \*\*Hermetic Builds\*\*: Build processes must be self-contained within Docker. Avoid host-side scripts that modify the project structure during builds.
+## Structural Principles
+- **Service Isolation**: Maintain `backend` (Python) and `web-client` (Next.js) as decoupled services.
+- **Contract-First**: Use gRPC Protobuf definitions in `protos/` as the single source of truth for cross-service communication.
+- **Hermetic Builds**: Ensure all build processes are self-contained within Docker.
+- **Docker Optimization**: 
+    - **Layered Dependencies**: Copy dependency files (`package.json`, `pyproject.toml`, `uv.lock`) and run install/sync steps *before* copying full source code.
+    - **Isolation**: Isolate slow, static steps (e.g., JRE downloads) in early layers to maximize build cache reuse.
 
-## Data & Reporting
-- **Persistence**: Database state is managed via Microsoft Access (`.mdb`) files, with JSON caching for performance.
-- **Verification**: Every data transformation must be verifiable through automated reports (PDF/PNG artifacts) to ensure correctness against the original MDB source.
+## Data Strategy
+- **Source of Truth**: Treat Microsoft Access (`.mdb`) files as the primary data source.
+- **Caching**: Utilize JSON caching for performance, but ensure it is reproducible from the MDB source.
+- **Verification**: Ensure every data transformation is verifiable via automated PDF/PNG reports.
 
-## Frontend Strategy
-- **Data Fetching**: Prefer Server Components and Server Actions.
-- **State Management**: Minimize client-side state; use URL params or server-side data where possible.
-- **Caching**: Use `revalidatePath` to maintain consistency after admin actions.
+## Frontend Architecture
+- **Server-First**: Prioritize React Server Components and Server Actions.
+- **State**: Minimize client-side state; leverage URL parameters and server-side data fetching.
+- **Consistency**: Use `revalidatePath` to synchronize UI state after server-side mutations.
 
-## DevOps & Infrastructure
-- **Environment Parity**: Maintain strict tool parity between local development, Docker environments, and CI/CD pipelines.
-- **Local Comprehensive Verification**: Before pushing, run `just verify-local`. This runs `codegen`, `fix`, `lint`, and all tests locally.
-- **Hermetic CI Verification**: For a final check before PR merge, run `just verify-ci`. This executes the full pipeline in a clean room Docker container (`ci.Dockerfile`) to catch missing dependencies or configuration errors that only appear in hermetic environments.
+## Verification Workflow
+- **Local Check**: Run `just verify-local` before pushing to verify codegen, linting, and tests.
+- **Hermetic Check**: Run `just verify-ci` for a clean-room Docker verification in `ci.Dockerfile`.

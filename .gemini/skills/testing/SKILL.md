@@ -1,29 +1,24 @@
 ---
 name: Testing Standards
-description: Guidelines for running and writing tests in this project.
+description: Guidelines for running and writing tests in MeetManager-Tools. Use when adding features, fixing bugs, or verifying system behavior.
 ---
+
 # Testing Standards
 
-## Principles
-- **Mandatory Verification**: Every feature or fix must include tests.
-- **Unified Entry Point**: Use `just test` to run all project tests.
-- **Robustness**: Server methods MUST handle `request=None` gracefully. Tests often pass `None` for requests when verifying internal logic, and the service should not crash with `AttributeError`.
+## Core Principles
+- **Mandatory Verification**: Every code change must be accompanied by tests.
+- **Unified Entry Point**: Use `just test` for full suite execution.
+- **Robustness**: Ensure gRPC server methods handle `request=None` gracefully.
 
-## Preparation (CI & Local)
-- **Dependency Sync**: Before running tests, ensure all dependencies are synced. In CI, use `uv sync --all-packages --dev`.
-- **Code Generation**: Tests that depend on generated code (e.g., gRPC protos) must run `just codegen` as a prerequisite. `just test` handles this automatically.
+## Test Workflow
+1. **Sync Dependencies**: Run `uv sync --all-packages --dev` (Backend) or `npm install` (Frontend).
+2. **Generate Code**: Run `just codegen` if modifying `.proto` files.
+3. **Execute Backend Tests**: Run `just test-backend` for `pytest`.
+   - Focus on data parsing and report generation logic.
+   - Verify PDF/PNG artifacts against snapshots in `backend/data/example_reports/`.
+4. **Execute Frontend Tests**: Run `just test-frontend` for `Vitest`.
+   - Focus on component rendering and Server Action interactions.
 
-## Backend (Python)
-- **Framework**: `pytest`.
-- **Logic Tests**: Cover data parsing and gRPC service logic.
-- **Report Verification**: Tests should verify that generated PDF/PNG reports match expected data snapshots.
-- **Command**: `just test-backend` (runs `pytest` in Docker or local `uv` environment).
-
-## Frontend (web-client)
-- **Framework**: `Vitest`.
-- **Component Tests**: Ensure UI components render correctly and handle interactions.
-- **End-to-End**: Use Playwright or similar for critical user flows (optional but recommended for complex workflows).
-- **Command**: `just test-frontend` (runs `npm test`).
-
-## Artifacts
-- **Snapshots**: Maintain snapshots for verification reports in `backend/data/example_reports/`.
+## Design Patterns
+- **Unit over Integration**: Prefer testing logic in isolation before full system tests.
+- **Snapshots**: Use file-based snapshots for visual reports to ensure data integrity across transformations.

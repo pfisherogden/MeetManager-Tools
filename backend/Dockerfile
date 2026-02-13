@@ -10,22 +10,23 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Install Python dependencies using uv
-COPY backend/pyproject.toml .
-# We don't have a lockfile yet, so we'll let uv create one or just install from pyproject
-RUN /uv/bin/uv pip install --system -e .
+# 1. Install Python dependencies using uv (layer 1)
+COPY backend/pyproject.toml backend/uv.lock* ./
+RUN /uv/bin/uv pip install --system .
 
-# Copy protos and source
+# 2. Download Java libraries (layer 2 - depends only on script and config)
+# We copy just the script needed for downloading to avoid invalidating this layer on source changes
+COPY backend/src/mm_to_json/download_libs.py ./src/mm_to_json/
+RUN python3 src/mm_to_json/download_libs.py
+
+# 3. Generate Python Protos (layer 3 - depends only on protos)
 COPY protos ./protos
+RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src --pyi_out=src protos/meetmanager/v1/meet_manager.proto
+
+# 4. Copy source and data (layer 4)
 COPY backend/src ./src
 COPY backend/tests ./tests
 COPY backend/data ./data
-
-# Download Java libraries
-RUN python3 src/mm_to_json/download_libs.py
-
-# Generate Python Protos
-RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src protos/meetmanager/v1/meet_manager.proto
 
 ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1

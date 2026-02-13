@@ -21,15 +21,23 @@ backend/data/*.mdb
 **/.ruff_cache/
 !backend/data/Sample_Data.json
 web-client-build/
-package-lock*.json
 pnpm-lock.yaml
 *.zip
 *.mdb
 *.jdk/
 **/*.jdk/
+.pytest_cache/
 **/.pytest_cache/
+.ruff_cache/
 **/.ruff_cache/
+.uv_cache/
 **/.uv_cache/
+.mypy_cache/
+**/.mypy_cache/
+build/
+**/build/
+dist/
+**/dist/
 
 # Specific mm_to_json ignores
 mm_to_json/tmp/
