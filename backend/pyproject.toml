@@ -48,12 +48,16 @@ strict_equality = true
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = [
-    "meet_manager_pb2.*",
-    "meet_manager_pb2_grpc.*",
-]
+module = "meetmanager.*"
 ignore_errors = true
-ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "meet_manager_pb2.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "meet_manager_pb2_grpc.*"
+ignore_errors = true
 
 [dependency-groups]
 dev = [

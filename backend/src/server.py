@@ -7,12 +7,18 @@ import os
 import subprocess
 import tempfile
 from concurrent import futures
+from typing import Any
 
 import grpc
 
 # Import generated classes
-from meetmanager.v1 import meet_manager_pb2 as pb2
-from meetmanager.v1 import meet_manager_pb2_grpc as pb2_grpc
+try:
+    from meetmanager.v1 import meet_manager_pb2 as pb2
+    from meetmanager.v1 import meet_manager_pb2_grpc as pb2_grpc
+except ImportError:
+    # Fallback for environments where protos aren't generated yet
+    pb2 = Any  # type: ignore
+    pb2_grpc = Any  # type: ignore
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.report_generator import ReportGenerator
 
@@ -24,7 +30,8 @@ CONFIG_FILE = "config.json"
 
 class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def __init__(self):
-        self._data_cache = None
+        self._data_cache: Any = None
+        self._scoring_map: dict[str, dict[str, dict[int, dict[str, float]]]] | None = None
         self.current_file = SOURCE_FILE
         self._load_data()
         self._load_config()
@@ -126,6 +133,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.UploadDatasetResponse(success=False, message=str(e))
 
     def _get_table(self, table_name):
+        if self._data_cache is None:
+            return []
         return self._data_cache.get(table_name, [])
 
     def GetDashboardStats(self, request, context):
@@ -155,7 +164,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         athletes = self._get_table("Athlete")
 
         # Count athletes per team
-        ath_counts = {}
+        ath_counts: dict[int, int] = {}
         for ath in athletes:
             t_id = int(ath.get("Team_no", 0))
             ath_counts[t_id] = ath_counts.get(t_id, 0) + 1
@@ -258,7 +267,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breaststroke", "D": "Butterfly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "F": "Women", "W": "Women"}
 
-        entry_counts = {}
+        entry_counts: dict[str, int] = {}
         entries = self._get_table("Entry") or self._get_table("ENTRY")
         for e in entries:
             evt_ptr = e.get("Event_ptr")
@@ -407,7 +416,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             relays_data = self._get_table("RELAY")
 
         relay_names_data = self._get_table("RelayNames")
-        relay_legs_map = {}
+        relay_legs_map: dict[tuple[Any, Any, Any], list[Any]] = {}
         for rn in relay_names_data:
             key = (rn.get("Event_ptr"), rn.get("Team_no"), rn.get("Relay_no"))
             if key not in relay_legs_map:
@@ -658,7 +667,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
-        event_dict = {}
+        event_dict: dict[str, dict[str, Any]] = {}
         event_raw_map = {}
 
         for e in self._get_table("Event"):
