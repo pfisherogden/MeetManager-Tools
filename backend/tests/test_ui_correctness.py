@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"
 # Define a mock for meet_manager_pb2 if import fails (unlikely if protos generated)
 try:
     import meet_manager_pb2
+
     from server import MeetManagerService
 except ImportError:
     pytest.skip("Skipping because protos not generated", allow_module_level=True)

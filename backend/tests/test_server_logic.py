@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"
 
 try:
     import meet_manager_pb2
+
     from server import MeetManagerService
 except ImportError:
     # If not running in environment where protos are generated, we might fail
