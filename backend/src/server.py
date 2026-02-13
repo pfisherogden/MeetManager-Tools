@@ -321,6 +321,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     stroke=stroke_desc,
                     low_age=int(item.get("Low_age", 0)),
                     high_age=int(item.get("High_Age", 0)),
+                    session=self._safe_int(item.get("Sess_no", 1)),
                     entry_count=entry_counts.get(item.get("Event_no") or item.get("Event_ptr"), 0),
                 )
             )
@@ -853,8 +854,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             elif rtype == "results":
                 rg.generate_meet_results(temp_path)
             elif rtype == "program":
-                # Assuming report_generator has this or fallback to psych
-                rg.generate_psych_sheet(temp_path)
+                rg.generate_meet_program(temp_path)
 
             with open(temp_path, "rb") as f:
                 pdf_content = f.read()
