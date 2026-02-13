@@ -44,13 +44,16 @@ up:
 down:
     docker-compose down
 
-# Regenerate gRPC protos (local)
-codegen:
-    @echo "Regenerating Protos..."
-    # Backend
+codegen-backend:
+    @echo "Regenerating Backend Protos..."
     cd backend && uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto
-    # Frontend
+
+codegen-frontend:
+    @echo "Regenerating Frontend Protos..."
     cd web-client && npm run codegen
+
+# Regenerate gRPC protos (local)
+codegen: codegen-backend codegen-frontend
 
 # Run all linting and formatting checks (read-only)
 lint: lint-backend lint-mm-to-json lint-frontend format-frontend-check lint-protos type-check-backend
@@ -62,7 +65,7 @@ lint-protos:
     @echo "Linting protos..."
     buf lint protos
 
-type-check-backend: codegen
+type-check-backend: codegen-backend
     @echo "Type checking backend..."
     cd backend && MYPYPATH=src uv run mypy src
 
