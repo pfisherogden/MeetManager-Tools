@@ -189,7 +189,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetTeamsResponse(teams=teams)
 
     def GetTeam(self, request, context):
-        team_id = request.id
+        team_id = request.id if request else 0
         data = self._get_table("Team")
         for item in data:
             if int(item.get("Team_no", 0)) == team_id:
@@ -216,7 +216,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         athletes = []
         for item in data:
             t_id = int(item.get("Team_no", 0))
-            if request.team_id and str(t_id) != request.team_id:
+            if request and request.team_id and str(t_id) != request.team_id:
                 continue
 
             dob_raw = item.get("Ath_birthdate") or item.get("Birth_date") or ""
@@ -239,7 +239,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetAthletesResponse(athletes=athletes)
 
     def GetAthlete(self, request, context):
-        ath_id = request.id
+        ath_id = request.id if request else 0
         data = self._get_table("Athlete")
         teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in self._get_table("Team")}
 
@@ -325,7 +325,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.ListDatasetsResponse(datasets=datasets)
 
     def SetActiveDataset(self, request, context):
-        filename = request.filename
+        filename = request.filename if request else ""
         path = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
 
         if not os.path.exists(path):
@@ -339,7 +339,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.SetActiveDatasetResponse()
 
     def ClearDataset(self, request, context):
-        filename = request.filename
+        filename = request.filename if request else ""
         if not (filename.endswith(".mdb") or filename.endswith(".json")):
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("Invalid file type")
@@ -580,13 +580,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         result = []
         for idx, item in enumerate(entries_data):
             ath_id = item.get("Ath_no", 0)
-            if request.athlete_id and str(ath_id) != request.athlete_id:
+            if request and request.athlete_id and str(ath_id) != request.athlete_id:
                 continue
 
             athlete = athletes.get(ath_id, {})
             t_id = athlete.get("Team_no", 0)
             event_id = item.get("Event_ptr")
-            if request.event_id and str(event_id) != request.event_id:
+            if request and request.event_id and str(event_id) != request.event_id:
                 continue
 
             seed = item.get("ActualSeed_time") or item.get("ConvSeed_time") or item.get("Seed_Time") or "NT"
@@ -787,7 +787,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             converter = MmToJsonConverter(table_data=self._data_cache)
             hierarchical_data = converter.convert()
-            rg = ReportGenerator(hierarchical_data, title=request.title or "Meet Report")
+            
+            title = "Meet Report"
+            rtype_val = 0
+            team_filter = None
+            if request:
+                title = request.title or "Meet Report"
+                rtype_val = request.type
+                team_filter = request.team_filter
+
+            rg = ReportGenerator(hierarchical_data, title=title)
 
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 temp_path = tmp.name
@@ -800,12 +809,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_MEET_PROGRAM: "program",
             }
 
-            rtype = rtype_map.get(request.type, "psych")
+            rtype = rtype_map.get(rtype_val, "psych")
 
             if rtype == "psych":
                 rg.generate_psych_sheet(temp_path)
             elif rtype == "entries":
-                rg.generate_meet_entries(temp_path, team_filter=request.team_filter)
+                rg.generate_meet_entries(temp_path, team_filter=team_filter)
             elif rtype == "lineups":
                 rg.generate_lineup_sheets(temp_path)
             elif rtype == "results":
@@ -919,9 +928,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         )
 
     def UpdateAdminConfig(self, request, context):
-        self.config["meet_name"] = request.meet_name
-        self.config["meet_description"] = request.meet_description
-        self._save_config()
+        if request:
+            self.config["meet_name"] = request.meet_name
+            self.config["meet_description"] = request.meet_description
+            self._save_config()
         return pb2.UpdateAdminConfigResponse(
             meet_name=self.config.get("meet_name", ""), meet_description=self.config.get("meet_description", "")
         )
