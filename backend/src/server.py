@@ -141,6 +141,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return self._data_cache.get(table_name, [])
 
     def GetDashboardStats(self, request, context):
+        request = request or pb2.GetDashboardStatsRequest()
         teams = self._get_table("Team")
         athletes = self._get_table("Athlete")
         events = self._get_table("Event")
@@ -151,6 +152,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         )
 
     def GetMeets(self, request, context):
+        request = request or pb2.GetMeetsRequest()
         data = self._get_table("Meet")
         meets = []
         for item in data:
@@ -163,6 +165,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetMeetsResponse(meets=meets)
 
     def GetTeams(self, request, context):
+        request = request or pb2.GetTeamsRequest()
         data = self._get_table("Team")
         athletes = self._get_table("Athlete")
 
@@ -189,7 +192,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetTeamsResponse(teams=teams)
 
     def GetTeam(self, request, context):
-        team_id = request.id if request else 0
+        request = request or pb2.GetTeamRequest()
+        team_id = request.id
         data = self._get_table("Team")
         for item in data:
             if int(item.get("Team_no", 0)) == team_id:
@@ -210,6 +214,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetTeamResponse()
 
     def GetAthletes(self, request, context):
+        request = request or pb2.GetAthletesRequest()
         data = self._get_table("Athlete")
         teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in self._get_table("Team")}
 
@@ -239,7 +244,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetAthletesResponse(athletes=athletes)
 
     def GetAthlete(self, request, context):
-        ath_id = request.id if request else 0
+        request = request or pb2.GetAthleteRequest()
+        ath_id = request.id
         data = self._get_table("Athlete")
         teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in self._get_table("Team")}
 
@@ -265,6 +271,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetAthleteResponse()
 
     def GetEvents(self, request, context):
+        request = request or pb2.GetEventsRequest()
         data = self._get_table("Event")
         events = []
         stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breaststroke", "D": "Butterfly", "E": "IM"}
@@ -304,6 +311,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetEventsResponse(events=events)
 
     def ListDatasets(self, request, context):
+        request = request or pb2.ListDatasetsRequest()
         datasets = []
         data_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
         try:
@@ -325,7 +333,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.ListDatasetsResponse(datasets=datasets)
 
     def SetActiveDataset(self, request, context):
-        filename = request.filename if request else ""
+        request = request or pb2.SetActiveDatasetRequest()
+        filename = request.filename
         path = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
 
         if not os.path.exists(path):
@@ -339,7 +348,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.SetActiveDatasetResponse()
 
     def ClearDataset(self, request, context):
-        filename = request.filename if request else ""
+        request = request or pb2.ClearDatasetRequest()
+        filename = request.filename
         if not (filename.endswith(".mdb") or filename.endswith(".json")):
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("Invalid file type")
@@ -371,6 +381,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.ClearDatasetResponse()
 
     def ClearAllDatasets(self, request, context):
+        request = request or pb2.ClearAllDatasetsRequest()
         data_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
         try:
             files = os.listdir(data_dir)
@@ -414,6 +425,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return str(date_str)
 
     def GetRelays(self, request, context):
+        request = request or pb2.GetRelaysRequest()
         relays_data = self._get_table("Relay")
         if not relays_data:
             relays_data = self._get_table("RELAY")
@@ -497,6 +509,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetRelaysResponse(relays=result)
 
     def GetScores(self, request, context):
+        request = request or pb2.GetScoresRequest()
         teams = {
             t.get("Team_no"): {"name": t.get("Team_name"), "id": t.get("Team_no")} for t in self._get_table("Team")
         }
@@ -556,6 +569,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetScoresResponse(scores=result)
 
     def GetEntries(self, request, context):
+        request = request or pb2.GetEntriesRequest()
         entries_data = self._get_table("Entry")
         if not entries_data:
             entries_data = self._get_table("ENTRY")
@@ -661,6 +675,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return score_data.get("rel" if is_relay else "ind", 0.0)
 
     def GetEventScores(self, request, context):
+        request = request or pb2.GetEventScoresRequest()
         entries = self._get_table("Entry") or self._get_table("ENTRY")
         relays = self._get_table("Relay") or self._get_table("RELAY")
         athletes_map = {a.get("Ath_no"): a for a in self._get_table("Athlete")}
@@ -784,6 +799,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetEventScoresResponse(event_scores=resp_list)
 
     def GenerateReport(self, request, context):
+        if request is None:
+            return pb2.GenerateReportResponse(success=False, message="Missing request")
         try:
             converter = MmToJsonConverter(table_data=self._data_cache)
             hierarchical_data = converter.convert()
@@ -838,6 +855,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.GenerateReportResponse(success=False, message=str(e))
 
     def GetSessions(self, request, context):
+        request = request or pb2.GetSessionsRequest()
         data = self._get_table("Session")
         meets = self._get_table("Meet")
         meet_start = None
@@ -923,15 +941,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetSessionsResponse(sessions=sessions)
 
     def GetAdminConfig(self, request, context):
+        request = request or pb2.GetAdminConfigRequest()
         return pb2.GetAdminConfigResponse(
             meet_name=self.config.get("meet_name", ""), meet_description=self.config.get("meet_description", "")
         )
 
     def UpdateAdminConfig(self, request, context):
-        if request:
-            self.config["meet_name"] = request.meet_name
-            self.config["meet_description"] = request.meet_description
-            self._save_config()
+        request = request or pb2.UpdateAdminConfigRequest()
+        self.config["meet_name"] = request.meet_name
+        self.config["meet_description"] = request.meet_description
+        self._save_config()
         return pb2.UpdateAdminConfigResponse(
             meet_name=self.config.get("meet_name", ""), meet_description=self.config.get("meet_description", "")
         )
