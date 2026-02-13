@@ -373,7 +373,7 @@ class PDFRenderer:
             row_b_idx = row_a_idx + 1
             table_styles.extend(
                 [
-                    ("SPAN", (1, row_b_idx), (3, row_b_idx)),
+                    ("SPAN", (1, row_b_idx), (3, row_b_idx)),  # type: ignore
                     ("TOPPADDING", (0, row_b_idx), (-1, row_b_idx), 0),
                     ("BOTTOMPADDING", (0, row_b_idx), (-1, row_b_idx), 8),
                 ]

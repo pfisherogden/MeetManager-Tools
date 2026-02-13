@@ -1,5 +1,7 @@
 import datetime
 
+from typing import Any
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -377,7 +379,7 @@ class ReportGenerator:
                 # If individual, let's redo the loop to build a table per heat for better alignment
                 if not is_relay:
                     # Re-group by heat locally
-                    heats = {}
+                    heats: dict[int, list[dict[str, Any]]] = {}
                     for e in entries:
                         h = e.get("heat", 0)
                         if h not in heats:

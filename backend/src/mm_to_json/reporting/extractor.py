@@ -165,7 +165,7 @@ class ReportDataExtractor:
 
         # Map: Team -> AthleteKey -> Dict
         # Special key "RelayTeams" for list of relay entries
-        grouped = {}
+        grouped: dict[str, Any] = {}
 
         # New approach: Iterate and distribute
         # We need `team_filter` checking early
@@ -317,7 +317,7 @@ class ReportDataExtractor:
         sorted_teams = sorted(grouped.keys())
         report_groups = []
         for t_name in sorted_teams:
-            team_items = []
+            team_items: list[dict[str, Any]] = []
 
             # Sort Athletes by Name
             # Exclude special "RelayTeams" key
@@ -474,7 +474,7 @@ class ReportDataExtractor:
                     team_items.append(
                         {
                             "header": "",  # Empty header, using table for content
-                            "force_1col": True,
+                            "force_1col": True,  # type: ignore
                             "sub_items": sub_items,
                         }
                     )
@@ -536,7 +536,7 @@ class ReportDataExtractor:
             header = f"Event {evt_num}  {evt_desc}"
 
             # 5. Group entries by heat number
-            heats = {}
+            heats: dict[int, list[dict[str, Any]]] = {}
             for entry in entries:
                 h = entry.get("heat", 0)
                 if h not in heats:

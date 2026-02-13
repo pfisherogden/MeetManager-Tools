@@ -16,7 +16,7 @@ try:
     from . import mdb_writer
 except ImportError as e:
     logger.debug(f"Failed to import mdb_writer: {e}")
-    mdb_writer = None
+    mdb_writer: Any = None  # type: ignore
 
 
 class MmToJsonConverter:
@@ -138,40 +138,13 @@ class MmToJsonConverter:
                         self.schema_type = "B"
                         logger.info("Detected Schema Type B (MTEVENT structure)")
 
-                    rows = self._read_table_jackcess(found_name)
+                    rows: Any = self._read_table_jackcess(found_name)  # type: ignore
                 except Exception as e:
                     logger.error(f"Failed to parse table {found_name}: {e}")
                     logger.error("SKIPPING TABLE due to parse error.")
                     rows = None
 
-                df = pd.DataFrame()
-                if isinstance(rows, dict):
-                    # Sanitize column lengths
-                    max_len = 0
-                    # Ensure all values are lists
-                    scalar_only = True
-                    for _k, v in rows.items():
-                        if isinstance(v, list):
-                            max_len = max(max_len, len(v))
-                            scalar_only = False
-
-                    if scalar_only and rows:
-                        # If all scalars (and not empty), wrap them
-                        for k, v in rows.items():
-                            rows[k] = [v]
-                    else:
-                        # Normalize list lengths
-                        for k, v in rows.items():
-                            if isinstance(v, list) and len(v) < max_len:
-                                rows[k] = v + [None] * (max_len - len(v))
-                            elif not isinstance(v, list):
-                                # Mixed scalar/list? Should not happen in well-formed output,
-                                # but handle it
-                                rows[k] = [v] + [None] * (max_len - 1)
-
-                    df = pd.DataFrame(rows)
-                elif isinstance(rows, list) and len(rows) > 0 and isinstance(rows[0], dict):
-                    df = pd.DataFrame(rows)
+                df = pd.DataFrame(rows)
 
                 if not df.empty:
                     df.columns = df.columns.astype(str)
@@ -336,7 +309,7 @@ class MmToJsonConverter:
 
     def get_session_info(self):
         df = self.tables["Session"]
-        sessions = []
+        sessions: list[Session] = []
         if df.empty:
             return sessions
 
@@ -756,7 +729,7 @@ class MmToJsonConverter:
 
     def get_relay_athletes(self, event_ptr, team_no, team_ltr, round_ltr):
         df = self.tables["RelayNames"]
-        athletes = []
+        athletes: list[dict[str, Any]] = []
         if df.empty:
             return athletes
 
