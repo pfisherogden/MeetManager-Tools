@@ -19,6 +19,7 @@ except ImportError:
     # Fallback for environments where protos aren't generated yet
     # We use cast to Any to avoid mypy errors when this fallback is active
     import typing
+
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
 from mm_to_json.mm_to_json import MmToJsonConverter

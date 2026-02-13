@@ -48,7 +48,7 @@ down:
 codegen:
     @echo "Regenerating Protos..."
     # Backend
-    cd backend && uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src ../protos/meetmanager/v1/meet_manager.proto
+    cd backend && uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto
     # Frontend
     cd web-client && npm run codegen
 
@@ -65,13 +65,13 @@ type-check-backend:
 
 lint-backend:
     @echo "Linting backend..."
-    cd backend && uv run ruff check .
-    cd backend && uv run ruff format --check .
+    cd backend && uv run ruff check src tests
+    cd backend && uv run ruff format --check src tests
 
 fix-backend:
     @echo "Fixing backend linting and formatting..."
-    cd backend && uv run ruff check --fix .
-    cd backend && uv run ruff format .
+    cd backend && uv run ruff check --fix src tests
+    cd backend && uv run ruff format src tests
 
 lint-mm-to-json:
     @echo "Linting mm_to_json..."

@@ -474,7 +474,7 @@ class ReportDataExtractor:
                     team_items.append(
                         {
                             "header": "",  # Empty header, using table for content
-                            "force_1col": True,  # type: ignore
+                            "force_1col": True,
                             "sub_items": sub_items,
                         }
                     )
