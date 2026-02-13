@@ -76,22 +76,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _load_mdb(self, path):
         """Parsing MDB using mdb-export commands."""
-        import shutil  # Import here or at top level
         cache = {}
-        
+
         # Copy to temp file to avoid "Resource deadlock avoided" on mounted volumes
         with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
             tmp_path = tmp.name
-            
+
         try:
             # shutil.copy and cp fail on VirtioFS with deadlock
-            with open(path, 'rb') as src, open(tmp_path, 'wb') as dst:
+            with open(path, "rb") as src, open(tmp_path, "wb") as dst:
                 while True:
-                    chunk = src.read(1024*1024) # 1MB chunks
+                    chunk = src.read(1024 * 1024)  # 1MB chunks
                     if not chunk:
                         break
                     dst.write(chunk)
-            
+
             # Get tables
             tables_out = subprocess.check_output(["mdb-tables", "-1", tmp_path]).decode("utf-8")
             tables = tables_out.strip().split()
