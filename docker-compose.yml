@@ -6,7 +6,7 @@ services:
     ports:
       - "50051:50051"
     volumes:
-      - ./backend/data:/app/data
+      # - ./backend/data:/app/data # Removed to fix locking issues on macOS
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests
       - ./protos:/app/protos

@@ -76,15 +76,29 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _load_mdb(self, path):
         """Parsing MDB using mdb-export commands."""
+        import shutil  # Import here or at top level
         cache = {}
+        
+        # Copy to temp file to avoid "Resource deadlock avoided" on mounted volumes
+        with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
+            tmp_path = tmp.name
+            
         try:
+            # shutil.copy and cp fail on VirtioFS with deadlock
+            with open(path, 'rb') as src, open(tmp_path, 'wb') as dst:
+                while True:
+                    chunk = src.read(1024*1024) # 1MB chunks
+                    if not chunk:
+                        break
+                    dst.write(chunk)
+            
             # Get tables
-            tables_out = subprocess.check_output(["mdb-tables", "-1", path]).decode("utf-8")
+            tables_out = subprocess.check_output(["mdb-tables", "-1", tmp_path]).decode("utf-8")
             tables = tables_out.strip().split()
 
             for table in tables:
                 # Export as CSV
-                csv_out = subprocess.check_output(["mdb-export", path, table]).decode("utf-8")
+                csv_out = subprocess.check_output(["mdb-export", tmp_path, table]).decode("utf-8")
                 # Parse CSV
                 reader = csv.DictReader(io.StringIO(csv_out))
                 rows = list(reader)
@@ -96,6 +110,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         except Exception as e:
             print(f"Error loading MDB: {e}")
             return {}
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     def UploadDataset(self, request_iterator, context):
         print("DEBUG: UploadDataset called", flush=True)
