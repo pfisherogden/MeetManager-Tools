@@ -61,7 +61,7 @@ lint-protos:
 
 type-check-backend:
     @echo "Type checking backend..."
-    cd backend && uv run mypy .
+    cd backend && MYPYPATH=src uv run mypy src
 
 lint-backend:
     @echo "Linting backend..."
@@ -99,8 +99,8 @@ format-frontend-check:
     @echo "Checking frontend formatting..."
     cd web-client && npm run format:check
 
-# Run all tests
-test: test-backend test-frontend
+# Run all tests (enforces linting first)
+test: lint test-backend test-frontend
 
 test-backend:
     @echo "Running Backend Tests..."
