@@ -698,7 +698,10 @@ class ReportDataExtractor:
                         }
                     )
                 report_groups.append(
-                    {"header": f"Event {evt_num} {evt_desc} Heat {h}", "items": [{"sub_items": sub_items, "header": f"Heat {h}"}]}
+                    {
+                        "header": f"Event {evt_num} {evt_desc} Heat {h}",
+                        "items": [{"sub_items": sub_items, "header": f"Heat {h}"}],
+                    }
                 )
 
         return {"meet_name": full_data.get("meetName", ""), "sub_title": "Timer Sheets", "groups": report_groups}
