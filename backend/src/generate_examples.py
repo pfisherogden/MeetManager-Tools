@@ -66,7 +66,6 @@ def main():
 
     for rtype, rname in reports:
         out_path = os.path.join(out_dir, f"example_{rtype}.pdf")
-        rg.title = rname
         print(f"Generating {rname}...")
         try:
             if rtype == "psych":

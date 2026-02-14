@@ -126,7 +126,7 @@ class ReportDataExtractor:
                 pass
 
         # Grouping Logic
-        grouped = {}
+        grouped: dict[str, dict[Any, Any]] = {}
 
         # Split into Individuals and Relays for processing order
         ind_entries = [e for e in flat_entries if not e["is_relay"]]
