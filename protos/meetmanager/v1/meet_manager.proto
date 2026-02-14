@@ -461,6 +461,8 @@ message Event {
   string status = 8;
   // entry_count is the number of entries in this event.
   int32 entry_count = 9;
+  // age_group is the formatted age range for this event.
+  string age_group = 10;
 }
 
 // ReportType specifies the kind of report to generate.
