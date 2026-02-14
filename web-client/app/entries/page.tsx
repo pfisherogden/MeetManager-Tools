@@ -30,7 +30,7 @@ export default async function EntriesPage() {
 		if (list?.entries) {
 			mappedEntries = list.entries.map((e) => ({
 				id: e.id.toString(), // assuming server provides index as ID
-				eventName: e.eventName || `Event ${e.eventId}`, // Fallback if missing
+				eventName: e.eventName || `Event ${e.eventId}`, // Highly reliable since backend fix
 				eventId: e.eventId.toString(),
 				athleteId: e.athleteId.toString(),
 				athleteName: e.athleteName,

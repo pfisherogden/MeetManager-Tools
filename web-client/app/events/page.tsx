@@ -1,14 +1,8 @@
 import { getEvents } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { EventsManager } from "@/components/events-manager";
-import type { SwimEvent as UIEvent } from "@/lib/swim-meet-types";
-
-function formatAgeGroup(low: number, high: number): string {
-	if (low === 0 && high === 0) return "Open";
-	if (low === 0 && high > 0) return `${high} & under`;
-	if (low > 0 && (high === 0 || high >= 99)) return `${low} & over`;
-	return `${low}-${high}`;
-}
+import type { SwimEvent } from "@/lib/swim-meet-types";
+import { formatAgeGroup } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +19,7 @@ interface ServerEvent {
 }
 
 export default async function EventsPage() {
-	let mappedEvents: UIEvent[] = [];
+	let mappedEvents: SwimEvent[] = [];
 
 	try {
 		const list = (await getEvents()) as unknown as { events: ServerEvent[] };
