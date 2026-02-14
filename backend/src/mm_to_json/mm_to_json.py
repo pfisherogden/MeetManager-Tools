@@ -505,8 +505,8 @@ class MmToJsonConverter:
                 is_relay=relay,
                 gender=self._get_val(row, "Event_gender"),
                 gender_desc=self._get_val(row, "Event_sex"),
-                min_age=self._safe_int(row.get("Low_age")),
-                max_age=self._safe_int(row.get("High_age")),
+                min_age=self._safe_int(row.get("Low_age") or row.get("Low_Age")),
+                max_age=self._safe_int(row.get("High_age") or row.get("High_Age")),
                 distance=self._safe_int(row.get("Event_dist")),
                 stroke=stroke_name,
                 division=division_name,
@@ -516,15 +516,17 @@ class MmToJsonConverter:
             )
 
     def _parse_lo_hi(self, val):
-        # Heuristic: 8 -> 0-8, 910 -> 9-10, 1112 -> 11-12, 1314 -> 13-14, 1518 -> 15-18?
+        # Heuristic: 8 -> 0-8, 78 -> 7-8, 910 -> 9-10, 1112 -> 11-12, 1314 -> 13-14, 1518 -> 15-18
         if val == 0:
             return 0, 109  # Open
         if val < 10:
             return 0, val  # e.g. 8 -> 8&U
         s = str(val)
-        if len(s) == 3:  # 910
+        if len(s) == 2:  # 78 -> 7, 8
+            return int(s[0]), int(s[1])
+        if len(s) == 3:  # 910 -> 9, 10
             return int(s[0]), int(s[1:])
-        if len(s) == 4:  # 1112
+        if len(s) == 4:  # 1112 -> 11, 12
             return int(s[:2]), int(s[2:])
         return 0, 109  # Fallback
 
