@@ -160,3 +160,22 @@ report-verify:
 test-entries:
     @echo "Running Relay/Entries Data Verification..."
     docker-compose run --rm backend python src/tests/test_meet_entries_data.py
+
+# Build the mobile judge app web version
+build-mobile:
+    @echo "Building mobile judge app web bundle..."
+    cd mobile-judge-app && npm run build-web
+
+# Run the mobile judge app in Docker
+up-mobile:
+    @echo "Starting mobile judge app at http://localhost:8080"
+    docker build -t judge-app-v1 mobile-judge-app/
+    docker run -d --name judge-app --rm -p 8080:8080 judge-app-v1
+
+# Stop the mobile judge app container
+down-mobile:
+    docker stop judge-app
+
+# Run mobile app tests
+test-mobile:
+    cd mobile-judge-app && npm test

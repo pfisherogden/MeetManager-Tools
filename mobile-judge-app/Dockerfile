@@ -11,13 +11,13 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Export the app for web
-RUN npx expo export:web
+RUN npx expo export --platform web --output-dir dist
 
 # Production stage
 FROM nginx:stable-alpine
 
 # Copy the build output from the build stage
-COPY --from=build /app/web-build /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy a simple nginx config to handle client-side routing
 COPY nginx.conf /etc/nginx/conf.d/default.conf
