@@ -3,19 +3,26 @@ name: CI
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'mm_to_json/**'
+      - 'protos/**'
+      - 'web-client/**'
+      - 'Justfile'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'mm_to_json/**'
+      - 'protos/**'
+      - 'web-client/**'
+      - 'Justfile'
+      - '.github/workflows/ci.yml'
 
 jobs:
   backend-and-tools:
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' ||
-      contains(github.event.pull_request.changed_files, 'backend/') ||
-      contains(github.event.pull_request.changed_files, 'mm_to_json/') ||
-      contains(github.event.pull_request.changed_files, 'protos/') ||
-      contains(github.event.pull_request.changed_files, 'Justfile') ||
-      contains(github.event.pull_request.changed_files, '.github/workflows/ci.yml')
     steps:
       - uses: actions/checkout@v6
 
@@ -68,10 +75,6 @@ jobs:
 
   web-client:
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' ||
-      contains(github.event.pull_request.changed_files, 'web-client/') ||
-      contains(github.event.pull_request.changed_files, '.github/workflows/ci.yml')
     defaults:
       run:
         working-directory: web-client
