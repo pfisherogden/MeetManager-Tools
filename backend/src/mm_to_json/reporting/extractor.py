@@ -8,7 +8,7 @@ class ReportDataExtractor:
     def __init__(self, converter: "MmToJsonConverter"):
         self.converter = converter
 
-    def extract_meet_entries_data(self, team_filter: str | None = None) -> dict[str, Any]:
+    def extract_meet_entries_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
         """
         Extracts data for the Meet Entries report.
         Hierarchy: Team -> Athlete -> Events
@@ -485,11 +485,11 @@ class ReportDataExtractor:
 
         return {
             "meet_name": full_data.get("meetName", ""),
-            "sub_title": "Entries - All Events",
+            "sub_title": report_title or "Entries - All Events",
             "groups": report_groups,
         }
 
-    def extract_meet_program_data(self, team_filter: str | None = None) -> dict[str, Any]:
+    def extract_meet_program_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
         """
         Extracts data for the Meet Program report.
 
@@ -497,7 +497,8 @@ class ReportDataExtractor:
         Groups -> Event Header -> Heats -> Entries (Lanes)
 
         Args:
-            team_filter (str): Optional team name or code to filter by. (Not fully implemented yet for program)
+            team_filter (str): Optional team name or code to filter by.
+            report_title (str): Optional custom title for the report.
 
         Returns:
             dict: Structured data ready for the PDFRenderer.
@@ -532,6 +533,19 @@ class ReportDataExtractor:
             evt_desc = evt.get("eventDesc")
             is_relay = evt.get("isRelay", False)
             entries = evt.get("entries", [])
+
+            # Apply team filter if requested
+            if team_filter:
+                filtered_entries = []
+                for entry in entries:
+                    t_name = entry.get("team", "")
+                    # Check against team name (we don't have code easily here without extra lookup)
+                    if team_filter.lower() in t_name.lower():
+                        filtered_entries.append(entry)
+                entries = filtered_entries
+
+            if not entries:
+                continue
 
             # Format the visual Event Header
             header = f"Event {evt_num}  {evt_desc}"
@@ -611,9 +625,9 @@ class ReportDataExtractor:
 
             report_groups.append({"header": header, "heats": heat_items})
 
-        return {"meet_name": full_data.get("meetName", ""), "sub_title": "Meet Program", "groups": report_groups}
+        return {"meet_name": full_data.get("meetName", ""), "sub_title": report_title or "Meet Program", "groups": report_groups}
 
-    def extract_psych_sheet_data(self) -> dict[str, Any]:
+    def extract_psych_sheet_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
         """Extracts data for Psych Sheet report."""
         full_data = self.converter.convert()
         all_events = []
@@ -629,6 +643,18 @@ class ReportDataExtractor:
             evt_num = evt.get("eventNum")
             evt_desc = evt.get("eventDesc")
             entries = evt.get("entries", [])
+
+            # Apply team filter if requested
+            if team_filter:
+                filtered_entries = []
+                for entry in entries:
+                    t_name = entry.get("team", "")
+                    if team_filter.lower() in t_name.lower():
+                        filtered_entries.append(entry)
+                entries = filtered_entries
+
+            if not entries:
+                continue
 
             # Sort entries by seed time
             def time_sort_key(ent):
@@ -659,9 +685,9 @@ class ReportDataExtractor:
 
             report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "items": [{"sub_items": sub_items}]})
 
-        return {"meet_name": full_data.get("meetName", ""), "sub_title": "Psych Sheet", "groups": report_groups}
+        return {"meet_name": full_data.get("meetName", ""), "sub_title": report_title or "Psych Sheet", "groups": report_groups}
 
-    def extract_timer_sheets_data(self) -> dict[str, Any]:
+    def extract_timer_sheets_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
         """Extracts data for Timer Sheets (Heat-based)."""
         full_data = self.converter.convert()
         all_events = []
@@ -676,6 +702,18 @@ class ReportDataExtractor:
             evt_num = evt.get("eventNum")
             evt_desc = evt.get("eventDesc")
             entries = evt.get("entries", [])
+
+            # Apply team filter if requested
+            if team_filter:
+                filtered_entries = []
+                for entry in entries:
+                    t_name = entry.get("team", "")
+                    if team_filter.lower() in t_name.lower():
+                        filtered_entries.append(entry)
+                entries = filtered_entries
+
+            if not entries:
+                continue
 
             # Group by heat
             heats: dict[int, list[dict[str, Any]]] = {}
@@ -704,9 +742,13 @@ class ReportDataExtractor:
                     }
                 )
 
-        return {"meet_name": full_data.get("meetName", ""), "sub_title": "Timer Sheets", "groups": report_groups}
+        return {
+            "meet_name": full_data.get("meetName", ""),
+            "sub_title": report_title or "Timer Sheets",
+            "groups": report_groups,
+        }
 
-    def extract_results_data(self) -> dict[str, Any]:
+    def extract_results_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
         """Extracts data for Meet Results report."""
         full_data = self.converter.convert()
         all_events = []
@@ -721,6 +763,18 @@ class ReportDataExtractor:
             evt_num = evt.get("eventNum")
             evt_desc = evt.get("eventDesc")
             entries = evt.get("entries", [])
+
+            # Apply team filter if requested
+            if team_filter:
+                filtered_entries = []
+                for entry in entries:
+                    t_name = entry.get("team", "")
+                    if team_filter.lower() in t_name.lower():
+                        filtered_entries.append(entry)
+                entries = filtered_entries
+
+            if not entries:
+                continue
 
             # Filter for finished entries and sort by place
             # Lenient: Include if it has a non-zero place OR a final time
@@ -747,7 +801,7 @@ class ReportDataExtractor:
 
             report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "items": [{"sub_items": sub_items}]})
 
-        return {"meet_name": full_data.get("meetName", ""), "sub_title": "Meet Results", "groups": report_groups}
+        return {"meet_name": full_data.get("meetName", ""), "sub_title": report_title or "Meet Results", "groups": report_groups}
 
     def _safe_int(self, val, default=0):
         try:

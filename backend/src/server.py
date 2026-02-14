@@ -869,9 +869,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
             team_filter = None
+            title = None
             if request:
                 rtype_val = request.type
                 team_filter = request.team_filter
+                title = request.title
 
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 temp_path = tmp.name
@@ -895,34 +897,34 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             renderer = WeasyRenderer(temp_path)
 
             if rtype == "psych":
-                report_data = extractor.extract_psych_sheet_data()
+                report_data = extractor.extract_psych_sheet_data(team_filter=team_filter, report_title=title)
                 renderer.render_entries(report_data, "psych_sheet.html")
             elif rtype == "entries":
                 # Default entries uses HY-TEK style
-                report_data = extractor.extract_meet_entries_data(team_filter=team_filter)
+                report_data = extractor.extract_meet_entries_data(team_filter=team_filter, report_title=title)
                 renderer.render_entries(report_data, "entries_hytek.html")
             elif rtype == "lineups":
-                report_data = extractor.extract_timer_sheets_data()
+                report_data = extractor.extract_timer_sheets_data(team_filter=team_filter, report_title=title)
                 renderer.render_entries(report_data, "lineups.html")
             elif rtype == "results":
-                report_data = extractor.extract_results_data()
+                report_data = extractor.extract_results_data(team_filter=team_filter, report_title=title)
                 renderer.render_entries(report_data, "results.html")
             elif rtype == "program":
                 # Use new WeasyRenderer for PDF
-                program_data = extractor.extract_meet_program_data(team_filter=team_filter)
+                program_data = extractor.extract_meet_program_data(team_filter=team_filter, report_title=title)
                 renderer.render_meet_program(program_data)
             elif rtype == "program_html":
                 # Use WeasyRenderer for HTML
-                program_data = extractor.extract_meet_program_data(team_filter=team_filter)
+                program_data = extractor.extract_meet_program_data(team_filter=team_filter, report_title=title)
                 html_content = renderer.render_to_html(program_data)
                 # Create empty PDF just to satisfy downstream expectations if any
                 with open(temp_path, "wb") as f:
                     f.write(b"")
             elif rtype == "entries_hytek":
-                report_data = extractor.extract_meet_entries_data(team_filter=team_filter)
+                report_data = extractor.extract_meet_entries_data(team_filter=team_filter, report_title=title)
                 renderer.render_entries(report_data, "entries_hytek.html")
             elif rtype == "entries_club":
-                report_data = extractor.extract_meet_entries_data(team_filter=team_filter)
+                report_data = extractor.extract_meet_entries_data(team_filter=team_filter, report_title=title)
                 renderer.render_entries(report_data, "entries_club.html")
 
             if os.path.exists(temp_path):
