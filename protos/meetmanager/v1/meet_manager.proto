@@ -477,6 +477,8 @@ enum ReportType {
   REPORT_TYPE_RESULTS = 3;
   // REPORT_TYPE_MEET_PROGRAM is a meet program report.
   REPORT_TYPE_MEET_PROGRAM = 4;
+  // REPORT_TYPE_MEET_PROGRAM_HTML is a meet program report in HTML format.
+  REPORT_TYPE_MEET_PROGRAM_HTML = 5;
 }
 
 // GenerateReportRequest specifies the parameters for report generation.
@@ -499,4 +501,6 @@ message GenerateReportResponse {
   bytes pdf_content = 3;
   // filename is the suggested name for the generated file.
   string filename = 4;
+  // html_content is the raw HTML of the generated report.
+  optional string html_content = 5;
 }

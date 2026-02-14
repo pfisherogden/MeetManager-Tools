@@ -608,6 +608,6 @@ class ReportDataExtractor:
 
                 heat_items.append({"header": heat_header, "sub_items": sub_items})
 
-            report_groups.append({"header": header, "items": heat_items})
+            report_groups.append({"header": header, "heats": heat_items})
 
         return {"meet_name": full_data.get("meetName", ""), "sub_title": "Meet Program", "groups": report_groups}

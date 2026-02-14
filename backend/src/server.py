@@ -24,6 +24,8 @@ except ImportError:
     pb2_grpc = typing.cast(Any, None)
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.report_generator import ReportGenerator
+from mm_to_json.reporting.extractor import ReportDataExtractor
+from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"
@@ -886,9 +888,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_LINEUPS: "lineups",
                 pb2.REPORT_TYPE_RESULTS: "results",
                 pb2.REPORT_TYPE_MEET_PROGRAM: "program",
+                pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
             }
 
             rtype = rtype_map.get(rtype_val, "psych")
+            pdf_content = b""
+            html_content = None
 
             if rtype == "psych":
                 rg.generate_psych_sheet(temp_path)
@@ -899,16 +904,36 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             elif rtype == "results":
                 rg.generate_meet_results(temp_path)
             elif rtype == "program":
-                rg.generate_meet_program(temp_path)
+                # Use new WeasyRenderer for PDF
+                extractor = ReportDataExtractor(converter)
+                program_data = extractor.extract_meet_program_data(team_filter=team_filter)
+                renderer = WeasyRenderer(temp_path)
+                renderer.render_meet_program(program_data)
+            elif rtype == "program_html":
+                # Use WeasyRenderer for HTML
+                extractor = ReportDataExtractor(converter)
+                program_data = extractor.extract_meet_program_data(team_filter=team_filter)
+                renderer = WeasyRenderer(temp_path)
+                html_content = renderer.render_to_html(program_data)
+                # Create empty PDF just to satisfy downstream expectations if any
+                with open(temp_path, "wb") as f:
+                    f.write(b"")
 
-            with open(temp_path, "rb") as f:
-                pdf_content = f.read()
+            if os.path.exists(temp_path):
+                with open(temp_path, "rb") as f:
+                    pdf_content = f.read()
+                os.remove(temp_path)
 
-            os.remove(temp_path)
             filename = f"report_{rtype}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            if rtype == "program_html":
+                filename = filename.replace(".pdf", ".html")
 
             return pb2.GenerateReportResponse(
-                success=True, message="Report generated successfully", pdf_content=pdf_content, filename=filename
+                success=True,
+                message="Report generated successfully",
+                pdf_content=pdf_content,
+                filename=filename,
+                html_content=html_content,
             )
 
         except Exception as e:

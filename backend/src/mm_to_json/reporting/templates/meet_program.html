@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ meet_name }} - {{ sub_title }}</title>
+    <style>
+        {{ css_content }}
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div class="header-top">
+            <span class="left">Tri-Valley Swim Lg. C</span>
+            <span class="right">HY-TEK's MEET MANAGER 7.0 - {{ generation_time }} Page <span class="page"></span></span>
+        </div>
+        <div class="header-main">
+            <h1>{{ meet_name }}</h1>
+            <h2>{{ sub_title }}</h2>
+        </div>
+    </div>
+
+    <div class="content-container">
+        {% for group in groups %}
+        <div class="event-block">
+            <div class="event-header">
+                {{ group.header }}
+            </div>
+            
+            {% for item in group.heats %}
+            <div class="heat-block">
+                <div class="heat-header">{{ item.header }}</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        {% if item.sub_items and item.sub_items[0].is_relay %}
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-relay">Relay</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-name">Name</th>
+                            <th class="col-age">Age</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for entry in item.sub_items %}
+                        <tr class="entry-row">
+                            <td class="col-lane">{{ entry.lane }}</td>
+                            {% if entry.is_relay %}
+                                <td class="col-team">{{ entry.team }}</td>
+                                <td class="col-relay">{{ entry.relay_ltr }}</td>
+                                <td class="col-time">{{ entry.time }}</td>
+                            {% else %}
+                                <td class="col-name">{{ entry.name }}</td>
+                                <td class="col-age">{{ entry.age }}</td>
+                                <td class="col-team">{{ entry.team }}</td>
+                                <td class="col-time">{{ entry.time }}</td>
+                            {% endif %}
+                        </tr>
+                        {% if entry.is_relay and entry.swimmers %}
+                        <tr class="relay-swimmers-row">
+                            <td></td>
+                            <td colspan="3" class="swimmers-list">
+                                {% for swimmer in entry.swimmers %}
+                                <span>{{ loop.index }}) {{ swimmer }}</span>{% if not loop.last %} {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

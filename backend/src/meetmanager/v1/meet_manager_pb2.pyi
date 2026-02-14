@@ -14,11 +14,13 @@ class ReportType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REPORT_TYPE_LINEUPS: _ClassVar[ReportType]
     REPORT_TYPE_RESULTS: _ClassVar[ReportType]
     REPORT_TYPE_MEET_PROGRAM: _ClassVar[ReportType]
+    REPORT_TYPE_MEET_PROGRAM_HTML: _ClassVar[ReportType]
 REPORT_TYPE_PSYCH_UNSPECIFIED: ReportType
 REPORT_TYPE_ENTRIES: ReportType
 REPORT_TYPE_LINEUPS: ReportType
 REPORT_TYPE_RESULTS: ReportType
 REPORT_TYPE_MEET_PROGRAM: ReportType
+REPORT_TYPE_MEET_PROGRAM_HTML: ReportType
 
 class GetMeetsRequest(_message.Message):
     __slots__ = ()
@@ -455,13 +457,15 @@ class GenerateReportRequest(_message.Message):
     def __init__(self, type: _Optional[_Union[ReportType, str]] = ..., title: _Optional[str] = ..., team_filter: _Optional[str] = ...) -> None: ...
 
 class GenerateReportResponse(_message.Message):
-    __slots__ = ("success", "message", "pdf_content", "filename")
+    __slots__ = ("success", "message", "pdf_content", "filename", "html_content")
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     PDF_CONTENT_FIELD_NUMBER: _ClassVar[int]
     FILENAME_FIELD_NUMBER: _ClassVar[int]
+    HTML_CONTENT_FIELD_NUMBER: _ClassVar[int]
     success: bool
     message: str
     pdf_content: bytes
     filename: str
-    def __init__(self, success: bool = ..., message: _Optional[str] = ..., pdf_content: _Optional[bytes] = ..., filename: _Optional[str] = ...) -> None: ...
+    html_content: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., pdf_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., html_content: _Optional[str] = ...) -> None: ...
