@@ -2,291 +2,501 @@ syntax = "proto3";
 
 package meetmanager.v1;
 
+// MeetManagerService provides operations for managing swim meets, teams, athletes, and events.
 service MeetManagerService {
   // Meet Operations
+
+  // GetMeets retrieves a list of all swim meets.
   rpc GetMeets(GetMeetsRequest) returns (GetMeetsResponse);
+  // GetDashboardStats retrieves summary statistics for the active meet.
   rpc GetDashboardStats(GetDashboardStatsRequest) returns (GetDashboardStatsResponse);
 
   // Team Operations
+
+  // GetTeams retrieves a list of all teams in the active meet.
   rpc GetTeams(GetTeamsRequest) returns (GetTeamsResponse);
+  // GetTeam retrieves details for a specific team by its ID.
   rpc GetTeam(GetTeamRequest) returns (GetTeamResponse);
 
   // Athlete Operations
+
+  // GetAthletes retrieves a list of athletes, optionally filtered by team ID.
   rpc GetAthletes(GetAthletesRequest) returns (GetAthletesResponse);
+  // GetAthlete retrieves details for a specific athlete by their ID.
   rpc GetAthlete(GetAthleteRequest) returns (GetAthleteResponse);
 
   // Event Operations
+
+  // GetEvents retrieves a list of all events in the active meet.
   rpc GetEvents(GetEventsRequest) returns (GetEventsResponse);
 
   // Admin Operations
+
+  // ListDatasets retrieves a list of available MDB datasets.
   rpc ListDatasets(ListDatasetsRequest) returns (ListDatasetsResponse);
+  // SetActiveDataset sets the specified MDB file as the active dataset.
   rpc SetActiveDataset(SetActiveDatasetRequest) returns (SetActiveDatasetResponse);
+  // UploadDataset uploads a new MDB dataset file as a stream of chunks.
   rpc UploadDataset(stream UploadDatasetRequest) returns (UploadDatasetResponse);
+  // ClearDataset removes a specific dataset file.
   rpc ClearDataset(ClearDatasetRequest) returns (ClearDatasetResponse);
+  // ClearAllDatasets removes all uploaded dataset files.
   rpc ClearAllDatasets(ClearAllDatasetsRequest) returns (ClearAllDatasetsResponse);
 
   // New Data Operations
+
+  // GetRelays retrieves a list of all relay entries.
   rpc GetRelays(GetRelaysRequest) returns (GetRelaysResponse);
+  // GetScores retrieves the current team scores.
   rpc GetScores(GetScoresRequest) returns (GetScoresResponse);
+  // GetEntries retrieves individual race entries, optionally filtered by athlete or event.
   rpc GetEntries(GetEntriesRequest) returns (GetEntriesResponse);
 
   // Session Operations
+
+  // GetSessions retrieves a list of all sessions in the meet.
   rpc GetSessions(GetSessionsRequest) returns (GetSessionsResponse);
 
   // Configuration
+
+  // GetAdminConfig retrieves the current administrative configuration.
   rpc GetAdminConfig(GetAdminConfigRequest) returns (GetAdminConfigResponse);
+  // UpdateAdminConfig updates the administrative configuration.
   rpc UpdateAdminConfig(UpdateAdminConfigRequest) returns (UpdateAdminConfigResponse);
+  // GetEventScores retrieves scores for events.
   rpc GetEventScores(GetEventScoresRequest) returns (GetEventScoresResponse);
+  // GenerateReport generates a swim meet report (e.g., Psych Sheet, Results).
   rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
 }
 
+// GetMeetsRequest is the request for GetMeets.
 message GetMeetsRequest {}
+// GetMeetsResponse contains the list of meets.
 message GetMeetsResponse {
+  // meets is the list of swim meets.
   repeated Meet meets = 1;
 }
 
+// GetDashboardStatsRequest is the request for GetDashboardStats.
 message GetDashboardStatsRequest {}
+// GetDashboardStatsResponse contains summary statistics.
 message GetDashboardStatsResponse {
+  // meet_count is the total number of meets.
   int32 meet_count = 1;
+  // team_count is the total number of teams.
   int32 team_count = 2;
+  // athlete_count is the total number of athletes.
   int32 athlete_count = 3;
+  // event_count is the total number of events.
   int32 event_count = 4;
 }
 
+// GetTeamsRequest is the request for GetTeams.
 message GetTeamsRequest {}
+// GetTeamsResponse contains the list of teams.
 message GetTeamsResponse {
+  // teams is the list of teams.
   repeated Team teams = 1;
 }
 
+// GetTeamRequest is the request for GetTeam.
 message GetTeamRequest {
+  // id is the unique identifier of the team.
   int32 id = 1;
 }
+// GetTeamResponse contains the team details.
 message GetTeamResponse {
+  // team is the requested team details.
   Team team = 1;
 }
 
+// GetAthletesRequest is the request for GetAthletes.
 message GetAthletesRequest {
+  // team_id is an optional filter to retrieve athletes for a specific team.
   optional string team_id = 1;
 }
+// GetAthletesResponse contains the list of athletes.
 message GetAthletesResponse {
+  // athletes is the list of athletes.
   repeated Athlete athletes = 1;
 }
 
+// GetAthleteRequest is the request for GetAthlete.
 message GetAthleteRequest {
+  // id is the unique identifier of the athlete.
   int32 id = 1;
 }
+// GetAthleteResponse contains the athlete details.
 message GetAthleteResponse {
+  // athlete is the requested athlete details.
   Athlete athlete = 1;
 }
 
+// GetEventsRequest is the request for GetEvents.
 message GetEventsRequest {}
+// GetEventsResponse contains the list of events.
 message GetEventsResponse {
+  // events is the list of events.
   repeated Event events = 1;
 }
 
+// ListDatasetsRequest is the request for ListDatasets.
 message ListDatasetsRequest {}
+// ListDatasetsResponse contains the list of datasets.
 message ListDatasetsResponse {
+  // datasets is the list of available datasets.
   repeated Dataset datasets = 1;
 }
 
+// SetActiveDatasetRequest specifies which dataset to activate.
 message SetActiveDatasetRequest {
+  // filename is the name of the dataset file to activate.
   string filename = 1;
 }
+// SetActiveDatasetResponse is the response for SetActiveDataset.
 message SetActiveDatasetResponse {}
 
+// UploadDatasetRequest contains a chunk of data for uploading a dataset.
 message UploadDatasetRequest {
+  // data is either the filename or a chunk of the file content.
   oneof data {
+    // filename is the name of the file being uploaded (sent in first chunk).
     string filename = 1;
+    // chunk is a piece of the file's byte content.
     bytes chunk = 2;
   }
 }
+// UploadDatasetResponse indicates the result of the upload.
 message UploadDatasetResponse {
+  // success indicates if the upload was successful.
   bool success = 1;
+  // message provides additional information about the upload result.
   string message = 2;
 }
 
+// ClearDatasetRequest specifies which dataset to delete.
 message ClearDatasetRequest {
+  // filename is the name of the dataset file to remove.
   string filename = 1;
 }
+// ClearDatasetResponse is the response for ClearDataset.
 message ClearDatasetResponse {}
 
+// ClearAllDatasetsRequest is the request for ClearAllDatasets.
 message ClearAllDatasetsRequest {}
+// ClearAllDatasetsResponse is the response for ClearAllDatasets.
 message ClearAllDatasetsResponse {}
 
+// GetRelaysRequest is the request for GetRelays.
 message GetRelaysRequest {}
+// GetRelaysResponse contains the list of relay entries.
 message GetRelaysResponse {
+  // relays is the list of relay entries.
   repeated Relay relays = 1;
 }
 
+// GetScoresRequest is the request for GetScores.
 message GetScoresRequest {}
+// GetScoresResponse contains the list of team scores.
 message GetScoresResponse {
+  // scores is the list of team scores.
   repeated Score scores = 1;
 }
 
+// GetEntriesRequest is the request for GetEntries.
 message GetEntriesRequest {
+  // athlete_id is an optional filter for a specific athlete's entries.
   optional string athlete_id = 1;
+  // event_id is an optional filter for a specific event's entries.
   optional string event_id = 2;
 }
+// GetEntriesResponse contains the list of entries.
 message GetEntriesResponse {
+  // entries is the list of individual entries.
   repeated Entry entries = 1;
 }
 
+// GetSessionsRequest is the request for GetSessions.
 message GetSessionsRequest {}
+// GetSessionsResponse contains the list of sessions.
 message GetSessionsResponse {
+  // sessions is the list of sessions.
   repeated Session sessions = 1;
 }
 
+// GetAdminConfigRequest is the request for GetAdminConfig.
 message GetAdminConfigRequest {}
+// GetAdminConfigResponse contains the administrative configuration.
 message GetAdminConfigResponse {
+  // meet_name is the name of the meet.
   string meet_name = 1;
+  // meet_description is the description of the meet.
   string meet_description = 2;
 }
 
+// UpdateAdminConfigRequest contains the new administrative configuration.
 message UpdateAdminConfigRequest {
+  // meet_name is the new name of the meet.
   string meet_name = 1;
+  // meet_description is the new description of the meet.
   string meet_description = 2;
 }
+// UpdateAdminConfigResponse contains the updated administrative configuration.
 message UpdateAdminConfigResponse {
+  // meet_name is the updated name of the meet.
   string meet_name = 1;
+  // meet_description is the updated description of the meet.
   string meet_description = 2;
 }
 
+// GetEventScoresRequest is the request for GetEventScores.
 message GetEventScoresRequest {}
+// GetEventScoresResponse contains the list of event scores.
 message GetEventScoresResponse {
+  // event_scores is the list of scores by event.
   repeated EventScore event_scores = 1;
 }
 
+// Dataset represents a metadata about an MDB file.
 message Dataset {
+  // filename is the name of the file.
   string filename = 1;
+  // is_active indicates if this is the currently active dataset.
   bool is_active = 2;
+  // last_modified is the timestamp when the file was last updated.
   string last_modified = 3;
 }
 
 // Data Entities
 
+// Relay represents a relay entry in the meet.
 message Relay {
+  // id is the unique identifier of the relay entry.
   int32 id = 1;
+  // event_id is the ID of the event this relay belongs to.
   int32 event_id = 2;
+  // team_id is the ID of the team for this relay.
   int32 team_id = 3;
+  // team_name is the name of the team.
   string team_name = 4;
+  // leg1_name is the name of the first swimmer.
   string leg1_name = 5;
+  // leg2_name is the name of the second swimmer.
   string leg2_name = 6;
+  // leg3_name is the name of the third swimmer.
   string leg3_name = 7;
+  // leg4_name is the name of the fourth swimmer.
   string leg4_name = 8;
+  // seed_time is the entered time for the relay.
   string seed_time = 9;
+  // final_time is the actual time achieved.
   string final_time = 10;
+  // place is the finishing position.
   int32 place = 11;
+  // event_name is the name of the event.
   string event_name = 12;
+  // relay_letter is the letter designation (e.g., 'A', 'B').
   string relay_letter = 13;
+  // heat is the heat number.
   int32 heat = 14;
+  // lane is the lane number.
   int32 lane = 15;
 }
 
+// Score represents team points and rank.
 message Score {
+  // team_id is the unique identifier of the team.
   int32 team_id = 1;
+  // team_name is the name of the team.
   string team_name = 2;
+  // individual_points is the total points from individual events.
   float individual_points = 3;
+  // relay_points is the total points from relay events.
   float relay_points = 4;
+  // total_points is the overall total points.
   float total_points = 5;
+  // rank is the team's standing in the meet.
   int32 rank = 6;
+  // meet_name is the name of the meet.
   string meet_name = 7;
 }
 
+// EventScore contains entries and results for a specific event.
 message EventScore {
+  // event_id is the unique identifier of the event.
   int32 event_id = 1;
+  // event_name is the name of the event.
   string event_name = 2;
+  // entries is the list of entries for this event.
   repeated Entry entries = 3;
 }
 
+// Entry represents an individual athlete's entry in an event.
 message Entry {
+  // id is the unique identifier of the entry.
   int32 id = 1;
+  // event_id is the ID of the event.
   int32 event_id = 2;
+  // athlete_id is the ID of the athlete.
   int32 athlete_id = 3;
+  // athlete_name is the name of the athlete.
   string athlete_name = 4;
+  // team_id is the ID of the team.
   int32 team_id = 5;
+  // team_name is the name of the team.
   string team_name = 6;
+  // seed_time is the entered time.
   string seed_time = 7;
+  // final_time is the actual time achieved.
   string final_time = 8;
+  // place is the finishing position.
   int32 place = 9;
+  // event_name is the name of the event.
   string event_name = 10;
+  // heat is the heat number.
   int32 heat = 11;
+  // lane is the lane number.
   int32 lane = 12;
+  // points are the points earned by this entry.
   float points = 14;
 }
 
+// Session represents a time block of events in the meet.
 message Session {
+  // id is the unique identifier of the session.
   string id = 1;
+  // meet_id is the ID of the meet.
   string meet_id = 2;
+  // name is the name of the session.
   string name = 3;
+  // date is the date of the session.
   string date = 4;
+  // warm_up_time is the time when warm-ups begin.
   string warm_up_time = 5;
+  // start_time is the time when the session starts.
   string start_time = 6;
+  // event_count is the number of events in this session.
   int32 event_count = 7;
+  // session_num is the sequence number of the session.
   int32 session_num = 8;
+  // day is the day number of the meet.
   int32 day = 9;
 }
 
+// Meet represents overall swim meet information.
 message Meet {
+  // id is the unique identifier of the meet.
   string id = 1;
+  // name is the name of the meet.
   string name = 2;
+  // location is where the meet is held.
   string location = 3;
+  // start_date is when the meet begins.
   string start_date = 4;
+  // end_date is when the meet ends.
   string end_date = 5;
+  // status is the current status of the meet.
   string status = 6;
 }
 
+// Team represents a swim team participating in the meet.
 message Team {
+  // id is the unique identifier of the team.
   int32 id = 1;
+  // name is the full name of the team.
   string name = 2;
+  // code is the short team code (e.g., 'BAC').
   string code = 3;
+  // lsc is the Local Swim Committee code.
   string lsc = 4;
+  // city is the team's home city.
   string city = 5;
+  // state is the team's home state.
   string state = 6;
+  // athlete_count is the number of athletes on the team.
   int32 athlete_count = 7;
 }
 
+// Athlete represents a swimmer in the meet.
 message Athlete {
+  // id is the unique identifier of the athlete.
   int32 id = 1;
+  // first_name is the athlete's first name.
   string first_name = 2;
+  // last_name is the athlete's last name.
   string last_name = 3;
+  // gender is the athlete's gender.
   string gender = 4;
+  // age is the athlete's age.
   int32 age = 5;
+  // team_id is the ID of the team the athlete belongs to.
   int32 team_id = 6;
+  // team_name is the name of the team.
   string team_name = 7;
+  // school_year is the athlete's year in school.
   string school_year = 8;
+  // reg_no is the athlete's registration number.
   string reg_no = 9;
+  // date_of_birth is the athlete's birth date.
   string date_of_birth = 10;
 }
 
+// Event represents a specific swimming race.
 message Event {
+  // id is the unique identifier of the event.
   int32 id = 1;
+  // gender is the gender category for the event.
   string gender = 2;
+  // distance is the length of the race in meters or yards.
   int32 distance = 3;
+  // stroke is the swimming stroke for the event.
   string stroke = 4;
+  // low_age is the minimum age for this event.
   int32 low_age = 5;
+  // high_age is the maximum age for this event.
   int32 high_age = 6;
+  // session is the session number this event belongs to.
   int32 session = 7;
+  // status is the current status of the event.
   string status = 8;
+  // entry_count is the number of entries in this event.
   int32 entry_count = 9;
+  // age_group is the formatted age range for this event.
+  string age_group = 10;
 }
 
+// ReportType specifies the kind of report to generate.
 enum ReportType {
+  // REPORT_TYPE_PSYCH_UNSPECIFIED is the default unspecified type.
   REPORT_TYPE_PSYCH_UNSPECIFIED = 0;
+  // REPORT_TYPE_ENTRIES is a report of all entries.
   REPORT_TYPE_ENTRIES = 1;
+  // REPORT_TYPE_LINEUPS is a report of team lineups.
   REPORT_TYPE_LINEUPS = 2;
+  // REPORT_TYPE_RESULTS is a report of meet results.
   REPORT_TYPE_RESULTS = 3;
+  // REPORT_TYPE_MEET_PROGRAM is a meet program report.
   REPORT_TYPE_MEET_PROGRAM = 4;
 }
 
+// GenerateReportRequest specifies the parameters for report generation.
 message GenerateReportRequest {
+  // type is the kind of report to generate.
   ReportType type = 1;
+  // title is the title of the report.
   string title = 2;
+  // team_filter is an optional filter for a specific team.
   string team_filter = 3;
 }
 
+// GenerateReportResponse contains the generated report data.
 message GenerateReportResponse {
+  // success indicates if the report was generated successfully.
   bool success = 1;
+  // message provides additional info or error details.
   string message = 2;
+  // pdf_content is the raw bytes of the generated PDF.
   bytes pdf_content = 3;
+  // filename is the suggested name for the generated file.
   string filename = 4;
 }

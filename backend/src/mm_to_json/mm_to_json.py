@@ -958,12 +958,9 @@ class Event:
         if self.min_age == 0 and self.max_age >= 109:
             age_str = "Open"
         elif self.min_age == 0:
-            # Specific logic for "8 & Under" vs "6 & Under"
-            # If max_age is 6, return "6 & Under"
-            # If max_age is 8, return "8 & Under"
-            age_str = f"{self.max_age} & Under"
+            age_str = f"{self.max_age} & under"
         elif self.max_age >= 109:
-            age_str = f"{self.min_age} & Over"
+            age_str = f"{self.min_age} & over"
         else:
             # Strict format "Min-Max" e.g. "11-12"
             age_str = f"{self.min_age}-{self.max_age}"

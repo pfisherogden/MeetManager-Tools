@@ -26,7 +26,9 @@ if _version_not_supported:
 
 
 class MeetManagerServiceStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """MeetManagerService provides operations for managing swim meets, teams, athletes, and events.
+    Meet Operations
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -137,49 +139,60 @@ class MeetManagerServiceStub(object):
 
 
 class MeetManagerServiceServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """MeetManagerService provides operations for managing swim meets, teams, athletes, and events.
+    Meet Operations
+    """
 
     def GetMeets(self, request, context):
-        """Meet Operations
+        """GetMeets retrieves a list of all swim meets.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetDashboardStats(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """GetDashboardStats retrieves summary statistics for the active meet.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetTeams(self, request, context):
         """Team Operations
+
+        GetTeams retrieves a list of all teams in the active meet.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetTeam(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """GetTeam retrieves details for a specific team by its ID.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetAthletes(self, request, context):
         """Athlete Operations
+
+        GetAthletes retrieves a list of athletes, optionally filtered by team ID.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetAthlete(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """GetAthlete retrieves details for a specific athlete by their ID.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetEvents(self, request, context):
         """Event Operations
+
+        GetEvents retrieves a list of all events in the active meet.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -187,56 +200,68 @@ class MeetManagerServiceServicer(object):
 
     def ListDatasets(self, request, context):
         """Admin Operations
+
+        ListDatasets retrieves a list of available MDB datasets.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def SetActiveDataset(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """SetActiveDataset sets the specified MDB file as the active dataset.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UploadDataset(self, request_iterator, context):
-        """Missing associated documentation comment in .proto file."""
+        """UploadDataset uploads a new MDB dataset file as a stream of chunks.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ClearDataset(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """ClearDataset removes a specific dataset file.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ClearAllDatasets(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """ClearAllDatasets removes all uploaded dataset files.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetRelays(self, request, context):
         """New Data Operations
+
+        GetRelays retrieves a list of all relay entries.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetScores(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """GetScores retrieves the current team scores.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetEntries(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """GetEntries retrieves individual race entries, optionally filtered by athlete or event.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetSessions(self, request, context):
         """Session Operations
+
+        GetSessions retrieves a list of all sessions in the meet.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -244,25 +269,30 @@ class MeetManagerServiceServicer(object):
 
     def GetAdminConfig(self, request, context):
         """Configuration
+
+        GetAdminConfig retrieves the current administrative configuration.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UpdateAdminConfig(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """UpdateAdminConfig updates the administrative configuration.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetEventScores(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """GetEventScores retrieves scores for events.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GenerateReport(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """GenerateReport generates a swim meet report (e.g., Psych Sheet, Results).
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -379,7 +409,9 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class MeetManagerService(object):
-    """Missing associated documentation comment in .proto file."""
+    """MeetManagerService provides operations for managing swim meets, teams, athletes, and events.
+    Meet Operations
+    """
 
     @staticmethod
     def GetMeets(request,

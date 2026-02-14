@@ -313,6 +313,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if evt_ptr:
                 entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
 
+        # Build session mapping from Sessitem (Linking Event_ptr to Session No)
+        sess_map = {}
+        sessitem_table = self._get_table("Sessitem") or self._get_table("SESSITEM")
+        session_table = self._get_table("Session") or self._get_table("SESSIONS")
+
+        # ptr_to_no: Sess_ptr -> Sess_no
+        ptr_to_no = {s.get("Sess_ptr"): self._safe_int(s.get("Sess_no", 1)) for s in session_table if s.get("Sess_ptr")}
+
+        for si in sessitem_table:
+            e_ptr = si.get("Event_ptr")
+            s_ptr = si.get("Sess_ptr")
+            if e_ptr and s_ptr:
+                sess_map[e_ptr] = ptr_to_no.get(s_ptr, 1)
+
         for item in data:
             raw_stroke = item.get("Event_stroke", "").upper().strip()
             stroke_desc = stroke_map.get(raw_stroke, raw_stroke)
@@ -326,6 +340,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             raw_gender = item.get("Event_sex", "").upper().strip()
             gender_desc = gender_map.get(raw_gender, raw_gender)
 
+            # Map Session: Use Sessitem map if Event.Sess_no is missing
+            e_ptr = item.get("Event_ptr") or item.get("Event_no")
+            sess_no = self._safe_int(item.get("Sess_no"))
+            if not sess_no and e_ptr:
+                sess_no = sess_map.get(e_ptr, 1)
+
             events.append(
                 pb2.Event(
                     id=int(item.get("Event_no", 0)),
@@ -334,8 +354,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     stroke=stroke_desc,
                     low_age=int(item.get("Low_age", 0)),
                     high_age=int(item.get("High_Age", 0)),
-                    session=max(1, self._safe_int(item.get("Sess_no", 1))),
+                    session=max(1, sess_no),
                     entry_count=entry_counts.get(item.get("Event_no") or item.get("Event_ptr"), 0),
+                    age_group=self._format_age(item.get("Low_age"), item.get("High_Age")),
                 )
             )
         return pb2.GetEventsResponse(events=events)
@@ -481,9 +502,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
                 d = e.get("Event_dist", "")
                 s = stroke_map.get(e.get("Event_stroke", "").strip(), e.get("Event_stroke", ""))
-                low = e.get("Low_age", "")
-                high = e.get("High_Age", "")
-                name = f"{g} {low}-{high} {d} {s}"
+                age_group = self._format_age(e.get("Low_age"), e.get("High_Age"))
+                name = f"{g} {age_group} {d} {s}"
                 events_map[e_no] = name
 
         result = []
@@ -616,9 +636,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
                 d = e.get("Event_dist", "")
                 s = stroke_map.get(e.get("Event_stroke", "").strip(), e.get("Event_stroke", ""))
-                low = e.get("Low_age", "")
-                high = e.get("High_Age", "")
-                name = f"{g} {low}-{high} {d} {s}"
+                age_group = self._format_age(e.get("Low_age"), e.get("High_Age"))
+                name = f"{g} {age_group} {d} {s}"
                 events_map[e_no] = name
 
         result = []
@@ -684,6 +703,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             }
         return self._scoring_map
 
+    def _format_age(self, low, high):
+        """Standardize age group naming (e.g., 6 & under)."""
+        low = self._safe_int(low)
+        high = self._safe_int(high)
+        if low == 0 and high >= 109:
+            return "Open"
+        if low == 0:
+            return f"{high} & under"
+        if high >= 109:
+            return f"{low} & over"
+        return f"{low}-{high}"
+
     def _calculate_points(self, item, sex, is_relay):
         score = self._safe_float(item.get("Ev_score", 0))
         if score > 0:
@@ -737,7 +768,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             low = e.get("Low_age", "")
             high = e.get("High_Age", "")
-            name = f"{g} {low}-{high} {d} {s}"
+            age_group = self._format_age(low, high)
+            name = f"{g} {age_group} {d} {s}"
             events_map[e_no] = name
             event_dict[e_no] = {"id": int(e_no), "name": name, "entries": []}
 
@@ -904,17 +936,30 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 except Exception:
                     pass
 
+        # Count events per session from Sessitem for reliability
+        sess_item_table = self._get_table("Sessitem") or self._get_table("SESSITEM")
+        event_counts_map: dict[Any, int] = {}
+        for si in sess_item_table:
+            s_ptr = si.get("Sess_ptr")
+            if s_ptr:
+                event_counts_map[s_ptr] = event_counts_map.get(s_ptr, 0) + 1
+
         sessions_to_process = []
         if data:
             for item in data:
+                s_ptr = item.get("Sess_ptr")
+                e_cnt = self._safe_int(item.get("Event_cnt"))
+                if not e_cnt and s_ptr:
+                    e_cnt = event_counts_map.get(s_ptr, 0)
+
                 sessions_to_process.append(
                     {
-                        "id": item.get("Sess_no"),
+                        "id": str(item.get("Sess_no")),
                         "name": item.get("Sess_name", f"Session {item.get('Sess_no')}"),
                         "day": item.get("Sess_day", 1),
                         "warmup": item.get("Sess_warmup", 0),
                         "starttime": item.get("Sess_starttime", 0),
-                        "event_cnt": item.get("Event_cnt"),
+                        "event_cnt": e_cnt,
                         "source_item": item,
                     }
                 )

@@ -421,7 +421,7 @@ class Athlete(_message.Message):
     def __init__(self, id: _Optional[int] = ..., first_name: _Optional[str] = ..., last_name: _Optional[str] = ..., gender: _Optional[str] = ..., age: _Optional[int] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., school_year: _Optional[str] = ..., reg_no: _Optional[str] = ..., date_of_birth: _Optional[str] = ...) -> None: ...
 
 class Event(_message.Message):
-    __slots__ = ("id", "gender", "distance", "stroke", "low_age", "high_age", "session", "status", "entry_count")
+    __slots__ = ("id", "gender", "distance", "stroke", "low_age", "high_age", "session", "status", "entry_count", "age_group")
     ID_FIELD_NUMBER: _ClassVar[int]
     GENDER_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
@@ -431,6 +431,7 @@ class Event(_message.Message):
     SESSION_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     ENTRY_COUNT_FIELD_NUMBER: _ClassVar[int]
+    AGE_GROUP_FIELD_NUMBER: _ClassVar[int]
     id: int
     gender: str
     distance: int
@@ -440,7 +441,8 @@ class Event(_message.Message):
     session: int
     status: str
     entry_count: int
-    def __init__(self, id: _Optional[int] = ..., gender: _Optional[str] = ..., distance: _Optional[int] = ..., stroke: _Optional[str] = ..., low_age: _Optional[int] = ..., high_age: _Optional[int] = ..., session: _Optional[int] = ..., status: _Optional[str] = ..., entry_count: _Optional[int] = ...) -> None: ...
+    age_group: str
+    def __init__(self, id: _Optional[int] = ..., gender: _Optional[str] = ..., distance: _Optional[int] = ..., stroke: _Optional[str] = ..., low_age: _Optional[int] = ..., high_age: _Optional[int] = ..., session: _Optional[int] = ..., status: _Optional[str] = ..., entry_count: _Optional[int] = ..., age_group: _Optional[str] = ...) -> None: ...
 
 class GenerateReportRequest(_message.Message):
     __slots__ = ("type", "title", "team_filter")

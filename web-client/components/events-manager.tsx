@@ -99,7 +99,11 @@ const columns: Column<SwimEvent>[] = [
 		width: "w-24",
 		render: (value, row) => (
 			<Link
-				href={`/entries?event=${row.id}`}
+				href={
+					row.stroke.toLowerCase().includes("relay")
+						? `/relays?event=${row.id}`
+						: `/entries?event=${row.id}`
+				}
 				className="flex items-center gap-2 group"
 			>
 				<div className="relative w-8 h-8 flex items-center justify-center">
