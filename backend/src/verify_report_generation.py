@@ -95,21 +95,25 @@ def verify_report_generation():
     print("Generating Psych Sheet...")
     psych_data = extractor.extract_psych_sheet_data()
     from mm_to_json.reporting.report_definitions import PSYCH_SHEET_CONFIG
+
     PDFRenderer("data/example_reports/verification_psych.pdf", PSYCH_SHEET_CONFIG).render(psych_data)
 
     print("Generating Timer Sheets...")
     timer_data = extractor.extract_timer_sheets_data()
     from mm_to_json.reporting.report_definitions import TIMER_SHEETS_CONFIG
+
     PDFRenderer("data/example_reports/verification_timers.pdf", TIMER_SHEETS_CONFIG).render(timer_data)
 
     print("Generating Meet Results...")
     results_data = extractor.extract_results_data()
     from mm_to_json.reporting.report_definitions import RESULTS_REPORT_CONFIG
+
     PDFRenderer("data/example_reports/verification_results.pdf", RESULTS_REPORT_CONFIG).render(results_data)
 
     print("Generating Meet Program...")
     program_data = extractor.extract_meet_program_data()
     from mm_to_json.reporting.report_definitions import MEET_PROGRAM_CONFIG
+
     PDFRenderer("data/example_reports/verification_meet_program_v5.pdf", MEET_PROGRAM_CONFIG).render(program_data)
 
     print("Done!")

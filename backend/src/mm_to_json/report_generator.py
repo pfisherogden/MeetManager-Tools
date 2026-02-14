@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from .reporting.extractor import ReportDataExtractor
 from .reporting.renderer import PDFRenderer

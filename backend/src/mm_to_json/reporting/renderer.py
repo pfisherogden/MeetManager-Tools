@@ -290,9 +290,24 @@ class PDFRenderer:
         w_name = aw - w_rank - w_age - w_team - w_time
         grid_data = []
         for s in sub_items:
-            grid_data.append([s.get("rank", ""), s.get("name", ""), s.get("age", ""), s.get("team", ""), s.get("time", "")])
+            grid_data.append(
+                [s.get("rank", ""), s.get("name", ""), s.get("age", ""), s.get("team", ""), s.get("time", "")]
+            )
         t = Table(grid_data, colWidths=[w_rank, w_name, w_age, w_team, w_time])
-        t.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), "Helvetica"), ("FONTSIZE", (0, 0), (-1, -1), 9), ("ALIGN", (0, 0), (0, -1), "RIGHT"), ("ALIGN", (1, 0), (1, -1), "LEFT"), ("ALIGN", (2, 0), (2, -1), "CENTER"), ("ALIGN", (3, 0), (3, -1), "LEFT"), ("ALIGN", (4, 0), (4, -1), "RIGHT"), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("ALIGN", (0, 0), (0, -1), "RIGHT"),
+                    ("ALIGN", (1, 0), (1, -1), "LEFT"),
+                    ("ALIGN", (2, 0), (2, -1), "CENTER"),
+                    ("ALIGN", (3, 0), (3, -1), "LEFT"),
+                    ("ALIGN", (4, 0), (4, -1), "RIGHT"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
         return t
 
     def _create_timer_table(self, sub_items, aw):
@@ -305,7 +320,22 @@ class PDFRenderer:
         for s in sub_items:
             grid_data.append([s.get("lane", ""), s.get("name", ""), s.get("team", ""), s.get("seed", ""), ""])
         t = Table(grid_data, colWidths=[w_lane, w_name, w_team, w_seed, w_box], rowHeights=40)
-        t.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), "Helvetica"), ("FONTSIZE", (0, 0), (0, -1), 14), ("FONTSIZE", (1, 0), (1, -1), 12), ("FONTSIZE", (2, 0), (3, -1), 10), ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"), ("ALIGN", (0, 0), (0, -1), "CENTER"), ("ALIGN", (4, 0), (4, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("GRID", (4, 0), (4, -1), 2, colors.black), ("LINEBELOW", (0, 0), (-2, -1), 0.5, colors.grey)]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (0, -1), 14),
+                    ("FONTSIZE", (1, 0), (1, -1), 12),
+                    ("FONTSIZE", (2, 0), (3, -1), 10),
+                    ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                    ("ALIGN", (4, 0), (4, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (4, 0), (4, -1), 2, colors.black),
+                    ("LINEBELOW", (0, 0), (-2, -1), 0.5, colors.grey),
+                ]
+            )
+        )
         return t
 
     def _create_results_table(self, sub_items, aw):
@@ -317,9 +347,33 @@ class PDFRenderer:
         w_name = aw - w_place - w_age - w_team - w_seed - w_time
         grid_data = []
         for s in sub_items:
-            grid_data.append([s.get("place", ""), s.get("name", ""), s.get("age", ""), s.get("team", ""), s.get("seed", ""), s.get("time", "")])
+            grid_data.append(
+                [
+                    s.get("place", ""),
+                    s.get("name", ""),
+                    s.get("age", ""),
+                    s.get("team", ""),
+                    s.get("seed", ""),
+                    s.get("time", ""),
+                ]
+            )
         t = Table(grid_data, colWidths=[w_place, w_name, w_age, w_team, w_seed, w_time])
-        t.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), "Helvetica"), ("FONTSIZE", (0, 0), (-1, -1), 9), ("ALIGN", (0, 0), (0, -1), "RIGHT"), ("ALIGN", (1, 0), (1, -1), "LEFT"), ("ALIGN", (2, 0), (2, -1), "CENTER"), ("ALIGN", (3, 0), (3, -1), "LEFT"), ("ALIGN", (4, 0), (4, -1), "RIGHT"), ("ALIGN", (5, 0), (5, -1), "RIGHT"), ("FONTNAME", (5, 0), (5, -1), "Helvetica-Bold"), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("ALIGN", (0, 0), (0, -1), "RIGHT"),
+                    ("ALIGN", (1, 0), (1, -1), "LEFT"),
+                    ("ALIGN", (2, 0), (2, -1), "CENTER"),
+                    ("ALIGN", (3, 0), (3, -1), "LEFT"),
+                    ("ALIGN", (4, 0), (4, -1), "RIGHT"),
+                    ("ALIGN", (5, 0), (5, -1), "RIGHT"),
+                    ("FONTNAME", (5, 0), (5, -1), "Helvetica-Bold"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
         return t
 
     def _create_relay_table(self, sub_items, aw):
@@ -328,12 +382,26 @@ class PDFRenderer:
         w_time = 0.2 * aw
         w_team = aw - w_lane - w_relay - w_time
         table_data = []
-        table_styles = [("FONTNAME", (0, 0), (-1, -1), "Helvetica"), ("FONTSIZE", (0, 0), (-1, -1), 10), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 2), ("RIGHTPADDING", (0, 0), (-1, -1), 2)]
+        table_styles = [
+            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 2),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+        ]
         for i, s in enumerate(sub_items):
             row_a = [s.get("lane", ""), s.get("team", ""), s.get("relay_ltr", ""), s.get("time", "")]
             table_data.append(row_a)
             row_a_idx = i * 2
-            table_styles.extend([("ALIGN", (0, row_a_idx), (0, row_a_idx), "CENTER"), ("ALIGN", (1, row_a_idx), (1, row_a_idx), "LEFT"), ("ALIGN", (2, row_a_idx), (2, row_a_idx), "CENTER"), ("ALIGN", (3, row_a_idx), (3, row_a_idx), "RIGHT"), ("BOTTOMPADDING", (0, row_a_idx), (-1, row_a_idx), 0)])
+            table_styles.extend(
+                [
+                    ("ALIGN", (0, row_a_idx), (0, row_a_idx), "CENTER"),
+                    ("ALIGN", (1, row_a_idx), (1, row_a_idx), "LEFT"),
+                    ("ALIGN", (2, row_a_idx), (2, row_a_idx), "CENTER"),
+                    ("ALIGN", (3, row_a_idx), (3, row_a_idx), "RIGHT"),
+                    ("BOTTOMPADDING", (0, row_a_idx), (-1, row_a_idx), 0),
+                ]
+            )
             swimmers = s.get("swimmers", [])
             t_inner = ""
             if swimmers:
@@ -341,16 +409,36 @@ class PDFRenderer:
                 formatted = [f"{idx + 1}) {name}" for idx, name in enumerate(swimmers)]
                 for k in range(0, len(formatted), 2):
                     row = [formatted[k]]
-                    if k + 1 < len(formatted): row.append(formatted[k+1])
-                    else: row.append("")
+                    if k + 1 < len(formatted):
+                        row.append(formatted[k + 1])
+                    else:
+                        row.append("")
                     inner_data.append(row)
                 w_inner_total = w_team + w_relay + w_time
                 t_inner = Table(inner_data, colWidths=[w_inner_total * 0.5, w_inner_total * 0.5])
-                t_inner.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("FONTNAME", (0, 0), (-1, -1), "Helvetica"), ("FONTSIZE", (0, 0), (-1, -1), 10)]))
+                t_inner.setStyle(
+                    TableStyle(
+                        [
+                            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                            ("TOPPADDING", (0, 0), (-1, -1), 0),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                            ("FONTSIZE", (0, 0), (-1, -1), 10),
+                        ]
+                    )
+                )
             row_b = ["", t_inner, "", ""]
             table_data.append(row_b)
             row_b_idx = row_a_idx + 1
-            table_styles.extend([("SPAN", (1, row_b_idx), (3, row_b_idx)), ("TOPPADDING", (0, row_b_idx), (-1, row_b_idx), 0), ("BOTTOMPADDING", (0, row_b_idx), (-1, row_b_idx), 8)])
+            table_styles.extend(
+                [
+                    ("SPAN", (1, row_b_idx), (3, row_b_idx)),
+                    ("TOPPADDING", (0, row_b_idx), (-1, row_b_idx), 0),
+                    ("BOTTOMPADDING", (0, row_b_idx), (-1, row_b_idx), 8),
+                ]
+            )
         t = Table(table_data, colWidths=[w_lane, w_team, w_relay, w_time])
         t.setStyle(TableStyle(table_styles))
         return t
@@ -363,7 +451,26 @@ class PDFRenderer:
         w_name = aw - w_lane - w_age - w_team - w_time
         grid_data = []
         for s in sub_items:
-            grid_data.append([s.get("lane", ""), s.get("name", ""), s.get("age", ""), s.get("team", ""), s.get("time", "")])
+            grid_data.append(
+                [s.get("lane", ""), s.get("name", ""), s.get("age", ""), s.get("team", ""), s.get("time", "")]
+            )
         t = Table(grid_data, colWidths=[w_lane, w_name, w_age, w_team, w_time])
-        t.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), "Helvetica"), ("FONTSIZE", (0, 0), (-1, -1), 10), ("ALIGN", (0, 0), (0, -1), "CENTER"), ("ALIGN", (1, 0), (1, -1), "LEFT"), ("ALIGN", (2, 0), (2, -1), "CENTER"), ("ALIGN", (3, 0), (3, -1), "LEFT"), ("ALIGN", (4, 0), (4, -1), "RIGHT"), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 2), ("RIGHTPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 1), ("TOPPADDING", (0, 0), (-1, -1), 1)]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                    ("ALIGN", (1, 0), (1, -1), "LEFT"),
+                    ("ALIGN", (2, 0), (2, -1), "CENTER"),
+                    ("ALIGN", (3, 0), (3, -1), "LEFT"),
+                    ("ALIGN", (4, 0), (4, -1), "RIGHT"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 2),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+                    ("TOPPADDING", (0, 0), (-1, -1), 1),
+                ]
+            )
+        )
         return t
