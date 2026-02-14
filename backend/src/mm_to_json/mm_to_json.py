@@ -1030,7 +1030,7 @@ def main():
     parser.add_argument(
         "--report-type",
         choices=["psych", "entries", "lineups", "results", "timers", "program"],
-        default="psych",
+        default="program",
         help="Type of report to generate.",
     )
     parser.add_argument(
