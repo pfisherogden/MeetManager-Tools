@@ -479,6 +479,10 @@ enum ReportType {
   REPORT_TYPE_MEET_PROGRAM = 4;
   // REPORT_TYPE_MEET_PROGRAM_HTML is a meet program report in HTML format.
   REPORT_TYPE_MEET_PROGRAM_HTML = 5;
+  // REPORT_TYPE_ENTRIES_HYTEK is a meet entries report in HY-TEK format.
+  REPORT_TYPE_ENTRIES_HYTEK = 6;
+  // REPORT_TYPE_ENTRIES_CLUB is a meet entries report in club-specific format.
+  REPORT_TYPE_ENTRIES_CLUB = 7;
 }
 
 // GenerateReportRequest specifies the parameters for report generation.

@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 from typing import Any
 from jinja2 import Environment, FileSystemLoader
@@ -11,7 +12,7 @@ class WeasyRenderer:
         self.env = Environment(loader=FileSystemLoader(self.template_dir))
         
         # Ensure macOS libraries are found if running locally
-        if os.name == 'posix' and 'darwin' in os.sys.platform:
+        if os.name == 'posix' and 'darwin' in sys.platform:
             if '/opt/homebrew/lib' not in os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', ''):
                 os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = '/opt/homebrew/lib:' + os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', '')
 
@@ -33,6 +34,20 @@ class WeasyRenderer:
         # Convert to PDF
         HTML(string=html_out).write_pdf(self.output_path)
         
+        return html_out
+
+    def render_entries(self, data: dict[str, Any], template_name: str):
+        template = self.env.get_template(template_name)
+        
+        css_path = os.path.join(self.template_dir, "report_style.css")
+        with open(css_path, "r") as f:
+            css_content = f.read()
+            
+        data["css_content"] = css_content
+        data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
+        
+        html_out = template.render(**data)
+        HTML(string=html_out).write_pdf(self.output_path)
         return html_out
 
     def render_to_html(self, data: dict[str, Any]) -> str:

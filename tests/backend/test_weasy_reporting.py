@@ -95,3 +95,28 @@ def test_weasyprint_log_check(tmp_path):
     # This is a bit harder to test without a real run, 
     # but we can simulate a render and check for common layout issues in HTML
     pass
+
+@pytest.mark.parametrize("fixture_path", get_anonymized_fixtures())
+def test_entries_report_generation(fixture_path, tmp_path):
+    with open(fixture_path, "r") as f:
+        fixture_wrapper = json.load(f)
+    
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+    
+    # 1. Test HY-TEK Style
+    hytek_data = extractor.extract_meet_entries_data()
+    output_hytek = str(tmp_path / "test_entries_hytek.pdf")
+    renderer = WeasyRenderer(output_hytek)
+    renderer.render_entries(hytek_data, "entries_hytek.html")
+    assert os.path.exists(output_hytek)
+    assert os.path.getsize(output_hytek) > 0
+    
+    # 2. Test Club Style
+    club_data = extractor.extract_meet_entries_data()
+    output_club = str(tmp_path / "test_entries_club.pdf")
+    renderer = WeasyRenderer(output_club)
+    renderer.render_entries(club_data, "entries_club.html")
+    assert os.path.exists(output_club)
+    assert os.path.getsize(output_club) > 0

@@ -595,6 +595,8 @@ class MmToJsonConverter:
                                 "lane": entry_info["lane"],
                                 "seedTime": entry_info["seed"],
                                 "psTime": entry_info["time"],
+                                "finalTime": entry_info["time"],
+                                "place": entry_info["place"],
                                 "athleteId": ath_no,
                                 "teamId": athlete.get("teamId"),
                             }
@@ -683,6 +685,8 @@ class MmToJsonConverter:
                             "lane": entry_info["lane"],
                             "seedTime": entry_info["seed"],
                             "psTime": entry_info["time"],
+                            "finalTime": entry_info["time"],
+                            "place": entry_info["place"],
                             "isRelay": True,
                             "relayLtr": relay_ltr,
                             "relaySwimmers": swimmers_list,
@@ -711,6 +715,7 @@ class MmToJsonConverter:
 
         info = {}
         info["seed"] = self.num_to_string(seed_time) if seed_time > 0 else "NT"
+        info["place"] = self._safe_int(row.get("Fin_place", row.get("Place", 0)))
 
         if round_ltr == "P":
             info["heat"] = pre_heat

@@ -480,7 +480,7 @@ class ReportDataExtractor:
                     )
                     current_relay_seq += 1
 
-            report_groups.append({"header": f"Team Entries - {t_name}", "items": team_items})
+            report_groups.append({"header": f"Team Entries - {t_name}", "athletes": team_items})
 
         return {
             "meet_name": full_data.get("meetName", ""),
@@ -611,3 +611,142 @@ class ReportDataExtractor:
             report_groups.append({"header": header, "heats": heat_items})
 
         return {"meet_name": full_data.get("meetName", ""), "sub_title": "Meet Program", "groups": report_groups}
+
+    def extract_psych_sheet_data(self) -> dict[str, Any]:
+        """Extracts data for Psych Sheet report."""
+        full_data = self.converter.convert()
+        all_events = []
+        for sess in full_data.get("sessions", []):
+            for evt in sess.get("events", []):
+                all_events.append(evt)
+
+        # Sort events
+        all_events.sort(key=lambda e: self._safe_int(e.get("eventNum", 0)))
+
+        report_groups = []
+        for evt in all_events:
+            evt_num = evt.get("eventNum")
+            evt_desc = evt.get("eventDesc")
+            entries = evt.get("entries", [])
+
+            # Sort entries by seed time
+            def time_sort_key(ent):
+                t = ent.get("seedTime", "NT")
+                if t == "NT":
+                    return 999999.0
+                try:
+                    # format usually like "1:23.45" or "23.45"
+                    parts = t.split(":")
+                    if len(parts) == 2:
+                        return float(parts[0]) * 60 + float(parts[1])
+                    return float(parts[0])
+                except Exception:
+                    return 999999.0
+
+            sorted_entries = sorted(entries, key=time_sort_key)
+
+            sub_items = []
+            for entry in sorted_entries:
+                sub_items.append(
+                    {
+                        "name": entry.get("name", ""),
+                        "team": entry.get("team", ""),
+                        "age": str(entry.get("age", "")),
+                        "time": entry.get("seedTime", "NT"),
+                    }
+                )
+
+            report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "items": [{"sub_items": sub_items}]})
+
+        return {"meet_name": full_data.get("meetName", ""), "sub_title": "Psych Sheet", "groups": report_groups}
+
+    def extract_timer_sheets_data(self) -> dict[str, Any]:
+        """Extracts data for Timer Sheets (Heat-based)."""
+        full_data = self.converter.convert()
+        all_events = []
+        for sess in full_data.get("sessions", []):
+            for evt in sess.get("events", []):
+                all_events.append(evt)
+
+        all_events.sort(key=lambda e: self._safe_int(e.get("eventNum", 0)))
+
+        report_groups = []
+        for evt in all_events:
+            evt_num = evt.get("eventNum")
+            evt_desc = evt.get("eventDesc")
+            entries = evt.get("entries", [])
+
+            # Group by heat
+            heats: dict[int, list[dict[str, Any]]] = {}
+            for e in entries:
+                h = self._safe_int(e.get("heat", 0))
+                if h not in heats:
+                    heats[h] = []
+                heats[h].append(e)
+
+            for h in sorted(heats.keys()):
+                heat_entries = sorted(heats[h], key=lambda x: self._safe_int(x.get("lane", 0)))
+                sub_items = []
+                for entry in heat_entries:
+                    sub_items.append(
+                        {
+                            "lane": str(entry.get("lane", "")),
+                            "name": entry.get("name", ""),
+                            "team": entry.get("team", ""),
+                            "time": entry.get("seedTime", "NT"),
+                        }
+                    )
+                report_groups.append(
+                    {"header": f"Event {evt_num} {evt_desc} Heat {h}", "items": [{"sub_items": sub_items, "header": f"Heat {h}"}]}
+                )
+
+        return {"meet_name": full_data.get("meetName", ""), "sub_title": "Timer Sheets", "groups": report_groups}
+
+    def extract_results_data(self) -> dict[str, Any]:
+        """Extracts data for Meet Results report."""
+        full_data = self.converter.convert()
+        all_events = []
+        for sess in full_data.get("sessions", []):
+            for evt in sess.get("events", []):
+                all_events.append(evt)
+
+        all_events.sort(key=lambda e: self._safe_int(e.get("eventNum", 0)))
+
+        report_groups = []
+        for evt in all_events:
+            evt_num = evt.get("eventNum")
+            evt_desc = evt.get("eventDesc")
+            entries = evt.get("entries", [])
+
+            # Filter for finished entries and sort by place
+            # Lenient: Include if it has a non-zero place OR a final time
+            finished = [
+                e
+                for e in entries
+                if (e.get("place") and self._safe_int(e.get("place", 0)) > 0)
+                or (e.get("finalTime") and e.get("finalTime") != "0.00" and e.get("finalTime") != "")
+            ]
+            sorted_entries = sorted(finished, key=lambda x: self._safe_int(x.get("place", 0)) or 999)
+
+            sub_items = []
+            for entry in sorted_entries:
+                sub_items.append(
+                    {
+                        "place": str(entry.get("place", "")),
+                        "name": entry.get("name", ""),
+                        "team": entry.get("team", ""),
+                        "age": str(entry.get("age", "")),
+                        "time": entry.get("finalTime", entry.get("seedTime", "")),
+                        "points": str(entry.get("points", "0")),
+                    }
+                )
+
+            report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "items": [{"sub_items": sub_items}]})
+
+        return {"meet_name": full_data.get("meetName", ""), "sub_title": "Meet Results", "groups": report_groups}
+
+    def _safe_int(self, val, default=0):
+        try:
+            return int(float(val))
+        except (ValueError, TypeError):
+            return default

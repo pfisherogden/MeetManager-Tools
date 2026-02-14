@@ -53,6 +53,16 @@ const reportTypes = [
 		name: "Meet Program (HTML)",
 		description: "Interactive HTML view of the 2-column meet program.",
 	},
+	{
+		id: 6,
+		name: "Entries (HY-TEK Style)",
+		description: "Traditional 2-column entries report with relay legs.",
+	},
+	{
+		id: 7,
+		name: "Entries (Club Style)",
+		description: "Single-column format optimized for team distribution.",
+	},
 ];
 
 export function ReportsManager() {

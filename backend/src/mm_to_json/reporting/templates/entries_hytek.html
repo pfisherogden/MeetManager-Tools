@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ meet_name }} - {{ sub_title }}</title>
+    <style>
+        {{ css_content }}
+        .athlete-block {
+            break-inside: avoid;
+            margin-bottom: 10pt;
+            border-bottom: 0.5pt solid #eee;
+            padding-bottom: 5pt;
+        }
+        .athlete-header {
+            font-weight: bold;
+            font-size: 9pt;
+            margin-bottom: 2pt;
+        }
+        .events-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 10pt;
+            font-size: 8pt;
+        }
+        .event-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div class="header-top">
+            <span class="left">Tri-Valley Swim Lg. C</span>
+            <span class="right">HY-TEK's MEET MANAGER 7.0 - {{ generation_time }} Page <span class="page"></span></span>
+        </div>
+        <div class="header-main">
+            <h1>{{ meet_name }}</h1>
+            <h2>{{ sub_title }}</h2>
+        </div>
+    </div>
+
+    <div class="content-container">
+        {% for team_group in groups %}
+            {% for athlete in team_group.athletes %}
+            <div class="athlete-block">
+                <div class="athlete-header">
+                    {{ athlete.header }}
+                </div>
+                <div class="events-grid">
+                    {% for event in athlete.sub_items %}
+                    <div class="event-item">
+                        {{ event.idx }} {{ event.desc }} {{ event.time }} {{ event.heat_lane }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</body>
+</html>

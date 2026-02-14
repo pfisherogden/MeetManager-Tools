@@ -889,6 +889,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_RESULTS: "results",
                 pb2.REPORT_TYPE_MEET_PROGRAM: "program",
                 pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
+                pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
+                pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
             }
 
             rtype = rtype_map.get(rtype_val, "psych")
@@ -918,6 +920,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 # Create empty PDF just to satisfy downstream expectations if any
                 with open(temp_path, "wb") as f:
                     f.write(b"")
+            elif rtype == "entries_hytek":
+                extractor = ReportDataExtractor(converter)
+                report_data = extractor.extract_meet_entries_data(team_filter=team_filter)
+                renderer = WeasyRenderer(temp_path)
+                renderer.render_entries(report_data, "entries_hytek.html")
+            elif rtype == "entries_club":
+                extractor = ReportDataExtractor(converter)
+                report_data = extractor.extract_meet_entries_data(team_filter=team_filter)
+                renderer = WeasyRenderer(temp_path)
+                renderer.render_entries(report_data, "entries_club.html")
 
             if os.path.exists(temp_path):
                 with open(temp_path, "rb") as f:
