@@ -502,9 +502,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
                 d = e.get("Event_dist", "")
                 s = stroke_map.get(e.get("Event_stroke", "").strip(), e.get("Event_stroke", ""))
-                low = e.get("Low_age", "")
-                high = e.get("High_Age", "")
-                name = f"{g} {low}-{high} {d} {s}"
+                age_group = self._format_age(e.get("Low_age"), e.get("High_Age"))
+                name = f"{g} {age_group} {d} {s}"
                 events_map[e_no] = name
 
         result = []
@@ -637,9 +636,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
                 d = e.get("Event_dist", "")
                 s = stroke_map.get(e.get("Event_stroke", "").strip(), e.get("Event_stroke", ""))
-                low = e.get("Low_age", "")
-                high = e.get("High_Age", "")
-                name = f"{g} {low}-{high} {d} {s}"
+                age_group = self._format_age(e.get("Low_age"), e.get("High_Age"))
+                name = f"{g} {age_group} {d} {s}"
                 events_map[e_no] = name
 
         result = []
