@@ -888,7 +888,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_MEET_PROGRAM: "program",
             }
 
-            rtype = rtype_map.get(rtype_val, "psych")
+            rtype = rtype_map.get(rtype_val, "program")
 
             if rtype == "psych":
                 rg.generate_psych_sheet(temp_path)

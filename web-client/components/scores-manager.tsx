@@ -30,8 +30,8 @@ export function ScoresManager({
 		() =>
 			initialEventScores
 				.flatMap((ev) =>
-					ev.entries.map((e, index) => ({
-						id: `ev-${ev.eventId}-${e.athleteName || "Relay"}-${e.teamName}-${e.place}-${index}`, // unique key using athlete/team/place
+					ev.entries.map((e) => ({
+						id: `ev-${ev.eventId}-${e.id}-${e.place}`, // unique key
 						eventName: ev.eventName,
 						place: e.place,
 						athleteName: e.athleteName || "Relay Team",

@@ -172,9 +172,8 @@ export function DataTable<T extends { id: string }>({
 
 					if (filterVal instanceof Set) {
 						// Faceted match: must be one of the selected values
-						const val = String(rowVal ?? "").trim();
-						if (!val) return false;
-						return filterVal.has(val);
+						// Normalize case for safer comparison? typically faceted values are exact matches
+						return filterVal.has(rowVal);
 					} else {
 						// Text match: substring, case-insensitive
 						return rowVal
