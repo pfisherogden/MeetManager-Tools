@@ -38,7 +38,7 @@ def load_mdb(db_path):
 
 def verify_report_generation():
     # 1. Load Data
-    data_path = "/app/data/2025-07-12 FAST @ DP-Meet2-MeetMgr.mdb"
+    data_path = "/app/data/after meet - TVSL Championship Meet July 19, 2025.mdb"
     if not os.path.exists(data_path):
         print(f"Error: {data_path} not found.")
         # Fallback to local path if running outside docker but with mapped paths?
@@ -86,6 +86,23 @@ def verify_report_generation():
     print(f"Rendering PDF to {output_pdf}...")
     renderer = PDFRenderer(output_pdf, config)
     renderer.render(report_data)
+
+    # 5. Verify Additional Reports
+    print("Generating Psych Sheet...")
+    psych_data = extractor.extract_psych_sheet_data()
+    from mm_to_json.reporting.report_definitions import PSYCH_SHEET_CONFIG
+    PDFRenderer("/app/data/example_reports/verification_psych.pdf", PSYCH_SHEET_CONFIG).render(psych_data)
+
+    print("Generating Timer Sheets...")
+    timer_data = extractor.extract_timer_sheets_data()
+    from mm_to_json.reporting.report_definitions import TIMER_SHEETS_CONFIG
+    PDFRenderer("/app/data/example_reports/verification_timers.pdf", TIMER_SHEETS_CONFIG).render(timer_data)
+
+    print("Generating Meet Results...")
+    results_data = extractor.extract_results_data()
+    from mm_to_json.reporting.report_definitions import RESULTS_REPORT_CONFIG
+    PDFRenderer("/app/data/example_reports/verification_results.pdf", RESULTS_REPORT_CONFIG).render(results_data)
+
     print("Done!")
 
 

@@ -1032,7 +1032,7 @@ def main():
     )
     parser.add_argument(
         "--report-type",
-        choices=["psych", "entries", "lineups", "results"],
+        choices=["psych", "entries", "lineups", "results", "timers", "program"],
         default="psych",
         help="Type of report to generate.",
     )
@@ -1050,9 +1050,7 @@ def main():
     converter = MmToJsonConverter(args.mdb_file, args.password)
     try:
         if args.report:
-            # Hierarchical data is needed for reports
-            data = converter.convert()
-            rg = ReportGenerator(data, title=args.report_title or f"{args.report_type.capitalize()} Sheet")
+            rg = ReportGenerator(converter, title=args.report_title)
 
             # Determine output filename
             base_name = os.path.splitext(os.path.basename(args.mdb_file))[0]
@@ -1062,10 +1060,12 @@ def main():
                 rg.generate_psych_sheet(out_path)
             elif args.report_type == "entries":
                 rg.generate_meet_entries(out_path, team_filter=args.team_filter)
-            elif args.report_type == "lineups":
-                rg.generate_lineup_sheets(out_path)
+            elif args.report_type == "lineups" or args.report_type == "program":
+                rg.generate_meet_program(out_path)
             elif args.report_type == "results":
                 rg.generate_meet_results(out_path)
+            elif args.report_type == "timers":
+                rg.generate_timer_sheets(out_path)
 
             logger.info(f"Successfully generated report to {out_path}")
             return
