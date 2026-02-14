@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ meet_name }} - {{ sub_title }}</title>
+    <style>
+        {{ css_content }}
+        .content-container {
+            column-count: 1;
+        }
+        .athlete-block {
+            margin-bottom: 20pt;
+            border-bottom: 1pt solid #ccc;
+            padding-bottom: 10pt;
+        }
+        .athlete-name {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 5pt;
+        }
+        .event-list {
+            margin-left: 20pt;
+        }
+        .event-row {
+            font-size: 11pt;
+            margin-bottom: 3pt;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div class="header-top">
+            <span class="left">Tri-Valley Swim Lg. C</span>
+            <span class="right">MM-Tools - {{ generation_time }} Page <span class="page"></span></span>
+        </div>
+        <div class="header-main">
+            <h1>{{ meet_name }}</h1>
+            <h2>Individual Entries Report</h2>
+        </div>
+    </div>
+
+    <div class="content-container">
+        {% for team_group in groups %}
+            <h3>{{ team_group.header }}</h3>
+            {% for athlete in team_group.athletes %}
+            <div class="athlete-block">
+                <div class="athlete-name">
+                    {{ athlete.header }}
+                </div>
+                <div class="event-list">
+                    {% for event in athlete.sub_items %}
+                    <div class="event-row">
+                        <strong>{{ event.idx }}</strong> {{ event.desc }} - {{ event.time }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</body>
+</html>

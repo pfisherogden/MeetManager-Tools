@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ meet_name }} - {{ sub_title }}</title>
+    <style>
+        {{ css_content }}
+        .group-block {
+            break-inside: avoid;
+            margin-bottom: 15pt;
+        }
+        .group-header {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            font-size: 11pt;
+            padding: 3pt 5pt;
+            border: 1pt solid #999;
+            margin-bottom: 5pt;
+        }
+        .entries-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+        }
+        .entries-table th {
+            text-align: left;
+            border-bottom: 1pt solid #eee;
+        }
+        .col-lane { width: 35pt; font-weight: bold; }
+        .col-name { width: auto; }
+        .col-team { width: 60pt; }
+        .col-time { width: 60pt; text-align: right; }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div class="header-top">
+            <span class="left">Tri-Valley Swim Lg. C</span>
+            <span class="right">MM-Tools - {{ generation_time }} Page <span class="page"></span></span>
+        </div>
+        <div class="header-main">
+            <h1>{{ meet_name }}</h1>
+            <h2>Timer Sheets</h2>
+        </div>
+    </div>
+
+    <div class="content-container">
+        {% for group in groups %}
+        <div class="group-block">
+            <div class="group-header">{{ group.header }}</div>
+            <table class="entries-table">
+                <thead>
+                    <tr>
+                        <th class="col-lane">Lane</th>
+                        <th class="col-name">Name</th>
+                        <th class="col-team">Team</th>
+                        <th class="col-time">Seed Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for athlete in group.items[0].sub_items %}
+                    <tr>
+                        <td class="col-lane">{{ athlete.lane }}</td>
+                        <td>{{ athlete.name }}</td>
+                        <td>{{ athlete.team }}</td>
+                        <td class="col-time">{{ athlete.time }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

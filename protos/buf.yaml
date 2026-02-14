@@ -1,7 +1,7 @@
 version: v1
 lint:
   use:
-    - STANDARD
+    - DEFAULT
     - COMMENTS
 breaking:
   use:

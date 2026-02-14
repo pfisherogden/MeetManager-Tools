@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ meet_name }} - {{ sub_title }}</title>
+    <style>
+        {{ css_content }}
+        .group-block {
+            break-inside: avoid;
+            margin-bottom: 15pt;
+        }
+        .group-header {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            font-size: 10pt;
+            padding: 2pt 5pt;
+            border: 0.5pt solid #ccc;
+            margin-bottom: 5pt;
+        }
+        .entries-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+        }
+        .entries-table th {
+            text-align: left;
+            border-bottom: 0.5pt solid #ddd;
+        }
+        .col-place { width: 25pt; font-weight: bold; }
+        .col-name { width: auto; }
+        .col-team { width: 50pt; }
+        .col-age { width: 25pt; }
+        .col-time { width: 45pt; text-align: right; }
+        .col-points { width: 35pt; text-align: right; }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div class="header-top">
+            <span class="left">Tri-Valley Swim Lg. C</span>
+            <span class="right">MM-Tools - {{ generation_time }} Page <span class="page"></span></span>
+        </div>
+        <div class="header-main">
+            <h1>{{ meet_name }}</h1>
+            <h2>Meet Results</h2>
+        </div>
+    </div>
+
+    <div class="content-container">
+        {% for group in groups %}
+        <div class="group-block">
+            <div class="group-header">{{ group.header }}</div>
+            <table class="entries-table">
+                <thead>
+                    <tr>
+                        <th class="col-place">Pl</th>
+                        <th class="col-name">Name</th>
+                        <th class="col-age">Age</th>
+                        <th class="col-team">Team</th>
+                        <th class="col-time">Time</th>
+                        <th class="col-points">Pts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for athlete in group.items[0].sub_items %}
+                    <tr>
+                        <td class="col-place">{{ athlete.place }}</td>
+                        <td>{{ athlete.name }}</td>
+                        <td>{{ athlete.age }}</td>
+                        <td>{{ athlete.team }}</td>
+                        <td class="col-time">{{ athlete.time }}</td>
+                        <td class="col-points">{{ athlete.points }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

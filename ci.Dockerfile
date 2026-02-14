@@ -10,7 +10,28 @@ RUN apt-get update && apt-get install -y \
     mdbtools \
     openjdk-21-jre-headless \
     gnupg \
+    libpango-1.0-0 \
+    libharfbuzz0b \
+    libpangoft2-1.0-0 \
+    libffi-dev \
+    libjpeg-dev \
+    libopenjp2-7-dev \
+    libgbm1 \
+    libasound2 \
+    libnss3 \
+    libnspr4 \
+    libxss1 \
+    libxtst6 \
+    libxshmfence1 \
     && rm -rf /var/lib/apt/lists/*
+
+# Install buf
+RUN BIN="/usr/local/bin" && \
+    VERSION="1.30.0" && \
+    curl -sSL \
+    "https://github.com/bufbuild/buf/releases/download/v${VERSION}/buf-$(uname -s)-$(uname -m)" \
+    -o "${BIN}/buf" && \
+    chmod +x "${BIN}/buf"
 
 # Install Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \

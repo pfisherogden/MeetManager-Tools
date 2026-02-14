@@ -49,6 +49,7 @@ class TestReportingComprehensive(unittest.TestCase):
                     "ConvSeed_time": 30.5,
                     "Fin_Time": 29.5,
                     "Fin_Stat": "",
+                    "Fin_place": 1,
                 },
                 {
                     "Event_ptr": 1,
@@ -58,6 +59,7 @@ class TestReportingComprehensive(unittest.TestCase):
                     "ConvSeed_time": 32.0,
                     "Fin_Time": 31.0,
                     "Fin_Stat": "",
+                    "Fin_place": 2,
                 },
             ],
             "Relay": [],

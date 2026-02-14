@@ -280,6 +280,7 @@ export async function generateReport(
 			success: true,
 			pdfContent: Array.from(response.pdfContent as Uint8Array), // Convert to regular array for serialization
 			filename: response.filename,
+			htmlContent: response.htmlContent,
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (generateReport):", err);

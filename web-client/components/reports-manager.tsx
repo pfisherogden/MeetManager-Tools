@@ -13,6 +13,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -39,8 +45,23 @@ const reportTypes = [
 	},
 	{
 		id: 4,
-		name: "Meet Program",
+		name: "Meet Program (PDF)",
 		description: "Traditional 2-column program with heat/lane assignments.",
+	},
+	{
+		id: 5,
+		name: "Meet Program (HTML)",
+		description: "Interactive HTML view of the 2-column meet program.",
+	},
+	{
+		id: 6,
+		name: "Entries (HY-TEK Style)",
+		description: "Traditional 2-column entries report with relay legs.",
+	},
+	{
+		id: 7,
+		name: "Entries (Club Style)",
+		description: "Single-column format optimized for team distribution.",
 	},
 ];
 
@@ -49,6 +70,8 @@ export function ReportsManager() {
 	const [title, setTitle] = useState("");
 	const [teamFilter, setTeamFilter] = useState("");
 	const [isGenerating, setIsGenerating] = useState(false);
+	const [htmlContent, setHtmlContent] = useState<string | null>(null);
+	const [showHtmlDialog, setShowHtmlDialog] = useState(false);
 
 	const handleGenerate = async () => {
 		setIsGenerating(true);
@@ -61,25 +84,30 @@ export function ReportsManager() {
 				teamFilter,
 			);
 
-			if (result.success && result.pdfContent) {
-				// Create a blob from the content
-				const blob = new Blob([new Uint8Array(result.pdfContent)], {
-					type: "application/pdf",
-				});
-				const url = URL.createObjectURL(blob);
+			if (result.success) {
+				if (selectedType === 5 && result.htmlContent) {
+					setHtmlContent(result.htmlContent);
+					setShowHtmlDialog(true);
+				} else if (result.pdfContent) {
+					// Create a blob from the content
+					const blob = new Blob([new Uint8Array(result.pdfContent)], {
+						type: "application/pdf",
+					});
+					const url = URL.createObjectURL(blob);
 
-				// Create a temporary link and click it to download
-				const a = document.createElement("a");
-				a.href = url;
-				a.download =
-					result.filename ||
-					`${reportName.toLowerCase().replace(/\s+/g, "_")}.pdf`;
-				document.body.appendChild(a);
-				a.click();
-				document.body.removeChild(a);
-				URL.revokeObjectURL(url);
+					// Create a temporary link and click it to download
+					const a = document.createElement("a");
+					a.href = url;
+					a.download =
+						result.filename ||
+						`${reportName.toLowerCase().replace(/\s+/g, "_")}.pdf`;
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+					URL.revokeObjectURL(url);
 
-				toast.success("Report generated successfully");
+					toast.success("Report generated successfully");
+				}
 			}
 		} catch (error: unknown) {
 			console.error("Failed to generate report", error);
@@ -189,17 +217,36 @@ export function ReportsManager() {
 						{isGenerating ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Generating PDF...
+								Generating...
 							</>
 						) : (
 							<>
 								<Download className="mr-2 h-4 w-4" />
-								Generate & Download Report
+								{selectedType === 5
+									? "Generate & View HTML"
+									: "Generate & Download Report"}
 							</>
 						)}
 					</Button>
 				</CardFooter>
 			</Card>
+
+			<Dialog open={showHtmlDialog} onOpenChange={setShowHtmlDialog}>
+				<DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+					<DialogHeader className="p-4 border-b">
+						<DialogTitle>Meet Program Preview</DialogTitle>
+					</DialogHeader>
+					<div className="flex-1 w-full overflow-hidden">
+						{htmlContent && (
+							<iframe
+								srcDoc={htmlContent}
+								title="Meet Program Preview"
+								className="w-full h-full border-none"
+							/>
+						)}
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
