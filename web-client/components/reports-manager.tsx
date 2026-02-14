@@ -201,7 +201,8 @@ export function ReportsManager() {
 								{teamFilter || "All Teams"}
 							</p>
 							<p>
-								<span className="text-muted-foreground">Branding:</span> MM-Tools
+								<span className="text-muted-foreground">Branding:</span>{" "}
+								MM-Tools
 							</p>
 						</div>
 					</div>
