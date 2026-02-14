@@ -30,8 +30,8 @@ export function ScoresManager({
 		() =>
 			initialEventScores
 				.flatMap((ev) =>
-					ev.entries.map((e) => ({
-						id: `ev-${ev.eventId}-${e.id}-${e.place}`, // unique key
+					ev.entries.map((e, index) => ({
+						id: `ev-${ev.eventId}-${e.athleteName || "Relay"}-${e.teamName}-${e.place}-${index}`, // unique key using athlete/team/place
 						eventName: ev.eventName,
 						place: e.place,
 						athleteName: e.athleteName || "Relay Team",
@@ -76,10 +76,9 @@ export function ScoresManager({
 					};
 					return (
 						<span
-							className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-sm ${
-								colors[rank as keyof typeof colors] ||
+							className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-sm ${colors[rank as keyof typeof colors] ||
 								"bg-muted text-muted-foreground"
-							}`}
+								}`}
 						>
 							{rank}
 						</span>

@@ -268,6 +268,7 @@ message Event {
   int32 session = 7;
   string status = 8;
   int32 entry_count = 9;
+  string age_group = 10;
 }
 
 enum ReportType {
