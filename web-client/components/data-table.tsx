@@ -436,8 +436,8 @@ export function DataTable<T extends { id: string }>({
 													className={cn(
 														"flex items-center h-10 px-3 text-sm",
 														col.editable &&
-														onUpdate &&
-														"cursor-pointer hover:bg-primary/5 group/cell",
+															onUpdate &&
+															"cursor-pointer hover:bg-primary/5 group/cell",
 													)}
 													onDoubleClick={() => {
 														if (col.editable && onUpdate) {

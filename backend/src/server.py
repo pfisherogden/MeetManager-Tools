@@ -317,10 +317,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         sess_map = {}
         sessitem_table = self._get_table("Sessitem") or self._get_table("SESSITEM")
         session_table = self._get_table("Session") or self._get_table("SESSIONS")
-        
+
         # ptr_to_no: Sess_ptr -> Sess_no
         ptr_to_no = {s.get("Sess_ptr"): self._safe_int(s.get("Sess_no", 1)) for s in session_table if s.get("Sess_ptr")}
-        
+
         for si in sessitem_table:
             e_ptr = si.get("Event_ptr")
             s_ptr = si.get("Sess_ptr")
@@ -339,7 +339,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             raw_gender = item.get("Event_sex", "").upper().strip()
             gender_desc = gender_map.get(raw_gender, raw_gender)
-            
+
             # Map Session: Use Sessitem map if Event.Sess_no is missing
             e_ptr = item.get("Event_ptr") or item.get("Event_no")
             sess_no = self._safe_int(item.get("Sess_no"))
@@ -940,7 +940,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Count events per session from Sessitem for reliability
         sess_item_table = self._get_table("Sessitem") or self._get_table("SESSITEM")
-        event_counts_map = {}
+        event_counts_map: dict[Any, int] = {}
         for si in sess_item_table:
             s_ptr = si.get("Sess_ptr")
             if s_ptr:

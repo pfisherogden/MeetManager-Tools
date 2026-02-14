@@ -76,9 +76,10 @@ export function ScoresManager({
 					};
 					return (
 						<span
-							className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-sm ${colors[rank as keyof typeof colors] ||
+							className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-sm ${
+								colors[rank as keyof typeof colors] ||
 								"bg-muted text-muted-foreground"
-								}`}
+							}`}
 						>
 							{rank}
 						</span>
