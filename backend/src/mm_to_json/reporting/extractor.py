@@ -8,7 +8,9 @@ class ReportDataExtractor:
     def __init__(self, converter: "MmToJsonConverter"):
         self.converter = converter
 
-    def extract_meet_entries_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
+    def extract_meet_entries_data(
+        self, team_filter: str | None = None, report_title: str | None = None
+    ) -> dict[str, Any]:
         """
         Extracts data for the Meet Entries report.
         Hierarchy: Team -> Athlete -> Events
@@ -489,7 +491,9 @@ class ReportDataExtractor:
             "groups": report_groups,
         }
 
-    def extract_meet_program_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
+    def extract_meet_program_data(
+        self, team_filter: str | None = None, report_title: str | None = None
+    ) -> dict[str, Any]:
         """
         Extracts data for the Meet Program report.
 
@@ -625,9 +629,15 @@ class ReportDataExtractor:
 
             report_groups.append({"header": header, "heats": heat_items})
 
-        return {"meet_name": full_data.get("meetName", ""), "sub_title": report_title or "Meet Program", "groups": report_groups}
+        return {
+            "meet_name": full_data.get("meetName", ""),
+            "sub_title": report_title or "Meet Program",
+            "groups": report_groups,
+        }
 
-    def extract_psych_sheet_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
+    def extract_psych_sheet_data(
+        self, team_filter: str | None = None, report_title: str | None = None
+    ) -> dict[str, Any]:
         """Extracts data for Psych Sheet report."""
         full_data = self.converter.convert()
         all_events = []
@@ -685,9 +695,15 @@ class ReportDataExtractor:
 
             report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "items": [{"sub_items": sub_items}]})
 
-        return {"meet_name": full_data.get("meetName", ""), "sub_title": report_title or "Psych Sheet", "groups": report_groups}
+        return {
+            "meet_name": full_data.get("meetName", ""),
+            "sub_title": report_title or "Psych Sheet",
+            "groups": report_groups,
+        }
 
-    def extract_timer_sheets_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
+    def extract_timer_sheets_data(
+        self, team_filter: str | None = None, report_title: str | None = None
+    ) -> dict[str, Any]:
         """Extracts data for Timer Sheets (Heat-based)."""
         full_data = self.converter.convert()
         all_events = []
@@ -801,7 +817,11 @@ class ReportDataExtractor:
 
             report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "items": [{"sub_items": sub_items}]})
 
-        return {"meet_name": full_data.get("meetName", ""), "sub_title": report_title or "Meet Results", "groups": report_groups}
+        return {
+            "meet_name": full_data.get("meetName", ""),
+            "sub_title": report_title or "Meet Results",
+            "groups": report_groups,
+        }
 
     def _safe_int(self, val, default=0):
         try:
