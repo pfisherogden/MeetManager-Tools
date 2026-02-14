@@ -38,12 +38,13 @@ def load_mdb(db_path):
 
 def verify_report_generation():
     # 1. Load Data
-    data_path = "/app/data/2025-07-12 FAST @ DP-Meet2-MeetMgr.mdb"
+    data_path = "data/after meet - TVSL Championship Meet July 19, 2025.mdb"
     if not os.path.exists(data_path):
-        print(f"Error: {data_path} not found.")
-        # Fallback to local path if running outside docker but with mapped paths?
-        # Just use absolute container path
-        return
+        # Try one level up if run from src/
+        data_path = "../data/after meet - TVSL Championship Meet July 19, 2025.mdb"
+        if not os.path.exists(data_path):
+            print(f"Error: {data_path} not found.")
+            return
 
     print("Loading MDB...")
     table_data = load_mdb(data_path)
@@ -82,7 +83,10 @@ def verify_report_generation():
     )
 
     # 4. Render PDF
-    output_pdf = "/app/data/example_reports/verification_entries_v5.pdf"
+    output_pdf = "data/example_reports/verification_entries_v5.pdf"
+    if not os.path.exists("data/example_reports"):
+        output_pdf = "../data/example_reports/verification_entries_v5.pdf"
+
     print(f"Rendering PDF to {output_pdf}...")
     renderer = PDFRenderer(output_pdf, config)
     renderer.render(report_data)
