@@ -121,3 +121,34 @@ def test_entries_report_generation(fixture_path, tmp_path):
     renderer.render_entries(club_data, "entries_club.html")
     assert os.path.exists(output_club)
     assert os.path.getsize(output_club) > 0
+
+def test_report_filtering_and_title(tmp_path):
+    # Use one of the fixtures
+    fixture_path = get_anonymized_fixtures()[0]
+    with open(fixture_path, "r") as f:
+        fixture_wrapper = json.load(f)
+    
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+    
+    custom_title = "MY CUSTOM TITLE"
+    team_filter = "DP-TV" # Standard team in these fixtures
+    
+    # Test Meet Program with filter/title
+    program_data = extractor.extract_meet_program_data(team_filter=team_filter, report_title=custom_title)
+    assert program_data["sub_title"] == custom_title
+    
+    output_pdf = str(tmp_path / "filtered_program.pdf")
+    renderer = WeasyRenderer(output_pdf)
+    html_content = renderer.render_to_html(program_data)
+    
+    soup = BeautifulSoup(html_content, "html.parser")
+    assert soup.find("h2").text == custom_title
+    
+    # Assert all entries in the HTML are for the filtered team
+    # Note: in meet program, team is in .col-team
+    team_cells = soup.find_all(class_="col-team")
+    for cell in team_cells:
+        if cell.text.strip() and cell.text.strip() != "Team":
+            assert team_filter.lower() in cell.text.lower()

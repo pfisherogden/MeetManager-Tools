@@ -201,8 +201,7 @@ export function ReportsManager() {
 								{teamFilter || "All Teams"}
 							</p>
 							<p>
-								<span className="text-muted-foreground">Branding:</span> No Meet
-								Manager headers/footers
+								<span className="text-muted-foreground">Branding:</span> MM-Tools
 							</p>
 						</div>
 					</div>
