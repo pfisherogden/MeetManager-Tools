@@ -19,7 +19,10 @@ To ensure high code quality and clear documentation, follow these steps before e
    ```
    *Note: This runs all linters and the full test suite for both backend and frontend.*
 
-3. **Commit with Issue Reference**:
+3. **Record Evidence**:
+   Before closing any issue, capture a visual recording of the fix in action using the browser subagent or manual methods. This recording MUST demonstrate the resolved bug across all relevant UI components.
+
+4. **Commit with Issue Reference**:
    Commit changes using a descriptive message that includes the issue number:
    ```bash
    git add .
@@ -27,8 +30,9 @@ To ensure high code quality and clear documentation, follow these steps before e
    git push
    ```
 
-4. **Update GitHub Issue**:
-   Use the `add_issue_comment` tool (or `gh issue comment` if manual) to link the commit hash and provide a brief implementation summary:
+5. **Update GitHub Issue**:
+   Use the `add_issue_comment` tool to provide a brief implementation summary and refer to the local `walkthrough.md` for full verification evidence (since the GitHub API does not support direct video uploads):
    ```bash
-   gh issue comment <number> --body "Fixed <description>. Commit: <hash>"
+   gh issue comment <number> --body "Fixed <description>. See walkthrough.md for verification evidence."
+   gh issue close <number>
    ```

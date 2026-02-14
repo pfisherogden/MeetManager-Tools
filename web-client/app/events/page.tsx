@@ -5,9 +5,8 @@ import type { SwimEvent as UIEvent } from "@/lib/swim-meet-types";
 
 function formatAgeGroup(low: number, high: number): string {
 	if (low === 0 && high === 0) return "Open";
-	if (low === 0 && high > 0) return `${high}&U`;
-	if (low > 0 && high === 0) return `${low}&O`; // Or 100+?
-	if (high === 99 || high > 99) return `${low}&O`;
+	if (low === 0 && high > 0) return `${high} & under`;
+	if (low > 0 && (high === 0 || high >= 99)) return `${low} & over`;
 	return `${low}-${high}`;
 }
 
@@ -22,6 +21,7 @@ interface ServerEvent {
 	lowAge: number;
 	highAge: number;
 	entryCount: number;
+	ageGroup?: string;
 }
 
 export default async function EventsPage() {
@@ -37,7 +37,7 @@ export default async function EventsPage() {
 				distance: e.distance,
 				stroke: e.stroke,
 				gender: e.gender,
-				ageGroup: formatAgeGroup(e.lowAge, e.highAge),
+				ageGroup: e.ageGroup || formatAgeGroup(e.lowAge, e.highAge),
 				entryCount: e.entryCount || 0,
 			}));
 		}

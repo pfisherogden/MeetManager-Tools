@@ -68,6 +68,14 @@ export function SessionsManager({
 			editable: false,
 			type: "number",
 			width: "w-20",
+			render: (value, row) => (
+				<Link
+					href={`/events?session=${row.id}`}
+					className="hover:underline text-primary"
+				>
+					{value as number}
+				</Link>
+			),
 		},
 	];
 
