@@ -2,6 +2,7 @@ version: v1
 lint:
   use:
     - STANDARD
+    - COMMENTS
 breaking:
   use:
     - FILE
