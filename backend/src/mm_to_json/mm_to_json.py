@@ -7,8 +7,6 @@ from typing import Any
 
 import pandas as pd
 
-from .report_generator import ReportGenerator
-
 logger = logging.getLogger(__name__)
 
 # from access_parser import AccessParser DEPRECATED
@@ -1048,6 +1046,8 @@ def main():
     )
 
     args = parser.parse_args()
+
+    from .report_generator import ReportGenerator
 
     converter = MmToJsonConverter(args.mdb_file, args.password)
     try:

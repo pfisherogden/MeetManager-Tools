@@ -1,10 +1,11 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..mm_to_json import MmToJsonConverter
+if TYPE_CHECKING:
+    from ..mm_to_json import MmToJsonConverter
 
 
 class ReportDataExtractor:
-    def __init__(self, converter: MmToJsonConverter):
+    def __init__(self, converter: "MmToJsonConverter"):
         self.converter = converter
 
     def extract_meet_entries_data(self, team_filter: str | None = None) -> dict[str, Any]:
