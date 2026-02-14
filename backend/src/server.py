@@ -23,7 +23,6 @@ except ImportError:
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
 from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.report_generator import ReportGenerator
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
@@ -867,17 +866,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.GenerateReportResponse(success=False, message="Missing request")
         try:
             converter = MmToJsonConverter(table_data=self._data_cache)
-            hierarchical_data = converter.convert()
 
-            title = "Meet Report"
             rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
             team_filter = None
             if request:
-                title = request.title or "Meet Report"
                 rtype_val = request.type
                 team_filter = request.team_filter
-
-            rg = ReportGenerator(hierarchical_data, title=title)
 
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 temp_path = tmp.name
@@ -897,38 +891,38 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             pdf_content = b""
             html_content = None
 
+            extractor = ReportDataExtractor(converter)
+            renderer = WeasyRenderer(temp_path)
+
             if rtype == "psych":
-                rg.generate_psych_sheet(temp_path)
+                report_data = extractor.extract_psych_sheet_data()
+                renderer.render_entries(report_data, "psych_sheet.html")
             elif rtype == "entries":
-                rg.generate_meet_entries(temp_path, team_filter=team_filter)
+                # Default entries uses HY-TEK style
+                report_data = extractor.extract_meet_entries_data(team_filter=team_filter)
+                renderer.render_entries(report_data, "entries_hytek.html")
             elif rtype == "lineups":
-                rg.generate_lineup_sheets(temp_path)
+                report_data = extractor.extract_timer_sheets_data()
+                renderer.render_entries(report_data, "lineups.html")
             elif rtype == "results":
-                rg.generate_meet_results(temp_path)
+                report_data = extractor.extract_results_data()
+                renderer.render_entries(report_data, "results.html")
             elif rtype == "program":
                 # Use new WeasyRenderer for PDF
-                extractor = ReportDataExtractor(converter)
                 program_data = extractor.extract_meet_program_data(team_filter=team_filter)
-                renderer = WeasyRenderer(temp_path)
                 renderer.render_meet_program(program_data)
             elif rtype == "program_html":
                 # Use WeasyRenderer for HTML
-                extractor = ReportDataExtractor(converter)
                 program_data = extractor.extract_meet_program_data(team_filter=team_filter)
-                renderer = WeasyRenderer(temp_path)
                 html_content = renderer.render_to_html(program_data)
                 # Create empty PDF just to satisfy downstream expectations if any
                 with open(temp_path, "wb") as f:
                     f.write(b"")
             elif rtype == "entries_hytek":
-                extractor = ReportDataExtractor(converter)
                 report_data = extractor.extract_meet_entries_data(team_filter=team_filter)
-                renderer = WeasyRenderer(temp_path)
                 renderer.render_entries(report_data, "entries_hytek.html")
             elif rtype == "entries_club":
-                extractor = ReportDataExtractor(converter)
                 report_data = extractor.extract_meet_entries_data(team_filter=team_filter)
-                renderer = WeasyRenderer(temp_path)
                 renderer.render_entries(report_data, "entries_club.html")
 
             if os.path.exists(temp_path):
