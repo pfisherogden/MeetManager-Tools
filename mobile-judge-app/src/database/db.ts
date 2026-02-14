@@ -1,8 +1,18 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 let _db: any = null;
 
 export const getDb = () => {
+  if (Platform.OS === 'web') {
+    // Return a mock DB for web review in Docker
+    return {
+      execSync: () => {},
+      runSync: () => ({ lastInsertRowId: 1, changes: 1 }),
+      getAllSync: () => [],
+      getFirstSync: () => ({ count: 0 }),
+    };
+  }
   if (!_db) {
     _db = SQLite.openDatabaseSync('meetmanager_judge.db');
   }

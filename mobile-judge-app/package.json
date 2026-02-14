@@ -13,7 +13,12 @@
     "preset": "ts-jest",
     "testEnvironment": "node",
     "transform": {
-      "^.+\\.tsx?$": ["ts-jest", { "tsconfig": "tsconfig.json" }]
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.json"
+        }
+      ]
     },
     "moduleNameMapper": {
       "^expo-sqlite$": "<rootDir>/test/__mocks__/expo-sqlite.ts"
@@ -24,13 +29,16 @@
     ]
   },
   "dependencies": {
+    "@expo/webpack-config": "^19.0.1",
     "@react-native-community/netinfo": "^11.5.2",
     "expo": "~54.0.33",
     "expo-file-system": "^19.0.21",
     "expo-sqlite": "^16.0.10",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-dom": "^19.2.4",
+    "react-native": "0.81.5",
+    "react-native-web": "^0.21.2"
   },
   "devDependencies": {
     "@testing-library/react-native": "^13.3.3",
