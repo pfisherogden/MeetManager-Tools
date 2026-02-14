@@ -22,3 +22,11 @@ description: Preferred tools for development and dependency management in MeetMa
 - **Optimize Context**: Maintain `.dockerignore` to exclude `node_modules`, `.venv`, and other host-side artifacts.
 - **Build Caching**: Design Dockerfiles to cache dependencies separately from source code by copying `package.json` or `pyproject.toml` first.
 - **Verify Locally**: Use `just verify-ci` to run the full verification pipeline in a container that mirrors the CI environment.
+
+## Cross-Platform Reliability
+- **System Libraries**: Libraries like WeasyPrint require non-Python system dependencies (e.g., `libpango`, `libffi`). These MUST be explicitly installed in `ci.Dockerfile` and `backend/Dockerfile` using `apt-get`.
+- **macOS Local Dev**: When running locally on macOS, ensure `DYLD_FALLBACK_LIBRARY_PATH` includes `/opt/homebrew/lib` if system libraries are not found by `dlopen`.
+
+## GitHub Action Triggers
+- **Path Filtering**: Use native `on.push.paths` and `on.pull_request.paths` in `.github/workflows/` instead of manual `if: contains(changed_files)` checks. This ensures CI correctly triggers and reports status on PRs.
+- **Ready for Review**: CI runs are often skipped on Draft PRs. Always mark a PR as "Ready for Review" to verify the final merge state.

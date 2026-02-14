@@ -18,6 +18,11 @@ description: Project structure and decoupling principles for MeetManager-Tools. 
 - **Caching**: Utilize JSON caching for performance, but ensure it is reproducible from the MDB source.
 - **Verification**: Ensure every data transformation is verifiable via automated PDF/PNG reports.
 
+## Python Circular Import Prevention
+- **Avoid Coupling**: Avoid importing complex classes (like `MmToJsonConverter`) at the top level of reporting or utility modules.
+- **Use TYPE_CHECKING**: Utilize `from typing import TYPE_CHECKING` guards for type hints only.
+- **Lazy Imports**: Import heavy generator or renderer classes inside the specific functions where they are used (e.g., inside `main()` or a specific RPC implementation) to prevent partially initialized module errors.
+
 ## Frontend Architecture
 - **Server-First**: Prioritize React Server Components and Server Actions.
 - **State**: Minimize client-side state; leverage URL parameters and server-side data fetching.

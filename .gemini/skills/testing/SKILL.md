@@ -17,8 +17,18 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
    - Focus on data parsing and report generation logic.
    - Verify PDF/PNG artifacts against snapshots in `backend/data/example_reports/`.
 4. **Execute Frontend Tests**: Run `just test-frontend` for `Vitest`.
-   - Focus on component rendering and Server Action interactions.
-
-## Design Patterns
+       - Focus on component rendering and Server Action interactions.
+   
+   ## Report Validation
+   - **Data Hydration**: Assert that all data fields (Meet Name, Team Filter, etc.) are correctly mapped from the request to the template data.
+   - **Edge Cases**: Explicitly test "NT" (No Time) entries, scratched swimmers, and complex relay structures (up to 4 swimmers + alternates).
+   - **DOM Validation**: Use `BeautifulSoup` to parse generated HTML before it hits the PDF renderer. Assert:
+       - Expected CSS classes (e.g., `.event-block`, `.col-lane`) are present.
+       - No empty/invalid data fields.
+       - The number of blocks matches the database query.
+   - **Renderer Logs**: Capture WeasyPrint or Playwright stdout/stderr to programmatically check for layout warnings like "Content box too small."
+   
+   ## Design Patterns
+   
 - **Unit over Integration**: Prefer testing logic in isolation before full system tests.
 - **Snapshots**: Use file-based snapshots for visual reports to ensure data integrity across transformations.
