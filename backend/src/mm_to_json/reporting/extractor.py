@@ -127,7 +127,7 @@ class ReportDataExtractor:
             except Exception:
                 pass
 
-        grouped = {}
+        grouped: dict[str, Any] = {}
         ind_entries = [e for e in flat_entries if not e["is_relay"]]
         relay_entries = [e for e in flat_entries if e["is_relay"]]
 
@@ -203,7 +203,7 @@ class ReportDataExtractor:
         sorted_teams = sorted(grouped.keys())
         report_groups = []
         for t_name in sorted_teams:
-            team_items = []
+            team_items: list[dict[str, Any]] = []
             real_athletes = [v for k, v in grouped[t_name].items() if k != "RelayTeams"]
             sorted_athletes = sorted(real_athletes, key=lambda x: x["name"])
             seq = 1
@@ -285,13 +285,7 @@ class ReportDataExtractor:
         for sess in full_data.get("sessions", []):
             for evt in sess.get("events", []):
                 all_events.append(evt)
-        all_events.sort(
-            key=lambda e: (
-                int(re.search(r"\d+", str(e.get("eventNum", "0"))).group())
-                if re.search(r"\d+", str(e.get("eventNum", "0")))
-                else 0
-            )
-        )
+        all_events.sort(key=lambda e: int(m.group()) if (m := re.search(r"\d+", str(e.get("eventNum", "0")))) else 0)
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, is_relay, entries = (
@@ -329,7 +323,8 @@ class ReportDataExtractor:
                 entries = filtered
             if not entries:
                 continue
-            header, heats = f"Event {evt_num}  {evt_desc}", {}
+            header = f"Event {evt_num}  {evt_desc}"
+            heats: dict[int, list[Any]] = {}
             for entry in entries:
                 h = entry.get("heat", 0)
                 if h not in heats:
@@ -498,7 +493,8 @@ class ReportDataExtractor:
                 entries = filtered
             if not entries:
                 continue
-            header, heats = f"Event {evt_num}  {evt_desc}", {}
+            header = f"Event {evt_num}  {evt_desc}"
+            heats: dict[int, list[Any]] = {}
             for e in entries:
                 h = int(float(e.get("heat", 0)))
                 if h not in heats:

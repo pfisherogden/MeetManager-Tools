@@ -19,6 +19,7 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
    - Verify PDF/PNG artifacts against snapshots in `backend/data/example_reports/`.
 4. **Execute Frontend Tests**: Run `just test-frontend` for `Vitest`.
        - Focus on component rendering and Server Action interactions.
+       - **Anti-Hang**: Always use `vitest run` (or `npm test -- --run`) in automated scripts to prevent the runner from entering watch mode and hanging the process.
 
 ## Data & Mocking Best Practices
 - **Strict Case Sensitivity**: When mocking Pandas DataFrames or dictionaries for `MmToJsonConverter`, assume case-sensitive column access. Although the converter might normalize *loaded* data to lowercase, tests injecting raw data must match the expected internal keys exactly (e.g., use `convseed_time` not `ConvSeed_time`).

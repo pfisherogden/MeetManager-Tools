@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Briarhill vs Del Prado - Line-Up - BH-TV - Boys 6 & under</title>
+    <style>
+        @page {
+    size: letter;
+    margin: 0.5in;
+    margin-top: 1.2in; /* Make room for fixed header in PDF */
+    
+    @bottom-right {
+        content: "Page " counter(page);
+        font-family: "Helvetica", sans-serif;
+        font-size: 8pt;
+    }
+}
+
+body {
+    font-family: "Helvetica", sans-serif;
+    font-size: 9pt;
+    line-height: 1.2;
+    margin: 0;
+    padding: 0;
+}
+
+#header {
+    border-bottom: 1pt solid black;
+    padding-bottom: 5pt;
+    text-align: center;
+    margin-bottom: 20pt; /* Add spacing for browser view */
+    background-color: white;
+}
+
+@media print {
+    #header {
+        position: fixed;
+        top: -0.9in; /* Position in the top margin area for WeasyPrint */
+        left: 0;
+        right: 0;
+        height: 0.8in;
+        margin-bottom: 0;
+    }
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    margin-bottom: 5pt;
+}
+
+.header-main {
+    text-align: center;
+}
+
+.header-main h1 {
+    font-size: 12pt;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.header-main h2 {
+    font-size: 10pt;
+    margin: 2pt 0 0 0;
+    color: #333;
+}
+
+.content-container {
+    column-count: 2;
+    column-gap: 20pt;
+}
+
+.event-block {
+    break-inside: avoid;
+    margin-bottom: 15pt;
+}
+
+.event-header {
+    background-color: #f0f0f0;
+    font-weight: bold;
+    font-size: 10pt;
+    padding: 2pt 5pt;
+    border: 0.5pt solid #ccc;
+    margin-bottom: 5pt;
+    text-transform: uppercase;
+}
+
+.heat-block {
+    margin-bottom: 10pt;
+}
+
+.heat-header {
+    font-weight: bold;
+    font-size: 9pt;
+    margin-bottom: 3pt;
+    border-bottom: 0.5pt solid #eee;
+}
+
+.entries-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.entries-table th {
+    text-align: left;
+    font-size: 8pt;
+    color: #666;
+    border-bottom: 0.5pt solid #ddd;
+    padding: 2pt;
+}
+
+.entries-table td {
+    padding: 2pt;
+    vertical-align: top;
+}
+
+.entry-row td {
+    font-size: 9pt;
+}
+
+.col-lane { width: 30pt; }
+.col-name { width: auto; }
+.col-age { width: 25pt; }
+.col-team { width: 50pt; }
+.col-relay { width: 30pt; }
+.col-time { width: 50pt; text-align: right; }
+
+.relay-swimmers-row td {
+    font-size: 8pt;
+    padding-top: 0;
+    padding-bottom: 4pt;
+    color: #333;
+    font-style: italic;
+}
+
+.swimmers-list {
+    padding-left: 10pt;
+}
+
+/* WeasyPrint specific hacks */
+.page {
+    content: counter(page);
+}
+
+        
+        .content-container {
+            column-count: 2;
+        }
+        
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div class="header-top">
+            <span class="left">Tri-Valley Swim Lg. C</span>
+            <span class="right">MM-Tools - 09:54 PM 2026/02/14</span>
+        </div>
+        <div class="header-main">
+            <h1>Briarhill vs Del Prado</h1>
+            <h2>Line-Up - BH-TV - Boys 6 & under</h2>
+        </div>
+    </div>
+
+    <div class="content-container">
+        
+        <div class="event-block">
+            <div class="event-header">
+                Event 2  Mixed 6 & under 100 Yard Medley Relay
+            </div>
+            
+            
+            <div class="heat-block">
+                <div class="heat-header">Heat 1 of 1 Finals</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-relay">Relay</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                        
+                    </thead>
+                    <tbody>
+                        
+                        <tr class="entry-row">
+                            <td class="col-lane">4</td>
+                            
+                                <td class="col-team">BH-TV</td>
+                                <td class="col-relay">A</td>
+                                <td class="col-time">NT</td>
+                            
+                        </tr>
+                        
+                        <tr class="relay-swimmers-row">
+                            <td></td>
+                            <td colspan="3" class="swimmers-list">
+                                
+                                <span>1) Jackson, Mark</span> 
+                                
+                                <span>2) Moreno, Theodore</span> 
+                                
+                                <span>3) Brooks, Thomas</span> 
+                                
+                                <span>4) Lindsey, Jason</span> 
+                                
+                                <span>5) Stevens, Chelsea</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+        
+        <div class="event-block">
+            <div class="event-header">
+                Event 14  Boys 6 & under 100 Yard Freestyle Relay
+            </div>
+            
+            
+            <div class="heat-block">
+                <div class="heat-header">Heat 1 of 1 Finals</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-relay">Relay</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                        
+                    </thead>
+                    <tbody>
+                        
+                        <tr class="entry-row">
+                            <td class="col-lane">1</td>
+                            
+                                <td class="col-team">BH-TV</td>
+                                <td class="col-relay">A</td>
+                                <td class="col-time">1:35.00</td>
+                            
+                        </tr>
+                        
+                        <tr class="relay-swimmers-row">
+                            <td></td>
+                            <td colspan="3" class="swimmers-list">
+                                
+                                <span>1) Stevens, Chelsea</span> 
+                                
+                                <span>2) Martin, Stephen</span> 
+                                
+                                <span>3) Cardenas, Leroy</span> 
+                                
+                                <span>4) Fuentes, Brandy</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+        
+        <div class="event-block">
+            <div class="event-header">
+                Event 26  Boys 6 & under 25 Yard Butterfly
+            </div>
+            
+            
+            <div class="heat-block">
+                <div class="heat-header">Heat 1 of 1 Finals</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-name">Name</th>
+                            <th class="col-age">Age</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                        
+                    </thead>
+                    <tbody>
+                        
+                        <tr class="entry-row">
+                            <td class="col-lane">2</td>
+                            
+                                <td class="col-name">Jackson, Mark</td>
+                                <td class="col-age">6</td>
+                                <td class="col-team">BH-TV</td>
+                                <td class="col-time">25.50</td>
+                            
+                        </tr>
+                        
+                        
+                        <tr class="entry-row">
+                            <td class="col-lane">3</td>
+                            
+                                <td class="col-name">Brooks, Thomas</td>
+                                <td class="col-age">6</td>
+                                <td class="col-team">BH-TV</td>
+                                <td class="col-time">33.50</td>
+                            
+                        </tr>
+                        
+                        
+                        <tr class="entry-row">
+                            <td class="col-lane">4</td>
+                            
+                                <td class="col-name">Lindsey, Jason</td>
+                                <td class="col-age">6</td>
+                                <td class="col-team">BH-TV</td>
+                                <td class="col-time">29.50</td>
+                            
+                        </tr>
+                        
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+        
+        <div class="event-block">
+            <div class="event-header">
+                Event 38  Boys 6 & under 25 Yard Breaststroke
+            </div>
+            
+            
+            <div class="heat-block">
+                <div class="heat-header">Heat 1 of 1 Finals</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-name">Name</th>
+                            <th class="col-age">Age</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                        
+                    </thead>
+                    <tbody>
+                        
+                        <tr class="entry-row">
+                            <td class="col-lane">4</td>
+                            
+                                <td class="col-name">Moreno, Theodore</td>
+                                <td class="col-age">6</td>
+                                <td class="col-team">BH-TV</td>
+                                <td class="col-time">27.50</td>
+                            
+                        </tr>
+                        
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+        
+        <div class="event-block">
+            <div class="event-header">
+                Event 58  Boys 6 & under 25 Yard Backstroke
+            </div>
+            
+            
+            <div class="heat-block">
+                <div class="heat-header">Heat 1 of 1 Finals</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-name">Name</th>
+                            <th class="col-age">Age</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                        
+                    </thead>
+                    <tbody>
+                        
+                        <tr class="entry-row">
+                            <td class="col-lane">3</td>
+                            
+                                <td class="col-name">Brooks, Thomas</td>
+                                <td class="col-age">6</td>
+                                <td class="col-team">BH-TV</td>
+                                <td class="col-time">34.00</td>
+                            
+                        </tr>
+                        
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+        
+        <div class="event-block">
+            <div class="event-header">
+                Event 70  Mixed 6 & under 100 Yard Freestyle Relay
+            </div>
+            
+            
+            <div class="heat-block">
+                <div class="heat-header">Heat 1 of 1 Finals</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-relay">Relay</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                        
+                    </thead>
+                    <tbody>
+                        
+                        <tr class="entry-row">
+                            <td class="col-lane">4</td>
+                            
+                                <td class="col-team">BH-TV</td>
+                                <td class="col-relay">A</td>
+                                <td class="col-time">2:14.00</td>
+                            
+                        </tr>
+                        
+                        <tr class="relay-swimmers-row">
+                            <td></td>
+                            <td colspan="3" class="swimmers-list">
+                                
+                                <span>1) Brooks, Thomas</span> 
+                                
+                                <span>2) Jackson, Mark</span> 
+                                
+                                <span>3) Lindsey, Jason</span> 
+                                
+                                <span>4) Moreno, Theodore</span>
+                                
+                            </td>
+                        </tr>
+                        
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+        
+    </div>
+</body>
+</html>
+<!-- CI Trigger: Sat Feb 14 01:13:58 PST 2026 -->

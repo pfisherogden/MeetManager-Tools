@@ -67,7 +67,7 @@ lint-protos:
 
 type-check-backend: codegen-backend
     @echo "Type checking backend..."
-    cd backend && MYPYPATH=src uv run mypy src
+    cd backend && MYPYPATH=src uv run mypy --non-interactive --install-types src
 
 lint-backend:
     @echo "Linting backend..."

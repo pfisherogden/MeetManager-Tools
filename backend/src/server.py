@@ -1015,7 +1015,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_LINEUPS: "lineups",
                 pb2.REPORT_TYPE_RESULTS: "results",
                 pb2.REPORT_TYPE_MEET_PROGRAM: "program",
-                pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program",
+                pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
                 pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
             }
@@ -1086,6 +1086,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             show_relay_swimmers=show_relay_swimmers,
                         )
                         renderer.render_meet_program(program_data)
+                    elif rtype == "program_html":
+                        program_data = extractor.extract_meet_program_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                            columns_on_page=columns_on_page,
+                            show_relay_swimmers=show_relay_swimmers,
+                        )
+                        html_content = renderer.render_to_html(program_data)
+                        with open(temp_path, "w") as f:
+                            f.write(html_content)
                     elif rtype == "entries_hytek":
                         report_data = extractor.extract_meet_entries_data(
                             team_filter=team_filter,
@@ -1106,7 +1118,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     if os.path.exists(temp_path):
                         # Clean title for filename
                         safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-                        file_name = f"{idx + 1}_{safe_title}.pdf"
+                        ext = ".html" if rtype == "program_html" else ".pdf"
+                        file_name = f"{idx + 1}_{safe_title}{ext}"
                         zip_file.write(temp_path, file_name)
                         os.remove(temp_path)
 
