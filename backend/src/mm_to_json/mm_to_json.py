@@ -509,6 +509,10 @@ class MmToJsonConverter:
             elif max_age == 0 and min_age == 0:
                 # Default for 0-0 is usually 6 & under in this project's context
                 max_age = 6
+            
+            # Map invalid 15-16 to 15-18
+            if min_age == 15 and max_age == 16:
+                max_age = 18
 
             return Event(
                 event_no=self._safe_int(row.get("Event_no")),
@@ -548,7 +552,12 @@ class MmToJsonConverter:
         if len(s) == 3:  # 910 -> 9, 10
             return int(s[0]), int(s[1:])
         if len(s) == 4:  # 1112 -> 11, 12
-            return int(s[:2]), int(s[2:])
+            low = int(s[:2])
+            high = int(s[2:])
+            # Fix for invalid 15-16 in data -> 15-18
+            if low == 15 and high == 16:
+                high = 18
+            return low, high
         return 0, 109  # Fallback
 
     def add_individual_entries(self, event):

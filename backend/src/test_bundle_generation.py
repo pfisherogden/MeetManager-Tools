@@ -57,7 +57,7 @@ def enhance_data_with_multi_team(table_data):
     if "Event" in table_data:
         r_evt = {
             "Event_ptr": 9999, "Event_no": 99, "Ind_rel": "R", "Event_gender": "F", "Event_dist": 100,
-            "Event_stroke": "R", "Low_age": 0, "High_age": 8, "Event_sex": "Girls",
+            "Event_stroke": "R", "Low_age": 7, "High_age": 8, "Event_sex": "Girls",
             "Num_prelanes": 6, "Num_finlanes": 6, "Event_rounds": 1
         }
         # Add a Mixed event
@@ -125,7 +125,7 @@ def generate_test_bundle():
         for team in found_teams:
             if not team: continue
             for gender in ["Girls", "Boys"]:
-                for age in found_ages:
+                for age in ["6 & under", "7-8", "9-10", "11-12", "13-14", "15-18"]:
                     title = f"Line-Up - {team} - {gender} {age}"
                     data = extractor.extract_timer_sheets_data(
                         report_title=title, 
