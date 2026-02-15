@@ -1,10 +1,34 @@
 @page {
     size: letter;
-    margin: 0.5in;
-    @bottom-right {
-        content: "Page " counter(page);
+    margin: 0.75in 0.5in 0.5in 0.5in;
+
+    @top-left {
+        content: "Tri-Valley Swim Lg. C";
         font-family: "Helvetica", sans-serif;
         font-size: 8pt;
+        vertical-align: bottom;
+        padding-bottom: 5pt;
+        border-bottom: 0.5pt solid black;
+    }
+
+    @top-right {
+        content: "MM-Tools - " string(gen_time) " Page " counter(page);
+        font-family: "Helvetica", sans-serif;
+        font-size: 8pt;
+        vertical-align: bottom;
+        padding-bottom: 5pt;
+        border-bottom: 0.5pt solid black;
+    }
+
+    @top-center {
+        content: string(meet_name) "\A" string(sub_title);
+        font-family: "Helvetica", sans-serif;
+        font-weight: bold;
+        font-size: 10pt;
+        white-space: pre;
+        vertical-align: bottom;
+        padding-bottom: 5pt;
+        border-bottom: 0.5pt solid black;
     }
 }
 
@@ -16,11 +40,13 @@ body {
     padding: 0;
 }
 
+/* Define strings for the margin boxes */
+.meet-name-metadata { string-set: meet_name content(); display: none; }
+.sub-title-metadata { string-set: sub_title content(); display: none; }
+.gen-time-metadata { string-set: gen_time content(); display: none; }
+
 #header {
-    width: 100%;
-    margin-bottom: 10pt;
-    border-bottom: 1pt solid black;
-    padding-bottom: 5pt;
+    display: none; /* Hide old manual header */
 }
 
 .header-top {

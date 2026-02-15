@@ -968,6 +968,7 @@ class Event:
 
         # Age Group Formatting
         age_str = ""
+        # Fix for issue #42: 0-N becomes 'N & under'
         if self.min_age == 0 and self.max_age >= 109:
             age_str = "Open"
         elif self.min_age == 0:
@@ -981,10 +982,8 @@ class Event:
         # Distance & Stroke
         dist_str = f"{self.distance}"
 
-        # Construct Description: "Girls 8 & Under 25 Yard Freestyle"
+        # Construct Description: "Girls 8 & under 25 Yard Freestyle"
         # We need "Yard" or "Meter". Defaulting to "Yard" as per example unless we have course info.
-        # Ideally this comes from meet info or event data, but often implicit in US summer leagues.
-
         self.description = f"{gender_str} {age_str} {dist_str} Yard {self.stroke}"
 
         if self.division:

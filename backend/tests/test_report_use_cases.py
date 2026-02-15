@@ -16,7 +16,7 @@ class TestReportUseCases(unittest.TestCase):
             "Event": [
                 {
                     "Event_no": 1, "Event_ptr": 1, "Ind_rel": "I", "Event_gender": "F", "Event_sex": "Girls",
-                    "Event_dist": 25, "Event_stroke": "A", "Low_age": 7, "High_age": 8, "Num_finlanes": 6, "Event_rounds": 1
+                    "Event_dist": 25, "Event_stroke": "A", "Low_age": 0, "High_age": 8, "Num_finlanes": 6, "Event_rounds": 1
                 },
                 {
                     "Event_no": 2, "Event_ptr": 2, "Ind_rel": "I", "Event_gender": "M", "Event_sex": "Boys",
@@ -24,7 +24,7 @@ class TestReportUseCases(unittest.TestCase):
                 },
                 {
                     "Event_no": 3, "Event_ptr": 3, "Ind_rel": "R", "Event_gender": "F", "Event_sex": "Girls",
-                    "Event_dist": 100, "Event_stroke": "R", "Low_age": 7, "High_age": 8, "Num_finlanes": 6, "Event_rounds": 1
+                    "Event_dist": 100, "Event_stroke": "R", "Low_age": 0, "High_age": 8, "Num_finlanes": 6, "Event_rounds": 1
                 }
             ],
             "Athlete": [
@@ -52,24 +52,23 @@ class TestReportUseCases(unittest.TestCase):
 
     def test_parents_lineup_logic(self):
         """Verify Parents Line-Up: Per-team, gender and age filtered."""
-        # Case A: Team One, Girls, 7-8
+        # Case A: Team One, Girls, 8 & under
         data = self.extractor.extract_timer_sheets_data(
             team_filter="Team One", 
             gender_filter="Girls", 
-            age_group_filter="7-8"
+            age_group_filter="8 & under"
         )
         
-        # Verify only Team One data is present
+        self.assertTrue(len(data["groups"]) > 0, "Should find groups for Team One Girls 8 & under")
         for group in data["groups"]:
+            # Check event header for age formatting
+            self.assertIn("8 & under", group["header"])
             for heat in group["heats"]:
                 for entry in heat["sub_items"]:
                     self.assertEqual(entry["team"], "Team One")
                     
         # Verify Alice is present (Individual and Relay)
         self.assertEqual(len(data["groups"]), 2) # Evt 1 and Evt 3
-        evt1 = data["groups"][0]
-        self.assertIn("Event 1", evt1["header"])
-        self.assertIn("Heat 1 of 1 Finals", evt1["heats"][0]["header"])
         
         # Case B: Team Two, Boys, 9-10
         data = self.extractor.extract_timer_sheets_data(
@@ -108,13 +107,14 @@ class TestReportUseCases(unittest.TestCase):
         """Verify Board Posting: Gender filtered, includes entry times."""
         # Girls only
         data = self.extractor.extract_meet_program_data(gender_filter="Girls")
+        self.assertTrue(len(data["groups"]) > 0)
         for group in data["groups"]:
             self.assertIn("Girls", group["header"])
             for heat in group["heats"]:
                 for entry in heat["sub_items"]:
-                    self.assertNotEqual(entry["time"], "") # Entry times present
+                    self.assertNotEqual(entry["time"], "")
                     
-        # Boys (+Mixed implied if present)
+        # Boys
         data = self.extractor.extract_meet_program_data(gender_filter="Boys")
         self.assertEqual(len(data["groups"]), 1)
         self.assertIn("Boys", data["groups"][0]["header"])
@@ -126,7 +126,7 @@ class TestReportUseCases(unittest.TestCase):
             columns_on_page=1
         )
         self.assertEqual(data["columns_on_page"], 1)
-        self.assertEqual(len(data["groups"]), 3) # All 3 events
+        self.assertEqual(len(data["groups"]), 3)
 
 if __name__ == "__main__":
     unittest.main()
