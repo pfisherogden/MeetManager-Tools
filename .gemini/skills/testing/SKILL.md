@@ -9,6 +9,7 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
 - **Mandatory Verification**: Every code change must be accompanied by tests.
 - **Unified Entry Point**: Use `just test` for full suite execution.
 - **Robustness**: Ensure gRPC server methods handle `request=None` gracefully.
+- **Environment Consistency**: Prefer running tests in Docker (`just test-backend` or `docker-compose run ...`) over local execution to avoid OS-specific library issues (e.g., Cairo/Pango versions).
 
 ## Test Workflow
 1. **Sync Dependencies**: Run `uv sync --all-packages --dev` (Backend) or `npm install` (Frontend).
@@ -18,10 +19,14 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
    - Verify PDF/PNG artifacts against snapshots in `backend/data/example_reports/`.
 4. **Execute Frontend Tests**: Run `just test-frontend` for `Vitest`.
        - Focus on component rendering and Server Action interactions.
-   
-   ## Report Validation
-   - **Data Hydration**: Assert that all data fields (Meet Name, Team Filter, etc.) are correctly mapped from the request to the template data.
-   - **Edge Cases**: Explicitly test "NT" (No Time) entries, scratched swimmers, and complex relay structures (up to 4 swimmers + alternates).
+
+## Data & Mocking Best Practices
+- **Strict Case Sensitivity**: When mocking Pandas DataFrames or dictionaries for `MmToJsonConverter`, assume case-sensitive column access. Although the converter might normalize *loaded* data to lowercase, tests injecting raw data must match the expected internal keys exactly (e.g., use `convseed_time` not `ConvSeed_time`).
+- **Fixture Consistency**: Ensure mock data matches the structure of real MDB exports. If the application logic relies on specific relationships (e.g., `Event_ptr` linking `Entry` to `Event`), manually verified mock data is crucial.
+
+## Report Validation
+- **Data Hydration**: Assert that all data fields (Meet Name, Team Filter, etc.) are correctly mapped from the request to the template data.
+- **Edge Cases**: Explicitly test "NT" (No Time) entries, scratched swimmers, and complex relay structures (up to 4 swimmers + alternates).
    - **DOM Validation**: Use `BeautifulSoup` to parse generated HTML before it hits the PDF renderer. Assert:
        - Expected CSS classes (e.g., `.event-block`, `.col-lane`) are present.
        - No empty/invalid data fields.
