@@ -83,6 +83,53 @@ export function ReportsManager() {
 
 	const reportPresets = [
 		{
+			id: "default_pack",
+			name: "Default Meet Pack",
+			description:
+				"Complete set: Lineups, Coaches, Posting & Computer programs.",
+			reports: [
+				// Coaches Program
+				{
+					type: 4,
+					title: "Coaches Meet Program",
+					columnsOnPage: 2,
+					showRelaySwimmers: true,
+				},
+				// Posting Programs
+				{
+					type: 4,
+					title: "Posting Program - Girls",
+					genderFilter: "Girls",
+					columnsOnPage: 2,
+					showRelaySwimmers: true,
+				},
+				{
+					type: 4,
+					title: "Posting Program - Boys",
+					genderFilter: "Boys",
+					columnsOnPage: 2,
+					showRelaySwimmers: true,
+				},
+				// Computer Program
+				{
+					type: 4,
+					title: "Computer Team Program",
+					columnsOnPage: 1,
+					showRelaySwimmers: true,
+				},
+				// Lineups (using current filters)
+				...["Girls", "Boys"].flatMap((gender) =>
+					["6 & under", "7-8", "9-10"].map((age) => ({
+						type: 2,
+						title: `Line Up - ${gender} ${age}`,
+						genderFilter: gender,
+						ageGroupFilter: age,
+						teamFilter: teamFilter,
+					})),
+				),
+			],
+		},
+		{
 			id: "coaches",
 			name: "Coaches Bundle",
 			description: "Full meet program for all genders/ages (2-column).",

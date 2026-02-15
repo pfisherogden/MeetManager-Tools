@@ -8,63 +8,63 @@ class TestReportingComprehensive(unittest.TestCase):
     def setUp(self):
         # Mocking the MmToJsonConverter with minimal data for all tables
         self.table_data = {
-            "Meet": [
+            "meet": [
                 {
-                    "Meet_name1": "Test Meet",
-                    "Meet_location": "Test Pool",
-                    "Meet_start": "2026-02-13",
-                    "Meet_end": "2026-02-13",
+                    "meet_name1": "Test Meet",
+                    "meet_location": "Test Pool",
+                    "meet_start": "2026-02-13",
+                    "meet_end": "2026-02-13",
                 }
             ],
-            "Session": [
-                {"Sess_ptr": 1, "Sess_no": 1, "Sess_name": "Session 1", "Sess_day": 1, "Sess_starttime": 32400}
+            "session": [
+                {"sess_ptr": 1, "sess_no": 1, "sess_name": "Session 1", "sess_day": 1, "sess_starttime": 32400}
             ],
-            "Sessitem": [{"Sess_ptr": 1, "Event_ptr": 1, "Sess_order": 1, "Sess_rnd": "F"}],
-            "Event": [
+            "sessitem": [{"sess_ptr": 1, "event_ptr": 1, "sess_order": 1, "sess_rnd": "F"}],
+            "event": [
                 {
-                    "Event_no": 1,
-                    "Event_ptr": 1,
-                    "Ind_rel": "I",
-                    "Event_gender": "M",
-                    "Event_sex": "Boys",
-                    "Event_dist": 50,
-                    "Event_stroke": "A",
-                    "Low_age": 11,
-                    "High_age": 12,
-                    "Num_finlanes": 6,
-                    "Event_rounds": 1,
+                    "event_no": 1,
+                    "event_ptr": 1,
+                    "ind_rel": "I",
+                    "event_gender": "M",
+                    "event_sex": "Boys",
+                    "event_dist": 50,
+                    "event_stroke": "A",
+                    "low_age": 11,
+                    "high_age": 12,
+                    "num_finlanes": 6,
+                    "event_rounds": 1,
                 }
             ],
-            "Athlete": [
-                {"Ath_no": 1, "First_name": "Alice", "Last_name": "Athlete", "Ath_age": 11, "Team_no": 1, "Sex": "F"},
-                {"Ath_no": 2, "First_name": "Bob", "Last_name": "Swimmer", "Ath_age": 12, "Team_no": 1, "Sex": "M"},
+            "athlete": [
+                {"ath_no": 1, "first_name": "Alice", "last_name": "Athlete", "ath_age": 11, "team_no": 1, "sex": "F"},
+                {"ath_no": 2, "first_name": "Bob", "last_name": "Swimmer", "ath_age": 12, "team_no": 1, "sex": "M"},
             ],
-            "Team": [{"Team_no": 1, "Team_abbr": "TST", "Team_name": "Test Team"}],
-            "Entry": [
+            "team": [{"team_no": 1, "team_abbr": "TST", "team_name": "Test Team"}],
+            "entry": [
                 {
-                    "Event_ptr": 1,
-                    "Ath_no": 1,
-                    "Fin_heat": 1,
-                    "Fin_lane": 1,
-                    "ConvSeed_time": 30.5,
-                    "Fin_Time": 29.5,
-                    "Fin_Stat": "",
-                    "Fin_place": 1,
+                    "event_ptr": 1,
+                    "ath_no": 1,
+                    "fin_heat": 1,
+                    "fin_lane": 1,
+                    "convseed_time": 30.5,
+                    "fin_time": 29.5,
+                    "fin_stat": "",
+                    "fin_place": 1,
                 },
                 {
-                    "Event_ptr": 1,
-                    "Ath_no": 2,
-                    "Fin_heat": 1,
-                    "Fin_lane": 2,
-                    "ConvSeed_time": 32.0,
-                    "Fin_Time": 31.0,
-                    "Fin_Stat": "",
-                    "Fin_place": 2,
+                    "event_ptr": 1,
+                    "ath_no": 2,
+                    "fin_heat": 1,
+                    "fin_lane": 2,
+                    "convseed_time": 32.0,
+                    "fin_time": 31.0,
+                    "fin_stat": "",
+                    "fin_place": 2,
                 },
             ],
-            "Relay": [],
-            "RelayNames": [],
-            "Divisions": [],
+            "relay": [],
+            "relaynames": [],
+            "divisions": [],
         }
         self.converter = MmToJsonConverter(table_data=self.table_data)
         self.extractor = ReportDataExtractor(self.converter)
@@ -85,8 +85,11 @@ class TestReportingComprehensive(unittest.TestCase):
         data = self.extractor.extract_timer_sheets_data()
         self.assertEqual(len(data["groups"]), 1)
         group = data["groups"][0]
-        self.assertIn("Heat 1", group["header"])
-        entries = group["sections"][0]["sub_items"]
+        # Timer sheets structure: group -> heats -> list of heat objects with header
+        self.assertTrue(len(group["heats"]) > 0)
+        heat = group["heats"][0]
+        self.assertIn("Heat 1", heat["header"])
+        entries = heat["sub_items"]
         self.assertEqual(len(entries), 2)
         self.assertEqual(entries[0]["lane"], "1")
         self.assertEqual(entries[1]["lane"], "2")
