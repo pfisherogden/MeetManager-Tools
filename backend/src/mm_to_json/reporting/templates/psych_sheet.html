@@ -37,7 +37,7 @@
     <div id="header">
         <div class="header-top">
             <span class="left">Tri-Valley Swim Lg. C</span>
-            <span class="right">MM-Tools - {{ generation_time }} Page <span class="page"></span></span>
+            <span class="right">MM-Tools - {{ generation_time }}</span>
         </div>
         <div class="header-main">
             <h1>{{ meet_name }}</h1>
@@ -60,7 +60,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for athlete in group.items[0].sub_items %}
+                    {% for athlete in group.sections[0].sub_items %}
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td>{{ athlete.name }}</td>

@@ -261,15 +261,23 @@ export async function generateReport(
 	type: number,
 	title: string,
 	teamFilter: string = "",
+	genderFilter?: string,
+	ageGroupFilter?: string,
+	columnsOnPage: number = 2,
+	showRelaySwimmers: boolean = true,
 ) {
 	try {
 		console.log(
-			`Generating report: type=${type}, title=${title}, teamFilter=${teamFilter}`,
+			`Generating report: type=${type}, title=${title}, teamFilter=${teamFilter}, gender=${genderFilter}, age=${ageGroupFilter}, cols=${columnsOnPage}, relaySwimmers=${showRelaySwimmers}`,
 		);
 		const response = await client.generateReport({
 			type,
 			title,
 			teamFilter,
+			genderFilter,
+			ageGroupFilter,
+			columnsOnPage,
+			showRelaySwimmers,
 		});
 
 		if (!response.success) {
@@ -284,6 +292,47 @@ export async function generateReport(
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (generateReport):", err);
+		if (err instanceof Error) {
+			throw new Error(err.message);
+		}
+		throw new Error("An unknown error occurred");
+	}
+}
+
+export async function generateReportBundle(
+	reports: any[],
+	bundleName: string = "bundle.zip",
+) {
+	try {
+		console.log(
+			`Generating report bundle: ${bundleName} (${reports.length} reports)`,
+		);
+		const response = await client.generateReportBundle({
+			reports: reports.map((r) => ({
+				type: r.type,
+				title: r.title,
+				teamFilter: r.teamFilter || "",
+				genderFilter: r.genderFilter,
+				ageGroupFilter: r.ageGroupFilter,
+				columnsOnPage: r.columnsOnPage || 2,
+				showRelaySwimmers:
+					r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
+			})),
+			bundleName,
+		});
+
+		if (!response.success) {
+			throw new Error(response.message);
+		}
+
+		return {
+			success: true,
+			message: response.message,
+			filename: response.filename,
+			zipContent: Array.from(response.zipContent as Uint8Array),
+		};
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (generateReportBundle):", err);
 		if (err instanceof Error) {
 			throw new Error(err.message);
 		}

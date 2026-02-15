@@ -67,6 +67,8 @@ service MeetManagerService {
   rpc GetEventScores(GetEventScoresRequest) returns (GetEventScoresResponse);
   // GenerateReport generates a swim meet report (e.g., Psych Sheet, Results).
   rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
+  // GenerateReportBundle generates a set of customized reports bundled in a zip file.
+  rpc GenerateReportBundle(GenerateReportBundleRequest) returns (GenerateReportBundleResponse);
 }
 
 // GetMeetsRequest is the request for GetMeets.
@@ -493,6 +495,14 @@ message GenerateReportRequest {
   string title = 2;
   // team_filter is an optional filter for a specific team.
   string team_filter = 3;
+  // gender_filter is an optional filter for gender (e.g., 'Girls', 'Boys').
+  optional string gender_filter = 4;
+  // age_group_filter is an optional filter for age group (e.g., '6 & under', '11-12').
+  optional string age_group_filter = 5;
+  // columns_on_page specifies the number of columns (typically 1 or 2).
+  optional int32 columns_on_page = 6;
+  // show_relay_swimmers indicates if individual relay swimmers should be listed.
+  optional bool show_relay_swimmers = 7;
 }
 
 // GenerateReportResponse contains the generated report data.
@@ -507,4 +517,24 @@ message GenerateReportResponse {
   string filename = 4;
   // html_content is the raw HTML of the generated report.
   optional string html_content = 5;
+}
+
+// GenerateReportBundleRequest specifies a list of reports to generate as a bundle.
+message GenerateReportBundleRequest {
+  // reports is the list of individual report configurations.
+  repeated GenerateReportRequest reports = 1;
+  // bundle_name is the suggested name for the zip file.
+  string bundle_name = 2;
+}
+
+// GenerateReportBundleResponse contains the generated report bundle.
+message GenerateReportBundleResponse {
+  // success indicates if the bundle was generated successfully.
+  bool success = 1;
+  // message provides additional information or error details.
+  string message = 2;
+  // zip_content is the raw bytes of the generated zip file containing all reports.
+  bytes zip_content = 3;
+  // filename is the suggested name for the zip file.
+  string filename = 4;
 }

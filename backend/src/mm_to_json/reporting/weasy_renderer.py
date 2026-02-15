@@ -1,9 +1,10 @@
+import copy
 import datetime
 import os
 import sys
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
 
 
@@ -11,7 +12,9 @@ class WeasyRenderer:
     def __init__(self, output_path: str):
         self.output_path = output_path
         self.template_dir = os.path.join(os.path.dirname(__file__), "templates")
-        self.env = Environment(loader=FileSystemLoader(self.template_dir))
+        self.env = Environment(
+            loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"])
+        )
 
         # Ensure macOS libraries are found if running locally
         if os.name == "posix" and "darwin" in sys.platform:
@@ -28,12 +31,16 @@ class WeasyRenderer:
         with open(css_path) as f:
             css_content = f.read()
 
-        # Add metadata
-        data["css_content"] = css_content
-        data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
+        # Add metadata (do not overwrite if already present, but WeasyRenderer usually generates it)
+        render_data = copy.copy(data)
+        render_data["css_content"] = css_content
+        import pytz
+
+        tz = pytz.timezone("America/Los_Angeles")
+        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%I:%M %p %Y/%m/%d")
 
         # Render HTML
-        html_out = template.render(**data)
+        html_out = template.render(**render_data)
 
         # Convert to PDF
         HTML(string=html_out).write_pdf(self.output_path)
@@ -47,10 +54,14 @@ class WeasyRenderer:
         with open(css_path) as f:
             css_content = f.read()
 
-        data["css_content"] = css_content
-        data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
+        render_data = copy.copy(data)
+        render_data["css_content"] = css_content
+        import pytz
 
-        html_out = template.render(**data)
+        tz = pytz.timezone("America/Los_Angeles")
+        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%I:%M %p %Y/%m/%d")
+
+        html_out = template.render(**render_data)
         HTML(string=html_out).write_pdf(self.output_path)
         return html_out
 
@@ -62,7 +73,11 @@ class WeasyRenderer:
         with open(css_path) as f:
             css_content = f.read()
 
-        data["css_content"] = css_content
-        data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
+        render_data = copy.copy(data)
+        render_data["css_content"] = css_content
+        import pytz
 
-        return template.render(**data)
+        tz = pytz.timezone("America/Los_Angeles")
+        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%I:%M %p %Y/%m/%d")
+
+        return template.render(**render_data)

@@ -1,0 +1,26 @@
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..mm_to_json import MmToJsonConverter
+
+
+class ReportDataExtractor:
+    def __init__(self, converter: "MmToJsonConverter"):
+        self.converter = converter
+
+    def _format_age(self, min_age: int, max_age: int) -> str:
+        if min_age == 0 and max_age >= 109:
+            return "Open"
+        if min_age == 0:
+            return f"{max_age} & under"
+        if max_age >= 109:
+            return f"{min_age} & over"
+        return f"{min_age}-{max_age}"
+
+    def extract_meet_entries_data(
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
+    ) -> dict[str, Any]:

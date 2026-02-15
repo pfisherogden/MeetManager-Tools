@@ -38,8 +38,9 @@ RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src 
 
 # 4. Copy source and data (layer 4)
 COPY backend/src ./src
-COPY backend/tests ./tests
 COPY backend/data ./data
+COPY tests/fixtures ./data/fixtures_root
+COPY backend/tests ./tests
 
 ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1

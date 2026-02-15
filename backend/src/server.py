@@ -386,7 +386,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def SetActiveDataset(self, request, context):
         request = request or pb2.SetActiveDatasetRequest()
-        filename = request.filename
+        filename = os.path.basename(request.filename)
+
+        if not (filename.endswith(".mdb") or filename.endswith(".json")):
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("Invalid file type")
+            return pb2.SetActiveDatasetResponse()
+
         path = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
 
         if not os.path.exists(path):
@@ -401,15 +407,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def ClearDataset(self, request, context):
         request = request or pb2.ClearDatasetRequest()
-        filename = request.filename
+        filename = os.path.basename(request.filename)
         if not (filename.endswith(".mdb") or filename.endswith(".json")):
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("Invalid file type")
-            return pb2.ClearDatasetResponse()
-
-        if "/" in filename or "\\" in filename:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("Invalid filename")
             return pb2.ClearDatasetResponse()
 
         path = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
@@ -870,10 +871,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
             team_filter = None
             title = None
+            gender_filter = None
+            age_group_filter = None
+            columns_on_page = 2
+            show_relay_swimmers = True
+
             if request:
                 rtype_val = request.type
                 team_filter = request.team_filter
                 title = request.title
+                gender_filter = request.gender_filter
+                age_group_filter = request.age_group_filter
+                if request.columns_on_page:
+                    columns_on_page = request.columns_on_page
+                if request.HasField("show_relay_swimmers"):
+                    show_relay_swimmers = request.show_relay_swimmers
 
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 temp_path = tmp.name
@@ -897,34 +909,74 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             renderer = WeasyRenderer(temp_path)
 
             if rtype == "psych":
-                report_data = extractor.extract_psych_sheet_data(team_filter=team_filter, report_title=title)
+                report_data = extractor.extract_psych_sheet_data(
+                    team_filter=team_filter,
+                    report_title=title,
+                    gender_filter=gender_filter,
+                    age_group_filter=age_group_filter,
+                )
                 renderer.render_entries(report_data, "psych_sheet.html")
             elif rtype == "entries":
-                # Default entries uses HY-TEK style
-                report_data = extractor.extract_meet_entries_data(team_filter=team_filter, report_title=title)
+                report_data = extractor.extract_meet_entries_data(
+                    team_filter=team_filter,
+                    report_title=title,
+                    gender_filter=gender_filter,
+                    age_group_filter=age_group_filter,
+                )
                 renderer.render_entries(report_data, "entries_hytek.html")
             elif rtype == "lineups":
-                report_data = extractor.extract_timer_sheets_data(team_filter=team_filter, report_title=title)
+                report_data = extractor.extract_timer_sheets_data(
+                    team_filter=team_filter,
+                    report_title=title,
+                    gender_filter=gender_filter,
+                    age_group_filter=age_group_filter,
+                )
                 renderer.render_entries(report_data, "lineups.html")
             elif rtype == "results":
-                report_data = extractor.extract_results_data(team_filter=team_filter, report_title=title)
+                report_data = extractor.extract_results_data(
+                    team_filter=team_filter,
+                    report_title=title,
+                    gender_filter=gender_filter,
+                    age_group_filter=age_group_filter,
+                )
                 renderer.render_entries(report_data, "results.html")
             elif rtype == "program":
-                # Use new WeasyRenderer for PDF
-                program_data = extractor.extract_meet_program_data(team_filter=team_filter, report_title=title)
+                program_data = extractor.extract_meet_program_data(
+                    team_filter=team_filter,
+                    report_title=title,
+                    gender_filter=gender_filter,
+                    age_group_filter=age_group_filter,
+                    columns_on_page=columns_on_page,
+                    show_relay_swimmers=show_relay_swimmers,
+                )
                 renderer.render_meet_program(program_data)
             elif rtype == "program_html":
-                # Use WeasyRenderer for HTML
-                program_data = extractor.extract_meet_program_data(team_filter=team_filter, report_title=title)
+                program_data = extractor.extract_meet_program_data(
+                    team_filter=team_filter,
+                    report_title=title,
+                    gender_filter=gender_filter,
+                    age_group_filter=age_group_filter,
+                    columns_on_page=columns_on_page,
+                    show_relay_swimmers=show_relay_swimmers,
+                )
                 html_content = renderer.render_to_html(program_data)
-                # Create empty PDF just to satisfy downstream expectations if any
                 with open(temp_path, "wb") as f:
                     f.write(b"")
             elif rtype == "entries_hytek":
-                report_data = extractor.extract_meet_entries_data(team_filter=team_filter, report_title=title)
+                report_data = extractor.extract_meet_entries_data(
+                    team_filter=team_filter,
+                    report_title=title,
+                    gender_filter=gender_filter,
+                    age_group_filter=age_group_filter,
+                )
                 renderer.render_entries(report_data, "entries_hytek.html")
             elif rtype == "entries_club":
-                report_data = extractor.extract_meet_entries_data(team_filter=team_filter, report_title=title)
+                report_data = extractor.extract_meet_entries_data(
+                    team_filter=team_filter,
+                    report_title=title,
+                    gender_filter=gender_filter,
+                    age_group_filter=age_group_filter,
+                )
                 renderer.render_entries(report_data, "entries_club.html")
 
             if os.path.exists(temp_path):
@@ -947,6 +999,145 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         except Exception as e:
             print(f"Error generating report: {e}")
             return pb2.GenerateReportResponse(success=False, message=str(e))
+
+    def GenerateReportBundle(self, request, context):
+        import zipfile
+
+        if request is None:
+            return pb2.GenerateReportBundleResponse(success=False, message="Missing request")
+
+        try:
+            converter = MmToJsonConverter(table_data=self._data_cache)
+            extractor = ReportDataExtractor(converter)
+
+            rtype_map = {
+                pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
+                pb2.REPORT_TYPE_ENTRIES: "entries",
+                pb2.REPORT_TYPE_LINEUPS: "lineups",
+                pb2.REPORT_TYPE_RESULTS: "results",
+                pb2.REPORT_TYPE_MEET_PROGRAM: "program",
+                pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
+                pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
+                pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
+            }
+
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for idx, report_req in enumerate(request.reports):
+                    rtype_val = report_req.type
+                    rtype = rtype_map.get(rtype_val, "psych")
+                    title = report_req.title
+                    team_filter = report_req.team_filter
+                    gender_filter = report_req.gender_filter
+                    age_group_filter = report_req.age_group_filter
+
+                    # New variation fields
+                    columns_on_page = 2
+                    if report_req.columns_on_page:
+                        columns_on_page = report_req.columns_on_page
+
+                    show_relay_swimmers = True
+                    if report_req.HasField("show_relay_swimmers"):
+                        show_relay_swimmers = report_req.show_relay_swimmers
+
+                    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                        temp_path = tmp.name
+
+                    renderer = WeasyRenderer(temp_path)
+
+                    if rtype == "psych":
+                        report_data = extractor.extract_psych_sheet_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                        )
+                        renderer.render_entries(report_data, "psych_sheet.html")
+                    elif rtype == "entries":
+                        report_data = extractor.extract_meet_entries_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                        )
+                        renderer.render_entries(report_data, "entries_hytek.html")
+                    elif rtype == "lineups":
+                        report_data = extractor.extract_timer_sheets_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                        )
+                        renderer.render_entries(report_data, "lineups.html")
+                    elif rtype == "results":
+                        report_data = extractor.extract_results_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                        )
+                        renderer.render_entries(report_data, "results.html")
+                    elif rtype == "program":
+                        program_data = extractor.extract_meet_program_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                            columns_on_page=columns_on_page,
+                            show_relay_swimmers=show_relay_swimmers,
+                        )
+                        renderer.render_meet_program(program_data)
+                    elif rtype == "program_html":
+                        program_data = extractor.extract_meet_program_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                            columns_on_page=columns_on_page,
+                            show_relay_swimmers=show_relay_swimmers,
+                        )
+                        html_content = renderer.render_to_html(program_data)
+                        with open(temp_path, "w") as f:
+                            f.write(html_content)
+                    elif rtype == "entries_hytek":
+                        report_data = extractor.extract_meet_entries_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                        )
+                        renderer.render_entries(report_data, "entries_hytek.html")
+                    elif rtype == "entries_club":
+                        report_data = extractor.extract_meet_entries_data(
+                            team_filter=team_filter,
+                            report_title=title,
+                            gender_filter=gender_filter,
+                            age_group_filter=age_group_filter,
+                        )
+                        renderer.render_entries(report_data, "entries_club.html")
+
+                    if os.path.exists(temp_path):
+                        # Clean title for filename
+                        safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
+                        ext = ".html" if rtype == "program_html" else ".pdf"
+                        file_name = f"{idx + 1}_{safe_title}{ext}"
+                        zip_file.write(temp_path, file_name)
+                        os.remove(temp_path)
+
+            bundle_name = request.bundle_name or f"meet_bundle_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+            if not bundle_name.endswith(".zip"):
+                bundle_name += ".zip"
+
+            return pb2.GenerateReportBundleResponse(
+                success=True,
+                message="Bundle generated successfully",
+                zip_content=zip_buffer.getvalue(),
+                filename=bundle_name,
+            )
+
+        except Exception as e:
+            print(f"Error generating report bundle: {e}")
+            return pb2.GenerateReportBundleResponse(success=False, message=str(e))
 
     def GetSessions(self, request, context):
         request = request or pb2.GetSessionsRequest()
