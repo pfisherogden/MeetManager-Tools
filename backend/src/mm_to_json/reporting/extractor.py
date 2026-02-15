@@ -786,14 +786,21 @@ class ReportDataExtractor:
             evt_num = evt.get("eventNum")
             evt_desc = evt.get("eventDesc")
             entries = evt.get("entries", [])
+            is_relay = evt.get("isRelay", False)
 
             # Filter by gender/age group at event level
             if gender_filter or age_group_filter:
                 if gender_filter:
-                    if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower():
+                    if (
+                        gender_filter.lower() not in evt_desc.lower()
+                        and "mixed" not in evt_desc.lower()
+                    ):
                         continue
 
-                if age_group_filter and age_group_filter.lower() not in evt_desc.lower():
+                if (
+                    age_group_filter
+                    and age_group_filter.lower() not in evt_desc.lower()
+                ):
                     continue
 
             # Apply team filter if requested
@@ -808,6 +815,9 @@ class ReportDataExtractor:
             if not entries:
                 continue
 
+            # Event Header
+            header = f"Event {evt_num}  {evt_desc}"
+
             # Group by heat
             heats: dict[int, list[dict[str, Any]]] = {}
             for e in entries:
@@ -816,30 +826,58 @@ class ReportDataExtractor:
                     heats[h] = []
                 heats[h].append(e)
 
-            for h in sorted(heats.keys()):
+            sorted_heats = sorted(heats.keys())
+            heat_items = []
+            for h in sorted_heats:
                 heat_entries = sorted(heats[h], key=lambda x: self._safe_int(x.get("lane", 0)))
                 sub_items = []
                 for entry in heat_entries:
-                    sub_items.append(
-                        {
-                            "lane": str(entry.get("lane", "")),
-                            "name": entry.get("name", ""),
-                            "team": entry.get("team", ""),
-                            "time": entry.get("seedTime", "NT"),
-                        }
-                    )
-                report_groups.append(
-                    {
-                        "header": f"Event {evt_num} {evt_desc} Heat {h}",
-                        "sections": [{"sub_items": sub_items, "header": f"Heat {h}"}],
+                    item_data = {
+                        "lane": str(entry.get("lane", "")),
+                        "team": entry.get("team", ""),
+                        "time": entry.get("seedTime", "NT"),
+                        "is_relay": is_relay,
                     }
-                )
+                    if is_relay:
+                        item_data["relay_ltr"] = entry.get("relayLtr", "A")
+                        # Preferred: use full athlete objects for accurate Last, First formatting
+                        names = []
+                        if "relayAthletes" in entry:
+                            for ath in entry["relayAthletes"]:
+                                fn = ath.get("first", "").strip()
+                                ln = ath.get("last", "").strip()
+                                names.append(f"{ln}, {fn}")
+                        else:
+                            # Fallback: parse from single string name
+                            names = [n.strip() for n in entry.get("name", "").split(",")]
+                        item_data["swimmers"] = names
+                    else:
+                        # Ensure consistently formatted name: "Last, First"
+                        name = entry.get("name", "")
+                        if "," not in name:
+                            parts = name.split(" ")
+                            if len(parts) >= 2:
+                                name = f"{parts[-1]}, " + " ".join(parts[:-1])
+                        item_data["name"] = name
+
+                    sub_items.append(item_data)
+
+                heat_header = f"Heat {h} of {sorted_heats[-1]} Finals"
+                heat_items.append({"header": heat_header, "sub_items": sub_items})
+
+            report_groups.append(
+                {
+                    "header": header,
+                    "heats": heat_items,
+                }
+            )
 
         return {
             "meet_name": full_data.get("meetName", ""),
             "sub_title": report_title or "Timer Sheets",
             "groups": report_groups,
         }
+
 
     def extract_results_data(
         self,

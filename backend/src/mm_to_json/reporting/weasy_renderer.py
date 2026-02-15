@@ -30,7 +30,8 @@ class WeasyRenderer:
 
         # Add metadata
         data["css_content"] = css_content
-        data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
+        if "generation_time" not in data:
+            data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
 
         # Render HTML
         html_out = template.render(**data)
@@ -48,7 +49,8 @@ class WeasyRenderer:
             css_content = f.read()
 
         data["css_content"] = css_content
-        data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
+        if "generation_time" not in data:
+            data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
 
         html_out = template.render(**data)
         HTML(string=html_out).write_pdf(self.output_path)
@@ -63,6 +65,7 @@ class WeasyRenderer:
             css_content = f.read()
 
         data["css_content"] = css_content
-        data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
+        if "generation_time" not in data:
+            data["generation_time"] = datetime.datetime.now().strftime("%I:%M %p %m/%d/%Y")
 
         return template.render(**data)

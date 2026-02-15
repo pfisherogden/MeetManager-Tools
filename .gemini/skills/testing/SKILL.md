@@ -26,6 +26,8 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
        - Expected CSS classes (e.g., `.event-block`, `.col-lane`) are present.
        - No empty/invalid data fields.
        - The number of blocks matches the database query.
+   - **Template Pitfalls**:
+       - **Jinja2 Shadowing**: Never use the key `items` in a dictionary passed to Jinja2 templates (e.g., `group.items`). Jinja2 resolves `items` to the built-in `dict.items()` method, causing `UndefinedError` or unexpected behavior. Use `sections` or `entries` instead.
    - **Renderer Logs**: Capture WeasyPrint or Playwright stdout/stderr to programmatically check for layout warnings like "Content box too small."
    
    ## Design Patterns

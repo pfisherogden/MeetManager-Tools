@@ -48,26 +48,47 @@
         {% for group in groups %}
         <div class="group-block">
             <div class="group-header">{{ group.header }}</div>
-            <table class="entries-table">
-                <thead>
-                    <tr>
-                        <th class="col-lane">Lane</th>
-                        <th class="col-name">Name</th>
-                        <th class="col-team">Team</th>
-                        <th class="col-time">Seed Time</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for athlete in group.sections[0].sub_items %}
-                    <tr>
-                        <td class="col-lane">{{ athlete.lane }}</td>
-                        <td>{{ athlete.name }}</td>
-                        <td>{{ athlete.team }}</td>
-                        <td class="col-time">{{ athlete.time }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            
+            {% for item in group.heats %}
+            <div class="heat-block">
+                <div class="heat-header">{{ item.header }}</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-name">Name</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for athlete in item.sub_items %}
+                        <tr class="entry-row">
+                            <td class="col-lane">{{ athlete.lane }}</td>
+                            {% if athlete.is_relay %}
+                                <td>{{ athlete.team }} - '{{ athlete.relay_ltr }}'</td>
+                            {% else %}
+                                <td>{{ athlete.name }}</td>
+                            {% endif %}
+                            <td>{{ athlete.team }}</td>
+                            <td class="col-time">{{ athlete.time }}</td>
+                        </tr>
+                        {% if athlete.is_relay and athlete.swimmers %}
+                        <tr class="relay-swimmers-row">
+                            <td></td>
+                            <td colspan="3" class="swimmers-list">
+                                {% for swimmer in athlete.swimmers %}
+                                <span>{{ loop.index }}) {{ swimmer }}</span>{% if not loop.last %} {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
         </div>
         {% endfor %}
     </div>

@@ -22,6 +22,13 @@ description: Preferred tools for development and dependency management in MeetMa
 - **Optimize Context**: Maintain `.dockerignore` to exclude `node_modules`, `.venv`, and other host-side artifacts.
 - **Build Caching**: Design Dockerfiles to cache dependencies separately from source code by copying `package.json` or `pyproject.toml` first.
 - **Verify Locally**: Use `just verify-ci` to run the full verification pipeline in a container that mirrors the CI environment.
+- **Docker Clean Room**: If local execution (especially PDF generation or Next.js builds) hangs or fails due to host environment issues, use `docker build` and `docker run` to execute in a clean environment.
+- **Anti-Stall Rules**:
+  - Never run interactive commands (use `-y` for `apt`, `--no-pager` for `git`).
+  - **NPX**: Always use `npx --yes <package>` to bypass the "Ok to proceed?" installation prompt.
+  - **Piping**: If a command lacks a non-interactive flag, pipe `yes` into it: `yes | command`.
+  - **Backgrounding**: Redirect stdout/stderr to files when running long-running containerized tasks in the background to prevent terminal hangs.
+  - **Build Debugging**: If a build stalls for >10 minutes, use `--progress=plain` to identify the failing layer.
 
 ## Cross-Platform Reliability
 - **System Libraries**: Libraries like WeasyPrint require non-Python system dependencies (e.g., `libpango`, `libffi`). These MUST be explicitly installed in `ci.Dockerfile` and `backend/Dockerfile` using `apt-get`.
