@@ -386,7 +386,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def SetActiveDataset(self, request, context):
         request = request or pb2.SetActiveDatasetRequest()
-        filename = request.filename
+        filename = os.path.basename(request.filename)
+
+        if not (filename.endswith(".mdb") or filename.endswith(".json")):
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("Invalid file type")
+            return pb2.SetActiveDatasetResponse()
+
         path = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
 
         if not os.path.exists(path):
@@ -401,15 +407,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def ClearDataset(self, request, context):
         request = request or pb2.ClearDatasetRequest()
-        filename = request.filename
+        filename = os.path.basename(request.filename)
         if not (filename.endswith(".mdb") or filename.endswith(".json")):
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("Invalid file type")
-            return pb2.ClearDatasetResponse()
-
-        if "/" in filename or "\\" in filename:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("Invalid filename")
             return pb2.ClearDatasetResponse()
 
         path = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)

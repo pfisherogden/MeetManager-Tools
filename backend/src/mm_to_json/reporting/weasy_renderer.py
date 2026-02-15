@@ -4,7 +4,7 @@ import os
 import sys
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
 
 
@@ -12,7 +12,9 @@ class WeasyRenderer:
     def __init__(self, output_path: str):
         self.output_path = output_path
         self.template_dir = os.path.join(os.path.dirname(__file__), "templates")
-        self.env = Environment(loader=FileSystemLoader(self.template_dir))
+        self.env = Environment(
+            loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"])
+        )
 
         # Ensure macOS libraries are found if running locally
         if os.name == "posix" and "darwin" in sys.platform:
