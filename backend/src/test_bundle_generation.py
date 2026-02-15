@@ -55,37 +55,57 @@ def enhance_data_with_multi_team(table_data):
 
     # Add a relay event
     if "Event" in table_data:
+        # 1. Girls 7-8 Relay
         r_evt = {
             "Event_ptr": 9999, "Event_no": 99, "Ind_rel": "R", "Event_gender": "F", "Event_dist": 100,
             "Event_stroke": "R", "Low_age": 7, "High_age": 8, "Event_sex": "Girls",
             "Num_prelanes": 6, "Num_finlanes": 6, "Event_rounds": 1
         }
-        # Add a Mixed event
-        m_evt = {
-            "Event_ptr": 8888, "Event_no": 88, "Ind_rel": "I", "Event_gender": "X", "Event_dist": 50,
-            "Event_stroke": "A", "Low_age": 9, "High_age": 10, "Event_sex": "Mixed",
+        # 2. Boys 9-10 Relay
+        r_evt2 = {
+            "Event_ptr": 9998, "Event_no": 98, "Ind_rel": "R", "Event_gender": "M", "Event_dist": 200,
+            "Event_stroke": "R", "Low_age": 9, "High_age": 10, "Event_sex": "Boys",
             "Num_prelanes": 6, "Num_finlanes": 6, "Event_rounds": 1
         }
-        table_data["Event"].extend([r_evt, m_evt])
+        # 3. Mixed 15-18 Relay
+        r_evt3 = {
+            "Event_ptr": 9997, "Event_no": 97, "Ind_rel": "R", "Event_gender": "X", "Event_dist": 200,
+            "Event_stroke": "R", "Low_age": 15, "High_age": 18, "Event_sex": "Mixed",
+            "Num_prelanes": 6, "Num_finlanes": 6, "Event_rounds": 1
+        }
         
-        # Relay entry - use multiple column names just in case
+        table_data["Event"].extend([r_evt, r_evt2, r_evt3])
+        
         if "Relay" not in table_data: table_data["Relay"] = []
+        # Relay 1 (Girls 7-8)
         table_data["Relay"].append({
             "Event_ptr": 9999, "Team_no": 99, "Team_ltr": "A", "ConvSeed_time": 85.0,
             "Fin_heat": 1, "Fin_lane": 1, "Fin_Time": 0.0, "Fin_Stat": "", "Round1": "F",
-            "Heat1": 1, "Lane1": 1 # Some schemas use this
+            "Heat1": 1, "Lane1": 1
         })
-        
-        # Mixed entry (Taylor and Frank)
-        table_data["Entry"].append({"Event_ptr": 8888, "Ath_no": 9901, "Fin_heat": 1, "Fin_lane": 1, "ConvSeed_time": 35.0, "Round1": "F"})
-        table_data["Entry"].append({"Event_ptr": 8888, "Ath_no": 9902, "Fin_heat": 1, "Fin_lane": 2, "ConvSeed_time": 38.0, "Round1": "F"})
+        # Relay 2 (Boys 9-10)
+        table_data["Relay"].append({
+            "Event_ptr": 9998, "Team_no": 99, "Team_ltr": "A", "ConvSeed_time": 125.0,
+            "Fin_heat": 1, "Fin_lane": 2, "Fin_Time": 0.0, "Fin_Stat": "", "Round1": "F",
+            "Heat1": 1, "Lane1": 2
+        })
+        # Relay 3 (Mixed 15-18)
+        table_data["Relay"].append({
+            "Event_ptr": 9997, "Team_no": 3, "Team_ltr": "A", "ConvSeed_time": 115.0,
+            "Fin_heat": 1, "Fin_lane": 3, "Fin_Time": 0.0, "Fin_Stat": "", "Round1": "F",
+            "Heat1": 1, "Lane1": 3
+        })
 
-        # Relay athletes
         if "RelayNames" not in table_data: table_data["RelayNames"] = []
-        for pos in range(1, 5):
-            table_data["RelayNames"].append({
-                "Event_ptr": 9999, "Team_no": 99, "Team_ltr": "A", "Ath_no": 9901, "Pos": pos, "Event_round": "F"
-            })
+        # Populate swimmers for all 3 relays
+        for eptr in [9999, 9998, 9997]:
+            tid = 99 if eptr != 9997 else 3
+            # Add Alice or Frank/Bob
+            ath_no = 9901 if eptr == 9999 else 9902
+            for pos in range(1, 5):
+                table_data["RelayNames"].append({
+                    "Event_ptr": eptr, "Team_no": tid, "Team_ltr": "A", "Ath_no": ath_no, "Pos": pos, "Event_round": "F"
+                })
 
     return table_data
 
