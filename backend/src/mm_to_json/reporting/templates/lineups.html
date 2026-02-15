@@ -33,9 +33,16 @@
     </style>
 </head>
 <body>
-    <span class="meet-name-metadata">{{ meet_name }}</span>
-    <span class="sub-title-metadata">{{ sub_title }}</span>
-    <span class="gen-time-metadata">{{ generation_time }}</span>
+    <div id="header">
+        <div class="header-top">
+            <span class="left">Tri-Valley Swim Lg. C</span>
+            <span class="right">MM-Tools - {{ generation_time }} Page <span class="page"></span></span>
+        </div>
+        <div class="header-main">
+            <h1>{{ meet_name }}</h1>
+            <h2>{{ sub_title }}</h2>
+        </div>
+    </div>
 
     <div class="content-container">
         {% for group in groups %}

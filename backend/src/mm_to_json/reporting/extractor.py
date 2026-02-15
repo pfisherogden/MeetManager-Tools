@@ -413,8 +413,12 @@ class ReportDataExtractor:
 
             if gender_filter or age_group_filter:
                 if gender_filter:
-                    if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower():
+                    if (
+                        gender_filter.lower() not in evt_desc.lower()
+                        and "mixed" not in evt_desc.lower()
+                    ):
                         continue
+
                 if age_group_filter:
                     if age_group_filter.lower() not in evt_desc.lower():
                         continue

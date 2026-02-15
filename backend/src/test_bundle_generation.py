@@ -5,6 +5,7 @@ import tempfile
 import zipfile
 import pandas as pd
 import json
+import re
 
 # Add backend/src to path
 sys.path.append(os.path.dirname(__file__))
@@ -55,34 +56,35 @@ def enhance_data_with_multi_team(table_data):
     # Add a relay event
     if "Event" in table_data:
         r_evt = {
-            "Event_ptr": 999, "Event_no": 99, "Ind_rel": "R", "Event_gender": "F", "Event_dist": 100,
+            "Event_ptr": 9999, "Event_no": 99, "Ind_rel": "R", "Event_gender": "F", "Event_dist": 100,
             "Event_stroke": "R", "Low_age": 0, "High_age": 8, "Event_sex": "Girls",
             "Num_prelanes": 6, "Num_finlanes": 6, "Event_rounds": 1
         }
         # Add a Mixed event
         m_evt = {
-            "Event_ptr": 888, "Event_no": 88, "Ind_rel": "I", "Event_gender": "X", "Event_dist": 50,
+            "Event_ptr": 8888, "Event_no": 88, "Ind_rel": "I", "Event_gender": "X", "Event_dist": 50,
             "Event_stroke": "A", "Low_age": 9, "High_age": 10, "Event_sex": "Mixed",
             "Num_prelanes": 6, "Num_finlanes": 6, "Event_rounds": 1
         }
         table_data["Event"].extend([r_evt, m_evt])
         
-        # Relay entry
+        # Relay entry - use multiple column names just in case
         if "Relay" not in table_data: table_data["Relay"] = []
         table_data["Relay"].append({
-            "Event_ptr": 999, "Team_no": 99, "Team_ltr": "A", "ConvSeed_time": 85.0,
-            "Fin_heat": 1, "Fin_lane": 1, "Fin_Time": 0.0, "Fin_Stat": "", "Round1": "F"
+            "Event_ptr": 9999, "Team_no": 99, "Team_ltr": "A", "ConvSeed_time": 85.0,
+            "Fin_heat": 1, "Fin_lane": 1, "Fin_Time": 0.0, "Fin_Stat": "", "Round1": "F",
+            "Heat1": 1, "Lane1": 1 # Some schemas use this
         })
         
         # Mixed entry (Taylor and Frank)
-        table_data["Entry"].append({"Event_ptr": 888, "Ath_no": 9901, "Fin_heat": 1, "Fin_lane": 1, "ConvSeed_time": 35.0, "Round1": "F"})
-        table_data["Entry"].append({"Event_ptr": 888, "Ath_no": 9902, "Fin_heat": 1, "Fin_lane": 2, "ConvSeed_time": 38.0, "Round1": "F"})
+        table_data["Entry"].append({"Event_ptr": 8888, "Ath_no": 9901, "Fin_heat": 1, "Fin_lane": 1, "ConvSeed_time": 35.0, "Round1": "F"})
+        table_data["Entry"].append({"Event_ptr": 8888, "Ath_no": 9902, "Fin_heat": 1, "Fin_lane": 2, "ConvSeed_time": 38.0, "Round1": "F"})
 
         # Relay athletes
         if "RelayNames" not in table_data: table_data["RelayNames"] = []
         for pos in range(1, 5):
             table_data["RelayNames"].append({
-                "Event_ptr": 999, "Team_no": 99, "Team_ltr": "A", "Ath_no": 9901, "Pos": pos, "Event_round": "F"
+                "Event_ptr": 9999, "Team_no": 99, "Team_ltr": "A", "Ath_no": 9901, "Pos": pos, "Event_round": "F"
             })
 
     return table_data
@@ -96,6 +98,23 @@ def generate_test_bundle():
     converter = MmToJsonConverter(table_data=table_data)
     extractor = ReportDataExtractor(converter)
     
+    full_data = converter.convert()
+    
+    # Debug info
+    found_teams = set()
+    found_ages = set()
+    for sess in full_data.get("sessions", []):
+        for evt in sess.get("events", []):
+            desc = evt.get("eventDesc", "")
+            # Heuristic extract age: "8 & under", "7-8", etc.
+            match = re.search(r"(\d+ & under|\d+-\d+|\d+ & over|Open)", desc)
+            if match: found_ages.add(match.group(1))
+            for ent in evt.get("entries", []):
+                found_teams.add(ent.get("team"))
+    
+    print(f"Found Teams: {found_teams}")
+    print(f"Found Ages: {found_ages}")
+    
     output_dir = "src/tmp_test_bundles"
     os.makedirs(output_dir, exist_ok=True)
     
@@ -103,10 +122,10 @@ def generate_test_bundle():
     parents_bundle_path = os.path.join(output_dir, "parents_lineups.zip")
     print(f"Generating Parents Bundle to {parents_bundle_path}...")
     with zipfile.ZipFile(parents_bundle_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        teams = ["Team One", "Shark Aquatics"] 
-        for team in teams:
+        for team in found_teams:
+            if not team: continue
             for gender in ["Girls", "Boys"]:
-                for age in ["8 & under", "7-8", "9-10"]:
+                for age in found_ages:
                     title = f"Line-Up - {team} - {gender} {age}"
                     data = extractor.extract_timer_sheets_data(
                         report_title=title, 
