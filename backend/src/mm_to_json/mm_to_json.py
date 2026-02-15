@@ -590,6 +590,7 @@ class MmToJsonConverter:
                             {
                                 "name": f"{athlete['first']} {athlete['last']}",
                                 "age": athlete["age"],
+                                "athleteSex": athlete.get("sex", ""),
                                 "schoolYear": athlete["schoolYear"],
                                 "team": athlete["team"],
                                 "heat": self._safe_int(row.get("HEAT")),
@@ -597,6 +598,7 @@ class MmToJsonConverter:
                                 # Using Score as seed/time (unknown distinction in this schema)
                                 "seedTime": time_str,
                                 "psTime": "NT",
+                                "isRelay": False,
                                 "athleteId": ath_no,
                                 "teamId": athlete.get("teamId"),
                             }
@@ -619,6 +621,7 @@ class MmToJsonConverter:
                             {
                                 "name": f"{athlete['first']} {athlete['last']}",
                                 "age": athlete["age"],
+                                "athleteSex": athlete.get("sex", ""),
                                 "schoolYear": athlete["schoolYear"],
                                 "team": athlete["team"],
                                 "heat": entry_info["heat"],
@@ -627,6 +630,7 @@ class MmToJsonConverter:
                                 "psTime": entry_info["time"],
                                 "finalTime": entry_info["time"],
                                 "place": entry_info["place"],
+                                "isRelay": False,
                                 "athleteId": ath_no,
                                 "teamId": athlete.get("teamId"),
                             }
@@ -1031,6 +1035,9 @@ class Event:
             "eventDesc": self.description,
             "isRelay": self.is_relay,
             "numLanes": self.num_lanes,
+            "gender": self.gender,
+            "minAge": self.min_age,
+            "maxAge": self.max_age,
             "entries": sorted_entries,
         }
         return res

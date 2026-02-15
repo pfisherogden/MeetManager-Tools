@@ -10,9 +10,14 @@ class ReportDataExtractor:
     def __init__(self, converter: "MmToJsonConverter"):
         self.converter = converter
 
-    def _get_athlete_gender(self, athlete_name: str) -> str:
-        """Helper to look up athlete gender by name supporting multiple formats."""
-        name = athlete_name.strip().lower()
+    def _get_athlete_gender(self, entry: dict[str, Any]) -> str:
+        """Helper to look up athlete gender using explicit data elements."""
+        if entry.get("athleteSex"):
+            sex = entry.get("athleteSex")
+            return "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
+        
+        # Fallback to name-based lookup if athleteSex is missing
+        name = entry.get("name", "").strip().lower()
         df_ath = self.converter.tables.get("Athlete")
         if df_ath is None or df_ath.empty:
             return "Unknown"
@@ -21,11 +26,8 @@ class ReportDataExtractor:
             last = str(row.get("Last_name", "")).strip().lower()
             first = str(row.get("First_name", "")).strip().lower()
             sex = str(row.get("Sex", "")).strip()
-            
-            # Formats to check
             fmt_lf = f"{last}, {first}"
             fmt_fl = f"{first} {last}"
-            
             if name.startswith(fmt_lf) or name.startswith(fmt_fl):
                 return "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
         
@@ -67,13 +69,18 @@ class ReportDataExtractor:
                 evt_num = evt.get("eventNum")
                 evt_desc = evt.get("eventDesc")
                 is_relay = evt.get("isRelay", False)
+                evt_gender = evt.get("gender", "")
+                evt_min_age = evt.get("minAge", 0)
+                evt_max_age = evt.get("maxAge", 109)
 
-                if gender_filter or age_group_filter:
-                    if gender_filter:
-                        if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower():
-                            continue
-                    if age_group_filter and age_group_filter.lower() not in evt_desc.lower():
-                        continue
+                if gender_filter:
+                    g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
+                    target_g = g_map.get(gender_filter)
+                    if evt_gender != target_g and evt_gender != "X": continue
+
+                if age_group_filter:
+                    evt_age_str = self._format_age(evt_min_age, evt_max_age)
+                    if age_group_filter.lower() != evt_age_str.lower(): continue
 
                 for entry in evt.get("entries", []):
                     t_name = entry.get("team", "")
@@ -86,6 +93,7 @@ class ReportDataExtractor:
                         "key": key, "team": t_name, "name": entry.get("name"), "age": entry.get("age"),
                         "evt_num": evt_num, "evt_desc": evt_desc, "time": entry.get("seedTime", "NT"),
                         "hl": hl, "is_relay": is_relay, "athleteId": entry.get("athleteId"),
+                        "athleteSex": entry.get("athleteSex")
                     }
                     if is_relay: entry_data["relayAthletes"] = entry.get("relayAthletes", [])
                     flat_entries.append(entry_data)
@@ -183,7 +191,7 @@ class ReportDataExtractor:
             relay_teams_list = grouped[t_name].get("RelayTeams", [])
             if relay_teams_list:
                 team_items.append({"header": "   RELAY TEAMS", "sub_items": []})
-                flat_relays = sorted(relay_teams_list, key=lambda x: int("".join(filter(str.isdigit, str(x["evt_num"])))) if any(c.isdigit() for c in str(x["evt_num"])) else 0)
+                flat_relays = sorted(relay_teams_list, key=lambda x: int("".join(filter(str.isdigit, str(x["evt_num"])))))
                 for idx, r in enumerate(flat_relays):
                     rltr = r.get("relayLtr", "")
                     ltr_str = f" - '{rltr}'" if rltr else ""
@@ -217,17 +225,26 @@ class ReportDataExtractor:
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, is_relay, entries = evt.get("eventNum"), evt.get("eventDesc"), evt.get("isRelay", False), evt.get("entries", [])
-            if gender_filter or age_group_filter:
-                if gender_filter:
-                    if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower(): continue
-                if age_group_filter and age_group_filter.lower() not in evt_desc.lower(): continue
+            evt_gender = evt.get("gender", "")
+            evt_min_age = evt.get("minAge", 0)
+            evt_max_age = evt.get("maxAge", 109)
+
+            if gender_filter:
+                g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
+                target_g = g_map.get(gender_filter)
+                if evt_gender != target_g and evt_gender != "X": continue
+
+            if age_group_filter:
+                evt_age_str = self._format_age(evt_min_age, evt_max_age)
+                if age_group_filter.lower() != evt_age_str.lower(): continue
+
             if team_filter: entries = [e for e in entries if team_filter.lower() in e.get("team", "").lower()]
             if gender_filter:
                 filtered = []
                 for e in entries:
                     if e.get("isRelay"): filtered.append(e)
                     else:
-                        ath_sex = self._get_athlete_gender(e.get("name", ""))
+                        ath_sex = self._get_athlete_gender(e)
                         if ath_sex.lower() == gender_filter.lower() or ath_sex == "Unknown": filtered.append(e)
                 entries = filtered
             if not entries: continue
@@ -266,14 +283,24 @@ class ReportDataExtractor:
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, entries = evt.get("eventNum"), evt.get("eventDesc"), evt.get("entries", [])
-            if gender_filter or age_group_filter:
-                if gender_filter and gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower(): continue
-                if age_group_filter and age_group_filter.lower() not in evt_desc.lower(): continue
+            evt_gender = evt.get("gender", "")
+            evt_min_age = evt.get("minAge", 0)
+            evt_max_age = evt.get("maxAge", 109)
+
+            if gender_filter:
+                g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
+                target_g = g_map.get(gender_filter)
+                if evt_gender != target_g and evt_gender != "X": continue
+
+            if age_group_filter:
+                evt_age_str = self._format_age(evt_min_age, evt_max_age)
+                if age_group_filter.lower() != evt_age_str.lower(): continue
+
             if team_filter: entries = [e for e in entries if team_filter.lower() in e.get("team", "").lower()]
             if gender_filter:
                 filtered = []
                 for e in entries:
-                    ath_sex = self._get_athlete_gender(e.get("name", ""))
+                    ath_sex = self._get_athlete_gender(e)
                     if ath_sex.lower() == gender_filter.lower() or ath_sex == "Unknown": filtered.append(e)
                 entries = filtered
             if not entries: continue
@@ -298,16 +325,26 @@ class ReportDataExtractor:
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, entries, is_relay = evt.get("eventNum"), evt.get("eventDesc"), evt.get("entries", []), evt.get("isRelay", False)
-            if gender_filter or age_group_filter:
-                if gender_filter and gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower(): continue
-                if age_group_filter and age_group_filter.lower() not in evt_desc.lower(): continue
+            evt_gender = evt.get("gender", "")
+            evt_min_age = evt.get("minAge", 0)
+            evt_max_age = evt.get("maxAge", 109)
+
+            if gender_filter:
+                g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
+                target_g = g_map.get(gender_filter)
+                if evt_gender != target_g and evt_gender != "X": continue
+
+            if age_group_filter:
+                evt_age_str = self._format_age(evt_min_age, evt_max_age)
+                if age_group_filter.lower() != evt_age_str.lower(): continue
+
             if team_filter: entries = [e for e in entries if team_filter.lower() in e.get("team", "").lower()]
             if gender_filter:
                 filtered = []
                 for e in entries:
                     if e.get("isRelay"): filtered.append(e)
                     else:
-                        ath_sex = self._get_athlete_gender(e.get("name", ""))
+                        ath_sex = self._get_athlete_gender(e)
                         if ath_sex.lower() == gender_filter.lower() or ath_sex == "Unknown": filtered.append(e)
                 entries = filtered
             if not entries: continue
@@ -346,16 +383,26 @@ class ReportDataExtractor:
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, entries = evt.get("eventNum"), evt.get("eventDesc"), evt.get("entries", [])
-            if gender_filter or age_group_filter:
-                if gender_filter and gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower(): continue
-                if age_group_filter and age_group_filter.lower() not in evt_desc.lower(): continue
+            evt_gender = evt.get("gender", "")
+            evt_min_age = evt.get("minAge", 0)
+            evt_max_age = evt.get("maxAge", 109)
+
+            if gender_filter:
+                g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
+                target_g = g_map.get(gender_filter)
+                if evt_gender != target_g and evt_gender != "X": continue
+
+            if age_group_filter:
+                evt_age_str = self._format_age(evt_min_age, evt_max_age)
+                if age_group_filter.lower() != evt_age_str.lower(): continue
+
             if team_filter: entries = [e for e in entries if team_filter.lower() in e.get("team", "").lower()]
             if gender_filter:
                 filtered = []
                 for e in entries:
                     if e.get("isRelay"): filtered.append(e)
                     else:
-                        ath_sex = self._get_athlete_gender(e.get("name", ""))
+                        ath_sex = self._get_athlete_gender(e)
                         if ath_sex.lower() == gender_filter.lower() or ath_sex == "Unknown": filtered.append(e)
                 entries = filtered
             if not entries: continue

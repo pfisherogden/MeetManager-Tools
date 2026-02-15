@@ -161,6 +161,18 @@ def generate_test_bundle():
     coaches_pdf = os.path.join(output_dir, "coaches_program.pdf")
     print(f"Generating Coaches Program to {coaches_pdf}...")
     data = extractor.extract_meet_program_data(report_title="Coaches Meet Program", columns_on_page=2, show_relay_swimmers=True)
+    
+    # Debug: verify relays are in the data
+    relay_found = False
+    for group in data.get("groups", []):
+        for heat in group.get("heats", []):
+            for ent in heat.get("sub_items", []):
+                if ent.get("is_relay"):
+                    relay_found = True
+                    print(f"  Debug: Found relay in data: {ent.get('team')} {ent.get('relay_ltr')}")
+    if not relay_found:
+        print("  Debug: WARNING! No relays found in Coaches Program data.")
+
     WeasyRenderer(coaches_pdf).render_meet_program(data)
 
     # 3. Line Up Program for Posting {gender}
