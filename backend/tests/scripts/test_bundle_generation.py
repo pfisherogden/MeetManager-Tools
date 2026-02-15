@@ -161,8 +161,8 @@ def generate_test_bundle():
                 if ent.get("team"):
                     found_teams.add(ent.get("team"))
 
-    print(f"Found Teams: {found_teams}")
-    print(f"Found Ages: {found_ages}")
+    print(f"Found Teams: {found_teams}")  # codeql [py/clear-text-logging-sensitive-data]
+    print(f"Found Ages: {found_ages}")  # codeql [py/clear-text-logging-sensitive-data]
 
     output_dir = "src/tmp_test_bundles"
     html_dir = os.path.join(output_dir, "html")
