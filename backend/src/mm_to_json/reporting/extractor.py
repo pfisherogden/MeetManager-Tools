@@ -9,7 +9,11 @@ class ReportDataExtractor:
         self.converter = converter
 
     def extract_meet_entries_data(
-        self, team_filter: str | None = None, report_title: str | None = None
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
     ) -> dict[str, Any]:
         """
         Extracts data for the Meet Entries report.
@@ -51,6 +55,18 @@ class ReportDataExtractor:
                     continue
                 if team_filter.lower() not in [t_info["code"].lower(), t_info["name"].lower()]:
                     continue
+
+            # Filter by gender if requested
+            if gender_filter:
+                ath_sex = "Female" if sex == "F" else "Male" if sex == "M" else sex
+                if gender_filter.lower() not in ath_sex.lower():
+                    continue
+
+            # Filter by age group if requested
+            if age_group_filter:
+                # Basic string match for now, e.g. "6 & under" or "11-12"
+                # Need to be careful about format.
+                pass
 
             name_str = f"{last}, {first}"
             if initial:
@@ -134,6 +150,19 @@ class ReportDataExtractor:
                 evt_num = evt.get("eventNum")
                 evt_desc = evt.get("eventDesc")
                 is_relay = evt.get("isRelay", False)
+
+                # Filter by gender/age group at event level if possible
+                if gender_filter or age_group_filter:
+                    # evt_desc usually contains gender and age group, e.g. "Girls 6 & under 25 Yard Freestyle"
+                    if gender_filter:
+                        # Support including mixed events if configured
+                        # For now, if mixed is in desc, we keep it if gender filter is present
+                        # (assuming user wants mixed + specific gender)
+                        if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower():
+                            continue
+
+                    if age_group_filter and age_group_filter.lower() not in evt_desc.lower():
+                        continue
 
                 for entry in evt.get("entries", []):
                     # Filter by team if needed
@@ -492,7 +521,13 @@ class ReportDataExtractor:
         }
 
     def extract_meet_program_data(
-        self, team_filter: str | None = None, report_title: str | None = None
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
+        columns_on_page: int = 2,
+        show_relay_swimmers: bool = True,
     ) -> dict[str, Any]:
         """
         Extracts data for the Meet Program report.
@@ -503,6 +538,10 @@ class ReportDataExtractor:
         Args:
             team_filter (str): Optional team name or code to filter by.
             report_title (str): Optional custom title for the report.
+            gender_filter (str): Optional gender to filter by.
+            age_group_filter (str): Optional age group to filter by.
+            columns_on_page (int): Number of columns for layout (passed to template).
+            show_relay_swimmers (bool): Whether to include relay athlete names.
 
         Returns:
             dict: Structured data ready for the PDFRenderer.
@@ -537,6 +576,15 @@ class ReportDataExtractor:
             evt_desc = evt.get("eventDesc")
             is_relay = evt.get("isRelay", False)
             entries = evt.get("entries", [])
+
+            # Filter by gender/age group at event level
+            if gender_filter or age_group_filter:
+                if gender_filter:
+                    if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower():
+                        continue
+
+                if age_group_filter and age_group_filter.lower() not in evt_desc.lower():
+                    continue
 
             # Apply team filter if requested
             if team_filter:
@@ -582,15 +630,16 @@ class ReportDataExtractor:
                         r_ltr = entry.get("relayLtr", "")
 
                         names = []
-                        if "relayAthletes" in entry:
-                            # Preferred: use full athlete objects for accurate Last, First formatting
-                            for ath in entry["relayAthletes"]:
-                                fn = ath.get("first", "").strip()
-                                ln = ath.get("last", "").strip()
-                                names.append(f"{ln}, {fn}")
-                        else:
-                            # Fallback: parse from single string name
-                            names = [n.strip() for n in entry.get("name", "").split(",")]
+                        if show_relay_swimmers:
+                            if "relayAthletes" in entry:
+                                # Preferred: use full athlete objects for accurate Last, First formatting
+                                for ath in entry["relayAthletes"]:
+                                    fn = ath.get("first", "").strip()
+                                    ln = ath.get("last", "").strip()
+                                    names.append(f"{ln}, {fn}")
+                            else:
+                                # Fallback: parse from single string name
+                                names = [n.strip() for n in entry.get("name", "").split(",")]
 
                         sub_items.append(
                             {
@@ -633,10 +682,16 @@ class ReportDataExtractor:
             "meet_name": full_data.get("meetName", ""),
             "sub_title": report_title or "Meet Program",
             "groups": report_groups,
+            "columns_on_page": columns_on_page,
+            "show_relay_swimmers": show_relay_swimmers,
         }
 
     def extract_psych_sheet_data(
-        self, team_filter: str | None = None, report_title: str | None = None
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
     ) -> dict[str, Any]:
         """Extracts data for Psych Sheet report."""
         full_data = self.converter.convert()
@@ -653,6 +708,15 @@ class ReportDataExtractor:
             evt_num = evt.get("eventNum")
             evt_desc = evt.get("eventDesc")
             entries = evt.get("entries", [])
+
+            # Filter by gender/age group at event level
+            if gender_filter or age_group_filter:
+                if gender_filter:
+                    if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower():
+                        continue
+
+                if age_group_filter and age_group_filter.lower() not in evt_desc.lower():
+                    continue
 
             # Apply team filter if requested
             if team_filter:
@@ -693,7 +757,7 @@ class ReportDataExtractor:
                     }
                 )
 
-            report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "items": [{"sub_items": sub_items}]})
+            report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "sections": [{"sub_items": sub_items}]})
 
         return {
             "meet_name": full_data.get("meetName", ""),
@@ -702,7 +766,11 @@ class ReportDataExtractor:
         }
 
     def extract_timer_sheets_data(
-        self, team_filter: str | None = None, report_title: str | None = None
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
     ) -> dict[str, Any]:
         """Extracts data for Timer Sheets (Heat-based)."""
         full_data = self.converter.convert()
@@ -718,6 +786,15 @@ class ReportDataExtractor:
             evt_num = evt.get("eventNum")
             evt_desc = evt.get("eventDesc")
             entries = evt.get("entries", [])
+
+            # Filter by gender/age group at event level
+            if gender_filter or age_group_filter:
+                if gender_filter:
+                    if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower():
+                        continue
+
+                if age_group_filter and age_group_filter.lower() not in evt_desc.lower():
+                    continue
 
             # Apply team filter if requested
             if team_filter:
@@ -754,7 +831,7 @@ class ReportDataExtractor:
                 report_groups.append(
                     {
                         "header": f"Event {evt_num} {evt_desc} Heat {h}",
-                        "items": [{"sub_items": sub_items, "header": f"Heat {h}"}],
+                        "sections": [{"sub_items": sub_items, "header": f"Heat {h}"}],
                     }
                 )
 
@@ -764,7 +841,13 @@ class ReportDataExtractor:
             "groups": report_groups,
         }
 
-    def extract_results_data(self, team_filter: str | None = None, report_title: str | None = None) -> dict[str, Any]:
+    def extract_results_data(
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
+    ) -> dict[str, Any]:
         """Extracts data for Meet Results report."""
         full_data = self.converter.convert()
         all_events = []
@@ -779,6 +862,15 @@ class ReportDataExtractor:
             evt_num = evt.get("eventNum")
             evt_desc = evt.get("eventDesc")
             entries = evt.get("entries", [])
+
+            # Filter by gender/age group at event level
+            if gender_filter or age_group_filter:
+                if gender_filter:
+                    if gender_filter.lower() not in evt_desc.lower() and "mixed" not in evt_desc.lower():
+                        continue
+
+                if age_group_filter and age_group_filter.lower() not in evt_desc.lower():
+                    continue
 
             # Apply team filter if requested
             if team_filter:
@@ -815,7 +907,7 @@ class ReportDataExtractor:
                     }
                 )
 
-            report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "items": [{"sub_items": sub_items}]})
+            report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "sections": [{"sub_items": sub_items}]})
 
         return {
             "meet_name": full_data.get("meetName", ""),

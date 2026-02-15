@@ -152,3 +152,32 @@ def test_report_filtering_and_title(tmp_path):
     for cell in team_cells:
         if cell.text.strip() and cell.text.strip() != "Team":
             assert team_filter.lower() in cell.text.lower()
+
+def test_report_gender_age_filtering(tmp_path):
+    # Use one of the fixtures
+    fixture_path = get_anonymized_fixtures()[0]
+    with open(fixture_path, "r") as f:
+        fixture_wrapper = json.load(f)
+    
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+    
+    # Test filtering for "Girls" and "6 & under"
+    gender = "Girls"
+    age = "6 & under"
+    program_data = extractor.extract_meet_program_data(gender_filter=gender, age_group_filter=age)
+    
+    output_pdf = str(tmp_path / "filtered_gender_age.pdf")
+    renderer = WeasyRenderer(output_pdf)
+    html_content = renderer.render_to_html(program_data)
+    
+    soup = BeautifulSoup(html_content, "html.parser")
+    
+    # Assert headers contain "Girls" and "6 & under" (or matches events that do)
+    event_headers = soup.find_all(class_="event-header")
+    for header in event_headers:
+        text = header.text.lower()
+        # It should be either the filtered gender OR "mixed"
+        assert gender.lower() in text or "mixed" in text
+        assert age.lower() in text

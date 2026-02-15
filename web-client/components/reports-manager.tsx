@@ -1,9 +1,16 @@
 "use client";
 
-import { Download, FileText, Filter, Loader2, Settings2 } from "lucide-react";
+import {
+	Download,
+	FileText,
+	Filter,
+	Loader2,
+	Package,
+	Settings2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { generateReport } from "@/app/actions";
+import { generateReport, generateReportBundle } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -72,6 +79,99 @@ export function ReportsManager() {
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [htmlContent, setHtmlContent] = useState<string | null>(null);
 	const [showHtmlDialog, setShowHtmlDialog] = useState(false);
+	const [isBundling, setIsBundling] = useState(false);
+
+	const reportPresets = [
+		{
+			id: "coaches",
+			name: "Coaches Bundle",
+			description: "Full meet program for all genders/ages (2-column).",
+			reports: [
+				{
+					type: 4,
+					title: `Coaches Meet Program ${new Date().toLocaleTimeString()}`,
+					columnsOnPage: 2,
+					showRelaySwimmers: true,
+				},
+			],
+		},
+		{
+			id: "compact",
+			name: "Compact Program",
+			description: "Single-column program without relay swimmers.",
+			reports: [
+				{
+					type: 4,
+					title: `Compact Meet Program ${new Date().toLocaleTimeString()}`,
+					columnsOnPage: 1,
+					showRelaySwimmers: false,
+				},
+			],
+		},
+		{
+			id: "board",
+			name: "Board Postings",
+			description: "Filtered programs for Girls, Boys (inc Mixed).",
+			reports: [
+				{
+					type: 4,
+					title: "Girls Meet Program for Board",
+					genderFilter: "Girls",
+					columnsOnPage: 2,
+				},
+				{
+					type: 4,
+					title: "Boys & Mixed Meet Program for Board",
+					genderFilter: "Boys",
+					columnsOnPage: 2,
+				},
+			],
+		},
+		{
+			id: "lineups",
+			name: "Lineup Sheets",
+			description: "Single team lineups by age/gender.",
+			reports: ["Girls", "Boys"].flatMap((gender) =>
+				["6 & under", "7-8", "9-10", "11-12", "13-14", "15-18"].map((age) => ({
+					type: 2,
+					title: `Line Up Report - ${gender}, ${age}`,
+					genderFilter: gender,
+					ageGroupFilter: age,
+					teamFilter: teamFilter, // Uses the team filter from config
+				})),
+			),
+		},
+	];
+
+	const handleGenerateBundle = async (preset: (typeof reportPresets)[0]) => {
+		setIsBundling(true);
+		try {
+			const result = await generateReportBundle(
+				preset.reports,
+				`${preset.name.toLowerCase().replace(/\s+/g, "_")}.zip`,
+			);
+
+			if (result.success && result.zipContent) {
+				const blob = new Blob([new Uint8Array(result.zipContent)], {
+					type: "application/zip",
+				});
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = result.filename || `${preset.id}_bundle.zip`;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+				toast.success(`${preset.name} generated successfully`);
+			}
+		} catch (error: unknown) {
+			console.error("Failed to generate bundle", error);
+			toast.error("Bundle generation failed");
+		} finally {
+			setIsBundling(false);
+		}
+	};
 
 	const handleGenerate = async () => {
 		setIsGenerating(true);
@@ -144,92 +244,133 @@ export function ReportsManager() {
 				))}
 			</div>
 
-			<Card className="max-w-2xl mx-auto shadow-lg">
-				<CardHeader>
-					<div className="flex items-center gap-2">
-						<Settings2 className="h-5 w-5 text-primary" />
-						<CardTitle>Report Configuration</CardTitle>
-					</div>
-					<CardDescription>
-						Customize headers and filters for your report
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-6">
-					<div className="space-y-2">
-						<Label htmlFor="title">Custom Report Title</Label>
-						<Input
-							id="title"
-							placeholder={
-								reportTypes.find((r) => r.id === selectedType)?.name ||
-								"Meet Report"
-							}
-							value={title}
-							onChange={(e) => setTitle(e.target.value)}
-						/>
-						<p className="text-xs text-muted-foreground">
-							This will appear at the top of every page.
-						</p>
-					</div>
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+				<Card className="shadow-lg">
+					<CardHeader>
+						<div className="flex items-center gap-2">
+							<Package className="h-5 w-5 text-primary" />
+							<CardTitle>Report Presets</CardTitle>
+						</div>
+						<CardDescription>
+							Generate pre-configured bundles for meet day
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						{reportPresets.map((preset) => (
+							<div
+								key={preset.id}
+								className="flex items-center justify-between p-4 border rounded-lg bg-muted/10"
+							>
+								<div>
+									<h4 className="font-medium">{preset.name}</h4>
+									<p className="text-xs text-muted-foreground">
+										{preset.description}
+									</p>
+								</div>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => handleGenerateBundle(preset)}
+									disabled={isBundling}
+								>
+									{isBundling ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										"Generate"
+									)}
+								</Button>
+							</div>
+						))}
+					</CardContent>
+				</Card>
 
-					<div className="space-y-2">
-						<Label htmlFor="team">Team Filter (Optional)</Label>
-						<div className="flex gap-2">
+				<Card className="shadow-lg">
+					<CardHeader>
+						<div className="flex items-center gap-2">
+							<Settings2 className="h-5 w-5 text-primary" />
+							<CardTitle>Report Configuration</CardTitle>
+						</div>
+						<CardDescription>
+							Customize headers and filters for your report
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-6">
+						<div className="space-y-2">
+							<Label htmlFor="title">Custom Report Title</Label>
 							<Input
-								id="team"
-								placeholder="All Teams"
-								value={teamFilter}
-								onChange={(e) => setTeamFilter(e.target.value)}
+								id="title"
+								placeholder={
+									reportTypes.find((r) => r.id === selectedType)?.name ||
+									"Meet Report"
+								}
+								value={title}
+								onChange={(e) => setTitle(e.target.value)}
 							/>
-							<Button variant="outline" size="icon">
-								<Filter className="h-4 w-4" />
-							</Button>
+							<p className="text-xs text-muted-foreground">
+								This will appear at the top of every page.
+							</p>
 						</div>
-					</div>
 
-					<div className="p-4 bg-muted/30 rounded-lg space-y-2">
-						<h4 className="text-sm font-medium flex items-center gap-2">
-							<Download className="h-4 w-4" />
-							Summary
-						</h4>
-						<div className="text-sm space-y-1">
-							<p>
-								<span className="text-muted-foreground">Type:</span>{" "}
-								{reportTypes.find((r) => r.id === selectedType)?.name}
-							</p>
-							<p>
-								<span className="text-muted-foreground">Target:</span>{" "}
-								{teamFilter || "All Teams"}
-							</p>
-							<p>
-								<span className="text-muted-foreground">Branding:</span>{" "}
-								MM-Tools
-							</p>
+						<div className="space-y-2">
+							<Label htmlFor="team">Team Filter (Optional)</Label>
+							<div className="flex gap-2">
+								<Input
+									id="team"
+									placeholder="All Teams"
+									value={teamFilter}
+									onChange={(e) => setTeamFilter(e.target.value)}
+								/>
+								<Button variant="outline" size="icon">
+									<Filter className="h-4 w-4" />
+								</Button>
+							</div>
 						</div>
-					</div>
-				</CardContent>
-				<CardFooter className="bg-muted/10 border-t pt-6">
-					<Button
-						className="w-full"
-						size="lg"
-						onClick={handleGenerate}
-						disabled={isGenerating}
-					>
-						{isGenerating ? (
-							<>
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Generating...
-							</>
-						) : (
-							<>
-								<Download className="mr-2 h-4 w-4" />
-								{selectedType === 5
-									? "Generate & View HTML"
-									: "Generate & Download Report"}
-							</>
-						)}
-					</Button>
-				</CardFooter>
-			</Card>
+
+						<div className="p-4 bg-muted/30 rounded-lg space-y-2">
+							<h4 className="text-sm font-medium flex items-center gap-2">
+								<Download className="h-4 w-4" />
+								Summary
+							</h4>
+							<div className="text-sm space-y-1">
+								<p>
+									<span className="text-muted-foreground">Type:</span>{" "}
+									{reportTypes.find((r) => r.id === selectedType)?.name}
+								</p>
+								<p>
+									<span className="text-muted-foreground">Target:</span>{" "}
+									{teamFilter || "All Teams"}
+								</p>
+								<p>
+									<span className="text-muted-foreground">Branding:</span>{" "}
+									MM-Tools
+								</p>
+							</div>
+						</div>
+					</CardContent>
+					<CardFooter className="bg-muted/10 border-t pt-6">
+						<Button
+							className="w-full"
+							size="lg"
+							onClick={handleGenerate}
+							disabled={isGenerating}
+						>
+							{isGenerating ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Generating...
+								</>
+							) : (
+								<>
+									<Download className="mr-2 h-4 w-4" />
+									{selectedType === 5
+										? "Generate & View HTML"
+										: "Generate & Download Report"}
+								</>
+							)}
+						</Button>
+					</CardFooter>
+				</Card>
+			</div>
 
 			<Dialog open={showHtmlDialog} onOpenChange={setShowHtmlDialog}>
 				<DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">

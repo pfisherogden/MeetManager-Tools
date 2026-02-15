@@ -451,14 +451,22 @@ class Event(_message.Message):
     def __init__(self, id: _Optional[int] = ..., gender: _Optional[str] = ..., distance: _Optional[int] = ..., stroke: _Optional[str] = ..., low_age: _Optional[int] = ..., high_age: _Optional[int] = ..., session: _Optional[int] = ..., status: _Optional[str] = ..., entry_count: _Optional[int] = ..., age_group: _Optional[str] = ...) -> None: ...
 
 class GenerateReportRequest(_message.Message):
-    __slots__ = ("type", "title", "team_filter")
+    __slots__ = ("type", "title", "team_filter", "gender_filter", "age_group_filter", "columns_on_page", "show_relay_swimmers")
     TYPE_FIELD_NUMBER: _ClassVar[int]
     TITLE_FIELD_NUMBER: _ClassVar[int]
     TEAM_FILTER_FIELD_NUMBER: _ClassVar[int]
+    GENDER_FILTER_FIELD_NUMBER: _ClassVar[int]
+    AGE_GROUP_FILTER_FIELD_NUMBER: _ClassVar[int]
+    COLUMNS_ON_PAGE_FIELD_NUMBER: _ClassVar[int]
+    SHOW_RELAY_SWIMMERS_FIELD_NUMBER: _ClassVar[int]
     type: ReportType
     title: str
     team_filter: str
-    def __init__(self, type: _Optional[_Union[ReportType, str]] = ..., title: _Optional[str] = ..., team_filter: _Optional[str] = ...) -> None: ...
+    gender_filter: str
+    age_group_filter: str
+    columns_on_page: int
+    show_relay_swimmers: bool
+    def __init__(self, type: _Optional[_Union[ReportType, str]] = ..., title: _Optional[str] = ..., team_filter: _Optional[str] = ..., gender_filter: _Optional[str] = ..., age_group_filter: _Optional[str] = ..., columns_on_page: _Optional[int] = ..., show_relay_swimmers: bool = ...) -> None: ...
 
 class GenerateReportResponse(_message.Message):
     __slots__ = ("success", "message", "pdf_content", "filename", "html_content")
@@ -473,3 +481,23 @@ class GenerateReportResponse(_message.Message):
     filename: str
     html_content: str
     def __init__(self, success: bool = ..., message: _Optional[str] = ..., pdf_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., html_content: _Optional[str] = ...) -> None: ...
+
+class GenerateReportBundleRequest(_message.Message):
+    __slots__ = ("reports", "bundle_name")
+    REPORTS_FIELD_NUMBER: _ClassVar[int]
+    BUNDLE_NAME_FIELD_NUMBER: _ClassVar[int]
+    reports: _containers.RepeatedCompositeFieldContainer[GenerateReportRequest]
+    bundle_name: str
+    def __init__(self, reports: _Optional[_Iterable[_Union[GenerateReportRequest, _Mapping]]] = ..., bundle_name: _Optional[str] = ...) -> None: ...
+
+class GenerateReportBundleResponse(_message.Message):
+    __slots__ = ("success", "message", "zip_content", "filename")
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    ZIP_CONTENT_FIELD_NUMBER: _ClassVar[int]
+    FILENAME_FIELD_NUMBER: _ClassVar[int]
+    success: bool
+    message: str
+    zip_content: bytes
+    filename: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., zip_content: _Optional[bytes] = ..., filename: _Optional[str] = ...) -> None: ...

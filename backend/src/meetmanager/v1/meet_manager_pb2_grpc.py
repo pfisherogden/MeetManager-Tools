@@ -136,6 +136,11 @@ class MeetManagerServiceStub(object):
                 request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportRequest.SerializeToString,
                 response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportResponse.FromString,
                 _registered_method=True)
+        self.GenerateReportBundle = channel.unary_unary(
+                '/meetmanager.v1.MeetManagerService/GenerateReportBundle',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleResponse.FromString,
+                _registered_method=True)
 
 
 class MeetManagerServiceServicer(object):
@@ -297,6 +302,13 @@ class MeetManagerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GenerateReportBundle(self, request, context):
+        """GenerateReportBundle generates a set of customized reports bundled in a zip file.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MeetManagerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -399,6 +411,11 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
                     servicer.GenerateReport,
                     request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportRequest.FromString,
                     response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportResponse.SerializeToString,
+            ),
+            'GenerateReportBundle': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateReportBundle,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -943,6 +960,33 @@ class MeetManagerService(object):
             '/meetmanager.v1.MeetManagerService/GenerateReport',
             meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportRequest.SerializeToString,
             meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateReportBundle(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.v1.MeetManagerService/GenerateReportBundle',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleResponse.FromString,
             options,
             channel_credentials,
             insecure,

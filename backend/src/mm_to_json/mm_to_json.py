@@ -829,6 +829,8 @@ class MmToJsonConverter:
                         abbr = self._get_val(row, "TCode")
                         short = self._get_val(row, "Short")
                         lsc = self._get_val(row, "LSC")
+
+                        # Use short name if available, otherwise combine Abbr and LSC
                         name = short if short else f"{abbr}-{lsc}".strip("-")
                         self.cache_team_map[tid] = name
                     else:
@@ -836,9 +838,15 @@ class MmToJsonConverter:
                         abbr = self._get_val(row, "Team_abbr")
                         short = self._get_val(row, "Team_short")
                         lsc = self._get_val(row, "Team_lsc")
+
                         name = short if short else f"{abbr}-{lsc}".strip("-")
                         self.cache_team_map[tid] = name
-        return self.cache_team_map.get(team_no, "")
+
+        # Ensure we return a real string and never "nan"
+        result = self.cache_team_map.get(team_no, "")
+        if result == "nan" or not result:
+            return ""
+        return result
 
     def get_division_name(self, div_no):
         if self.cache_division_map is None:

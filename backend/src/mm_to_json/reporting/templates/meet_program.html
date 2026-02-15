@@ -5,6 +5,11 @@
     <title>{{ meet_name }} - {{ sub_title }}</title>
     <style>
         {{ css_content }}
+        {% if columns_on_page %}
+        .content-container {
+            column-count: {{ columns_on_page }};
+        }
+        {% endif %}
     </style>
 </head>
 <body>

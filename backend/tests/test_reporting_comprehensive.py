@@ -75,7 +75,7 @@ class TestReportingComprehensive(unittest.TestCase):
         self.assertEqual(len(data["groups"]), 1)
         group = data["groups"][0]
         self.assertIn("Event 1", group["header"])
-        entries = group["items"][0]["sub_items"]
+        entries = group["sections"][0]["sub_items"]
         self.assertEqual(len(entries), 2)
         # Sorted by seed time: 30.5 should be first
         self.assertEqual(entries[0]["time"], "30.50")
@@ -86,7 +86,7 @@ class TestReportingComprehensive(unittest.TestCase):
         self.assertEqual(len(data["groups"]), 1)
         group = data["groups"][0]
         self.assertIn("Heat 1", group["header"])
-        entries = group["items"][0]["sub_items"]
+        entries = group["sections"][0]["sub_items"]
         self.assertEqual(len(entries), 2)
         self.assertEqual(entries[0]["lane"], "1")
         self.assertEqual(entries[1]["lane"], "2")
@@ -95,7 +95,7 @@ class TestReportingComprehensive(unittest.TestCase):
         data = self.extractor.extract_results_data()
         self.assertEqual(len(data["groups"]), 1)
         group = data["groups"][0]
-        entries = group["items"][0]["sub_items"]
+        entries = group["sections"][0]["sub_items"]
         self.assertEqual(len(entries), 2)
         # Sorted by results time: 29.50 should be first
         self.assertEqual(entries[0]["time"], "29.50")
