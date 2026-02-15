@@ -27,6 +27,7 @@ description: Preferred tools for development and dependency management in MeetMa
   - Never run interactive commands (use `-y` for `apt`, `--no-pager` for `git`).
   - **Docker**: Always use `docker-compose exec -T` (disable TTY) to avoid "the input device is not a TTY" errors in automated environments.
   - **NPX**: Always use `npx --yes <package>` to bypass the "Ok to proceed?" installation prompt.
+  - **Mypy**: Use `--non-interactive --install-types` to prevent stalls when stubs are missing.
   - **Testing**: Ensure test runners are in "run-once" mode (e.g., `vitest run` or `npm test -- --run`) to prevent them from hanging in watch mode.
   - **Piping**: If a command lacks a non-interactive flag, pipe `yes` into it: `yes | command`.
   - **Backgrounding**: Redirect stdout/stderr to files when running long-running containerized tasks in the background to prevent terminal hangs.
@@ -35,6 +36,7 @@ description: Preferred tools for development and dependency management in MeetMa
 ## Cross-Platform Reliability
 - **System Libraries**: Libraries like WeasyPrint require non-Python system dependencies (e.g., `libpango`, `libffi`). These MUST be explicitly installed in `ci.Dockerfile` and `backend/Dockerfile` using `apt-get`.
 - **macOS Local Dev**: When running locally on macOS, ensure `DYLD_FALLBACK_LIBRARY_PATH` includes `/opt/homebrew/lib` if system libraries are not found by `dlopen`.
+- **CI Pathing**: Always set `PYTHONPATH=backend/src` (or appropriate source root) when running Python tests or scripts in CI to avoid `ModuleNotFoundError`.
 
 ## GitHub Action Triggers
 - **Path Filtering**: Use native `on.push.paths` and `on.pull_request.paths` in `.github/workflows/` instead of manual `if: contains(changed_files)` checks. This ensures CI correctly triggers and reports status on PRs.
