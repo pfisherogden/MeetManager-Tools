@@ -67,7 +67,7 @@ lint-protos:
 
 type-check-backend: codegen-backend
     @echo "Type checking backend..."
-    cd backend && MYPYPATH=src uv run mypy --non-interactive --install-types src
+    cd backend && MYPYPATH=src uv run mypy src
 
 lint-backend:
     @echo "Linting backend..."
@@ -119,7 +119,7 @@ setup-java:
 
 test-backend-local: setup-java codegen
     @echo "Running Backend Tests locally..."
-    cd backend && PYTHONPATH=src uv run pytest tests/
+    cd backend && uv run pytest tests/
 
 test-frontend: codegen
     @echo "Running Frontend Tests..."
@@ -137,14 +137,6 @@ verify-ci:
     @echo "Running verification in a clean CI-like container..."
     docker build -t meetmanager-ci -f ci.Dockerfile .
     docker run --rm meetmanager-ci
-
-# Run GitHub Actions locally using act (non-interactive)
-ci-local:
-    @echo "Running GitHub Actions locally..."
-    act pull_request \
-        -P ubuntu-latest=catthehacker/ubuntu:act-latest \
-        --container-architecture linux/amd64 \
-        --rm
 
 # View logs
 logs service="":
@@ -168,22 +160,3 @@ report-verify:
 test-entries:
     @echo "Running Relay/Entries Data Verification..."
     docker-compose run --rm backend python src/tests/test_meet_entries_data.py
-
-# Build the mobile judge app web version
-build-mobile:
-    @echo "Building mobile judge app web bundle..."
-    cd mobile-judge-app && npm run build-web
-
-# Run the mobile judge app in Docker
-up-mobile:
-    @echo "Starting mobile judge app at http://localhost:8080"
-    docker build -t judge-app-v1 mobile-judge-app/
-    docker run -d --name judge-app --rm -p 8080:8080 judge-app-v1
-
-# Stop the mobile judge app container
-down-mobile:
-    docker stop judge-app
-
-# Run mobile app tests
-test-mobile:
-    cd mobile-judge-app && npm test
