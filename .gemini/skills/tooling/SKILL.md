@@ -22,6 +22,7 @@ description: Preferred tools for development and dependency management in MeetMa
 - **Optimize Context**: Maintain `.dockerignore` to exclude `node_modules`, `.venv`, and other host-side artifacts.
 - **Build Caching**: Design Dockerfiles to cache dependencies separately from source code by copying `package.json` or `pyproject.toml` first.
 - **Verify Locally**: Use `just verify-ci` to run the full verification pipeline in a container that mirrors the CI environment.
+- **Local CI**: Use `act` (via `just ci-local`) to run GitHub Actions locally. This helps identify environment-specific failures (e.g., missing system libs in CI) without waiting for remote runs.
 - **Docker Clean Room**: If local execution (especially PDF generation or Next.js builds) hangs or fails due to host environment issues, use `docker build` and `docker run` to execute in a clean environment.
 - **Anti-Stall Rules**:
   - Never run interactive commands (use `-y` for `apt`, `--no-pager` for `git`).
