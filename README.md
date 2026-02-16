@@ -6,6 +6,7 @@ A suite of tools for processing and visualizing MeetManager `.mdb` data.
 
 - [Backend](./backend): Python-based server and API for processing meet data.
 - [Web Client](./web-client): Next.js/React frontend for interacting with the data.
+- [Mobile Judge App](./mobile-judge-app): Offline-first Expo app for swim meet officiating. ([Demo](https://pfisherogden.github.io/MeetManager-Tools/))
 - [mm_to_json](./mm_to_json): Core library for converting `.mdb` files to JSON.
 
 ## Getting Started
