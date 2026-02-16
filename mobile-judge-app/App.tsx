@@ -101,7 +101,16 @@ export default function App() {
   const handleDQ = (swimmer: any, leg?: number) => {
     setSelectedSwimmer(swimmer);
     setSelectedLeg(leg);
-    setDqNote(''); // Reset note
+
+    // Find existing note
+    let existingNote = '';
+    if (leg) {
+      existingNote = swimmer.relay_dqs?.find((d: any) => d.leg === leg)?.notes || '';
+    } else {
+      existingNote = swimmer.notes || '';
+    }
+
+    setDqNote(existingNote);
     setDqModalVisible(true);
   };
 
@@ -172,7 +181,14 @@ export default function App() {
                             style={styles.legRow}
                             onPress={() => handleDQ(item, leg)}
                           >
-                            <Text style={styles.legLabel}>{legName}</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.legLabel}>{legName}</Text>
+                              {dq?.notes ? (
+                                <Text style={styles.notePreview} numberOfLines={1}>
+                                  {dq.notes}
+                                </Text>
+                              ) : null}
+                            </View>
                             <Text style={styles.dqTrigger}>
                               {dq ? dq.dq_code : 'TAP TO DQ'}
                             </Text>
@@ -198,6 +214,11 @@ export default function App() {
               <View style={styles.swimmerInfo}>
                 <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>{item.name}</Text>
                 <Text style={styles.teamName}>{item.team}</Text>
+                {item.notes ? (
+                  <Text style={styles.notePreview} numberOfLines={1}>
+                    {item.notes}
+                  </Text>
+                ) : null}
               </View>
               {!item.empty && (
                 <Text style={styles.dqTrigger}>{item.dq_code ? item.dq_code : 'TAP TO DQ'}</Text>
@@ -429,6 +450,12 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontWeight: '900',
     fontSize: 12,
+  },
+  notePreview: {
+    fontSize: 10,
+    color: COLORS.secondary,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   modalOverlay: {
     flex: 1,

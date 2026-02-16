@@ -50,7 +50,14 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
                                         style={styles.legItem}
                                         onPress={() => onSelectSwimmer(swimmer, event, heat, leg)}
                                     >
-                                        <Text style={styles.legName}>{legName}</Text>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.legName}>{legName}</Text>
+                                            {dq?.notes ? (
+                                                <Text style={styles.notePreview} numberOfLines={1}>
+                                                    {dq.notes}
+                                                </Text>
+                                            ) : null}
+                                        </View>
                                         <Text style={styles.legDq}>
                                             {dq ? dq.dq_code : 'DQ'}
                                         </Text>
@@ -76,6 +83,11 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
                 <View style={styles.swimmerDetails}>
                     <Text style={[styles.swimmerName, swimmer.empty && styles.emptyText]}>{swimmer.name}</Text>
                     <Text style={styles.teamName}>{swimmer.team}</Text>
+                    {swimmer.notes ? (
+                        <Text style={styles.notePreview} numberOfLines={1}>
+                            {swimmer.notes}
+                        </Text>
+                    ) : null}
                 </View>
                 <View style={styles.dqContainer}>
                     {!swimmer.empty && (
@@ -290,5 +302,11 @@ const styles = StyleSheet.create({
     emptyText: {
         color: '#999',
         fontStyle: 'italic',
+    },
+    notePreview: {
+        fontSize: 12,
+        color: COLORS.secondary,
+        fontStyle: 'italic',
+        marginTop: 2,
     }
 });

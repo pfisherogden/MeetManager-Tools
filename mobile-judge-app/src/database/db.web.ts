@@ -100,10 +100,21 @@ export const getSwimmersByHeat = (heatId: number) => {
       if (isRelay) {
         relayDqs = mockDQs
           .filter(d => d.swimmerId === s.id)
-          .map(d => ({ leg: d.leg, dq_code: d.dqCode }));
+          .map(d => ({ leg: d.leg, dq_code: d.dqCode, notes: d.notes }));
       } else {
         const dq = mockDQs.find(d => d.swimmerId === s.id);
         dqCode = dq ? dq.dqCode : null;
+        const dqNote = dq ? dq.notes : null;
+        result.push({
+          ...s,
+          dq_code: dqCode,
+          notes: dqNote,
+          relay_dqs: relayDqs,
+          isRelay: isRelay,
+          members: s.members || [],
+          empty: false
+        });
+        continue;
       }
 
       result.push({
