@@ -78,9 +78,6 @@ def test_meet_program_dom_validation(fixture_path, tmp_path):
     event_blocks = soup.find_all(class_="event-block")
     assert len(event_blocks) == len(program_data["groups"])
     
-    # Check for specific data field (common in these fixtures)
-    # Using "A" relay as a test if present
-    relays = soup.find_all(class_="relay-swimmers-row")
     if program_data["groups"]:
         # Just ensure we have some content
         assert len(event_blocks) > 0
