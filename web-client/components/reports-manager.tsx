@@ -6,7 +6,9 @@ import {
 	Filter,
 	Loader2,
 	Package,
+	Plus,
 	Settings2,
+	Trash2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -28,6 +30,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 
 const reportTypes = [
 	{
@@ -72,6 +84,16 @@ const reportTypes = [
 	},
 ];
 
+type CustomPackItem = {
+	id: string;
+	type: number;
+	title: string;
+	teamFilter: string;
+	genderFilter: string;
+	ageGroupFilter: string;
+	zebraStriping: boolean;
+};
+
 export function ReportsManager() {
 	const [selectedType, setSelectedType] = useState<number>(0);
 	const [title, setTitle] = useState("");
@@ -80,6 +102,62 @@ export function ReportsManager() {
 	const [htmlContent, setHtmlContent] = useState<string | null>(null);
 	const [showHtmlDialog, setShowHtmlDialog] = useState(false);
 	const [isBundling, setIsBundling] = useState(false);
+	const [customPack, setCustomPack] = useState<CustomPackItem[]>([]);
+	const [zebraStriping, setZebraStriping] = useState(false);
+
+	const addToPack = () => {
+		const newItem: CustomPackItem = {
+			id: Math.random().toString(36).substr(2, 9),
+			type: selectedType,
+			title: title || reportTypes.find((r) => r.id === selectedType)?.name || "",
+			teamFilter: teamFilter,
+			genderFilter: "Mixed",
+			ageGroupFilter: "Open",
+			zebraStriping: zebraStriping,
+		};
+		setCustomPack([...customPack, newItem]);
+		toast.success("Added to custom pack");
+	};
+
+	const removeFromPack = (id: string) => {
+		setCustomPack(customPack.filter((item) => item.id !== id));
+	};
+
+	const updatePackItem = (id: string, updates: Partial<CustomPackItem>) => {
+		setCustomPack(
+			customPack.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+		);
+	};
+
+	const generateCustomPack = async () => {
+		if (customPack.length === 0) {
+			toast.error("Pack is empty");
+			return;
+		}
+		setIsBundling(true);
+		try {
+			const result = await generateReportBundle(customPack, "custom_pack.zip");
+			if (result.success && result.zipContent) {
+				const blob = new Blob([new Uint8Array(result.zipContent)], {
+					type: "application/zip",
+				});
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = result.filename || "custom_pack.zip";
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+				toast.success("Custom pack generated successfully");
+			}
+		} catch (error: unknown) {
+			console.error("Failed to generate custom pack", error);
+			toast.error("Custom pack generation failed");
+		} finally {
+			setIsBundling(false);
+		}
+	};
 
 	const reportPresets = [
 		{
@@ -229,6 +307,11 @@ export function ReportsManager() {
 				selectedType,
 				title || reportName,
 				teamFilter,
+				undefined,
+				undefined,
+				2,
+				true,
+				zebraStriping,
 			);
 
 			if (result.success) {
@@ -372,6 +455,20 @@ export function ReportsManager() {
 								</Button>
 							</div>
 						</div>
+						
+						<div className="flex items-center justify-between p-4 border rounded-lg bg-muted/5">
+							<div className="space-y-0.5">
+								<Label htmlFor="zebra">Zebra Striping</Label>
+								<p className="text-xs text-muted-foreground">
+									Alternate background colors for entries
+								</p>
+							</div>
+							<Switch
+								id="zebra"
+								checked={zebraStriping}
+								onCheckedChange={setZebraStriping}
+							/>
+						</div>
 
 						<div className="p-4 bg-muted/30 rounded-lg space-y-2">
 							<h4 className="text-sm font-medium flex items-center gap-2">
@@ -388,15 +485,28 @@ export function ReportsManager() {
 									{teamFilter || "All Teams"}
 								</p>
 								<p>
+									<span className="text-muted-foreground">Style:</span>{" "}
+									{zebraStriping ? "Zebra Striped" : "Standard"}
+								</p>
+								<p>
 									<span className="text-muted-foreground">Branding:</span>{" "}
 									MM-Tools
 								</p>
 							</div>
 						</div>
 					</CardContent>
-					<CardFooter className="bg-muted/10 border-t pt-6">
+					<CardFooter className="bg-muted/10 border-t pt-6 gap-4">
 						<Button
-							className="w-full"
+							className="flex-1"
+							variant="outline"
+							size="lg"
+							onClick={addToPack}
+						>
+							<Plus className="mr-2 h-4 w-4" />
+							Add to Pack
+						</Button>
+						<Button
+							className="flex-1"
 							size="lg"
 							onClick={handleGenerate}
 							disabled={isGenerating}
@@ -418,6 +528,169 @@ export function ReportsManager() {
 					</CardFooter>
 				</Card>
 			</div>
+
+			<Card className="shadow-lg border-primary/20">
+				<CardHeader className="bg-primary/5">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<Package className="h-6 w-6 text-primary" />
+							<div>
+								<CardTitle>Custom Report Pack Builder</CardTitle>
+								<CardDescription>
+									Build a specialized bundle of multiple reports with individual
+									filters
+								</CardDescription>
+							</div>
+						</div>
+						<div className="flex items-center gap-4">
+							<div className="text-right">
+								<p className="text-sm font-medium">
+									{customPack.length} Reports Selected
+								</p>
+								<p className="text-xs text-muted-foreground">
+									Will be delivered as a single ZIP file
+								</p>
+							</div>
+							<Button
+								onClick={generateCustomPack}
+								disabled={isBundling || customPack.length === 0}
+								size="lg"
+							>
+								{isBundling ? (
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								) : (
+									<Download className="mr-2 h-4 w-4" />
+								)}
+								Generate Bundle ZIP
+							</Button>
+						</div>
+					</div>
+				</CardHeader>
+				<CardContent className="p-0">
+					<ScrollArea className="h-[400px]">
+						{customPack.length === 0 ? (
+							<div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground gap-4">
+								<Package className="h-12 w-12 opacity-20" />
+								<p>Your pack is empty. Use "Add to Pack" above to get started.</p>
+							</div>
+						) : (
+							<div className="divide-y">
+								{customPack.map((item, index) => (
+									<div key={item.id} className="p-6 hover:bg-muted/50 transition-colors">
+										<div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+											<div className="md:col-span-1 flex items-center justify-center">
+												<div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+													{index + 1}
+												</div>
+											</div>
+											<div className="md:col-span-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+												<div className="space-y-2">
+													<Label className="text-xs">Report Type</Label>
+													<Select
+														value={item.type.toString()}
+														onValueChange={(v) =>
+															updatePackItem(item.id, { type: Number.parseInt(v) })
+														}
+													>
+														<SelectTrigger>
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent>
+															{reportTypes.map((t) => (
+																<SelectItem key={t.id} value={t.id.toString()}>
+																	{t.name}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</div>
+												<div className="space-y-2">
+													<Label className="text-xs">Custom Title</Label>
+													<Input
+														value={item.title}
+														onChange={(e) =>
+															updatePackItem(item.id, { title: e.target.value })
+														}
+														placeholder="Report Title"
+													/>
+												</div>
+												<div className="space-y-2">
+													<Label className="text-xs">Team Filter</Label>
+													<Input
+														value={item.teamFilter}
+														onChange={(e) =>
+															updatePackItem(item.id, { teamFilter: e.target.value })
+														}
+														placeholder="All Teams"
+													/>
+												</div>
+												<div className="space-y-2">
+													<Label className="text-xs">Gender</Label>
+													<Select
+														value={item.genderFilter}
+														onValueChange={(v) =>
+															updatePackItem(item.id, { genderFilter: v })
+														}
+													>
+														<SelectTrigger>
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value="Mixed">Mixed/All</SelectItem>
+															<SelectItem value="Girls">Girls</SelectItem>
+															<SelectItem value="Boys">Boys</SelectItem>
+														</SelectContent>
+													</Select>
+												</div>
+												<div className="space-y-2">
+													<Label className="text-xs">Age Group</Label>
+													<Select
+														value={item.ageGroupFilter}
+														onValueChange={(v) =>
+															updatePackItem(item.id, { ageGroupFilter: v })
+														}
+													>
+														<SelectTrigger>
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value="Open">Open/All</SelectItem>
+															<SelectItem value="6 & under">6 & under</SelectItem>
+															<SelectItem value="7-8">7-8</SelectItem>
+															<SelectItem value="9-10">9-10</SelectItem>
+															<SelectItem value="11-12">11-12</SelectItem>
+															<SelectItem value="13-14">13-14</SelectItem>
+															<SelectItem value="15-18">15-18</SelectItem>
+														</SelectContent>
+													</Select>
+												</div>
+												<div className="flex items-center gap-3 pt-4">
+													<Switch 
+														id={`zebra-${item.id}`}
+														checked={item.zebraStriping}
+														onCheckedChange={(v) => updatePackItem(item.id, { zebraStriping: v })}
+													/>
+													<Label htmlFor={`zebra-${item.id}`} className="text-xs">Zebra Striping</Label>
+												</div>
+											</div>
+											<div className="md:col-span-1 flex justify-end pt-6">
+												<Button
+													variant="ghost"
+													size="icon"
+													className="text-destructive hover:text-destructive hover:bg-destructive/10"
+													onClick={() => removeFromPack(item.id)}
+												>
+													<Trash2 className="h-5 w-5" />
+												</Button>
+											</div>
+										</div>
+									</div>
+								))}
+							</div>
+						)}
+					</ScrollArea>
+				</CardContent>
+			</Card>
 
 			<Dialog open={showHtmlDialog} onOpenChange={setShowHtmlDialog}>
 				<DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
