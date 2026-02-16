@@ -121,25 +121,26 @@ export const getSwimmersByHeat = (heatId: number) => {
   return result;
 };
 
-export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?: number) => {
-  console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode, leg });
+export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?: number, notes?: string) => {
+  console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode, leg, notes });
 
   // Call runSync to support test verification
   getDb().runSync(
-    'INSERT INTO dqs (event_id, swimmer_id, dq_code, leg, sync_status) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO dqs (event_id, swimmer_id, dq_code, leg, notes, sync_status) VALUES (?, ?, ?, ?, ?, ?)',
     eventId,
     swimmerId,
     dqCode,
     leg || null,
+    notes || '',
     'pending'
   );
 
   // Update in-memory store
   const existingIndex = mockDQs.findIndex(d => d.swimmerId === swimmerId && d.leg === leg);
   if (existingIndex >= 0) {
-    mockDQs[existingIndex] = { eventId, swimmerId, dqCode, leg, timestamp: new Date().toISOString() };
+    mockDQs[existingIndex] = { eventId, swimmerId, dqCode, leg, notes, timestamp: new Date().toISOString() };
   } else {
-    mockDQs.push({ eventId, swimmerId, dqCode, leg, timestamp: new Date().toISOString() });
+    mockDQs.push({ eventId, swimmerId, dqCode, leg, notes, timestamp: new Date().toISOString() });
   }
   return { changes: 1 };
 };
