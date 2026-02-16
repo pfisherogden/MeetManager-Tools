@@ -12,48 +12,49 @@ class TestMeetProgramData(unittest.TestCase):
         self.converter.tables = {
             "Relay": pd.DataFrame(
                 {
-                    "Event_ptr": [1],
-                    "Team_no": [10],
-                    "Team_ltr": ["A"],
-                    "Pre_heat": [1],
-                    "Pre_lane": [4],
-                    "Pre_Time": [0.0],
-                    "Fin_heat": [1],
-                    "Fin_lane": [4],
-                    "Fin_Time": [0.0],
-                    "ConvSeed_time": [120.5],
-                    "Ind_rel": ["R"],
+                    "event_ptr": [1],
+                    "team_no": [10],
+                    "team_ltr": ["A"],
+                    "pre_heat": [1],
+                    "pre_lane": [4],
+                    "pre_time": [0.0],
+                    "fin_heat": [1],
+                    "fin_lane": [4],
+                    "fin_time": [0.0],
+                    "convseed_time": [120.5],
+                    "ind_rel": ["R"],
                 }
             ),
             "RelayNames": pd.DataFrame(
                 {
-                    "Event_ptr": [1, 1],
-                    "Team_no": [10, 10],
-                    "Team_ltr": ["A", "A"],
-                    "Event_round": ["F", "F"],  # Assuming Final round for simplicity or mocked logic
-                    "Ath_no": [101, 102],
+                    "event_ptr": [1, 1],
+                    "team_no": [10, 10],
+                    "team_ltr": ["A", "A"],
+                    "event_round": ["F", "F"],  # Assuming Final round for simplicity or mocked logic
+                    "ath_no": [101, 102],
+                    "pos_no": [1, 2],  # Added pos_no for sorting if needed
                 }
             ),
             "Athlete": pd.DataFrame(
                 [
-                    {"Ath_no": 101, "First_name": "John", "Last_name": "Doe", "Ath_age": 14, "Team_no": 10},
-                    {"Ath_no": 102, "First_name": "Jane", "Last_name": "Doe", "Ath_age": 13, "Team_no": 10},
+                    {"ath_no": 101, "first_name": "John", "last_name": "Doe", "ath_age": 14, "team_no": 10},
+                    {"ath_no": 102, "first_name": "Jane", "last_name": "Doe", "ath_age": 13, "team_no": 10},
                 ]
             ),
-            "Team": pd.DataFrame([{"Team_no": 10, "Team_abbr": "TST", "Team_short": "Test Team"}]),
+            "Team": pd.DataFrame([{"team_no": 10, "team_abbr": "TST", "team_short": "Test Team"}]),
             "Event": pd.DataFrame(
                 {
-                    "Event_no": [1],
-                    "Event_ptr": [1],
-                    "Ind_rel": ["R"],
-                    "Event_gender": ["M"],
-                    "Event_dist": [200],
-                    "Event_stroke": ["A"],  # Free
-                    "Low_age": [0],
-                    "High_age": [109],
-                    "Num_prelanes": [6],
-                    "Num_finlanes": [6],
-                    "Event_rounds": [1],  # Final only
+                    "event_no": [1],
+                    "event_ptr": [1],
+                    "ind_rel": ["R"],
+                    "event_gender": ["M"],
+                    "event_dist": [200],
+                    "event_stroke": ["A"],  # Free
+                    "low_age": [0],
+                    "high_age": [109],
+                    "num_prelanes": [6],
+                    "num_finlanes": [6],
+                    "event_rounds": [1],  # Final only
                 }
             ),
         }

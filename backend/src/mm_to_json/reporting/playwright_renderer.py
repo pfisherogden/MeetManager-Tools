@@ -3,14 +3,16 @@ import datetime
 import os
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
 class PlaywrightRenderer:
     def __init__(self, output_path: str):
         self.output_path = output_path
         self.template_dir = os.path.join(os.path.dirname(__file__), "templates")
-        self.env = Environment(loader=FileSystemLoader(self.template_dir))
+        self.env = Environment(
+            loader=FileSystemLoader(self.template_dir), autoescape=select_autoescape(["html", "xml"])
+        )
 
     async def _render_async(self, html_content: str):
         from playwright.async_api import async_playwright

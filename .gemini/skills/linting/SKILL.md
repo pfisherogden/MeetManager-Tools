@@ -17,7 +17,7 @@ description: Enforcement of code style and quality checks for MeetManager-Tools.
 - **Ignore Strategy**: Leverage `.gitignore` for exclusions and explicitly ignore generated files in `web-client/lib/proto/`.
 
 ## Protocol Buffers
-- **Use Buf**: Apply Buf for linting and formatting files in `protos/`. Use the `DEFAULT` category in `buf.yaml`.
+- **Use Buf**: Apply Buf for linting and formatting files in `protos/`. Use the `STANDARD` category in `buf.yaml` (avoid the deprecated `DEFAULT`).
 - **Structure**: Maintain versioned directories (e.g., `v1/`).
 
 ## Verification

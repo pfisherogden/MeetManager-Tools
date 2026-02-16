@@ -56,6 +56,11 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mdbtools libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libffi-dev libjpeg-dev libopenjp2-7-dev
+
       - name: Lint Protos
         run: just lint-protos
 
@@ -71,7 +76,7 @@ jobs:
         run: just type-check-backend
 
       - name: Test with Pytest
-        run: uv run pytest backend/tests/
+        run: PYTHONPATH=backend/src uv run pytest backend/tests/
 
   web-client:
     runs-on: ubuntu-latest
