@@ -47,3 +47,4 @@ mm_to_json/uv_cache/
 mm_to_json/mm_to_json_py/verification_output/
 .tmp/
 node_modules/
+tests/integration/judge_sync/node_modules
