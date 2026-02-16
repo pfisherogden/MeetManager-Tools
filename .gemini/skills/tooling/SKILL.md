@@ -16,7 +16,13 @@ description: Preferred tools for development and dependency management in MeetMa
 ## Frontend & Codegen
 - **Node v20**: Use Node.js v20 for all frontend development.
 - **Dependency First**: Always run `npm install` in `web-client/` before `just codegen` to ensure native binaries (like `grpc-tools`) are available.
+- **Mobile CI**: Use `npm ci --legacy-peer-deps` in CI environments to ensure deterministic builds and resolve peer dependency conflicts.
 - **Buf**: Use Buf for Protocol Buffer management.
+
+## Deployment
+- **GitHub Pages**: Automate via GitHub Actions using `peaceiris/actions-gh-pages`.
+- **Manual Push**: If CI is unavailable, use `git subtree push --prefix <app-dir>/dist origin gh-pages` to deploy build artifacts directly to the hosting branch.
+- **Asset Handling**: Always verify that binary assets (icons, splash screens) are correctly committed to the source branch before triggering a build.
 
 ## Docker & Parity
 - **Optimize Context**: Maintain `.dockerignore` to exclude `node_modules`, `.venv`, and other host-side artifacts.
