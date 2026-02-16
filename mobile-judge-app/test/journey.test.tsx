@@ -36,7 +36,7 @@ describe('User Journey: Record a DQ', () => {
 
     // 4. Tap Swimmer to DQ
     fireEvent.press(screen.getByText('TAP TO DQ'));
-    expect(screen.getByText(/DQ Swimmer: John Doe/)).toBeTruthy();
+    expect(screen.getByText(/DQ: John Doe/)).toBeTruthy();
 
     // 5. Select a DQ Code (e.g., 1A)
     fireEvent.press(screen.getByText('1A'));
