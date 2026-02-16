@@ -179,3 +179,10 @@ down-mobile:
 # Run mobile app tests
 test-mobile:
     cd mobile-judge-app && npm test
+
+# Run integration tests for judge app sync
+test-integration-sync:
+    @echo "Running integration tests for judge app sync..."
+    cd tests/integration/judge_sync && docker-compose -f docker-compose.test.yml build
+    cd tests/integration/judge_sync && docker-compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-runner
+    cd tests/integration/judge_sync && docker-compose -f docker-compose.test.yml down
