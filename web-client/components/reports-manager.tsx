@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -37,8 +38,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 
 const reportTypes = [
@@ -109,7 +108,8 @@ export function ReportsManager() {
 		const newItem: CustomPackItem = {
 			id: Math.random().toString(36).substr(2, 9),
 			type: selectedType,
-			title: title || reportTypes.find((r) => r.id === selectedType)?.name || "",
+			title:
+				title || reportTypes.find((r) => r.id === selectedType)?.name || "",
 			teamFilter: teamFilter,
 			genderFilter: "Mixed",
 			ageGroupFilter: "Open",
@@ -125,7 +125,9 @@ export function ReportsManager() {
 
 	const updatePackItem = (id: string, updates: Partial<CustomPackItem>) => {
 		setCustomPack(
-			customPack.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+			customPack.map((item) =>
+				item.id === id ? { ...item, ...updates } : item,
+			),
 		);
 	};
 
@@ -455,7 +457,7 @@ export function ReportsManager() {
 								</Button>
 							</div>
 						</div>
-						
+
 						<div className="flex items-center justify-between p-4 border rounded-lg bg-muted/5">
 							<div className="space-y-0.5">
 								<Label htmlFor="zebra">Zebra Striping</Label>
@@ -571,12 +573,17 @@ export function ReportsManager() {
 						{customPack.length === 0 ? (
 							<div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground gap-4">
 								<Package className="h-12 w-12 opacity-20" />
-								<p>Your pack is empty. Use "Add to Pack" above to get started.</p>
+								<p>
+									Your pack is empty. Use "Add to Pack" above to get started.
+								</p>
 							</div>
 						) : (
 							<div className="divide-y">
 								{customPack.map((item, index) => (
-									<div key={item.id} className="p-6 hover:bg-muted/50 transition-colors">
+									<div
+										key={item.id}
+										className="p-6 hover:bg-muted/50 transition-colors"
+									>
 										<div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
 											<div className="md:col-span-1 flex items-center justify-center">
 												<div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
@@ -589,7 +596,9 @@ export function ReportsManager() {
 													<Select
 														value={item.type.toString()}
 														onValueChange={(v) =>
-															updatePackItem(item.id, { type: Number.parseInt(v) })
+															updatePackItem(item.id, {
+																type: Number.parseInt(v, 10),
+															})
 														}
 													>
 														<SelectTrigger>
@@ -619,7 +628,9 @@ export function ReportsManager() {
 													<Input
 														value={item.teamFilter}
 														onChange={(e) =>
-															updatePackItem(item.id, { teamFilter: e.target.value })
+															updatePackItem(item.id, {
+																teamFilter: e.target.value,
+															})
 														}
 														placeholder="All Teams"
 													/>
@@ -655,7 +666,9 @@ export function ReportsManager() {
 														</SelectTrigger>
 														<SelectContent>
 															<SelectItem value="Open">Open/All</SelectItem>
-															<SelectItem value="6 & under">6 & under</SelectItem>
+															<SelectItem value="6 & under">
+																6 & under
+															</SelectItem>
 															<SelectItem value="7-8">7-8</SelectItem>
 															<SelectItem value="9-10">9-10</SelectItem>
 															<SelectItem value="11-12">11-12</SelectItem>
@@ -665,12 +678,19 @@ export function ReportsManager() {
 													</Select>
 												</div>
 												<div className="flex items-center gap-3 pt-4">
-													<Switch 
+													<Switch
 														id={`zebra-${item.id}`}
 														checked={item.zebraStriping}
-														onCheckedChange={(v) => updatePackItem(item.id, { zebraStriping: v })}
+														onCheckedChange={(v) =>
+															updatePackItem(item.id, { zebraStriping: v })
+														}
 													/>
-													<Label htmlFor={`zebra-${item.id}`} className="text-xs">Zebra Striping</Label>
+													<Label
+														htmlFor={`zebra-${item.id}`}
+														className="text-xs"
+													>
+														Zebra Striping
+													</Label>
 												</div>
 											</div>
 											<div className="md:col-span-1 flex justify-end pt-6">
