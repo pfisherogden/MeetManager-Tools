@@ -36,7 +36,8 @@ const generateTestData = () => {
     events.push({
       id: i,
       number: i,
-      name: `${gender} ${ageGroup} ${distance} ${stroke}`
+      name: `${gender} ${ageGroup} ${distance} ${stroke}`,
+      isRelay: isRelay
     });
 
     // Generate 2 heats per event
@@ -69,6 +70,10 @@ export const getHeatsByEvent = (eventId: number) => {
 };
 
 export const getSwimmersByHeat = (heatId: number) => {
+  const heat = _testData.heats.find(h => h.id === heatId);
+  const event = heat ? _testData.events.find(e => e.id === heat.event_id) : null;
+  const isRelay = event ? event.isRelay : false;
+
   const swimmers = _testData.swimmers.filter(s => s.heat_id === heatId);
 
   // Create a map for quick lookup
@@ -79,10 +84,24 @@ export const getSwimmersByHeat = (heatId: number) => {
   for (let lane = 1; lane <= 6; lane++) {
     if (swimmerMap.has(lane)) {
       const s = swimmerMap.get(lane)!;
-      const dq = mockDQs.find(d => d.swimmerId === s.id);
+
+      let dqCode = null;
+      let relayDqs: any[] = [];
+
+      if (isRelay) {
+        relayDqs = mockDQs
+          .filter(d => d.swimmerId === s.id)
+          .map(d => ({ leg: d.leg, dq_code: d.dqCode }));
+      } else {
+        const dq = mockDQs.find(d => d.swimmerId === s.id);
+        dqCode = dq ? dq.dqCode : null;
+      }
+
       result.push({
         ...s,
-        dq_code: dq ? dq.dqCode : null,
+        dq_code: dqCode,
+        relay_dqs: relayDqs,
+        isRelay: isRelay,
         empty: false
       });
     } else {
@@ -93,6 +112,8 @@ export const getSwimmersByHeat = (heatId: number) => {
         name: 'Empty',
         team: '',
         dq_code: null,
+        relay_dqs: [],
+        isRelay: isRelay,
         empty: true
       });
     }
@@ -100,24 +121,25 @@ export const getSwimmersByHeat = (heatId: number) => {
   return result;
 };
 
-export const saveDQ = (eventId: number, swimmerId: number, dqCode: string) => {
-  console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode });
+export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?: number) => {
+  console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode, leg });
 
   // Call runSync to support test verification
   getDb().runSync(
-    'INSERT INTO dqs (event_id, swimmer_id, dq_code, sync_status) VALUES (?, ?, ?, ?)',
+    'INSERT INTO dqs (event_id, swimmer_id, dq_code, leg, sync_status) VALUES (?, ?, ?, ?, ?)',
     eventId,
     swimmerId,
     dqCode,
+    leg || null,
     'pending'
   );
 
   // Update in-memory store
-  const existingIndex = mockDQs.findIndex(d => d.swimmerId === swimmerId);
+  const existingIndex = mockDQs.findIndex(d => d.swimmerId === swimmerId && d.leg === leg);
   if (existingIndex >= 0) {
-    mockDQs[existingIndex] = { eventId, swimmerId, dqCode, timestamp: new Date().toISOString() };
+    mockDQs[existingIndex] = { eventId, swimmerId, dqCode, leg, timestamp: new Date().toISOString() };
   } else {
-    mockDQs.push({ eventId, swimmerId, dqCode, timestamp: new Date().toISOString() });
+    mockDQs.push({ eventId, swimmerId, dqCode, leg, timestamp: new Date().toISOString() });
   }
   return { changes: 1 };
 };

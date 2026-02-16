@@ -25,6 +25,7 @@ export default function App() {
   const [swimmers, setSwimmers] = useState<any[]>([]);
   const [dqModalVisible, setDqModalVisible] = useState(false);
   const [selectedSwimmer, setSelectedSwimmer] = useState<any>(null);
+  const [selectedLeg, setSelectedLeg] = useState<number | undefined>(undefined);
   const [pendingCount, setPendingCount] = useState(0);
   const [programMode, setProgramMode] = useState(false); // Toggle state
 
@@ -59,13 +60,14 @@ export default function App() {
     setCurrentScreen('judge');
   };
 
-  const handleDQ = (swimmer: any) => {
+  const handleDQ = (swimmer: any, leg?: number) => {
     setSelectedSwimmer(swimmer);
+    setSelectedLeg(leg);
     setDqModalVisible(true);
   };
 
   const submitDQ = (code: string) => {
-    saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, code);
+    saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, code, selectedLeg);
     setDqModalVisible(false);
     updatePendingCount();
 
@@ -107,25 +109,62 @@ export default function App() {
       <FlatList
         data={swimmers}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.swimmerCard, item.empty && styles.emptyCard]}
-            onPress={() => !item.empty && handleDQ(item)}
-            disabled={item.empty}
-          >
-            <View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
-              <Text style={styles.laneText}>{item.lane}</Text>
-            </View>
-            <View style={styles.swimmerInfo}>
-              <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>{item.name}</Text>
-              <Text style={styles.teamName}>{item.team}</Text>
-            </View>
-            {!item.empty && (
-              <Text style={styles.dqTrigger}>{item.dq_code ? item.dq_code : 'TAP TO DQ'}</Text>
-            )}
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          if (item.isRelay) {
+            return (
+              <View style={[styles.swimmerCard, styles.relayCard, item.empty && styles.emptyCard]}>
+                <View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
+                  <Text style={styles.laneText}>{item.lane}</Text>
+                </View>
+                <View style={styles.swimmerInfo}>
+                  <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>{item.name}</Text>
+                  <Text style={styles.teamName}>{item.team}</Text>
+
+                  {!item.empty && (
+                    <View style={styles.legsContainer}>
+                      {[1, 2, 3, 4].map(leg => {
+                        const dq = item.relay_dqs?.find((d: any) => d.leg === leg);
+                        return (
+                          <TouchableOpacity
+                            key={leg}
+                            style={styles.legRow}
+                            onPress={() => handleDQ(item, leg)}
+                          >
+                            <Text style={styles.legLabel}>Leg {leg}</Text>
+                            <Text style={styles.dqTrigger}>
+                              {dq ? dq.dq_code : 'TAP TO DQ'}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              </View>
+            );
+          }
+
+          return (
+            <TouchableOpacity
+              style={[styles.swimmerCard, item.empty && styles.emptyCard]}
+              onPress={() => !item.empty && handleDQ(item)}
+              disabled={item.empty}
+            >
+              <View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
+                <Text style={styles.laneText}>{item.lane}</Text>
+              </View>
+              <View style={styles.swimmerInfo}>
+                <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>{item.name}</Text>
+                <Text style={styles.teamName}>{item.team}</Text>
+              </View>
+              {!item.empty && (
+                <Text style={styles.dqTrigger}>{item.dq_code ? item.dq_code : 'TAP TO DQ'}</Text>
+              )}
+            </TouchableOpacity>
+          );
+        }}
       />
+      {/* Existing Program View needs update? ProgramView uses rendering logic inside itself, might need update too if I want relays there. But Issue #60 usually implies main Judge View. */}
     </View>
   );
 
@@ -147,6 +186,7 @@ export default function App() {
           onSelectSwimmer={(swimmer, event, heat) => {
             setSelectedEvent(event);
             setSelectedHeat(heat);
+            // Program View might need leg support too. For now, assume it's basic.
             handleDQ(swimmer);
           }}
           refreshTrigger={pendingCount}
@@ -191,7 +231,9 @@ export default function App() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, styles.modalPopup]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>DQ Swimmer: {selectedSwimmer?.name}</Text>
+              <Text style={styles.modalTitle}>
+                DQ: {selectedSwimmer?.name} {selectedLeg ? `(Leg ${selectedLeg})` : ''}
+              </Text>
               <TouchableOpacity onPress={() => setDqModalVisible(false)}>
                 <Text style={styles.closeButton}>CANCEL</Text>
               </TouchableOpacity>
@@ -399,5 +441,24 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#999999',
     fontStyle: 'italic',
+  },
+  relayCard: {
+    alignItems: 'flex-start',
+  },
+  legsContainer: {
+    marginTop: 10,
+    width: '100%',
+  },
+  legRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    width: 200, // Or flex
+  },
+  legLabel: {
+    fontWeight: 'bold',
+    marginRight: 10,
   }
 });
