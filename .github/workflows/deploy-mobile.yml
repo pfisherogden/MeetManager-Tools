@@ -33,6 +33,9 @@ jobs:
         working-directory: mobile-judge-app
         run: npm run build-web
 
+      - name: Add .nojekyll
+        run: touch mobile-judge-app/dist/.nojekyll
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
