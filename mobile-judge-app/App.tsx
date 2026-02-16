@@ -68,6 +68,12 @@ export default function App() {
     saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, code);
     setDqModalVisible(false);
     updatePendingCount();
+
+    // Refresh swimmers list to show new DQ
+    if (selectedHeat) {
+      const updatedSwimmers = getSwimmersByHeat(selectedHeat.id);
+      setSwimmers(updatedSwimmers);
+    }
   };
 
   // Toggle Handler
