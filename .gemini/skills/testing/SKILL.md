@@ -22,7 +22,7 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
        - **Anti-Hang**: Always use `vitest run` (or `npm test -- --run`) in automated scripts to prevent the runner from entering watch mode and hanging the process.
 5. **Local CI Check**: Run `just ci-local` to execute GitHub Actions locally using `act`. 
    - This MUST be done before creating or updating a PR to ensure all remote workflows pass.
-   - **Apple Silicon**: On M-series Macs, `act` MUST be run with `--container-architecture linux/amd64` to match the expected Ubuntu runner environment.
+   - **Cross-Platform**: The `Justfile` automatically detects the host environment. On Apple Silicon (M-series), it forces `--container-architecture linux/amd64` to ensure compatibility with standard Ubuntu-based action runners.
 
 ## Data & Mocking Best Practices
 - **Sensitive Data False Positives**: Test logs containing variable names like `gender`, `team`, or `age` may trigger CodeQL's `py/clear-text-logging-sensitive-data` alert. Use the `# codeql [py/clear-text-logging-sensitive-data]` suppression comment on the logging line if the data is anonymized or intended for test verification.

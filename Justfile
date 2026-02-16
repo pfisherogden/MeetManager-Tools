@@ -138,6 +138,17 @@ verify-ci:
     docker build -t meetmanager-ci -f ci.Dockerfile .
     docker run --rm meetmanager-ci
 
+# Architecture flag for 'act' (forces linux/amd64 on Apple Silicon to ensure image compatibility)
+act_arch := if os() == "macos" { if arch() == "aarch64" { "--container-architecture linux/amd64" } else { "" } } else { "" }
+
+# Run GitHub Actions locally using act (non-interactive)
+ci-local:
+    @echo "Running GitHub Actions locally..."
+    act pull_request \
+        -P ubuntu-latest=catthehacker/ubuntu:act-latest \
+        {{act_arch}} \
+        --rm
+
 # View logs
 logs service="":
     docker-compose logs -f {{service}}
