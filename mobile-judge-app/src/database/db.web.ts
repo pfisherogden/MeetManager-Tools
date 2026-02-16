@@ -71,19 +71,38 @@ export const getHeatsByEvent = (eventId: number) => {
 export const getSwimmersByHeat = (heatId: number) => {
   const swimmers = _testData.swimmers.filter(s => s.heat_id === heatId);
 
-  // Merge with DQs
-  return swimmers.map(s => {
-    const dq = mockDQs.find(d => d.swimmerId === s.id);
-    return {
-      ...s,
-      dq_code: dq ? dq.dqCode : null
-    };
-  });
+  // Create a map for quick lookup
+  const swimmerMap = new Map(swimmers.map(s => [s.lane, s]));
+
+  const result = [];
+  // Assume 6 lanes for now (could be dynamic based on event settings later)
+  for (let lane = 1; lane <= 6; lane++) {
+    if (swimmerMap.has(lane)) {
+      const s = swimmerMap.get(lane)!;
+      const dq = mockDQs.find(d => d.swimmerId === s.id);
+      result.push({
+        ...s,
+        dq_code: dq ? dq.dqCode : null,
+        empty: false
+      });
+    } else {
+      result.push({
+        id: `empty-${heatId}-${lane}`,
+        heat_id: heatId,
+        lane: lane,
+        name: 'Empty',
+        team: '',
+        dq_code: null,
+        empty: true
+      });
+    }
+  }
+  return result;
 };
 
 export const saveDQ = (eventId: number, swimmerId: number, dqCode: string) => {
   console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode });
-  
+
   // Call runSync to support test verification
   getDb().runSync(
     'INSERT INTO dqs (event_id, swimmer_id, dq_code, sync_status) VALUES (?, ?, ?, ?)',
