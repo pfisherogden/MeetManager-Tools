@@ -63,11 +63,18 @@ graph TD
 - **Athletes**: Detailed view at `/athletes/[id]`. joins Team data.
 - **Teams**: Detailed view at `/teams/[id]`.
 
+### 4. Reporting Engine
+- **Extractor**: `ReportDataExtractor` transforms hierarchical MDB data into report-ready structures with support for gender and age filtering.
+- **Bundling**: `GenerateReportBundle` utilizes `zipfile` to package multiple rendered reports into a single ZIP archive.
+- **Renderer**: WeasyPrint-based engine with Jinja2 templates (auto-escape enabled for security).
+
 ## Build & Release Pipeline
 The project uses [`just`](https://github.com/casey/just) to manage the lifecycle of the application containers and local development.
 
 ### Common Commands
-- **`just verify`**: **(Recommended)** Runs the full verification pipeline: Lint -> Test.
+- **`just verify`**: Runs the full local verification pipeline: Lint -> Test.
+- **`just verify-ci`**: **(Recommended before PR)** Runs the full pipeline in a clean Docker container mirroring the production environment.
+- **`just ci-local`**: Uses `act` to execute GitHub Actions workflows locally.
 - **`just build`**: Rebuilds Docker containers from the root context.
 - **`just codegen`**: Regenerates gRPC Python and TypeScript code from the root `protos/` directory.
 - **`just clean`**: Safely removes cache artifacts (`.DS_Store`, `__pycache__`, `.next`).
