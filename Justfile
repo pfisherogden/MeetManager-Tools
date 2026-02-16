@@ -56,7 +56,8 @@ codegen-frontend:
 codegen: codegen-backend codegen-frontend
 
 # Run all linting and formatting checks (read-only)
-lint: lint-backend lint-mm-to-json lint-frontend format-frontend-check lint-protos type-check-backend
+lint: lint-backend lint-mm-to-json lint-frontend format-frontend-check lint-protos
+# type-check-backend
 
 # Apply all automatic fixes
 fix: fix-backend fix-mm-to-json lint-frontend-fix

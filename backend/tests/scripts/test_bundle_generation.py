@@ -210,7 +210,9 @@ def generate_test_bundle():
     for gender in ["Girls", "Boys"]:
         posting_pdf = os.path.join(output_dir, f"posting_program_{gender.lower()}.pdf")
         posting_html = os.path.join(html_dir, f"posting_program_{gender.lower()}.html")
-        print(f"Generating Posting Program ({gender}) to {posting_pdf}...")  # codeql [py/clear-text-logging-sensitive-data]
+        print(
+            f"Generating Posting Program ({gender}) to {posting_pdf}..."
+        )  # codeql [py/clear-text-logging-sensitive-data]
         data = extractor.extract_meet_program_data(
             report_title=f"Posting Program - {gender}",
             gender_filter=gender,
