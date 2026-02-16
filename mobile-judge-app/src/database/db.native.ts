@@ -6,13 +6,13 @@ export const getDb = () => {
   if (Platform.OS === 'web') {
     // Return a mock DB for web review in Docker
     return {
-      execSync: () => {},
+      execSync: () => { },
       runSync: () => ({ lastInsertRowId: 1, changes: 1 }),
       getAllSync: (query: string) => [],
       getFirstSync: () => ({ count: 0 }),
     };
   }
-  
+
   // Use require for native only to avoid web bundling issues with WASM
   const SQLite = require('expo-sqlite');
   if (!_db) {
@@ -103,7 +103,14 @@ export const getSwimmersByHeat = (heatId: number) => {
       { id: 2, lane: 2, name: 'Bob Jones', team: 'FAST' }
     ];
   }
-  return getDb().getAllSync('SELECT * FROM swimmers WHERE heat_id = ? ORDER BY lane ASC', heatId);
+  return getDb().getAllSync(`
+    SELECT s.*, d.dq_code 
+    FROM swimmers s
+    JOIN heats h ON s.heat_id = h.id
+    LEFT JOIN dqs d ON s.id = d.swimmer_id AND d.event_id = h.event_id
+    WHERE s.heat_id = ? 
+    ORDER BY s.lane ASC
+  `, heatId);
 };
 
 export const saveDQ = (eventId: number, swimmerId: number, dqCode: string) => {
