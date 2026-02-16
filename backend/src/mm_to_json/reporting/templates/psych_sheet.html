@@ -61,7 +61,7 @@
                 </thead>
                 <tbody>
                     {% for athlete in group.sections[0].sub_items %}
-                    <tr>
+                    <tr class="entry-row {% if zebra_striping and loop.index is even %}zebra-row{% endif %}">
                         <td>{{ loop.index }}</td>
                         <td>{{ athlete.name }}</td>
                         <td>{{ athlete.age }}</td>

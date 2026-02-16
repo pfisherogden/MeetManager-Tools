@@ -65,7 +65,8 @@
                     </thead>
                     <tbody>
                         {% for athlete in item.sub_items %}
-                        <tr class="entry-row">
+                        {% set is_zebra = zebra_striping and loop.index is even %}
+                        <tr class="entry-row {% if is_zebra %}zebra-row{% endif %}">
                             <td class="col-lane">{{ athlete.lane }}</td>
                             {% if athlete.is_relay %}
                                 <td>{{ athlete.team }} - '{{ athlete.relay_ltr }}'</td>
@@ -76,7 +77,7 @@
                             <td class="col-time">{{ athlete.time }}</td>
                         </tr>
                         {% if athlete.is_relay and athlete.swimmers %}
-                        <tr class="relay-swimmers-row">
+                        <tr class="relay-swimmers-row {% if is_zebra %}zebra-row{% endif %}">
                             <td></td>
                             <td colspan="3" class="swimmers-list">
                                 {% for swimmer in athlete.swimmers %}

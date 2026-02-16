@@ -113,6 +113,10 @@ body {
     font-size: 9pt;
 }
 
+.zebra-row {
+    background-color: #f9f9f9;
+}
+
 .col-lane { width: 30pt; }
 .col-name { width: auto; }
 .col-age { width: 25pt; }

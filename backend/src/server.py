@@ -875,6 +875,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             age_group_filter = None
             columns_on_page = 2
             show_relay_swimmers = True
+            zebra_striping = False
 
             if request:
                 rtype_val = request.type
@@ -886,6 +887,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page = request.columns_on_page
                 if request.HasField("show_relay_swimmers"):
                     show_relay_swimmers = request.show_relay_swimmers
+                if request.HasField("zebra_striping"):
+                    zebra_striping = request.zebra_striping
 
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 temp_path = tmp.name
@@ -915,6 +918,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "psych_sheet.html")
             elif rtype == "entries":
                 report_data = extractor.extract_meet_entries_data(
@@ -923,6 +927,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_hytek.html")
             elif rtype == "lineups":
                 report_data = extractor.extract_timer_sheets_data(
@@ -931,6 +936,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "lineups.html")
             elif rtype == "results":
                 report_data = extractor.extract_results_data(
@@ -939,6 +945,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "results.html")
             elif rtype == "program":
                 program_data = extractor.extract_meet_program_data(
@@ -949,6 +956,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page=columns_on_page,
                     show_relay_swimmers=show_relay_swimmers,
                 )
+                program_data["zebra_striping"] = zebra_striping
                 renderer.render_meet_program(program_data)
             elif rtype == "program_html":
                 program_data = extractor.extract_meet_program_data(
@@ -959,6 +967,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page=columns_on_page,
                     show_relay_swimmers=show_relay_swimmers,
                 )
+                program_data["zebra_striping"] = zebra_striping
                 html_content = renderer.render_to_html(program_data)
                 with open(temp_path, "wb") as f:
                     f.write(b"")
@@ -969,6 +978,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_hytek.html")
             elif rtype == "entries_club":
                 report_data = extractor.extract_meet_entries_data(
@@ -977,6 +987,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_club.html")
 
             if os.path.exists(temp_path):
@@ -1040,6 +1051,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     if report_req.HasField("show_relay_swimmers"):
                         show_relay_swimmers = report_req.show_relay_swimmers
 
+                    zebra_striping = False
+                    if report_req.HasField("zebra_striping"):
+                        zebra_striping = report_req.zebra_striping
+
                     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                         temp_path = tmp.name
 
@@ -1052,6 +1067,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             gender_filter=gender_filter,
                             age_group_filter=age_group_filter,
                         )
+                        report_data["zebra_striping"] = zebra_striping
                         renderer.render_entries(report_data, "psych_sheet.html")
                     elif rtype == "entries":
                         report_data = extractor.extract_meet_entries_data(
@@ -1060,6 +1076,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             gender_filter=gender_filter,
                             age_group_filter=age_group_filter,
                         )
+                        report_data["zebra_striping"] = zebra_striping
                         renderer.render_entries(report_data, "entries_hytek.html")
                     elif rtype == "lineups":
                         report_data = extractor.extract_timer_sheets_data(
@@ -1068,6 +1085,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             gender_filter=gender_filter,
                             age_group_filter=age_group_filter,
                         )
+                        report_data["zebra_striping"] = zebra_striping
                         renderer.render_entries(report_data, "lineups.html")
                     elif rtype == "results":
                         report_data = extractor.extract_results_data(
@@ -1076,6 +1094,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             gender_filter=gender_filter,
                             age_group_filter=age_group_filter,
                         )
+                        report_data["zebra_striping"] = zebra_striping
                         renderer.render_entries(report_data, "results.html")
                     elif rtype == "program":
                         program_data = extractor.extract_meet_program_data(
@@ -1086,6 +1105,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             columns_on_page=columns_on_page,
                             show_relay_swimmers=show_relay_swimmers,
                         )
+                        program_data["zebra_striping"] = zebra_striping
                         renderer.render_meet_program(program_data)
                     elif rtype == "program_html":
                         program_data = extractor.extract_meet_program_data(
@@ -1096,6 +1116,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             columns_on_page=columns_on_page,
                             show_relay_swimmers=show_relay_swimmers,
                         )
+                        program_data["zebra_striping"] = zebra_striping
                         html_content = renderer.render_to_html(program_data)
                         with open(temp_path, "w") as f:
                             f.write(html_content)
@@ -1106,6 +1127,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             gender_filter=gender_filter,
                             age_group_filter=age_group_filter,
                         )
+                        report_data["zebra_striping"] = zebra_striping
                         renderer.render_entries(report_data, "entries_hytek.html")
                     elif rtype == "entries_club":
                         report_data = extractor.extract_meet_entries_data(
@@ -1114,6 +1136,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             gender_filter=gender_filter,
                             age_group_filter=age_group_filter,
                         )
+                        report_data["zebra_striping"] = zebra_striping
                         renderer.render_entries(report_data, "entries_club.html")
 
                     if os.path.exists(temp_path):

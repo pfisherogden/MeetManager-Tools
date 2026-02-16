@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const reportTypes = [
 	{
@@ -80,6 +81,7 @@ export function ReportsManager() {
 	const [htmlContent, setHtmlContent] = useState<string | null>(null);
 	const [showHtmlDialog, setShowHtmlDialog] = useState(false);
 	const [isBundling, setIsBundling] = useState(false);
+	const [zebraStriping, setZebraStriping] = useState(false);
 
 	const reportPresets = [
 		{
@@ -229,6 +231,11 @@ export function ReportsManager() {
 				selectedType,
 				title || reportName,
 				teamFilter,
+				undefined,
+				undefined,
+				2,
+				true,
+				zebraStriping,
 			);
 
 			if (result.success) {
@@ -372,6 +379,20 @@ export function ReportsManager() {
 								</Button>
 							</div>
 						</div>
+						
+						<div className="flex items-center justify-between p-4 border rounded-lg bg-muted/5">
+							<div className="space-y-0.5">
+								<Label htmlFor="zebra">Zebra Striping</Label>
+								<p className="text-xs text-muted-foreground">
+									Alternate background colors for entries
+								</p>
+							</div>
+							<Switch
+								id="zebra"
+								checked={zebraStriping}
+								onCheckedChange={setZebraStriping}
+							/>
+						</div>
 
 						<div className="p-4 bg-muted/30 rounded-lg space-y-2">
 							<h4 className="text-sm font-medium flex items-center gap-2">
@@ -386,6 +407,10 @@ export function ReportsManager() {
 								<p>
 									<span className="text-muted-foreground">Target:</span>{" "}
 									{teamFilter || "All Teams"}
+								</p>
+								<p>
+									<span className="text-muted-foreground">Style:</span>{" "}
+									{zebraStriping ? "Zebra Striped" : "Standard"}
 								</p>
 								<p>
 									<span className="text-muted-foreground">Branding:</span>{" "}

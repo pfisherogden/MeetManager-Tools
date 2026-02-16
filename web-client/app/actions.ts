@@ -265,10 +265,11 @@ export async function generateReport(
 	ageGroupFilter?: string,
 	columnsOnPage: number = 2,
 	showRelaySwimmers: boolean = true,
+	zebraStriping: boolean = false,
 ) {
 	try {
 		console.log(
-			`Generating report: type=${type}, title=${title}, teamFilter=${teamFilter}, gender=${genderFilter}, age=${ageGroupFilter}, cols=${columnsOnPage}, relaySwimmers=${showRelaySwimmers}`,
+			`Generating report: type=${type}, title=${title}, teamFilter=${teamFilter}, gender=${genderFilter}, age=${ageGroupFilter}, cols=${columnsOnPage}, relaySwimmers=${showRelaySwimmers}, zebra=${zebraStriping}`,
 		);
 		const response = await client.generateReport({
 			type,
@@ -278,6 +279,7 @@ export async function generateReport(
 			ageGroupFilter,
 			columnsOnPage,
 			showRelaySwimmers,
+			zebraStriping,
 		});
 
 		if (!response.success) {
@@ -317,6 +319,7 @@ export async function generateReportBundle(
 				columnsOnPage: r.columnsOnPage || 2,
 				showRelaySwimmers:
 					r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
+				zebraStriping: !!r.zebraStriping,
 			})),
 			bundleName,
 		});

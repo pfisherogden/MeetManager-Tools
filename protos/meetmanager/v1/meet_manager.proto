@@ -503,6 +503,8 @@ message GenerateReportRequest {
   optional int32 columns_on_page = 6;
   // show_relay_swimmers indicates if individual relay swimmers should be listed.
   optional bool show_relay_swimmers = 7;
+  // zebra_striping enables alternating background colors for rows.
+  optional bool zebra_striping = 8;
 }
 
 // GenerateReportResponse contains the generated report data.
