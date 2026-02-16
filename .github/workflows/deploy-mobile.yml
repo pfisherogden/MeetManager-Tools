@@ -7,6 +7,7 @@ on:
       - feat/judge-app-ui-overhaul
     paths:
       - 'mobile-judge-app/**'
+      - '.github/workflows/deploy-mobile.yml'
   workflow_dispatch:
 
 permissions:
@@ -27,11 +28,13 @@ jobs:
 
       - name: Install dependencies
         working-directory: mobile-judge-app
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Build web
         working-directory: mobile-judge-app
-        run: npm run build-web
+        run: |
+          ls -R
+          npm run build-web
 
       - name: Add .nojekyll
         run: touch mobile-judge-app/dist/.nojekyll
