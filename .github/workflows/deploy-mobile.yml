@@ -1,0 +1,43 @@
+name: Deploy Mobile Judge App to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - feat/judge-app-ui-overhaul
+    paths:
+      - 'mobile-judge-app/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: mobile-judge-app/package.json
+
+      - name: Install dependencies
+        working-directory: mobile-judge-app
+        run: npm install --legacy-peer-deps
+
+      - name: Build web
+        working-directory: mobile-judge-app
+        run: npm run build-web
+
+      - name: Add .nojekyll
+        run: touch mobile-judge-app/dist/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./mobile-judge-app/dist

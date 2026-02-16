@@ -1,0 +1,15 @@
+{
+  "butterfly": [
+    {"code": "1A", "description": "Alternating kick"},
+    {"code": "1B", "description": "Kick-Scissors"},
+    {"code": "1C", "description": "Breaststroke kick"}
+  ],
+  "backstroke": [
+    {"code": "2A", "description": "Past vertical at turn: non-continuous turning action"},
+    {"code": "2B", "description": "Past vertical at turn: independent kicks/strokes"}
+  ],
+  "breaststroke": [
+    {"code": "3A", "description": "Alternating kick"},
+    {"code": "3B", "description": "Butterly kick"}
+  ]
+}
