@@ -49,12 +49,20 @@ const generateTestData = () => {
       // Generate 4 swimmers per heat
       for (let l = 1; l <= 4; l++) {
         const swimmerId = swimmerIdCounter++;
+        const relayMembers = isRelay ? [
+          `Swimmer ${swimmerId}-1`,
+          `Swimmer ${swimmerId}-2`,
+          `Swimmer ${swimmerId}-3`,
+          `Swimmer ${swimmerId}-4`
+        ] : [];
+
         swimmers.push({
           id: swimmerId,
           heat_id: heatId,
           lane: l,
           name: `Swimmer ${swimmerId}`,
-          team: l % 2 === 0 ? 'FAST' : 'SLOW'
+          team: l % 2 === 0 ? 'FAST' : 'SLOW',
+          members: relayMembers
         });
       }
     }
@@ -103,6 +111,7 @@ export const getSwimmersByHeat = (heatId: number) => {
         dq_code: dqCode,
         relay_dqs: relayDqs,
         isRelay: isRelay,
+        members: s.members || [],
         empty: false
       });
     } else {
