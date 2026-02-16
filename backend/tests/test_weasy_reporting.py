@@ -11,7 +11,8 @@ from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
-FIXTURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../fixtures/anonymized_meets"))
+# Correct path for fixtures inside the Docker container
+FIXTURES_DIR = "/app/data/fixtures_root/anonymized_meets"
 
 def get_anonymized_fixtures():
     fixtures = []

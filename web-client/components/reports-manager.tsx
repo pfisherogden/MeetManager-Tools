@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 
 const reportTypes = [
 	{
@@ -90,6 +91,7 @@ type CustomPackItem = {
 	teamFilter: string;
 	genderFilter: string;
 	ageGroupFilter: string;
+	zebraStriping: boolean;
 };
 
 export function ReportsManager() {
@@ -101,6 +103,7 @@ export function ReportsManager() {
 	const [showHtmlDialog, setShowHtmlDialog] = useState(false);
 	const [isBundling, setIsBundling] = useState(false);
 	const [customPack, setCustomPack] = useState<CustomPackItem[]>([]);
+	const [zebraStriping, setZebraStriping] = useState(false);
 
 	const addToPack = () => {
 		const newItem: CustomPackItem = {
@@ -110,6 +113,7 @@ export function ReportsManager() {
 			teamFilter: teamFilter,
 			genderFilter: "Mixed",
 			ageGroupFilter: "Open",
+			zebraStriping: zebraStriping,
 		};
 		setCustomPack([...customPack, newItem]);
 		toast.success("Added to custom pack");
@@ -303,6 +307,11 @@ export function ReportsManager() {
 				selectedType,
 				title || reportName,
 				teamFilter,
+				undefined,
+				undefined,
+				2,
+				true,
+				zebraStriping,
 			);
 
 			if (result.success) {
@@ -446,6 +455,20 @@ export function ReportsManager() {
 								</Button>
 							</div>
 						</div>
+						
+						<div className="flex items-center justify-between p-4 border rounded-lg bg-muted/5">
+							<div className="space-y-0.5">
+								<Label htmlFor="zebra">Zebra Striping</Label>
+								<p className="text-xs text-muted-foreground">
+									Alternate background colors for entries
+								</p>
+							</div>
+							<Switch
+								id="zebra"
+								checked={zebraStriping}
+								onCheckedChange={setZebraStriping}
+							/>
+						</div>
 
 						<div className="p-4 bg-muted/30 rounded-lg space-y-2">
 							<h4 className="text-sm font-medium flex items-center gap-2">
@@ -460,6 +483,10 @@ export function ReportsManager() {
 								<p>
 									<span className="text-muted-foreground">Target:</span>{" "}
 									{teamFilter || "All Teams"}
+								</p>
+								<p>
+									<span className="text-muted-foreground">Style:</span>{" "}
+									{zebraStriping ? "Zebra Striped" : "Standard"}
 								</p>
 								<p>
 									<span className="text-muted-foreground">Branding:</span>{" "}
@@ -636,6 +663,14 @@ export function ReportsManager() {
 															<SelectItem value="15-18">15-18</SelectItem>
 														</SelectContent>
 													</Select>
+												</div>
+												<div className="flex items-center gap-3 pt-4">
+													<Switch 
+														id={`zebra-${item.id}`}
+														checked={item.zebraStriping}
+														onCheckedChange={(v) => updatePackItem(item.id, { zebraStriping: v })}
+													/>
+													<Label htmlFor={`zebra-${item.id}`} className="text-xs">Zebra Striping</Label>
 												</div>
 											</div>
 											<div className="md:col-span-1 flex justify-end pt-6">
