@@ -8,6 +8,7 @@ on:
       - 'mm_to_json/**'
       - 'protos/**'
       - 'web-client/**'
+      - 'mobile-judge-app/**'
       - 'Justfile'
       - '.github/workflows/ci.yml'
   pull_request:
@@ -17,6 +18,7 @@ on:
       - 'mm_to_json/**'
       - 'protos/**'
       - 'web-client/**'
+      - 'mobile-judge-app/**'
       - 'Justfile'
       - '.github/workflows/ci.yml'
 
@@ -106,4 +108,28 @@ jobs:
         run: npm run build
 
       - name: Test (Vitest)
+        run: npm test
+
+  mobile-judge-app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-judge-app
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile-judge-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build (Expo Web)
+        run: npm run build-web
+
+      - name: Test (Jest)
         run: npm test
