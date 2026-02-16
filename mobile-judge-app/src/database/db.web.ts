@@ -37,7 +37,8 @@ const generateTestData = () => {
       id: i,
       number: i,
       name: `${gender} ${ageGroup} ${distance} ${stroke}`,
-      isRelay: isRelay
+      isRelay: isRelay,
+      stroke: isRelay ? 'Medley Relay' : stroke // Store stroke for sorting logic
     });
 
     // Generate 2 heats per event

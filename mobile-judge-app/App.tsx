@@ -16,6 +16,43 @@ const COLORS = {
   success: '#2A9D8F'
 };
 
+const getStrokeForEvent = (event: any, leg?: number) => {
+  if (!event) return null;
+  if (event.isRelay && leg) {
+    if (event.stroke === 'Medley Relay' || event.name.includes('Medley')) {
+      switch (leg) {
+        case 1: return 'Back';
+        case 2: return 'Breast';
+        case 3: return 'Fly';
+        case 4: return 'Free';
+      }
+    }
+    return 'Free'; // Free Relay
+  }
+  return event.stroke || 'Free';
+};
+
+const getOrderedDQCategories = (currentStroke: string | null) => {
+  const categories = Object.keys(dqCodes);
+  if (!currentStroke) return categories;
+
+  const priorityMap: { [key: string]: string } = {
+    'Fly': 'butterfly',
+    'Back': 'backstroke',
+    'Breast': 'breaststroke'
+  };
+
+  const targetCategory = priorityMap[currentStroke];
+
+  if (targetCategory) {
+    return [
+      targetCategory,
+      ...categories.filter(c => c !== targetCategory)
+    ];
+  }
+  return categories;
+};
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'events' | 'heats' | 'judge' | 'program'>('events');
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -170,6 +207,9 @@ export default function App() {
     </View>
   );
 
+  const currentStroke = getStrokeForEvent(selectedEvent, selectedLeg);
+  const orderedDQCategories = getOrderedDQCategories(currentStroke);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.statusBar}>
@@ -249,10 +289,10 @@ export default function App() {
               />
             </View>
             <ScrollView>
-              {Object.entries(dqCodes).map(([category, codes]) => (
+              {orderedDQCategories.map((category) => (
                 <View key={category} style={styles.dqCategory}>
                   <Text style={styles.categoryTitle}>{category.toUpperCase()}</Text>
-                  {codes.map((item: any) => (
+                  {dqCodes[category as keyof typeof dqCodes].map((item: any) => (
                     <TouchableOpacity
                       key={item.code}
                       style={styles.dqItem}
