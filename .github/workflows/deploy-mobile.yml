@@ -22,11 +22,11 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-          cache-dependency-path: mobile-judge-app/package-lock.json
+          cache-dependency-path: mobile-judge-app/package.json
 
       - name: Install dependencies
         working-directory: mobile-judge-app
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Build web
         working-directory: mobile-judge-app
