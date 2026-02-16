@@ -34,7 +34,7 @@ description: Preferred tools for development and dependency management in MeetMa
   - Never run interactive commands (use `-y` for `apt`, `--no-pager` for `git`).
   - **Docker**: Always use `docker-compose exec -T` (disable TTY) to avoid "the input device is not a TTY" errors in automated environments.
   - **NPX**: Always use `npx --yes <package>` to bypass the "Ok to proceed?" installation prompt.
-  - **Mypy**: Use `--non-interactive --install-types` to prevent stalls when stubs are missing.
+  - **Mypy**: Use `--install-types --non-interactive` **together**. Using only one will still result in an interactive prompt or a fatal error if stubs are missing.
   - **Testing**: Ensure test runners are in "run-once" mode (e.g., `vitest run` or `npm test -- --run`) to prevent them from hanging in watch mode.
   - **Piping**: If a command lacks a non-interactive flag, pipe `yes` into it: `yes | command`.
   - **Backgrounding**: Redirect stdout/stderr to files when running long-running containerized tasks in the background to prevent terminal hangs.

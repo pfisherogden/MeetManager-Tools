@@ -22,8 +22,10 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
        - **Anti-Hang**: Always use `vitest run` (or `npm test -- --run`) in automated scripts to prevent the runner from entering watch mode and hanging the process.
 5. **Local CI Check**: Run `just ci-local` to execute GitHub Actions locally using `act`. 
    - This MUST be done before creating or updating a PR to ensure all remote workflows pass.
+   - **Apple Silicon**: On M-series Macs, `act` MUST be run with `--container-architecture linux/amd64` to match the expected Ubuntu runner environment.
 
 ## Data & Mocking Best Practices
+- **Sensitive Data False Positives**: Test logs containing variable names like `gender`, `team`, or `age` may trigger CodeQL's `py/clear-text-logging-sensitive-data` alert. Use the `# codeql [py/clear-text-logging-sensitive-data]` suppression comment on the logging line if the data is anonymized or intended for test verification.
 - **Strict Case Sensitivity**: When mocking Pandas DataFrames or dictionaries for `MmToJsonConverter`, assume case-sensitive column access. Although the converter might normalize *loaded* data to lowercase, tests injecting raw data must match the expected internal keys exactly (e.g., use `convseed_time` not `ConvSeed_time`).
 - **Fixture Consistency**: Ensure mock data matches the structure of real MDB exports. If the application logic relies on specific relationships (e.g., `Event_ptr` linking `Entry` to `Event`), manually verified mock data is crucial.
 

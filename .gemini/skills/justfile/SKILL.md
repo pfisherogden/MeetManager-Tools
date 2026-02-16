@@ -20,5 +20,6 @@ description: Best practices for writing and maintaining Justfiles in MeetManager
 - **Quiet Execution**: Use `@` to suppress command echoing for cleaner output.
 - **Shell Consistency**: Always set `set shell := ["bash", "-c"]` at the top of the Justfile.
 - **Fail Fast**: Chain logical steps with `&&`.
+- **PYTHONPATH Pattern**: For backend tests and scripts, explicitly set `PYTHONPATH=src` (or similar) within the recipe. This ensures imports resolve correctly even when the code is not installed as a package in the environment.
 - **Scoped Variables**: Prefix commands with necessary environment variables rather than relying on global state.
 
