@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
 import { getHeatsByEvent, getSwimmersByHeat } from '../database/db';
 
 const COLORS = {
@@ -11,6 +11,7 @@ const COLORS = {
     white: '#FFFFFF',
     lightGray: '#F0F0F0',
     heatHeader: '#E0E0E0',
+    icon: '#FFFFFF',
 };
 
 interface ProgramViewProps {
@@ -20,10 +21,13 @@ interface ProgramViewProps {
 }
 
 export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimmer, refreshTrigger }) => {
-    // We render a single FlatList of events.
-    // Each event item renders its own heats and swimmers.
-    // Note: For 80 events * ~8 swimmers, this is ~640 items. 
-    // Nested FlatLists can be tricky, so we'll render Heats/Swimmers as standard Views inside the Event renderItem.
+    const flatListRef = useRef<FlatList>(null);
+
+    // Function to scroll to specific event index
+    const scrollToEvent = (index: number) => {
+        if (index < 0 || index >= events.length) return;
+        flatListRef.current?.scrollToIndex({ index, animated: true });
+    };
 
     const renderSwimmer = (swimmer: any, event: any, heat: any) => (
         <TouchableOpacity
@@ -49,11 +53,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
     );
 
     const renderHeat = (heat: any, event: any) => {
-        // Fetch swimmers synchronously (mock DB is sync)
-        // passing refreshTrigger in dependency array of useEffect would be better for real async,
-        // but here we just re-call the getter on render which is fine for this mock.
         const swimmers = getSwimmersByHeat(heat.id);
-
         return (
             <View key={heat.id} style={styles.heatContainer}>
                 <Text style={styles.heatHeader}>Heat {heat.number}</Text>
@@ -62,7 +62,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
         );
     };
 
-    const renderEvent = ({ item }: { item: any }) => {
+    const renderEvent = ({ item, index }: { item: any; index: number }) => {
         const heats = getHeatsByEvent(item.id);
         return (
             <View style={styles.eventContainer}>
@@ -70,6 +70,22 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
                     <Text style={styles.eventTitle}>
                         #{item.number} {item.name}
                     </Text>
+                    <View style={styles.navIcons}>
+                        <TouchableOpacity
+                            onPress={() => scrollToEvent(index - 1)}
+                            disabled={index === 0}
+                            style={[styles.iconButton, index === 0 && styles.disabledIcon]}
+                        >
+                            <Text style={styles.iconText}>▲</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => scrollToEvent(index + 1)}
+                            disabled={index === events.length - 1}
+                            style={[styles.iconButton, index === events.length - 1 && styles.disabledIcon]}
+                        >
+                            <Text style={styles.iconText}>▼</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 {heats.map(heat => renderHeat(heat, item))}
             </View>
@@ -79,13 +95,20 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
     return (
         <View style={styles.container}>
             <FlatList
+                ref={flatListRef}
                 data={events}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderEvent}
                 initialNumToRender={3}
                 maxToRenderPerBatch={5}
                 windowSize={5}
-                extraData={refreshTrigger} // Important: re-render list when trigger changes
+                extraData={refreshTrigger}
+                onScrollToIndexFailed={(info) => {
+                    const wait = new Promise(resolve => setTimeout(resolve, 500));
+                    wait.then(() => {
+                        flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+                    });
+                }}
             />
         </View>
     );
@@ -104,11 +127,30 @@ const styles = StyleSheet.create({
     eventHeader: {
         backgroundColor: COLORS.primary,
         padding: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     eventTitle: {
         color: COLORS.white,
-        fontSize: 24, // Tablet friendly
+        fontSize: 20,
         fontWeight: 'bold',
+        flex: 1,
+    },
+    navIcons: {
+        flexDirection: 'row',
+    },
+    iconButton: {
+        paddingHorizontal: 15,
+        paddingVertical: 5,
+    },
+    iconText: {
+        color: COLORS.icon,
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    disabledIcon: {
+        opacity: 0.3,
     },
     heatContainer: {
         paddingBottom: 10,
@@ -116,19 +158,19 @@ const styles = StyleSheet.create({
     heatHeader: {
         backgroundColor: COLORS.heatHeader,
         padding: 10,
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
         color: COLORS.text,
     },
     swimmerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 15, // Large touch target
+        padding: 15,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.lightGray,
     },
     laneContainer: {
-        width: 60,
+        width: 50,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: COLORS.secondary,
@@ -138,23 +180,23 @@ const styles = StyleSheet.create({
     },
     laneText: {
         color: COLORS.white,
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
     },
     swimmerDetails: {
         flex: 1,
     },
     swimmerName: {
-        fontSize: 22, // Large for readability
+        fontSize: 20,
         fontWeight: 'bold',
         color: COLORS.text,
     },
     teamName: {
-        fontSize: 18,
+        fontSize: 16,
         color: COLORS.secondary,
     },
     dqContainer: {
-        width: 80,
+        width: 60,
         alignItems: 'center',
         justifyContent: 'center',
         borderLeftWidth: 1,
@@ -163,12 +205,12 @@ const styles = StyleSheet.create({
     },
     dqText: {
         color: COLORS.accent,
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '900',
     },
     dqPlaceholder: {
         color: '#CCC',
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
     }
 });
