@@ -10,6 +10,7 @@ export const getDb = () => {
       runSync: () => ({ lastInsertRowId: 1, changes: 1 }),
       getAllSync: (query: string) => [],
       getFirstSync: () => ({ count: 0 }),
+      withTransactionSync: (cb: () => void) => cb(),
     };
   }
   
@@ -56,6 +57,42 @@ export const initDatabase = () => {
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+};
+
+export const resetDatabase = () => {
+  if (Platform.OS === 'web') return;
+  const db = getDb();
+  db.execSync('DELETE FROM swimmers; DELETE FROM heats; DELETE FROM events; DELETE FROM dqs;');
+};
+
+export const loadFromJSON = (programData: any) => {
+  if (Platform.OS === 'web') return;
+  const db = getDb();
+  
+  try {
+    // Reset before loading new data
+    resetDatabase();
+
+    db.withTransactionSync(() => {
+      if (programData.events) {
+        for (const e of programData.events) {
+           db.runSync('INSERT INTO events (id, number, name, distance, stroke) VALUES (?, ?, ?, ?, ?)', e.id, e.number, e.name, e.distance, e.stroke);
+        }
+      }
+      if (programData.heats) {
+        for (const h of programData.heats) {
+           db.runSync('INSERT INTO heats (id, event_id, number) VALUES (?, ?, ?)', h.id, h.event_id, h.number);
+        }
+      }
+      if (programData.swimmers) {
+        for (const s of programData.swimmers) {
+           db.runSync('INSERT INTO swimmers (id, heat_id, lane, name, team) VALUES (?, ?, ?, ?, ?)', s.id, s.heat_id, s.lane, s.name, s.team);
+        }
+      }
+    });
+  } catch (e) {
+    console.error('Failed to load JSON to DB', e);
+  }
 };
 
 export const seedData = () => {

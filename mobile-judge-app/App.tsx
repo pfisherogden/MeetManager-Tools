@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { initDatabase, seedData, getEvents, getHeatsByEvent, getSwimmersByHeat, saveDQ, getPendingDQs } from './src/database/db';
-import dqCodes from './src/config/dqCodes.json';
+import defaultDqCodes from './src/config/dqCodes.json';
+import { loadDataFromUrl } from './src/services/dataLoader';
+import { initSyncService, setSyncEndpoint, triggerSync } from './src/services/syncService';
 
 // Simple high-contrast theme
 const COLORS = {
@@ -25,12 +27,36 @@ export default function App() {
   const [dqModalVisible, setDqModalVisible] = useState(false);
   const [selectedSwimmer, setSelectedSwimmer] = useState<any>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dqCodes, setDqCodes] = useState<any>(defaultDqCodes);
 
   useEffect(() => {
-    initDatabase();
-    seedData();
-    refreshEvents();
-    updatePendingCount();
+    const initializeApp = async () => {
+      initDatabase();
+      
+      const { loaded, dqData, syncUrl } = await loadDataFromUrl();
+      
+      if (dqData) {
+        setDqCodes(dqData);
+      }
+      
+      if (syncUrl) {
+        setSyncEndpoint(syncUrl);
+      }
+
+      // Initialize sync listener
+      initSyncService(updatePendingCount);
+      
+      if (!loaded) {
+        seedData();
+      }
+      
+      refreshEvents();
+      updatePendingCount();
+      setIsLoading(false);
+    };
+
+    initializeApp();
   }, []);
 
   const refreshEvents = () => {
@@ -66,6 +92,7 @@ export default function App() {
     saveDQ(selectedEvent.id, selectedSwimmer.id, code);
     setDqModalVisible(false);
     updatePendingCount();
+    triggerSync(); // Try to sync immediately
     // In a real app, we'd highlight the swimmer as DQ'd
   };
 
@@ -108,6 +135,15 @@ export default function App() {
       />
     </View>
   );
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading Data...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -156,7 +192,7 @@ export default function App() {
             {Object.entries(dqCodes).map(([category, codes]) => (
               <View key={category} style={styles.dqCategory}>
                 <Text style={styles.categoryTitle}>{category.toUpperCase()}</Text>
-                {codes.map((item: any) => (
+                {(codes as any[]).map((item: any) => (
                   <TouchableOpacity 
                     key={item.code} 
                     style={styles.dqItem}
@@ -176,6 +212,17 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 18,
+    color: COLORS.primary,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
