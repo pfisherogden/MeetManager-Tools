@@ -1,10 +1,10 @@
-import { saveDQ, initDatabase, getDb } from '../src/database/db';
+import * as db from '../src/database/db';
 import * as SQLite from 'expo-sqlite';
 
 describe('Database Offline Persistence', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    initDatabase();
+    db.initDatabase();
   });
 
   it('should save a DQ locally when offline', () => {
@@ -12,11 +12,13 @@ describe('Database Offline Persistence', () => {
     const swimmerId = 505;
     const dqCode = '1A';
 
-    const result = saveDQ(eventId, swimmerId, dqCode);
-    const db = getDb();
+    const mockDb = db.getDb();
+    const runSyncSpy = jest.spyOn(mockDb, 'runSync');
+
+    const result = db.saveDQ(eventId, swimmerId, dqCode);
 
     expect(result.changes).toBe(1);
-    expect(db.runSync).toHaveBeenCalledWith(
+    expect(runSyncSpy).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO dqs'),
       eventId,
       swimmerId,

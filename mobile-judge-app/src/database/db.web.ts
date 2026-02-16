@@ -3,13 +3,15 @@ import { Platform } from 'react-native';
 // In-memory store for web mock
 let mockDQs: any[] = [];
 
+const mockDb = {
+  execSync: () => { },
+  runSync: (query: string, ...params: any[]) => ({ lastInsertRowId: 1, changes: 1 }),
+  getAllSync: (query: string, ...params: any[]) => [],
+  getFirstSync: (query: string, ...params: any[]) => ({ count: 0 }),
+};
+
 export const getDb = () => {
-  return {
-    execSync: () => { },
-    runSync: () => ({ lastInsertRowId: 1, changes: 1 }),
-    getAllSync: (query: string) => [],
-    getFirstSync: () => ({ count: 0 }),
-  };
+  return mockDb;
 };
 
 export const initDatabase = () => { };
@@ -81,6 +83,16 @@ export const getSwimmersByHeat = (heatId: number) => {
 
 export const saveDQ = (eventId: number, swimmerId: number, dqCode: string) => {
   console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode });
+  
+  // Call runSync to support test verification
+  getDb().runSync(
+    'INSERT INTO dqs (event_id, swimmer_id, dq_code, sync_status) VALUES (?, ?, ?, ?)',
+    eventId,
+    swimmerId,
+    dqCode,
+    'pending'
+  );
+
   // Update in-memory store
   const existingIndex = mockDQs.findIndex(d => d.swimmerId === swimmerId);
   if (existingIndex >= 0) {

@@ -24,10 +24,10 @@ describe('User Journey: Record a DQ', () => {
 
     // 1. View Event List
     expect(screen.getByText('Events')).toBeTruthy();
-    expect(screen.getByText('Event 1')).toBeTruthy();
+    expect(screen.getAllByText('Event 1')[0]).toBeTruthy();
 
     // 2. Select Event
-    fireEvent.press(screen.getByText('Event 1'));
+    fireEvent.press(screen.getAllByText('Event 1')[0]);
     expect(screen.getByText('Heat 1')).toBeTruthy();
 
     // 3. Select Heat
