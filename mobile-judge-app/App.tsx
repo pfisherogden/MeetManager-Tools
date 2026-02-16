@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView, ScrollView, TextInput } from 'react-native';
 import { initDatabase, seedData, getEvents, getHeatsByEvent, getSwimmersByHeat, saveDQ, getPendingDQs } from './src/database/db';
 import dqCodes from './src/config/dqCodes.json';
 import { ProgramView } from './src/components/ProgramView';
@@ -26,6 +26,7 @@ export default function App() {
   const [dqModalVisible, setDqModalVisible] = useState(false);
   const [selectedSwimmer, setSelectedSwimmer] = useState<any>(null);
   const [selectedLeg, setSelectedLeg] = useState<number | undefined>(undefined);
+  const [dqNote, setDqNote] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
   const [programMode, setProgramMode] = useState(false); // Toggle state
 
@@ -63,11 +64,12 @@ export default function App() {
   const handleDQ = (swimmer: any, leg?: number) => {
     setSelectedSwimmer(swimmer);
     setSelectedLeg(leg);
+    setDqNote(''); // Reset note
     setDqModalVisible(true);
   };
 
   const submitDQ = (code: string) => {
-    saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, code, selectedLeg);
+    saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, code, selectedLeg, dqNote);
     setDqModalVisible(false);
     updatePendingCount();
 
@@ -186,7 +188,6 @@ export default function App() {
           onSelectSwimmer={(swimmer, event, heat) => {
             setSelectedEvent(event);
             setSelectedHeat(heat);
-            // Program View might need leg support too. For now, assume it's basic.
             handleDQ(swimmer);
           }}
           refreshTrigger={pendingCount}
@@ -237,6 +238,15 @@ export default function App() {
               <TouchableOpacity onPress={() => setDqModalVisible(false)}>
                 <Text style={styles.closeButton}>CANCEL</Text>
               </TouchableOpacity>
+            </View>
+            <View style={styles.noteContainer}>
+              <TextInput
+                style={styles.noteInput}
+                placeholder="Add notes here (optional)"
+                value={dqNote}
+                onChangeText={setDqNote}
+                multiline
+              />
             </View>
             <ScrollView>
               {Object.entries(dqCodes).map(([category, codes]) => (
@@ -404,6 +414,19 @@ const styles = StyleSheet.create({
   closeButton: {
     color: COLORS.accent,
     fontWeight: 'bold',
+  },
+  noteContainer: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  noteInput: {
+    borderWidth: 1,
+    borderColor: COLORS.secondary,
+    borderRadius: 5,
+    padding: 10,
+    minHeight: 60,
+    textAlignVertical: 'top',
   },
   dqCategory: {
     padding: 10,
