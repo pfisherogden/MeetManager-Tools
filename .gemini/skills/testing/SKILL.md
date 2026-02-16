@@ -44,3 +44,8 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
    
 - **Unit over Integration**: Prefer testing logic in isolation before full system tests.
 - **Snapshots**: Use file-based snapshots for visual reports to ensure data integrity across transformations.
+
+## Lessons Learned (Mobile Judge App)
+- **UI/Test Sync**: When modifying UI text strings (e.g., simplifying "DQ Swimmer: Name" to "DQ: Name"), immediately grep for that string in `__tests__` or `test/` directories. UI copy changes often break strict text matchers in Jest.
+- **Navigation Bounds**: When implementing list navigation (Next/Prev), always explicitly test the start (index 0) and end (index N-1) bounds to prevent out-of-range errors or visual glitches.
+- **Mobile Touch Targets**: Ensure navigation elements (arrows, buttons) have sufficient padding (hit slop) for touch interaction, as verified by browser automation.
