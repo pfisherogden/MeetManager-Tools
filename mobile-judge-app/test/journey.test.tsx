@@ -41,8 +41,11 @@ describe('User Journey: Record a DQ', () => {
     // 5. Select a DQ Code (e.g., 1A)
     fireEvent.press(screen.getByText('1A'));
 
-    // 6. Verify we are back on judge screen and modal is closed
-    expect(screen.queryByText('CANCEL')).toBeNull();
+    // 6. Tap Save Icon (Issue #84: multi-select requires explicit save)
+    fireEvent.press(screen.getByLabelText('Save changes'));
+
+    // 7. Verify modal is closed (Saving closes modal)
+    expect(screen.queryByLabelText('Cancel changes')).toBeNull();
     expect(screen.getByText('John Doe')).toBeTruthy();
   });
 });

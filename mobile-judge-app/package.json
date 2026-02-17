@@ -12,6 +12,9 @@
   },
   "jest": {
     "preset": "react-native",
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ],
     "transform": {
       "^.+\\.(js|ts|tsx)$": "babel-jest"
     },
