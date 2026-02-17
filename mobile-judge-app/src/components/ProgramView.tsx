@@ -16,7 +16,7 @@ const COLORS = {
 
 interface ProgramViewProps {
     events: any[];
-    onSelectSwimmer: (swimmer: any, event: any, heat: any) => void;
+    onSelectSwimmer: (swimmer: any, event: any, heat: any, leg?: number) => void;
     refreshTrigger: number; // Used to force re-render when DQs change
 }
 
@@ -29,28 +29,78 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
         flatListRef.current?.scrollToIndex({ index, animated: true });
     };
 
-    const renderSwimmer = (swimmer: any, event: any, heat: any) => (
-        <TouchableOpacity
-            key={swimmer.id}
-            style={styles.swimmerRow}
-            onPress={() => onSelectSwimmer(swimmer, event, heat)}
-        >
-            <View style={styles.laneContainer}>
-                <Text style={styles.laneText}>L{swimmer.lane}</Text>
-            </View>
-            <View style={styles.swimmerDetails}>
-                <Text style={styles.swimmerName}>{swimmer.name}</Text>
-                <Text style={styles.teamName}>{swimmer.team}</Text>
-            </View>
-            <View style={styles.dqContainer}>
-                {swimmer.dq_code ? (
-                    <Text style={styles.dqText}>{swimmer.dq_code}</Text>
-                ) : (
-                    <Text style={styles.dqPlaceholder}>DQ</Text>
-                )}
-            </View>
-        </TouchableOpacity>
-    );
+    const renderSwimmer = (swimmer: any, event: any, heat: any) => {
+        const isRelay = swimmer.isRelay;
+
+        if (isRelay && !swimmer.empty) {
+            return (
+                <View key={swimmer.id} style={[styles.swimmerRow, styles.relayRow]}>
+                    <View style={styles.laneContainer}>
+                        <Text style={styles.laneText}>L{swimmer.lane}</Text>
+                    </View>
+                    <View style={styles.swimmerDetails}>
+                        <Text style={styles.teamName}>Team {swimmer.team}</Text>
+                        <View style={styles.legsContainer}>
+                            {[1, 2, 3, 4].map(leg => {
+                                const dq = swimmer.relay_dqs?.find((d: any) => d.leg === leg);
+                                const legName = swimmer.members && swimmer.members[leg - 1] ? swimmer.members[leg - 1] : `Leg ${leg}`;
+                                return (
+                                    <TouchableOpacity
+                                        key={leg}
+                                        style={styles.legItem}
+                                        onPress={() => onSelectSwimmer(swimmer, event, heat, leg)}
+                                    >
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.legName}>{legName}</Text>
+                                            {dq?.notes ? (
+                                                <Text style={styles.notePreview} numberOfLines={1}>
+                                                    {dq.notes}
+                                                </Text>
+                                            ) : null}
+                                        </View>
+                                        <Text style={styles.legDq}>
+                                            {dq ? dq.dq_code : 'DQ'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+                </View>
+            );
+        }
+
+        return (
+            <TouchableOpacity
+                key={swimmer.id}
+                style={[styles.swimmerRow, swimmer.empty && styles.emptyRow]}
+                onPress={() => !swimmer.empty && onSelectSwimmer(swimmer, event, heat)}
+                disabled={swimmer.empty}
+            >
+                <View style={[styles.laneContainer, swimmer.empty && styles.emptyLane]}>
+                    <Text style={styles.laneText}>L{swimmer.lane}</Text>
+                </View>
+                <View style={styles.swimmerDetails}>
+                    <Text style={[styles.swimmerName, swimmer.empty && styles.emptyText]}>{swimmer.name}</Text>
+                    <Text style={styles.teamName}>{swimmer.team}</Text>
+                    {swimmer.notes ? (
+                        <Text style={styles.notePreview} numberOfLines={1}>
+                            {swimmer.notes}
+                        </Text>
+                    ) : null}
+                </View>
+                <View style={styles.dqContainer}>
+                    {!swimmer.empty && (
+                        swimmer.dq_code ? (
+                            <Text style={styles.dqText}>{swimmer.dq_code}</Text>
+                        ) : (
+                            <Text style={styles.dqPlaceholder}>DQ</Text>
+                        )
+                    )}
+                </View>
+            </TouchableOpacity>
+        );
+    };
 
     const renderHeat = (heat: any, event: any) => {
         const swimmers = getSwimmersByHeat(heat.id);
@@ -212,5 +262,51 @@ const styles = StyleSheet.create({
         color: '#CCC',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    relayRow: {
+        alignItems: 'flex-start',
+    },
+    legsContainer: {
+        marginTop: 5,
+        paddingLeft: 10,
+        borderLeftWidth: 3,
+        borderLeftColor: COLORS.accent,
+        backgroundColor: '#FCFCFC',
+        borderRadius: 4,
+        width: '100%',
+    },
+    legItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+        paddingRight: 10,
+    },
+    legName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: COLORS.text,
+    },
+    legDq: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: COLORS.accent,
+    },
+    emptyRow: {
+        opacity: 0.6,
+    },
+    emptyLane: {
+        backgroundColor: '#CCC',
+    },
+    emptyText: {
+        color: '#999',
+        fontStyle: 'italic',
+    },
+    notePreview: {
+        fontSize: 12,
+        color: COLORS.secondary,
+        fontStyle: 'italic',
+        marginTop: 2,
     }
 });

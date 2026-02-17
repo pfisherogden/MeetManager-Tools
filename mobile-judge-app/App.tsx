@@ -101,7 +101,16 @@ export default function App() {
   const handleDQ = (swimmer: any, leg?: number) => {
     setSelectedSwimmer(swimmer);
     setSelectedLeg(leg);
-    setDqNote(''); // Reset note
+
+    // Find existing note
+    let existingNote = '';
+    if (leg) {
+      existingNote = swimmer.relay_dqs?.find((d: any) => d.leg === leg)?.notes || '';
+    } else {
+      existingNote = swimmer.notes || '';
+    }
+
+    setDqNote(existingNote);
     setDqModalVisible(true);
   };
 
@@ -156,20 +165,30 @@ export default function App() {
                   <Text style={styles.laneText}>{item.lane}</Text>
                 </View>
                 <View style={styles.swimmerInfo}>
-                  <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>{item.name}</Text>
-                  <Text style={styles.teamName}>{item.team}</Text>
+                  <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>
+                    {item.isRelay ? `Team ${item.team}` : item.name}
+                  </Text>
+                  {!item.isRelay && <Text style={styles.teamName}>{item.team}</Text>}
 
                   {!item.empty && (
                     <View style={styles.legsContainer}>
                       {[1, 2, 3, 4].map(leg => {
                         const dq = item.relay_dqs?.find((d: any) => d.leg === leg);
+                        const legName = item.members && item.members[leg - 1] ? item.members[leg - 1] : `Leg ${leg}`;
                         return (
                           <TouchableOpacity
                             key={leg}
                             style={styles.legRow}
                             onPress={() => handleDQ(item, leg)}
                           >
-                            <Text style={styles.legLabel}>Leg {leg}</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.legLabel}>{legName}</Text>
+                              {dq?.notes ? (
+                                <Text style={styles.notePreview} numberOfLines={1}>
+                                  {dq.notes}
+                                </Text>
+                              ) : null}
+                            </View>
                             <Text style={styles.dqTrigger}>
                               {dq ? dq.dq_code : 'TAP TO DQ'}
                             </Text>
@@ -195,6 +214,11 @@ export default function App() {
               <View style={styles.swimmerInfo}>
                 <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>{item.name}</Text>
                 <Text style={styles.teamName}>{item.team}</Text>
+                {item.notes ? (
+                  <Text style={styles.notePreview} numberOfLines={1}>
+                    {item.notes}
+                  </Text>
+                ) : null}
               </View>
               {!item.empty && (
                 <Text style={styles.dqTrigger}>{item.dq_code ? item.dq_code : 'TAP TO DQ'}</Text>
@@ -225,10 +249,10 @@ export default function App() {
       {currentScreen === 'program' && (
         <ProgramView
           events={events}
-          onSelectSwimmer={(swimmer, event, heat) => {
+          onSelectSwimmer={(swimmer, event, heat, leg) => {
             setSelectedEvent(event);
             setSelectedHeat(heat);
-            handleDQ(swimmer);
+            handleDQ(swimmer, leg);
           }}
           refreshTrigger={pendingCount}
         />
@@ -273,7 +297,9 @@ export default function App() {
           <View style={[styles.modalContainer, styles.modalPopup]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                DQ: {selectedSwimmer?.name} {selectedLeg ? `(Leg ${selectedLeg})` : ''}
+                DQ: {selectedLeg !== undefined && selectedSwimmer?.members?.[selectedLeg - 1]
+                  ? selectedSwimmer.members[selectedLeg - 1]
+                  : `${selectedSwimmer?.name || 'Swimmer'}${selectedLeg ? ` - Leg ${selectedLeg}` : ''}`}
               </Text>
               <TouchableOpacity onPress={() => setDqModalVisible(false)}>
                 <Text style={styles.closeButton}>CANCEL</Text>
@@ -425,6 +451,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 12,
   },
+  notePreview: {
+    fontSize: 10,
+    color: COLORS.secondary,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -511,17 +543,23 @@ const styles = StyleSheet.create({
   legsContainer: {
     marginTop: 10,
     width: '100%',
+    paddingLeft: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.accent,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 4,
   },
   legRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    width: 200, // Or flex
+    borderBottomColor: '#EEE',
+    paddingRight: 10,
   },
   legLabel: {
     fontWeight: 'bold',
-    marginRight: 10,
+    fontSize: 14,
+    color: COLORS.text,
   }
 });
