@@ -11,6 +11,7 @@ export interface Heat {
   id: number;
   number: number;
   event_id: number;
+  swimmers: Swimmer[];
 }
 
 export interface DQ {
@@ -37,8 +38,8 @@ export interface Swimmer {
   heat_id: number;
   isRelay: boolean;
   members: string[];
-  relay_dqs: DQ[];
-  notes: string;
-  dq_code: string;
+  relay_dqs?: DQ[];
+  notes?: string;
+  dq_code?: string;
   empty?: boolean;
 }

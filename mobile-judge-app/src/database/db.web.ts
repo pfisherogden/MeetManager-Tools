@@ -60,7 +60,7 @@ export const seedData = () => {
     ] as Event[];
     
     mockHeats = [
-      { id: 1, number: 1, event_id: 1 }
+      { id: 1, number: 1, event_id: 1, swimmers: [] }
     ];
 
     mockSwimmers = [
@@ -94,11 +94,11 @@ export const getSwimmersByHeat = (heatId: number): Swimmer[] => {
     });
   }
   
-  return heatSwimmers.map(s => {
-    const individualDQ = mockDQs.find(dq => dq.swimmer_id === s.id && !dq.leg);
-    return { ...s, dq_code: individualDQ?.dq_code, notes: individualDQ?.notes };
-  });
-};
+      return heatSwimmers.map(s => {
+        const individualDQ = mockDQs.find(dq => dq.swimmer_id === s.id && !dq.leg);
+        const swimmerWithDQ: Swimmer = { ...s, dq_code: individualDQ?.dq_code, notes: individualDQ?.notes };
+        return swimmerWithDQ;
+      });};
 
 export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?: number, notes?: string) => {
   console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode, leg, notes });

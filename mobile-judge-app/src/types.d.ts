@@ -23,3 +23,17 @@ export interface Swimmer {
   notes?: string; // Make notes optional in Swimmer
   empty?: boolean;
 }
+
+export interface Event {
+  id: number;
+  number: number;
+  name: string;
+}
+
+export interface Heat {
+  id: number;
+  event_id: number;
+  heat_number: number;
+  swimmers: Swimmer[];
+}
+

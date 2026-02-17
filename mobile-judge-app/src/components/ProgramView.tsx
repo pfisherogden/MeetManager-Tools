@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
 import { getHeatsByEvent, getSwimmersByHeat } from '../database/db';
-import { DQ, Swimmer } from '../types';
+import { Event, Heat, Swimmer, DQ } from '../types';
 
 const COLORS = {
     background: '#FFFFFF',
