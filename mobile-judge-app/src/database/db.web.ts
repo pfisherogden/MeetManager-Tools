@@ -1,8 +1,7 @@
 import { Platform } from 'react-native';
-import { DQ, Swimmer } from '../types';
 
 // In-memory store for web mock
-let mockDQs: DQ[] = [];
+let mockDQs: any[] = [];
 
 const mockDb = {
   execSync: () => { },
@@ -84,19 +83,19 @@ export const getSwimmersByHeat = (heatId: number) => {
   const event = heat ? _testData.events.find(e => e.id === heat.event_id) : null;
   const isRelay = event ? event.isRelay : false;
 
-  const swimmers: Swimmer[] = _testData.swimmers.filter(s => s.heat_id === heatId);
+  const swimmers = _testData.swimmers.filter(s => s.heat_id === heatId);
 
   // Create a map for quick lookup
   const swimmerMap = new Map(swimmers.map(s => [s.lane, s]));
 
-  const result: Swimmer[] = [];
+  const result = [];
   // Assume 6 lanes for now (could be dynamic based on event settings later)
   for (let lane = 1; lane <= 6; lane++) {
     if (swimmerMap.has(lane)) {
       const s = swimmerMap.get(lane)!;
 
-      let dqCode: string | undefined = undefined;
-      let relayDqs: DQ[] = [];
+      let dqCode = null;
+      let relayDqs: any[] = [];
 
       if (isRelay) {
         relayDqs = mockDQs
@@ -104,8 +103,8 @@ export const getSwimmersByHeat = (heatId: number) => {
           .map(d => ({ leg: d.leg, dq_code: d.dqCode, notes: d.notes }));
       } else {
         const dq = mockDQs.find(d => d.swimmerId === s.id);
-        dqCode = dq ? dq.dqCode : undefined;
-        const dqNote = dq ? dq.notes : undefined;
+        dqCode = dq ? dq.dqCode : null;
+        const dqNote = dq ? dq.notes : null;
         result.push({
           ...s,
           dq_code: dqCode,
@@ -133,7 +132,7 @@ export const getSwimmersByHeat = (heatId: number) => {
         lane: lane,
         name: 'Empty',
         team: '',
-        dq_code: undefined,
+        dq_code: null,
         relay_dqs: [],
         isRelay: isRelay,
         empty: true
@@ -153,21 +152,21 @@ export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?:
     swimmerId,
     dqCode,
     leg || null,
-    notes || undefined,
+    notes || '',
     'pending'
   );
 
   // Update in-memory store
   const existingIndex = mockDQs.findIndex(d => d.swimmerId === swimmerId && d.leg === leg);
   if (existingIndex >= 0) {
-    mockDQs[existingIndex] = { dq_code: dqCode, leg, notes, swimmerId, eventId, timestamp: new Date().toISOString() };
+    mockDQs[existingIndex] = { eventId, swimmerId, dqCode, leg, notes, timestamp: new Date().toISOString() };
   } else {
-    mockDQs.push({ dq_code: dqCode, leg, notes, swimmerId, eventId, timestamp: new Date().toISOString() });
+    mockDQs.push({ eventId, swimmerId, dqCode, leg, notes, timestamp: new Date().toISOString() });
   }
   return { changes: 1 };
 };
 
-export const getPendingDQs = (): DQ[] => {
+export const getPendingDQs = () => {
   // Return all as pending for mock purposes
   return mockDQs;
 };

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
 import { getHeatsByEvent, getSwimmersByHeat } from '../database/db';
-import { DQ, Swimmer } from '../types';
 
 const COLORS = {
     background: '#FFFFFF',
@@ -17,7 +16,7 @@ const COLORS = {
 
 interface ProgramViewProps {
     events: any[];
-    onSelectSwimmer: (swimmer: Swimmer, event: any, heat: any, leg?: number) => void;
+    onSelectSwimmer: (swimmer: any, event: any, heat: any, leg?: number) => void;
     refreshTrigger: number; // Used to force re-render when DQs change
 }
 
@@ -30,7 +29,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
         flatListRef.current?.scrollToIndex({ index, animated: true });
     };
 
-    const renderSwimmer = (swimmer: Swimmer, event: any, heat: any) => {
+    const renderSwimmer = (swimmer: any, event: any, heat: any) => {
         const isRelay = swimmer.isRelay;
 
         if (isRelay && !swimmer.empty) {

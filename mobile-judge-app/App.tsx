@@ -3,7 +3,6 @@ import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView
 import { initDatabase, seedData, getEvents, getHeatsByEvent, getSwimmersByHeat, saveDQ, getPendingDQs } from './src/database/db';
 import dqCodes from './src/config/dqCodes.json';
 import { ProgramView } from './src/components/ProgramView';
-import { DQ, Swimmer } from './src/types'; // Import Swimmer and DQ
 
 // Simple high-contrast theme
 const COLORS = {
@@ -60,9 +59,9 @@ export default function App() {
   const [selectedHeat, setSelectedHeat] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [heats, setHeats] = useState<any[]>([]);
-  const [swimmers, setSwimmers] = useState<Swimmer[]>([]); // Type as Swimmer[]
+  const [swimmers, setSwimmers] = useState<any[]>([]);
   const [dqModalVisible, setDqModalVisible] = useState(false);
-  const [selectedSwimmer, setSelectedSwimmer] = useState<Swimmer | null>(null); // Type as Swimmer | null
+  const [selectedSwimmer, setSelectedSwimmer] = useState<any>(null);
   const [selectedLeg, setSelectedLeg] = useState<number | undefined>(undefined);
   const [dqNote, setDqNote] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
@@ -99,16 +98,16 @@ export default function App() {
     setCurrentScreen('judge');
   };
 
-  const handleDQ = (swimmer: Swimmer, leg?: number) => { // Type swimmer as Swimmer
+  const handleDQ = (swimmer: any, leg?: number) => {
     setSelectedSwimmer(swimmer);
     setSelectedLeg(leg);
 
     // Find existing note
     let existingNote = '';
-    if (leg && swimmer.relay_dqs) {
-      existingNote = swimmer.relay_dqs.find((d: DQ) => d.leg === leg)?.notes || '';
-    } else if (swimmer.notes) {
-      existingNote = swimmer.notes;
+    if (leg) {
+      existingNote = swimmer.relay_dqs?.find((d: any) => d.leg === leg)?.notes || '';
+    } else {
+      existingNote = swimmer.notes || '';
     }
 
     setDqNote(existingNote);
@@ -116,8 +115,6 @@ export default function App() {
   };
 
   const submitDQ = (code: string) => {
-    if (!selectedSwimmer) return; // Should not happen if UI is correct
-
     saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, code, selectedLeg, dqNote);
     setDqModalVisible(false);
     updatePendingCount();
@@ -161,29 +158,28 @@ export default function App() {
         data={swimmers}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
-          const swimmerItem = item as Swimmer; // Type assertion
-          if (swimmerItem.isRelay) {
+          if (item.isRelay) {
             return (
-              <View style={[styles.swimmerCard, styles.relayCard, swimmerItem.empty && styles.emptyCard]}>
-                <View style={[styles.laneCircle, swimmerItem.empty && styles.emptyLane]}>
-                  <Text style={styles.laneText}>{swimmerItem.lane}</Text>
+              <View style={[styles.swimmerCard, styles.relayCard, item.empty && styles.emptyCard]}>
+                <View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
+                  <Text style={styles.laneText}>{item.lane}</Text>
                 </View>
                 <View style={styles.swimmerInfo}>
-                  <Text style={[styles.swimmerName, swimmerItem.empty && styles.emptyText]}>
-                    {swimmerItem.isRelay ? `Team ${swimmerItem.team}` : swimmerItem.name}
+                  <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>
+                    {item.isRelay ? `Team ${item.team}` : item.name}
                   </Text>
-                  {!swimmerItem.isRelay && <Text style={styles.teamName}>{swimmerItem.team}</Text>}
+                  {!item.isRelay && <Text style={styles.teamName}>{item.team}</Text>}
 
-                  {!swimmerItem.empty && (
+                  {!item.empty && (
                     <View style={styles.legsContainer}>
                       {[1, 2, 3, 4].map(leg => {
-                        const dq: DQ | undefined = swimmerItem.relay_dqs?.find((d: DQ) => d.leg === leg); // Type dq
-                        const legName = swimmerItem.members && swimmerItem.members[leg - 1] ? swimmerItem.members[leg - 1] : `Leg ${leg}`;
+                        const dq = item.relay_dqs?.find((d: any) => d.leg === leg);
+                        const legName = item.members && item.members[leg - 1] ? item.members[leg - 1] : `Leg ${leg}`;
                         return (
                           <TouchableOpacity
                             key={leg}
                             style={styles.legRow}
-                            onPress={() => handleDQ(swimmerItem, leg)}
+                            onPress={() => handleDQ(item, leg)}
                           >
                             <View style={{ flex: 1 }}>
                               <Text style={styles.legLabel}>{legName}</Text>
@@ -208,24 +204,24 @@ export default function App() {
 
           return (
             <TouchableOpacity
-              style={[styles.swimmerCard, swimmerItem.empty && styles.emptyCard]}
-              onPress={() => !swimmerItem.empty && handleDQ(swimmerItem)}
-              disabled={swimmerItem.empty}
+              style={[styles.swimmerCard, item.empty && styles.emptyCard]}
+              onPress={() => !item.empty && handleDQ(item)}
+              disabled={item.empty}
             >
-              <View style={[styles.laneCircle, swimmerItem.empty && styles.emptyLane]}>
-                <Text style={styles.laneText}>{swimmerItem.lane}</Text>
+              <View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
+                <Text style={styles.laneText}>{item.lane}</Text>
               </View>
               <View style={styles.swimmerInfo}>
-                <Text style={[styles.swimmerName, swimmerItem.empty && styles.emptyText]}>{swimmerItem.name}</Text>
-                <Text style={styles.teamName}>{swimmerItem.team}</Text>
-                {swimmerItem.notes ? (
+                <Text style={[styles.swimmerName, item.empty && styles.emptyText]}>{item.name}</Text>
+                <Text style={styles.teamName}>{item.team}</Text>
+                {item.notes ? (
                   <Text style={styles.notePreview} numberOfLines={1}>
-                    {swimmerItem.notes}
+                    {item.notes}
                   </Text>
                 ) : null}
               </View>
-              {!swimmerItem.empty && (
-                <Text style={styles.dqTrigger}>{swimmerItem.dq_code ? swimmerItem.dq_code : 'TAP TO DQ'}</Text>
+              {!item.empty && (
+                <Text style={styles.dqTrigger}>{item.dq_code ? item.dq_code : 'TAP TO DQ'}</Text>
               )}
             </TouchableOpacity>
           );
