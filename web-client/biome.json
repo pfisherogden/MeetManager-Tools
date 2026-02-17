@@ -10,7 +10,8 @@
 	},
 	"formatter": {
 		"enabled": true,
-		"indentStyle": "tab"
+		"indentStyle": "tab",
+		"ignore": ["node_modules", ".next", "dist", "build", "lib/proto"]
 	},
 	"linter": {
 		"enabled": true,
@@ -26,7 +27,8 @@
 			"complexity": {
 				"noBannedTypes": "off"
 			}
-		}
+		},
+		"ignore": ["node_modules", ".next", "dist", "build", "lib/proto"]
 	},
 	"javascript": {
 		"formatter": {
