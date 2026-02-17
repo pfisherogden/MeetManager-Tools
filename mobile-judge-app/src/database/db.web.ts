@@ -126,13 +126,16 @@ export const getSwimmersByHeat = (heatId: number) => {
         empty: false
       });
     } else {
+      const emptyId = `empty-${heatId}-${lane}`;
+      const dq = mockDQs.find(d => d.swimmerId === emptyId);
       result.push({
-        id: `empty-${heatId}-${lane}`,
+        id: emptyId,
         heat_id: heatId,
         lane: lane,
         name: 'Empty',
         team: '',
-        dq_code: null,
+        dq_code: dq ? dq.dqCode : null,
+        notes: dq ? dq.notes : null,
         relay_dqs: [],
         isRelay: isRelay,
         empty: true
@@ -142,7 +145,7 @@ export const getSwimmersByHeat = (heatId: number) => {
   return result;
 };
 
-export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?: number, notes?: string) => {
+export const saveDQ = (eventId: number, swimmerId: number | string, dqCode: string, leg?: number, notes?: string) => {
   console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode, leg, notes });
 
   // Call runSync to support test verification

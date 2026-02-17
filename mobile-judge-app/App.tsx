@@ -227,8 +227,7 @@ export default function App() {
           return (
             <TouchableOpacity
               style={[styles.swimmerCard, item.empty && styles.emptyCard]}
-              onPress={() => !item.empty && handleDQ(item)}
-              disabled={item.empty}
+              onPress={() => handleDQ(item)}
             >
               <View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
                 <Text style={styles.laneText}>{item.lane}</Text>
@@ -242,9 +241,9 @@ export default function App() {
                   </Text>
                 ) : null}
               </View>
-              {!item.empty && (
-                <Text style={styles.dqTrigger}>{item.dq_code ? item.dq_code : 'TAP TO DQ'}</Text>
-              )}
+              <Text style={[styles.dqTrigger, !item.dq_code && { color: COLORS.secondary }]}>
+                {item.dq_code ? item.dq_code : 'TAP TO DQ'}
+              </Text>
             </TouchableOpacity>
           );
         }}

@@ -74,8 +74,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
             <TouchableOpacity
                 key={swimmer.id}
                 style={[styles.swimmerRow, swimmer.empty && styles.emptyRow]}
-                onPress={() => !swimmer.empty && onSelectSwimmer(swimmer, event, heat)}
-                disabled={swimmer.empty}
+                onPress={() => onSelectSwimmer(swimmer, event, heat)}
             >
                 <View style={[styles.laneContainer, swimmer.empty && styles.emptyLane]}>
                     <Text style={styles.laneText}>L{swimmer.lane}</Text>
@@ -90,12 +89,10 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
                     ) : null}
                 </View>
                 <View style={styles.dqContainer}>
-                    {!swimmer.empty && (
-                        swimmer.dq_code ? (
-                            <Text style={styles.dqText}>{swimmer.dq_code}</Text>
-                        ) : (
-                            <Text style={styles.dqPlaceholder}>DQ</Text>
-                        )
+                    {swimmer.dq_code ? (
+                        <Text style={styles.dqText}>{swimmer.dq_code}</Text>
+                    ) : (
+                        <Text style={styles.dqPlaceholder}>DQ</Text>
                     )}
                 </View>
             </TouchableOpacity>
