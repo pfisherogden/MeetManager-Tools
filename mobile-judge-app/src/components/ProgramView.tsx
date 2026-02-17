@@ -1,8 +1,7 @@
-import type React from 'react';
-import { useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
 import { getHeatsByEvent, getSwimmersByHeat } from '../database/db';
-import type { Event, Heat, Swimmer } from '../types';
+import { DQ, Swimmer } from '../types';
 
 const COLORS = {
     background: '#FFFFFF',
@@ -17,13 +16,13 @@ const COLORS = {
 };
 
 interface ProgramViewProps {
-    events: Event[];
-    onSelectSwimmer: (swimmer: Swimmer, event: Event, heat: Heat, leg?: number) => void;
+    events: any[];
+    onSelectSwimmer: (swimmer: Swimmer, event: any, heat: any, leg?: number) => void;
     refreshTrigger: number; // Used to force re-render when DQs change
 }
 
 export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimmer, refreshTrigger }) => {
-    const flatListRef = useRef<FlatList<Event>>(null);
+    const flatListRef = useRef<FlatList>(null);
 
     // Function to scroll to specific event index
     const scrollToEvent = (index: number) => {
@@ -31,7 +30,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
         flatListRef.current?.scrollToIndex({ index, animated: true });
     };
 
-    const renderSwimmer = (swimmer: Swimmer, event: Event, heat: Heat) => {
+    const renderSwimmer = (swimmer: Swimmer, event: any, heat: any) => {
         const isRelay = swimmer.isRelay;
 
         if (isRelay && !swimmer.empty) {

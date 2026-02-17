@@ -64,8 +64,8 @@ export const seedData = () => {
     ];
 
     mockSwimmers = [
-      { id: 1, lane: 1, name: 'Alice Smith', team: 'FAST', heat_id: 1, isRelay: false, members: [], relay_dqs: [], notes: '', dq_code: '' },
-      { id: 2, lane: 2, name: 'Bob Jones', team: 'FAST', heat_id: 1, isRelay: false, members: [], relay_dqs: [], notes: '', dq_code: '' }
+      { id: 1, lane: 1, name: 'Alice Smith', team: 'FAST', heat_id: 1, isRelay: false, members: [], relay_dqs: [], notes: undefined, dq_code: undefined },
+      { id: 2, lane: 2, name: 'Bob Jones', team: 'FAST', heat_id: 1, isRelay: false, members: [], relay_dqs: [], notes: undefined, dq_code: undefined }
     ] as Swimmer[];
   }
 };
@@ -111,7 +111,7 @@ export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?:
   }
   
   const newDQ: DQ = {
-    id: mockDQs.length + 1,
+    id: mockDQs.length + 1, // Simple ID generation
     event_id: eventId,
     swimmer_id: swimmerId,
     dq_code: dqCode,
