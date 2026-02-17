@@ -2,6 +2,10 @@ import { render, screen, fireEvent, waitForElementToBeRemoved } from '@testing-l
 import App from '../App';
 import * as db from '../src/database/db'; // Import the actual db module
 
+jest.mock('../src/services/dataLoader', () => ({
+  loadDataFromUrl: jest.fn(() => Promise.resolve({ loaded: false, dqData: null, syncUrl: null })),
+}));
+
 jest.mock('../src/database/db', () => ({
   initDatabase: jest.fn(),
   seedData: jest.fn(),
