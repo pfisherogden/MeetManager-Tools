@@ -1,5 +1,5 @@
 import { loadDataFromUrl } from '../src/services/dataLoader';
-import { setSyncEndpoint, initSyncService, triggerSync } from '../src/services/syncService';
+import { setSyncEndpoint, triggerSync } from '../src/services/syncService';
 import * as db from '../src/database/db';
 import NetInfo from '@react-native-community/netinfo';
 import { Linking, Platform } from 'react-native';

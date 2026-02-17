@@ -78,9 +78,6 @@ def test_meet_program_dom_validation(fixture_path, tmp_path):
     event_blocks = soup.find_all(class_="event-block")
     assert len(event_blocks) == len(program_data["groups"])
     
-    # Check for specific data field (common in these fixtures)
-    # Using "A" relay as a test if present
-    relays = soup.find_all(class_="relay-swimmers-row")
     if program_data["groups"]:
         # Just ensure we have some content
         assert len(event_blocks) > 0
@@ -152,3 +149,63 @@ def test_report_filtering_and_title(tmp_path):
     for cell in team_cells:
         if cell.text.strip() and cell.text.strip() != "Team":
             assert team_filter.lower() in cell.text.lower()
+
+def test_report_gender_age_filtering(tmp_path):
+    # Use one of the fixtures
+    fixture_path = get_anonymized_fixtures()[0]
+    with open(fixture_path, "r") as f:
+        fixture_wrapper = json.load(f)
+    
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+    
+    # Test filtering for "Girls" and "6 & under"
+    gender = "Girls"
+    age = "6 & under"
+    program_data = extractor.extract_meet_program_data(gender_filter=gender, age_group_filter=age)
+    
+    output_pdf = str(tmp_path / "filtered_gender_age.pdf")
+    renderer = WeasyRenderer(output_pdf)
+    html_content = renderer.render_to_html(program_data)
+    
+    soup = BeautifulSoup(html_content, "html.parser")
+    
+    # Assert headers contain "Girls" and "6 & under" (or matches events that do)
+    event_headers = soup.find_all(class_="event-header")
+    for header in event_headers:
+        text = header.text.lower()
+        # It should be either the filtered gender OR "mixed"
+        assert gender.lower() in text or "mixed" in text
+        assert age.lower() in text
+
+def test_report_zebra_striping(tmp_path):
+    # Use one of the fixtures
+    fixture_path = get_anonymized_fixtures()[0]
+    with open(fixture_path, "r") as f:
+        fixture_wrapper = json.load(f)
+    
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+    
+    # Extract Data
+    program_data = extractor.extract_meet_program_data()
+    program_data["zebra_striping"] = True
+    
+    output_pdf = str(tmp_path / "zebra_program.pdf")
+    renderer = WeasyRenderer(output_pdf)
+    html_content = renderer.render_to_html(program_data)
+    
+    soup = BeautifulSoup(html_content, "html.parser")
+    
+    # Assert that at least some rows have the zebra-row class
+    zebra_rows = soup.find_all(class_="zebra-row")
+    assert len(zebra_rows) > 0
+    
+    # Verify alternating: first entry-row should not be zebra, second should be (if 2+ entries)
+    for table in soup.find_all(class_="entries-table"):
+        rows = table.find_all(class_="entry-row")
+        if len(rows) >= 2:
+            assert "zebra-row" not in rows[0].get("class", [])
+            assert "zebra-row" in rows[1].get("class", [])

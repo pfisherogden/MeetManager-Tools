@@ -1,33 +1,45 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitForElementToBeRemoved } from '@testing-library/react-native';
 import App from '../App';
-import * as db from '../src/database/db';
+import * as db from '../src/database/db'; // Import the actual db module
 
-jest.mock('expo-sqlite', () => ({
-  openDatabaseSync: jest.fn(() => ({
-    execSync: jest.fn(),
-    runSync: jest.fn(() => ({ lastInsertRowId: 1, changes: 1 })),
-    getAllSync: jest.fn((query) => {
-      if (query.includes('FROM events')) return [{ id: 1, number: 1, name: 'Event 1' }];
-      if (query.includes('FROM heats')) return [{ id: 10, number: 1, event_id: 1 }];
-      if (query.includes('FROM swimmers')) return [{ id: 100, name: 'John Doe', lane: 1, team: 'T1' }];
-      if (query.includes('FROM dqs')) return [];
-      return [];
-    }),
-    getFirstSync: jest.fn(() => ({ count: 1 })),
-  })),
+jest.mock('../src/database/db', () => ({
+  initDatabase: jest.fn(),
+  seedData: jest.fn(),
+  getEvents: jest.fn(() => ([
+    { id: 1, number: 1, name: 'Event 1', distance: 100, stroke: 'Freestyle', isRelay: false }
+  ])),
+  getHeatsByEvent: jest.fn((eventId) => ([
+    { id: 10, number: 1, event_id: eventId }
+  ])),
+  getSwimmersByHeat: jest.fn((heatId) => ([
+    { id: 100, name: 'John Doe', lane: 1, team: 'T1', heat_id: heatId, isRelay: false, members: [], relay_dqs: [], notes: '', dq_code: '' }
+  ])),
+  saveDQ: jest.fn(() => ({ changes: 1 })),
+  getPendingDQs: jest.fn(() => []),
+  markAsSynced: jest.fn(),
+}));
+
+jest.mock('@react-native-community/netinfo', () => ({
+  fetch: jest.fn(() => Promise.resolve({ isConnected: true, isInternetReachable: true })),
+  addEventListener: jest.fn(() => jest.fn()),
 }));
 
 describe('User Journey: Record a DQ', () => {
+  beforeEach(() => {
+    // Clear mocks before each test to ensure isolation
+    jest.clearAllMocks();
+  });
+
   it('should allow a judge to navigate from events to a swimmer and record a DQ', async () => {
     render(<App />);
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     // 1. View Event List
     expect(screen.getByText('Events')).toBeTruthy();
-    expect(screen.getByText('Event 1')).toBeTruthy();
+    expect(screen.getAllByText('Event 1')[0]).toBeTruthy();
 
     // 2. Select Event
-    fireEvent.press(screen.getByText('Event 1'));
+    fireEvent.press(screen.getAllByText('Event 1')[0]);
     expect(screen.getByText('Heat 1')).toBeTruthy();
 
     // 3. Select Heat
@@ -36,7 +48,7 @@ describe('User Journey: Record a DQ', () => {
 
     // 4. Tap Swimmer to DQ
     fireEvent.press(screen.getByText('TAP TO DQ'));
-    expect(screen.getByText(/DQ Swimmer: John Doe/)).toBeTruthy();
+    expect(screen.getByText(/DQ: John Doe/)).toBeTruthy();
 
     // 5. Select a DQ Code (e.g., 1A)
     fireEvent.press(screen.getByText('1A'));

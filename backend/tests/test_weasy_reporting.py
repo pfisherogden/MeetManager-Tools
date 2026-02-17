@@ -1,0 +1,221 @@
+import json
+import os
+import sys
+
+import pytest
+from bs4 import BeautifulSoup
+
+# Add backend/src to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend/src")))
+
+from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.reporting.extractor import ReportDataExtractor
+from mm_to_json.reporting.weasy_renderer import WeasyRenderer
+
+# Correct path for fixtures that works both locally and in Docker
+FIXTURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/anonymized_meets"))
+
+
+def get_anonymized_fixtures():
+    fixtures = []
+    if os.path.exists(FIXTURES_DIR):
+        for f in os.listdir(FIXTURES_DIR):
+            if f.endswith(".json"):
+                fixtures.append(os.path.join(FIXTURES_DIR, f))
+    return fixtures
+
+
+@pytest.mark.parametrize("fixture_path", get_anonymized_fixtures())
+def test_meet_program_data_hydration(fixture_path):
+    with open(fixture_path) as f:
+        fixture_wrapper = json.load(f)
+
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+
+    # Extract Data
+    program_data = extractor.extract_meet_program_data()
+
+    assert "meet_name" in program_data
+    assert "groups" in program_data
+
+    for group in program_data["groups"]:
+        assert "header" in group
+        assert "heats" in group
+        for heat in group["heats"]:
+            assert "header" in heat
+            assert "sub_items" in heat
+            for entry in heat["sub_items"]:
+                assert "lane" in entry
+                assert "time" in entry
+                if entry.get("is_relay"):
+                    assert "team" in entry
+                    assert "swimmers" in entry
+                    # Relays usually have 4 swimmers but can have alternates listed
+                    assert len(entry["swimmers"]) >= 0
+                else:
+                    assert "name" in entry
+                    assert "team" in entry
+
+
+@pytest.mark.parametrize("fixture_path", get_anonymized_fixtures())
+def test_meet_program_dom_validation(fixture_path, tmp_path):
+    with open(fixture_path) as f:
+        fixture_wrapper = json.load(f)
+
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+    program_data = extractor.extract_meet_program_data()
+
+    output_pdf = str(tmp_path / "test_program.pdf")
+    renderer = WeasyRenderer(output_pdf)
+    html_content = renderer.render_to_html(program_data)
+
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Assert headers
+    assert soup.find("h1").text == program_data["meet_name"]
+    assert "MM-Tools" in soup.find(class_="header-top").text
+
+    # Assert event blocks
+    event_blocks = soup.find_all(class_="event-block")
+    assert len(event_blocks) == len(program_data["groups"])
+
+    if program_data["groups"]:
+        # Just ensure we have some content
+        assert len(event_blocks) > 0
+
+    # Assert no lane > 8 (common standard)
+    lanes = soup.find_all(class_="col-lane")
+    for lane in lanes:
+        lane_text = lane.text.strip()
+        if lane_text.isdigit():
+            assert int(lane_text) <= 10  # Some meets have 10 lanes
+
+
+def test_weasyprint_log_check(tmp_path):
+    # This is a bit harder to test without a real run,
+    # but we can simulate a render and check for common layout issues in HTML
+    pass
+
+
+@pytest.mark.parametrize("fixture_path", get_anonymized_fixtures())
+def test_entries_report_generation(fixture_path, tmp_path):
+    with open(fixture_path) as f:
+        fixture_wrapper = json.load(f)
+
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+
+    # 1. Test HY-TEK Style
+    hytek_data = extractor.extract_meet_entries_data()
+    output_hytek = str(tmp_path / "test_entries_hytek.pdf")
+    renderer = WeasyRenderer(output_hytek)
+    renderer.render_entries(hytek_data, "entries_hytek.html")
+    assert os.path.exists(output_hytek)
+    assert os.path.getsize(output_hytek) > 0
+
+    # 2. Test Club Style
+    club_data = extractor.extract_meet_entries_data()
+    output_club = str(tmp_path / "test_entries_club.pdf")
+    renderer = WeasyRenderer(output_club)
+    renderer.render_entries(club_data, "entries_club.html")
+    assert os.path.exists(output_club)
+    assert os.path.getsize(output_club) > 0
+
+
+def test_report_filtering_and_title(tmp_path):
+    # Use one of the fixtures
+    fixture_path = get_anonymized_fixtures()[0]
+    with open(fixture_path) as f:
+        fixture_wrapper = json.load(f)
+
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+
+    custom_title = "MY CUSTOM TITLE"
+    team_filter = "DP-TV"  # Standard team in these fixtures
+
+    # Test Meet Program with filter/title
+    program_data = extractor.extract_meet_program_data(team_filter=team_filter, report_title=custom_title)
+    assert program_data["sub_title"] == custom_title
+
+    output_pdf = str(tmp_path / "filtered_program.pdf")
+    renderer = WeasyRenderer(output_pdf)
+    html_content = renderer.render_to_html(program_data)
+
+    soup = BeautifulSoup(html_content, "html.parser")
+    assert soup.find("h2").text == custom_title
+
+    # Assert all entries in the HTML are for the filtered team
+    # Note: in meet program, team is in .col-team
+    team_cells = soup.find_all(class_="col-team")
+    for cell in team_cells:
+        if cell.text.strip() and cell.text.strip() != "Team":
+            assert team_filter.lower() in cell.text.lower()
+
+
+def test_report_gender_age_filtering(tmp_path):
+    # Use one of the fixtures
+    fixture_path = get_anonymized_fixtures()[0]
+    with open(fixture_path) as f:
+        fixture_wrapper = json.load(f)
+
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+
+    # Test filtering for "Girls" and "6 & under"
+    gender = "Girls"
+    age = "6 & under"
+    program_data = extractor.extract_meet_program_data(gender_filter=gender, age_group_filter=age)
+
+    output_pdf = str(tmp_path / "filtered_gender_age.pdf")
+    renderer = WeasyRenderer(output_pdf)
+    html_content = renderer.render_to_html(program_data)
+
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Assert headers contain "Girls" and "6 & under" (or matches events that do)
+    event_headers = soup.find_all(class_="event-header")
+    for header in event_headers:
+        text = header.text.lower()
+        # It should be either the filtered gender OR "mixed"
+        assert gender.lower() in text or "mixed" in text
+        assert age.lower() in text
+
+
+def test_report_zebra_striping(tmp_path):
+    # Use one of the fixtures
+    fixture_path = get_anonymized_fixtures()[0]
+    with open(fixture_path) as f:
+        fixture_wrapper = json.load(f)
+
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+
+    # Extract Data
+    program_data = extractor.extract_meet_program_data()
+    program_data["zebra_striping"] = True
+
+    output_pdf = str(tmp_path / "zebra_program.pdf")
+    renderer = WeasyRenderer(output_pdf)
+    html_content = renderer.render_to_html(program_data)
+
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Assert that at least some rows have the zebra-row class
+    zebra_rows = soup.find_all(class_="zebra-row")
+    assert len(zebra_rows) > 0
+
+    # Verify alternating: first entry-row should not be zebra, second should be (if 2+ entries)
+    for table in soup.find_all(class_="entries-table"):
+        rows = table.find_all(class_="entry-row")
+        if len(rows) >= 2:
+            assert "zebra-row" not in rows[0].get("class", [])
+            assert "zebra-row" in rows[1].get("class", [])

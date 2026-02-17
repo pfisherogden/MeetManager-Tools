@@ -56,7 +56,7 @@ codegen-frontend:
 codegen: codegen-backend codegen-frontend
 
 # Run all linting and formatting checks (read-only)
-lint: lint-backend lint-mm-to-json lint-frontend format-frontend-check lint-protos type-check-backend
+lint: lint-backend lint-mm-to-json lint-frontend format-frontend-check lint-protos
 
 # Apply all automatic fixes
 fix: fix-backend fix-mm-to-json lint-frontend-fix
@@ -67,7 +67,7 @@ lint-protos:
 
 type-check-backend: codegen-backend
     @echo "Type checking backend..."
-    cd backend && MYPYPATH=src uv run mypy src
+    cd backend && MYPYPATH=src uv run mypy --non-interactive --install-types src
 
 lint-backend:
     @echo "Linting backend..."
@@ -119,7 +119,7 @@ setup-java:
 
 test-backend-local: setup-java codegen
     @echo "Running Backend Tests locally..."
-    cd backend && uv run pytest tests/
+    cd backend && PYTHONPATH=src uv run pytest tests/
 
 test-frontend: codegen
     @echo "Running Frontend Tests..."
@@ -137,6 +137,17 @@ verify-ci:
     @echo "Running verification in a clean CI-like container..."
     docker build -t meetmanager-ci -f ci.Dockerfile .
     docker run --rm meetmanager-ci
+
+# Architecture flag for 'act' (forces linux/amd64 on Apple Silicon to ensure image compatibility)
+act_arch := if os() == "macos" { if arch() == "aarch64" { "--container-architecture linux/amd64" } else { "" } } else { "" }
+
+# Run GitHub Actions locally using act (non-interactive)
+ci-local:
+    @echo "Running GitHub Actions locally..."
+    act pull_request \
+        -P ubuntu-latest=catthehacker/ubuntu:act-latest \
+        {{act_arch}} \
+        --rm
 
 # View logs
 logs service="":

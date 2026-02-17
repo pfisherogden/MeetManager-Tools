@@ -9,6 +9,7 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
 - **Mandatory Verification**: Every code change must be accompanied by tests.
 - **Unified Entry Point**: Use `just test` for full suite execution.
 - **Robustness**: Ensure gRPC server methods handle `request=None` gracefully.
+- **Environment Consistency**: Prefer running tests in Docker (`just test-backend` or `docker-compose run ...`) over local execution to avoid OS-specific library issues (e.g., Cairo/Pango versions).
 
 ## Test Workflow
 1. **Sync Dependencies**: Run `uv sync --all-packages --dev` (Backend) or `npm install` (Frontend).
@@ -18,17 +19,33 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
    - Verify PDF/PNG artifacts against snapshots in `backend/data/example_reports/`.
 4. **Execute Frontend Tests**: Run `just test-frontend` for `Vitest`.
        - Focus on component rendering and Server Action interactions.
-   
-   ## Report Validation
-   - **Data Hydration**: Assert that all data fields (Meet Name, Team Filter, etc.) are correctly mapped from the request to the template data.
-   - **Edge Cases**: Explicitly test "NT" (No Time) entries, scratched swimmers, and complex relay structures (up to 4 swimmers + alternates).
+       - **Anti-Hang**: Always use `vitest run` (or `npm test -- --run`) in automated scripts to prevent the runner from entering watch mode and hanging the process.
+5. **Local CI Check**: Run `just ci-local` to execute GitHub Actions locally using `act`. 
+   - This MUST be done before creating or updating a PR to ensure all remote workflows pass.
+   - **Cross-Platform**: The `Justfile` automatically detects the host environment. On Apple Silicon (M-series), it forces `--container-architecture linux/amd64` to ensure compatibility with standard Ubuntu-based action runners.
+
+## Data & Mocking Best Practices
+- **Sensitive Data False Positives**: Test logs containing variable names like `gender`, `team`, or `age` may trigger CodeQL's `py/clear-text-logging-sensitive-data` alert. Use the `# codeql [py/clear-text-logging-sensitive-data]` suppression comment on the logging line if the data is anonymized or intended for test verification.
+- **Strict Case Sensitivity**: When mocking Pandas DataFrames or dictionaries for `MmToJsonConverter`, assume case-sensitive column access. Although the converter might normalize *loaded* data to lowercase, tests injecting raw data must match the expected internal keys exactly (e.g., use `convseed_time` not `ConvSeed_time`).
+- **Fixture Consistency**: Ensure mock data matches the structure of real MDB exports. If the application logic relies on specific relationships (e.g., `Event_ptr` linking `Entry` to `Event`), manually verified mock data is crucial.
+
+## Report Validation
+- **Data Hydration**: Assert that all data fields (Meet Name, Team Filter, etc.) are correctly mapped from the request to the template data.
+- **Edge Cases**: Explicitly test "NT" (No Time) entries, scratched swimmers, and complex relay structures (up to 4 swimmers + alternates).
    - **DOM Validation**: Use `BeautifulSoup` to parse generated HTML before it hits the PDF renderer. Assert:
        - Expected CSS classes (e.g., `.event-block`, `.col-lane`) are present.
        - No empty/invalid data fields.
        - The number of blocks matches the database query.
+   - **Template Pitfalls**:
+       - **Jinja2 Shadowing**: Never use the key `items` in a dictionary passed to Jinja2 templates (e.g., `group.items`). Jinja2 resolves `items` to the built-in `dict.items()` method, causing `UndefinedError` or unexpected behavior. Use `sections` or `entries` instead.
    - **Renderer Logs**: Capture WeasyPrint or Playwright stdout/stderr to programmatically check for layout warnings like "Content box too small."
    
    ## Design Patterns
    
 - **Unit over Integration**: Prefer testing logic in isolation before full system tests.
 - **Snapshots**: Use file-based snapshots for visual reports to ensure data integrity across transformations.
+
+## Lessons Learned (Mobile Judge App)
+- **UI/Test Sync**: When modifying UI text strings (e.g., simplifying "DQ Swimmer: Name" to "DQ: Name"), immediately grep for that string in `__tests__` or `test/` directories. UI copy changes often break strict text matchers in Jest.
+- **Navigation Bounds**: When implementing list navigation (Next/Prev), always explicitly test the start (index 0) and end (index N-1) bounds to prevent out-of-range errors or visual glitches.
+- **Mobile Touch Targets**: Ensure navigation elements (arrows, buttons) have sufficient padding (hit slop) for touch interaction, as verified by browser automation.

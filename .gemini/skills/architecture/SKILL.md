@@ -27,6 +27,13 @@ description: Project structure and decoupling principles for MeetManager-Tools. 
 - **Server-First**: Prioritize React Server Components and Server Actions.
 - **State**: Minimize client-side state; leverage URL parameters and server-side data fetching.
 - **Consistency**: Use `revalidatePath` to synchronize UI state after server-side mutations.
+- **Bundled Feature Parity**: When adding new visual flags or filters (e.g., Zebra Striping) to individual reports, ensure they are also exposed in the **Custom Report Pack Builder**. This prevents architectural drift where bundled reports lack the capabilities of individual ones.
+
+## Mobile App (Expo)
+- **Offline-First**: Use `expo-sqlite` for local persistence. Implement a cross-platform database shim (`db.ts`) to handle web vs native environments.
+- **Sub-path Hosting**: For GitHub Pages deployment, `experiments.baseUrl` in `app.json` MUST match the repository name (e.g., `"/MeetManager-Tools"`).
+- **Static Assets**: Avoid `output: "static"` if not using Expo Router, as it introduces unnecessary dependencies. Use standard SPA bundling.
+- **Web Compatibility**: Ensure files starting with underscores (like `_expo/`) are served by adding a `.nojekyll` file to the build root.
 
 ## Verification Workflow
 - **Local Check**: Run `just verify-local` before pushing to verify codegen, linting, and tests.

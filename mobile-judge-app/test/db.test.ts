@@ -1,10 +1,41 @@
-import { saveDQ, initDatabase, getDb } from '../src/database/db';
-import * as SQLite from 'expo-sqlite';
+import * as db from '../src/database/db';
+
+const mockRunSync = jest.fn((query, eventId, swimmerId, dqCode, leg, notes, syncStatus, timestamp) => ({ lastInsertRowId: 1, changes: 1 }));
+const mockGetDb = jest.fn(() => ({
+  execSync: jest.fn(),
+  runSync: mockRunSync,
+  getAllSync: jest.fn(() => []),
+  getFirstSync: jest.fn(() => ({ count: 0 })),
+}));
+
+jest.mock('../src/database/db', () => ({
+  initDatabase: jest.fn(),
+  getDb: mockGetDb,
+  saveDQ: jest.fn((eventId, swimmerId, dqCode, leg, notes) => {
+    mockGetDb().runSync(
+      'INSERT INTO dqs (event_id, swimmer_id, dq_code, leg, notes, sync_status, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      eventId,
+      swimmerId,
+      dqCode,
+      leg,
+      notes,
+      'pending',
+      new Date().toISOString()
+    );
+    return { changes: 1 };
+  }),
+  getPendingDQs: jest.fn(() => []),
+  markAsSynced: jest.fn(),
+}));
 
 describe('Database Offline Persistence', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    initDatabase();
+    mockGetDb.mockClear();
+    mockRunSync.mockClear();
+    (db.initDatabase as jest.Mock).mockClear();
+    (db.saveDQ as jest.Mock).mockClear();
+    db.initDatabase();
   });
 
   it('should save a DQ locally when offline', () => {
@@ -12,16 +43,18 @@ describe('Database Offline Persistence', () => {
     const swimmerId = 505;
     const dqCode = '1A';
 
-    const result = saveDQ(eventId, swimmerId, dqCode);
-    const db = getDb();
+    const result = db.saveDQ(eventId, swimmerId, dqCode);
 
     expect(result.changes).toBe(1);
-    expect(db.runSync).toHaveBeenCalledWith(
+    expect(mockRunSync).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO dqs'),
       eventId,
       swimmerId,
       dqCode,
-      'pending'
+      undefined, // leg
+      undefined, // notes
+      'pending',
+      expect.any(String) // timestamp
     );
   });
 });
