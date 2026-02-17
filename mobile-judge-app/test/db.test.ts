@@ -19,10 +19,12 @@ describe('Database Offline Persistence', () => {
 
     expect(result.changes).toBe(1);
     expect(runSyncSpy).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO dqs'),
+      expect.stringContaining('INSERT OR REPLACE INTO dqs'),
       eventId,
       swimmerId,
       dqCode,
+      null,
+      '',
       'pending'
     );
   });
