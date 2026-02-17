@@ -26,13 +26,14 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
     // Function to scroll to specific event index
     const scrollToEvent = (index: number) => {
         if (index < 0 || index >= events.length) return;
-        flatListRef.current?.scrollToIndex({ index, animated: true });
+        flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
     };
 
     const renderSwimmer = (swimmer: any, event: any, heat: any) => {
         const isRelay = swimmer.isRelay;
 
-        if (isRelay && !swimmer.empty) {
+        if (isRelay) {
+            if (swimmer.empty) return null; // Issue #81: Hide empty lanes for relays
             return (
                 <View key={swimmer.id} style={[styles.swimmerRow, styles.relayRow]}>
                     <View style={styles.laneContainer}>
@@ -146,9 +147,9 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
                 data={events}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderEvent}
-                initialNumToRender={3}
-                maxToRenderPerBatch={5}
-                windowSize={5}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={21}
                 extraData={refreshTrigger}
                 onScrollToIndexFailed={(info) => {
                     const wait = new Promise(resolve => setTimeout(resolve, 500));
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
     dqPlaceholder: {
-        color: '#CCC',
+        color: COLORS.secondary,
         fontSize: 16,
         fontWeight: 'bold',
     },

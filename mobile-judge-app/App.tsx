@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView, ScrollView, TextInput, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { initDatabase, seedData, getEvents, getHeatsByEvent, getSwimmersByHeat, saveDQ, getPendingDQs } from './src/database/db';
 import dqCodes from './src/config/dqCodes.json';
 import { ProgramView } from './src/components/ProgramView';
@@ -53,6 +54,8 @@ const getOrderedDQCategories = (currentStroke: string | null) => {
   return categories;
 };
 
+const BUILD_TIME = "2026-02-17 07:00:00 PM"; // Fixed build time
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'events' | 'heats' | 'judge' | 'program'>('events');
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -64,8 +67,9 @@ export default function App() {
   const [selectedSwimmer, setSelectedSwimmer] = useState<any>(null);
   const [selectedLeg, setSelectedLeg] = useState<number | undefined>(undefined);
   const [dqNote, setDqNote] = useState('');
-  const [pendingDqCode, setPendingDqCode] = useState<string | null>(null);
+  const [pendingDqCode, setPendingDqCode] = useState<string[]>([]); // Issue #84: Multi-select
   const [pendingCount, setPendingCount] = useState(0);
+  const [offlineModalVisible, setOfflineModalVisible] = useState(false); // Issue #83
   const [programMode, setProgramMode] = useState(false); // Toggle state
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
 
@@ -117,13 +121,13 @@ export default function App() {
     }
 
     setDqNote(existingNote);
-    setPendingDqCode(existingCode);
+    setPendingDqCode(existingCode ? (existingCode as string).split(',') : []); // Issue #84
     setDqModalVisible(true);
   };
 
   const onSave = () => {
-    if (pendingDqCode) {
-      saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, pendingDqCode, selectedLeg, dqNote);
+    if (pendingDqCode.length > 0) {
+      saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, pendingDqCode.join(','), selectedLeg, dqNote);
       setDqModalVisible(false);
       updatePendingCount();
 
@@ -183,6 +187,7 @@ export default function App() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
           if (item.isRelay) {
+            if (item.empty) return null; // Issue #81: Hide empty lanes for relays
             return (
               <View style={[styles.swimmerCard, styles.relayCard, item.empty && styles.emptyCard]}>
                 <View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
@@ -261,7 +266,9 @@ export default function App() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.statusBar}>
         <Text style={styles.versionText}>v1.0.4</Text>
-        <Text style={styles.statusText}>Offline Queue: {pendingCount}</Text>
+        <TouchableOpacity onPress={() => setOfflineModalVisible(true)}>
+          <Text style={styles.statusText}>Offline Queue: {pendingCount}</Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={toggleViewMode} style={styles.viewToggle}>
           <Text style={styles.toggleText}>
             {programMode ? 'SWITCH TO EVENT VIEW' : 'SWITCH TO PROGRAM VIEW'}
@@ -333,7 +340,7 @@ export default function App() {
                   title="Delete DQ and notes"
                   accessibilityLabel="Delete DQ and notes"
                 >
-                  <Image source={require('./assets/delete-icon.png')} style={[styles.actionIcon, { tintColor: COLORS.accent }]} />
+                  <Ionicons name="trash-outline" size={24} color={COLORS.accent} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={onSave}
@@ -342,7 +349,7 @@ export default function App() {
                   title="Save changes"
                   accessibilityLabel="Save changes"
                 >
-                  <Image source={require('./assets/save-icon.png')} style={[styles.actionIcon, { tintColor: COLORS.success }]} />
+                  <Ionicons name="save-outline" size={24} color={COLORS.success} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={onCancel}
@@ -351,7 +358,7 @@ export default function App() {
                   title="Cancel changes"
                   accessibilityLabel="Cancel changes"
                 >
-                  <Image source={require('./assets/cancel-icon.png')} style={[styles.actionIcon, { tintColor: COLORS.secondary }]} />
+                  <Ionicons name="close-outline" size={24} color={COLORS.secondary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -368,16 +375,25 @@ export default function App() {
               {orderedDQCategories.map((category) => (
                 <View key={category} style={styles.dqCategory}>
                   <Text style={styles.categoryTitle}>{category.toUpperCase()}</Text>
-                  {dqCodes[category as keyof typeof dqCodes].map((item: any) => (
-                    <TouchableOpacity
-                      key={item.code}
-                      style={[styles.dqItem, pendingDqCode === item.code && styles.selectedDqItem]}
-                      onPress={() => setPendingDqCode(item.code)}
-                    >
-                      <Text style={[styles.dqCode, pendingDqCode === item.code && styles.selectedDqText]}>{item.code}</Text>
-                      <Text style={[styles.dqDescription, pendingDqCode === item.code && styles.selectedDqText]}>{item.description}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {dqCodes[category as keyof typeof dqCodes].map((item: any) => {
+                    const isSelected = pendingDqCode.includes(item.code);
+                    return (
+                      <TouchableOpacity
+                        key={item.code}
+                        style={[styles.dqItem, isSelected && styles.selectedDqItem]}
+                        onPress={() => {
+                          if (isSelected) {
+                            setPendingDqCode(prev => prev.filter(c => c !== item.code));
+                          } else {
+                            setPendingDqCode(prev => [...prev, item.code]);
+                          }
+                        }}
+                      >
+                        <Text style={[styles.dqCode, isSelected && styles.selectedDqText]}>{item.code}</Text>
+                        <Text style={[styles.dqDescription, isSelected && styles.selectedDqText]}>{item.description}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               ))}
             </ScrollView>
@@ -386,8 +402,36 @@ export default function App() {
       </Modal>
       {/* Build Timestamp */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Build: {new Date().toISOString().split('T')[0]} {new Date().toLocaleTimeString()}</Text>
+        <Text style={styles.footerText}>Build: {BUILD_TIME}</Text>
       </View>
+
+      {/* Offline Queue Modal */}
+      <Modal visible={offlineModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, styles.offlineModal]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Offline Queue ({pendingCount})</Text>
+              <TouchableOpacity onPress={() => setOfflineModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.accent} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ padding: 15 }}>
+              {getPendingDQs().length === 0 ? (
+                <Text style={styles.emptyText}>No pending DQs</Text>
+              ) : (
+                getPendingDQs().map((dq, idx) => (
+                  <View key={idx} style={styles.pendingItem}>
+                    <Text style={styles.pendingText}>
+                      Event {dq.eventId} - Swimmer {dq.swimmerId}
+                    </Text>
+                    <Text style={styles.pendingCodes}>{dq.dqCode}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -651,5 +695,26 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 10,
     color: COLORS.secondary,
+  },
+  offlineModal: {
+    borderRadius: 15,
+    maxHeight: '60%',
+    width: '90%',
+    alignSelf: 'center',
+  },
+  pendingItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  pendingText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  pendingCodes: {
+    fontSize: 12,
+    color: COLORS.accent,
+    marginTop: 2,
+    fontWeight: 'bold',
   }
 });
