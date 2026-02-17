@@ -64,6 +64,7 @@ export default function App() {
   const [selectedSwimmer, setSelectedSwimmer] = useState<any>(null);
   const [selectedLeg, setSelectedLeg] = useState<number | undefined>(undefined);
   const [dqNote, setDqNote] = useState('');
+  const [pendingDqCode, setPendingDqCode] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [programMode, setProgramMode] = useState(false); // Toggle state
 
@@ -102,28 +103,49 @@ export default function App() {
     setSelectedSwimmer(swimmer);
     setSelectedLeg(leg);
 
-    // Find existing note
+    // Find existing note and code
     let existingNote = '';
+    let existingCode: string | null = null;
     if (leg) {
-      existingNote = swimmer.relay_dqs?.find((d: any) => d.leg === leg)?.notes || '';
+      const dq = swimmer.relay_dqs?.find((d: any) => d.leg === leg);
+      existingNote = dq?.notes || '';
+      existingCode = dq?.dq_code || null;
     } else {
       existingNote = swimmer.notes || '';
+      existingCode = swimmer.dq_code || null;
     }
 
     setDqNote(existingNote);
+    setPendingDqCode(existingCode);
     setDqModalVisible(true);
   };
 
-  const submitDQ = (code: string) => {
-    saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, code, selectedLeg, dqNote);
+  const onSave = () => {
+    if (pendingDqCode) {
+      saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, pendingDqCode, selectedLeg, dqNote);
+      setDqModalVisible(false);
+      updatePendingCount();
+
+      // Refresh swimmers list to show new DQ
+      if (selectedHeat) {
+        setSwimmers(getSwimmersByHeat(selectedHeat.id));
+      }
+    }
+  };
+
+  const onDelete = () => {
+    saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, null as any, selectedLeg, '');
     setDqModalVisible(false);
     updatePendingCount();
 
-    // Refresh swimmers list to show new DQ
+    // Refresh swimmers list
     if (selectedHeat) {
-      const updatedSwimmers = getSwimmersByHeat(selectedHeat.id);
-      setSwimmers(updatedSwimmers);
+      setSwimmers(getSwimmersByHeat(selectedHeat.id));
     }
+  };
+
+  const onCancel = () => {
+    setDqModalVisible(false);
   };
 
   // Toggle Handler
@@ -189,7 +211,7 @@ export default function App() {
                                 </Text>
                               ) : null}
                             </View>
-                            <Text style={styles.dqTrigger}>
+                            <Text style={[styles.dqTrigger, !dq && { color: COLORS.secondary }]}>
                               {dq ? dq.dq_code : 'TAP TO DQ'}
                             </Text>
                           </TouchableOpacity>
@@ -301,7 +323,7 @@ export default function App() {
                   ? selectedSwimmer.members[selectedLeg - 1]
                   : `${selectedSwimmer?.name || 'Swimmer'}${selectedLeg ? ` - Leg ${selectedLeg}` : ''}`}
               </Text>
-              <TouchableOpacity onPress={() => setDqModalVisible(false)}>
+              <TouchableOpacity onPress={onCancel}>
                 <Text style={styles.closeButton}>CANCEL</Text>
               </TouchableOpacity>
             </View>
@@ -321,16 +343,28 @@ export default function App() {
                   {dqCodes[category as keyof typeof dqCodes].map((item: any) => (
                     <TouchableOpacity
                       key={item.code}
-                      style={styles.dqItem}
-                      onPress={() => submitDQ(item.code)}
+                      style={[styles.dqItem, pendingDqCode === item.code && styles.selectedDqItem]}
+                      onPress={() => setPendingDqCode(item.code)}
                     >
-                      <Text style={styles.dqCode}>{item.code}</Text>
-                      <Text style={styles.dqDescription}>{item.description}</Text>
+                      <Text style={[styles.dqCode, pendingDqCode === item.code && styles.selectedDqText]}>{item.code}</Text>
+                      <Text style={[styles.dqDescription, pendingDqCode === item.code && styles.selectedDqText]}>{item.description}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               ))}
             </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.footerButton, styles.deleteBtn]} onPress={onDelete}>
+                <Text style={styles.footerBtnText}>DELETE</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.footerButton, styles.cancelBtn]} onPress={onCancel}>
+                <Text style={[styles.footerBtnText, { color: COLORS.text }]}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.footerButton, styles.saveBtn]} onPress={onSave}>
+                <Text style={styles.footerBtnText}>SAVE</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -561,5 +595,39 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
     color: COLORS.text,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+    justifyContent: 'space-between',
+  },
+  footerButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  saveBtn: {
+    backgroundColor: COLORS.success,
+  },
+  deleteBtn: {
+    backgroundColor: COLORS.accent,
+  },
+  cancelBtn: {
+    backgroundColor: COLORS.lightGray,
+  },
+  footerBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  selectedDqItem: {
+    backgroundColor: COLORS.primary,
+  },
+  selectedDqText: {
+    color: COLORS.white,
   }
 });

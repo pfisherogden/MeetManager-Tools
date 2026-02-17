@@ -58,7 +58,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({ events, onSelectSwimme
                                                 </Text>
                                             ) : null}
                                         </View>
-                                        <Text style={styles.legDq}>
+                                        <Text style={[styles.legDq, !dq && { color: COLORS.secondary }]}>
                                             {dq ? dq.dq_code : 'DQ'}
                                         </Text>
                                     </TouchableOpacity>
