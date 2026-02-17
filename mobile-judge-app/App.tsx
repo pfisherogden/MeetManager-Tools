@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView, ScrollView, TextInput } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView, ScrollView, TextInput, Image } from 'react-native';
 import { initDatabase, seedData, getEvents, getHeatsByEvent, getSwimmersByHeat, saveDQ, getPendingDQs } from './src/database/db';
 import dqCodes from './src/config/dqCodes.json';
 import { ProgramView } from './src/components/ProgramView';
@@ -323,9 +323,35 @@ export default function App() {
                   ? selectedSwimmer.members[selectedLeg - 1]
                   : `${selectedSwimmer?.name || 'Swimmer'}${selectedLeg ? ` - Leg ${selectedLeg}` : ''}`}
               </Text>
-              <TouchableOpacity onPress={onCancel}>
-                <Text style={styles.closeButton}>CANCEL</Text>
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  onPress={onDelete}
+                  style={styles.headerIconButton}
+                  // @ts-ignore - title is supported on web for tooltips
+                  title="Delete DQ and notes"
+                  accessibilityLabel="Delete DQ and notes"
+                >
+                  <Image source={require('./assets/delete-icon.png')} style={[styles.actionIcon, { tintColor: COLORS.accent }]} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={onSave}
+                  style={styles.headerIconButton}
+                  // @ts-ignore - title is supported on web for tooltips
+                  title="Save changes"
+                  accessibilityLabel="Save changes"
+                >
+                  <Image source={require('./assets/save-icon.png')} style={[styles.actionIcon, { tintColor: COLORS.success }]} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={onCancel}
+                  style={styles.headerIconButton}
+                  // @ts-ignore - title is supported on web for tooltips
+                  title="Cancel changes"
+                  accessibilityLabel="Cancel changes"
+                >
+                  <Image source={require('./assets/cancel-icon.png')} style={[styles.actionIcon, { tintColor: COLORS.secondary }]} />
+                </TouchableOpacity>
+              </View>
             </View>
             <View style={styles.noteContainer}>
               <TextInput
@@ -353,18 +379,6 @@ export default function App() {
                 </View>
               ))}
             </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity style={[styles.footerButton, styles.deleteBtn]} onPress={onDelete}>
-                <Text style={styles.footerBtnText}>DELETE</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.footerButton, styles.cancelBtn]} onPress={onCancel}>
-                <Text style={[styles.footerBtnText, { color: COLORS.text }]}>CANCEL</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.footerButton, styles.saveBtn]} onPress={onSave}>
-                <Text style={styles.footerBtnText}>SAVE</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -596,33 +610,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text,
   },
-  modalFooter: {
+  headerActions: {
     flexDirection: 'row',
-    padding: 15,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.lightGray,
-    justifyContent: 'space-between',
-  },
-  footerButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    minWidth: 90,
     alignItems: 'center',
   },
-  saveBtn: {
-    backgroundColor: COLORS.success,
+  headerIconButton: {
+    marginLeft: 15,
+    padding: 5,
   },
-  deleteBtn: {
-    backgroundColor: COLORS.accent,
-  },
-  cancelBtn: {
-    backgroundColor: COLORS.lightGray,
-  },
-  footerBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+  actionIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
   },
   selectedDqItem: {
     backgroundColor: COLORS.primary,
