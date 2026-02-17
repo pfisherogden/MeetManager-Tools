@@ -67,6 +67,7 @@ export default function App() {
   const [pendingDqCode, setPendingDqCode] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [programMode, setProgramMode] = useState(false); // Toggle state
+  const [refreshCounter, setRefreshCounter] = useState<number>(0);
 
   useEffect(() => {
     initDatabase();
@@ -126,10 +127,10 @@ export default function App() {
       setDqModalVisible(false);
       updatePendingCount();
 
-      // Refresh swimmers list to show new DQ
       if (selectedHeat) {
         setSwimmers(getSwimmersByHeat(selectedHeat.id));
       }
+      setRefreshCounter(prev => prev + 1);
     }
   };
 
@@ -142,6 +143,7 @@ export default function App() {
     if (selectedHeat) {
       setSwimmers(getSwimmersByHeat(selectedHeat.id));
     }
+    setRefreshCounter(prev => prev + 1);
   };
 
   const onCancel = () => {
@@ -258,6 +260,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.statusBar}>
+        <Text style={styles.versionText}>v1.0.4</Text>
         <Text style={styles.statusText}>Offline Queue: {pendingCount}</Text>
         <TouchableOpacity onPress={toggleViewMode} style={styles.viewToggle}>
           <Text style={styles.toggleText}>
@@ -275,7 +278,7 @@ export default function App() {
             setSelectedHeat(heat);
             handleDQ(swimmer, leg);
           }}
-          refreshTrigger={pendingCount}
+          refreshTrigger={refreshCounter}
         />
       )}
 
@@ -381,6 +384,10 @@ export default function App() {
           </View>
         </View>
       </Modal>
+      {/* Build Timestamp */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Build: {new Date().toISOString().split('T')[0]} {new Date().toLocaleTimeString()}</Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -627,5 +634,22 @@ const styles = StyleSheet.create({
   },
   selectedDqText: {
     color: COLORS.white,
+  },
+  versionText: {
+    position: 'absolute',
+    left: 10,
+    top: 2,
+    fontSize: 8,
+    color: '#333333', // Subtle gray on black background
+  },
+  footer: {
+    padding: 5,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  footerText: {
+    fontSize: 10,
+    color: COLORS.secondary,
   }
 });

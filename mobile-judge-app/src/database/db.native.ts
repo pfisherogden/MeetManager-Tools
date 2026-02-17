@@ -51,9 +51,12 @@ export const initDatabase = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       event_id INTEGER NOT NULL,
       swimmer_id INTEGER NOT NULL,
+      leg INTEGER,
       dq_code TEXT NOT NULL,
+      notes TEXT,
       sync_status TEXT DEFAULT 'pending',
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(event_id, swimmer_id, leg)
     );
   `);
 };
@@ -104,7 +107,7 @@ export const getSwimmersByHeat = (heatId: number) => {
     ];
   }
   return getDb().getAllSync(`
-    SELECT s.*, d.dq_code 
+    SELECT s.*, d.dq_code, d.notes, d.leg
     FROM swimmers s
     JOIN heats h ON s.heat_id = h.id
     LEFT JOIN dqs d ON s.id = d.swimmer_id AND d.event_id = h.event_id
@@ -113,16 +116,18 @@ export const getSwimmersByHeat = (heatId: number) => {
   `, heatId);
 };
 
-export const saveDQ = (eventId: number, swimmerId: number, dqCode: string) => {
+export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?: number, notes?: string) => {
   if (Platform.OS === 'web') {
-    console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode });
+    console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode, leg, notes });
     return { changes: 1 };
   }
   return getDb().runSync(
-    'INSERT INTO dqs (event_id, swimmer_id, dq_code, sync_status) VALUES (?, ?, ?, ?)',
+    'INSERT OR REPLACE INTO dqs (event_id, swimmer_id, dq_code, leg, notes, sync_status) VALUES (?, ?, ?, ?, ?, ?)',
     eventId,
     swimmerId,
     dqCode,
+    leg || null,
+    notes || '',
     'pending'
   );
 };
