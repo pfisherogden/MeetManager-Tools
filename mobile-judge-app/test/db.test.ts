@@ -1,6 +1,6 @@
 import * as db from '../src/database/db';
 
-const mockRunSync = jest.fn((query, eventId, swimmerId, dqCode, leg, notes, syncStatus, timestamp) => ({ lastInsertRowId: 1, changes: 1 }));
+const mockRunSync = jest.fn((_query, _eventId, _swimmerId, _dqCode, _leg, _notes, _syncStatus, _timestamp) => ({ lastInsertRowId: 1, changes: 1 }));
 const mockGetDb = jest.fn(() => ({
   execSync: jest.fn(),
   runSync: mockRunSync,

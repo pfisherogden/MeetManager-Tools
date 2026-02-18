@@ -10,11 +10,9 @@
 		"includes": [
 			"**",
 			"!**/node_modules",
-			"!**/.next",
 			"!**/dist",
 			"!**/build",
-			"!**/lib/proto",
-			"!**/app.full"
+			"!**/.expo"
 		]
 	},
 	"formatter": {
@@ -23,55 +21,25 @@
 		"includes": [
 			"**",
 			"!**/node_modules",
-			"!**/.next",
 			"!**/dist",
 			"!**/build",
-			"!**/lib/proto",
-			"!**/app.full"
+			"!**/.expo"
 		]
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
 			"recommended": true,
-			"style": {
-				"noNonNullAssertion": "off"
-			},
 			"suspicious": {
-				"noExplicitAny": "off",
-				"noDocumentCookie": "off",
-				"noUnknownAtRules": "off"
-			},
-			"complexity": {
-				"noBannedTypes": "off"
+				"noExplicitAny": "off"
 			}
 		},
 		"includes": [
 			"**",
 			"!**/node_modules",
-			"!**/.next",
 			"!**/dist",
 			"!**/build",
-			"!**/lib/proto",
-			"!**/app.full"
+			"!**/.expo"
 		]
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "double"
-		}
-	},
-	"css": {
-		"parser": {
-			"tailwindDirectives": true
-		}
-	},
-	"assist": {
-		"enabled": true,
-		"actions": {
-			"source": {
-				"organizeImports": "on"
-			}
-		}
 	}
 }

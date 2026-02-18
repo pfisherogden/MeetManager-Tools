@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
+import type React from 'react';
+import { useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, } from 'react-native';
 import { getHeatsByEvent, getSwimmersByHeat } from '../database/db';
-import { Event, Heat, Swimmer, DQ } from '../types';
+import type { Event, Heat, Swimmer, DQ } from '../types';
 
 const COLORS = {
     background: '#FFFFFF',

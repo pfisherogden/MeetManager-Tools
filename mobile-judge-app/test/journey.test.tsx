@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, waitForElementToBeRemoved } from '@testing-library/react-native';
 import App from '../App';
-import * as db from '../src/database/db'; // Import the actual db module
 
 jest.mock('../src/services/dataLoader', () => ({
   loadDataFromUrl: jest.fn(() => Promise.resolve({ loaded: false, dqData: null, syncUrl: null })),
