@@ -1,12 +1,9 @@
-import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import type React from "react";
 import "./globals.css";
-import { ConfigProvider } from "@/components/config-provider";
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
 	title: "SwimMeet Pro - Swim Meet Data Management",
@@ -39,10 +36,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`font-sans antialiased`}>
-				<ConfigProvider>{children}</ConfigProvider>
-				<Analytics />
-			</body>
+			<body className={`${inter.className} antialiased`}>{children}</body>
 		</html>
 	);
 }
