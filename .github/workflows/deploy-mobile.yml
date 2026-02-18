@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: mobile-judge-app
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
       - name: Build web
         working-directory: mobile-judge-app

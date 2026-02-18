@@ -370,15 +370,6 @@ export default function App() {
               </Text>
               <View style={styles.headerActions}>
                 <TouchableOpacity
-                  onPress={onDelete}
-                  style={styles.headerIconButton}
-                  // @ts-ignore - title is supported on web for tooltips
-                  title="Delete DQ and notes"
-                  accessibilityLabel="Delete DQ and notes"
-                >
-                  <Ionicons name="trash-outline" size={24} color={COLORS.accent} />
-                </TouchableOpacity>
-                <TouchableOpacity
                   onPress={onSave}
                   style={styles.headerIconButton}
                   // @ts-ignore - title is supported on web for tooltips
@@ -386,6 +377,15 @@ export default function App() {
                   accessibilityLabel="Save changes"
                 >
                   <Ionicons name="save-outline" size={24} color={COLORS.success} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={onDelete}
+                  style={styles.headerIconButton}
+                  // @ts-ignore - title is supported on web for tooltips
+                  title="Delete DQ and notes"
+                  accessibilityLabel="Delete DQ and notes"
+                >
+                  <Ionicons name="trash-outline" size={24} color={COLORS.accent} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={onCancel}
@@ -468,6 +468,12 @@ export default function App() {
                 getPendingDQs().map((dq, idx) => (
                   <View key={idx} style={styles.pendingCard}>
                     <TouchableOpacity
+                      onPress={() => handleDeleteDQ(dq.swimmerId, dq.leg)}
+                      style={styles.deletePendingButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       style={styles.pendingInfo}
                       onPress={() => handleEditDQ(dq)}
                     >
@@ -477,12 +483,6 @@ export default function App() {
                       </Text>
                       <Text style={styles.pendingCodes}>{dq.dqCode}</Text>
                       {dq.notes ? <Text style={styles.pendingNote} numberOfLines={1}>{dq.notes}</Text> : null}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteDQ(dq.swimmerId, dq.leg)}
-                      style={styles.deletePendingButton}
-                    >
-                      <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
                     </TouchableOpacity>
                   </View>
                 ))
@@ -775,5 +775,34 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     marginTop: 2,
     fontWeight: 'bold',
+  },
+  pendingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGray,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+  },
+  pendingInfo: {
+    flex: 1,
+    padding: 15,
+  },
+  deletePendingButton: {
+    padding: 15,
+    backgroundColor: '#FFE5E5',
+    borderRightWidth: 1,
+    borderRightColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  pendingNote: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontStyle: 'italic',
+    marginTop: 4,
   }
 });
