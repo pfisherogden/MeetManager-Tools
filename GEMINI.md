@@ -29,3 +29,17 @@
 1.  **Local Dev**: `npm start --web` (Fast feedback)
 2.  **Docker Simulation**: `just up-mobile` (Verifies production build artifact)
 3.  **Live Environment**: **ALWAYS** verify core journeys on the actual GitHub Pages deployment. Pathing issues often only manifest there.
+
+## Local Development Prerequisites (macOS)
+The backend uses **WeasyPrint** for PDF generation, which requires system-level libraries not included in `pip install`.
+
+1.  **Install Homebrew Dependencies**:
+    ```bash
+    brew install glib pango cairo gdk-pixbuf libffi
+    ```
+
+2.  **Run Tests**:
+    The `Justfile` recipe `test-backend-fast` automatically handles library paths:
+    ```bash
+    just test-backend-fast
+    ```
