@@ -145,6 +145,37 @@ export const getSwimmersByHeat = (heatId: number) => {
   return result;
 };
 
+export const getSwimmerById = (id: number | string) => {
+  if (typeof id === 'string' && id.startsWith('empty-')) {
+    // Synthetic empty swimmer
+    const parts = id.split('-');
+    const heatId = parseInt(parts[1]);
+    const lane = parseInt(parts[2]);
+    const heat = _testData.heats.find(h => h.id === heatId);
+    const event = heat ? _testData.events.find(e => e.id === heat.event_id) : null;
+    return {
+      id,
+      heat_id: heatId,
+      lane,
+      name: 'Empty',
+      team: '',
+      isRelay: event ? event.isRelay : false,
+      empty: true
+    };
+  }
+  const s = _testData.swimmers.find(sw => sw.id === id);
+  if (s) {
+    const heat = _testData.heats.find(h => h.id === s.heat_id);
+    const event = heat ? _testData.events.find(e => e.id === heat.event_id) : null;
+    return {
+      ...s,
+      isRelay: event ? event.isRelay : false,
+      empty: false
+    };
+  }
+  return null;
+};
+
 export const saveDQ = (eventId: number, swimmerId: number | string, dqCode: string, leg?: number, notes?: string) => {
   console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode, leg, notes });
 
@@ -175,3 +206,13 @@ export const getPendingDQs = () => {
 };
 
 export const markAsSynced = (id: number) => { };
+
+export const deleteDQ = (swimmerId: number | string, leg?: number) => {
+  mockDQs = mockDQs.filter(d => !(d.swimmerId === swimmerId && d.leg === (leg || undefined)));
+  return { changes: 1 };
+};
+
+export const clearAllDQs = () => {
+  mockDQs = [];
+  return { changes: 1 };
+};

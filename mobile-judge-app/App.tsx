@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, SafeAreaView, ScrollView, TextInput, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { initDatabase, seedData, getEvents, getHeatsByEvent, getSwimmersByHeat, saveDQ, getPendingDQs } from './src/database/db';
+import {
+  initDatabase, seedData, getEvents,
+  getHeatsByEvent,
+  getSwimmersByHeat,
+  getSwimmerById,
+  saveDQ,
+  getPendingDQs,
+  deleteDQ,
+  clearAllDQs,
+} from './src/database/db';
 import dqCodes from './src/config/dqCodes.json';
 import { ProgramView } from './src/components/ProgramView';
 
@@ -14,7 +23,8 @@ const COLORS = {
   accent: '#E63946',
   white: '#FFFFFF',
   lightGray: '#F0F0F0',
-  success: '#2A9D8F'
+  success: '#2A9D8F',
+  danger: '#E63946'
 };
 
 const getStrokeForEvent = (event: any, leg?: number) => {
@@ -83,6 +93,10 @@ export default function App() {
   const refreshEvents = () => {
     const evts = getEvents();
     setEvents(evts);
+    if (selectedHeat) {
+      setSwimmers(getSwimmersByHeat(selectedHeat.id));
+    }
+    setRefreshCounter(prev => prev + 1);
   };
 
   const updatePendingCount = () => {
@@ -130,24 +144,46 @@ export default function App() {
       saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, pendingDqCode.join(','), selectedLeg, dqNote);
       setDqModalVisible(false);
       updatePendingCount();
+      refreshEvents(); // Sync views
+    }
+  };
 
-      if (selectedHeat) {
-        setSwimmers(getSwimmersByHeat(selectedHeat.id));
+  const handleDeleteDQ = (swimmerId: number | string, leg?: number) => {
+    deleteDQ(swimmerId, leg);
+    updatePendingCount();
+    refreshEvents();
+  };
+
+  const handleClearAll = () => {
+    clearAllDQs();
+    updatePendingCount();
+    refreshEvents();
+  };
+
+  const handleEditDQ = (dq: any) => {
+    // 1. Close offline modal
+    setOfflineModalVisible(false);
+
+    // 2. Find the swimmer object using the new helper
+    const evt = events.find(e => e.id === dq.eventId);
+    if (evt) {
+      setSelectedEvent(evt);
+      const swimmer = getSwimmerById(dq.swimmerId);
+      if (swimmer) {
+        setSelectedSwimmer(swimmer);
+        setSelectedLeg(dq.leg);
+        setDqNote(dq.notes || '');
+        setPendingDqCode(dq.dqCode ? dq.dqCode.split(',') : []);
+        setDqModalVisible(true);
       }
-      setRefreshCounter(prev => prev + 1);
     }
   };
 
   const onDelete = () => {
-    saveDQ(selectedEvent ? selectedEvent.id : 0, selectedSwimmer.id, null as any, selectedLeg, '');
+    deleteDQ(selectedSwimmer.id, selectedLeg);
     setDqModalVisible(false);
     updatePendingCount();
-
-    // Refresh swimmers list
-    if (selectedHeat) {
-      setSwimmers(getSwimmersByHeat(selectedHeat.id));
-    }
-    setRefreshCounter(prev => prev + 1);
+    refreshEvents(); // This will refresh swimmers and counter
   };
 
   const onCancel = () => {
@@ -406,11 +442,21 @@ export default function App() {
       </View>
 
       {/* Offline Queue Modal */}
-      <Modal visible={offlineModalVisible} animationType="fade" transparent={true}>
+      <Modal visible={offlineModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, styles.offlineModal]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Offline Queue ({pendingCount})</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.modalTitle}>Offline Queue ({pendingCount})</Text>
+                {pendingCount > 0 && (
+                  <TouchableOpacity
+                    onPress={handleClearAll}
+                    style={{ marginLeft: 15, padding: 5, backgroundColor: COLORS.danger + '22', borderRadius: 4 }}
+                  >
+                    <Text style={{ color: COLORS.danger, fontWeight: 'bold', fontSize: 12 }}>CLEAR ALL</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               <TouchableOpacity onPress={() => setOfflineModalVisible(false)}>
                 <Ionicons name="close" size={24} color={COLORS.accent} />
               </TouchableOpacity>
@@ -420,11 +466,24 @@ export default function App() {
                 <Text style={styles.emptyText}>No pending DQs</Text>
               ) : (
                 getPendingDQs().map((dq, idx) => (
-                  <View key={idx} style={styles.pendingItem}>
-                    <Text style={styles.pendingText}>
-                      Event {dq.eventId} - Swimmer {dq.swimmerId}
-                    </Text>
-                    <Text style={styles.pendingCodes}>{dq.dqCode}</Text>
+                  <View key={idx} style={styles.pendingCard}>
+                    <TouchableOpacity
+                      style={styles.pendingInfo}
+                      onPress={() => handleEditDQ(dq)}
+                    >
+                      <Text style={styles.pendingText}>
+                        Event {dq.eventId} - Swimmer {dq.swimmerId}
+                        {dq.leg ? ` (Leg ${dq.leg})` : ''}
+                      </Text>
+                      <Text style={styles.pendingCodes}>{dq.dqCode}</Text>
+                      {dq.notes ? <Text style={styles.pendingNote} numberOfLines={1}>{dq.notes}</Text> : null}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteDQ(dq.swimmerId, dq.leg)}
+                      style={styles.deletePendingButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+                    </TouchableOpacity>
                   </View>
                 ))
               )}

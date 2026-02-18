@@ -116,6 +116,11 @@ export const getSwimmersByHeat = (heatId: number) => {
   `, heatId);
 };
 
+export const getSwimmerById = (id: number | string) => {
+  if (Platform.OS === 'web') return null;
+  return getDb().getFirstSync('SELECT * FROM swimmers WHERE id = ?', id);
+};
+
 export const saveDQ = (eventId: number, swimmerId: number, dqCode: string, leg?: number, notes?: string) => {
   if (Platform.OS === 'web') {
     console.log('Web Mock DQ Saved:', { eventId, swimmerId, dqCode, leg, notes });
@@ -140,4 +145,19 @@ export const getPendingDQs = () => {
 export const markAsSynced = (id: number) => {
   if (Platform.OS === 'web') return;
   return getDb().runSync('UPDATE dqs SET sync_status = ? WHERE id = ?', 'synced', id);
+};
+
+export const deleteDQ = (swimmerId: number | string, leg?: number) => {
+  if (Platform.OS === 'web') return;
+  return getDb().runSync(
+    'DELETE FROM dqs WHERE swimmer_id = ? AND (leg = ? OR (leg IS NULL AND ? IS NULL))',
+    swimmerId,
+    leg || null,
+    leg || null
+  );
+};
+
+export const clearAllDQs = () => {
+  if (Platform.OS === 'web') return;
+  return getDb().runSync('DELETE FROM dqs WHERE sync_status = ?', 'pending');
 };
