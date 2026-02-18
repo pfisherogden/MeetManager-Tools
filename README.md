@@ -41,3 +41,4 @@ This repository uses GitHub Actions for Continuous Integration.
 - **Backend**: Runs `ruff` (lint/format) and `pytest`.
 - **Frontend**: Runs `biome` (lint/format) and `vitest`.
 - **Path Filtering**: Workflows run only when relevant files are changed.
+\n
