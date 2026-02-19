@@ -79,8 +79,7 @@ class JudgeAppExtractor:
                             # Try to get individual members
                             if "relayAthletes" in entry:
                                 members = [
-                                    f"{a.get('first', '')} {a.get('last', '')}".strip()
-                                    for a in entry["relayAthletes"]
+                                    f"{a.get('first', '')} {a.get('last', '')}".strip() for a in entry["relayAthletes"]
                                 ]
                             elif "name" in entry and entry.get("name"):
                                 # Fallback to split string
