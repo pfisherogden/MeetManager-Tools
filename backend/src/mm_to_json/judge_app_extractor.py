@@ -50,9 +50,9 @@ class JudgeAppExtractor:
                 }
                 judge_events.append(judge_event)
 
-                                # Group entries by heat
-                                heats_map: dict[int, list[dict[str, Any]]] = {}  # heat_num -> entries
-                                for entry in evt.get("entries", []):
+                # Group entries by heat
+                heats_map: dict[int, list[dict[str, Any]]] = {}  # heat_num -> entries
+                for entry in evt.get("entries", []):
                     h_num = entry.get("heat", 0)
                     if h_num not in heats_map:
                         heats_map[h_num] = []
@@ -79,7 +79,8 @@ class JudgeAppExtractor:
                             # Try to get individual members
                             if "relayAthletes" in entry:
                                 members = [
-                                    f"{a.get('first', '')} {a.get('last', '')}".strip() for a in entry["relayAthletes"]
+                                    f"{a.get('first', '')} {a.get('last', '')}".strip()
+                                    for a in entry["relayAthletes"]
                                 ]
                             elif "name" in entry and entry.get("name"):
                                 # Fallback to split string
