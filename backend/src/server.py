@@ -1360,10 +1360,8 @@ def serve_published_files():
     # Change directory to published path to serve files from there
     os.chdir(pub_path)
 
-    handler = http.server.SimpleHTTPRequestHandler
-
     # Enable CORS for the Judge App
-    class CORSRequestHandler(handler):
+    class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
         def end_headers(self):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Access-Control-Allow-Methods", "GET")

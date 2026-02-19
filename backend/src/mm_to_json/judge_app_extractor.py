@@ -50,9 +50,9 @@ class JudgeAppExtractor:
                 }
                 judge_events.append(judge_event)
 
-                # Group entries by heat
-                heats_map = {}  # heat_num -> entries
-                for entry in evt.get("entries", []):
+                                # Group entries by heat
+                                heats_map: dict[int, list[dict[str, Any]]] = {}  # heat_num -> entries
+                                for entry in evt.get("entries", []):
                     h_num = entry.get("heat", 0)
                     if h_num not in heats_map:
                         heats_map[h_num] = []
