@@ -45,6 +45,11 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
 - **Unit over Integration**: Prefer testing logic in isolation before full system tests.
 - **Snapshots**: Use file-based snapshots for visual reports to ensure data integrity across transformations.
 
+## Live Environment Verification
+- **Pathing Issues**: GitHub Pages hosts sites in a subdirectory (e.g., `/Repo-Name/`). Always verify the app on the deployed URL to catch pathing regressions that don't appear in Docker root deployments.
+- **Asset Loading**: Check the browser console on the live site for 404s on JS chunks or assets, which often indicate `publicPath` or `baseUrl` configuration errors.
+- **Service Workers**: If implementing PWAs, verify service worker registration scope matches the subdirectory.
+
 ## Lessons Learned (Mobile Judge App)
 - **UI/Test Sync**: When modifying UI text strings (e.g., simplifying "DQ Swimmer: Name" to "DQ: Name"), immediately grep for that string in `__tests__` or `test/` directories. UI copy changes often break strict text matchers in Jest.
 - **Navigation Bounds**: When implementing list navigation (Next/Prev), always explicitly test the start (index 0) and end (index N-1) bounds to prevent out-of-range errors or visual glitches.

@@ -18,6 +18,13 @@ A suite of tools for processing and visualizing MeetManager `.mdb` data.
 - [uv](https://github.com/astral-sh/uv) (Python package manager)
 - [Node.js](https://nodejs.org/) (v20+)
 
+### System Dependencies (macOS)
+The backend requires system libraries for PDF generation (WeasyPrint).
+```bash
+brew install glib pango cairo gdk-pixbuf libffi
+```
+
+
 ### Quick Start
 
 1.  **Start Services**:
