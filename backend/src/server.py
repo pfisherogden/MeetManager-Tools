@@ -1,14 +1,14 @@
 import csv
 import datetime
+import http.server
 import io
 import json
 import logging
 import os
+import socketserver
 import subprocess
 import tempfile
 import threading
-import http.server
-import socketserver
 from concurrent import futures
 from typing import Any
 
@@ -25,10 +25,10 @@ except ImportError:
 
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
+from mm_to_json.judge_app_extractor import JudgeAppExtractor
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
-from mm_to_json.judge_app_extractor import JudgeAppExtractor
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"
@@ -67,23 +67,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Save to published directory
             filename = f"program_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             pub_path = os.path.join(os.path.dirname(__file__), PUBLISHED_DIR, filename)
-            
-            with open(pub_path, 'w') as f:
+
+            with open(pub_path, "w") as f:
                 json.dump(judge_data, f, indent=2)
 
             # Base URL for the mobile judge app SPA on GitHub Pages
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/"
-            
+
             # The URL where the JSON file will be served (local HTTP server on port 50052)
             # In production, this would be a public cloud URL.
             program_url = f"http://localhost:50052/{filename}"
-            
+
             judge_app_url = f"{base_url}?program_url={program_url}"
 
             return pb2.PublishMeetDataResponse(
-                success=True, 
-                message=f"Published to {filename}",
-                judge_app_url=judge_app_url
+                success=True, message=f"Published to {filename}", judge_app_url=judge_app_url
             )
         except Exception as e:
             print(f"Error publishing meet data: {e}")
@@ -1358,17 +1356,18 @@ def serve_published_files():
     """Serves the published directory over HTTP on port 50052."""
     pub_path = os.path.join(os.path.dirname(__file__), PUBLISHED_DIR)
     os.makedirs(pub_path, exist_ok=True)
-    
+
     # Change directory to published path to serve files from there
     os.chdir(pub_path)
-    
+
     handler = http.server.SimpleHTTPRequestHandler
+
     # Enable CORS for the Judge App
     class CORSRequestHandler(handler):
         def end_headers(self):
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'GET')
-            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
             return super().end_headers()
 
     with socketserver.TCPServer(("", 50052), CORSRequestHandler) as httpd:

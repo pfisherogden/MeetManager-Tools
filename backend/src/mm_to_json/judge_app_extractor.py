@@ -1,4 +1,3 @@
-import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -26,7 +25,7 @@ class JudgeAppExtractor:
 
         # Track unique IDs to avoid duplicates if same event/heat appears across sessions (rare but possible in MDB)
         # However, usually we just flatten everything.
-        
+
         heat_id_counter = 1
         swimmer_id_counter = 1
 
@@ -37,22 +36,22 @@ class JudgeAppExtractor:
                 # But event_no can repeat if there are multiple rounds (Pre/Fin).
                 # Hierarchical 'convert' combines rounds? I need to check.
                 # Actually converter.convert() is session-based.
-                
+
                 event_num = evt.get("eventNum")
                 is_relay = evt.get("isRelay", False)
-                
+
                 judge_event = {
-                    "id": event_num, # Using event number as ID for now
+                    "id": event_num,  # Using event number as ID for now
                     "number": event_num,
                     "name": evt.get("eventDesc"),
-                    "distance": evt.get("distance", 0), # Added to Event model in converter if needed
+                    "distance": evt.get("distance", 0),  # Added to Event model in converter if needed
                     "stroke": evt.get("stroke", ""),
-                    "isRelay": is_relay
+                    "isRelay": is_relay,
                 }
                 judge_events.append(judge_event)
 
                 # Group entries by heat
-                heats_map = {} # heat_num -> entries
+                heats_map = {}  # heat_num -> entries
                 for entry in evt.get("entries", []):
                     h_num = entry.get("heat", 0)
                     if h_num not in heats_map:
@@ -62,28 +61,30 @@ class JudgeAppExtractor:
                 for h_num, entries in heats_map.items():
                     current_heat_id = heat_id_counter
                     heat_id_counter += 1
-                    
+
                     judge_heat = {
                         "id": current_heat_id,
                         "number": h_num,
                         "event_id": event_num,
-                        "swimmers": [] # Will be populated in the app if using DB, but we provide flat swimmers list
+                        "swimmers": [],  # Will be populated in the app if using DB, but we provide flat swimmers list
                     }
                     judge_heats.append(judge_heat)
 
                     for entry in entries:
                         current_swimmer_id = swimmer_id_counter
                         swimmer_id_counter += 1
-                        
+
                         members = []
                         if is_relay:
                             # Try to get individual members
                             if "relayAthletes" in entry:
-                                members = [f"{a.get('first', '')} {a.get('last', '')}".strip() for a in entry["relayAthletes"]]
+                                members = [
+                                    f"{a.get('first', '')} {a.get('last', '')}".strip() for a in entry["relayAthletes"]
+                                ]
                             elif "name" in entry and entry.get("name"):
                                 # Fallback to split string
                                 members = [n.strip() for n in entry["name"].split(",")]
-                        
+
                         # Pad members to 4 for relays if needed
                         if is_relay and len(members) < 4:
                             members.extend([""] * (4 - len(members)))
@@ -98,12 +99,8 @@ class JudgeAppExtractor:
                             "members": members,
                             "relay_dqs": [],
                             "notes": "",
-                            "dq_code": ""
+                            "dq_code": "",
                         }
                         judge_swimmers.append(judge_swimmer)
 
-        return {
-            "events": judge_events,
-            "heats": judge_heats,
-            "swimmers": judge_swimmers
-        }
+        return {"events": judge_events, "heats": judge_heats, "swimmers": judge_swimmers}
