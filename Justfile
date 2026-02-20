@@ -210,3 +210,17 @@ verify-mobile:
     @echo "Verifying Mobile App..."
     cd mobile-judge-app && npx tsc --noEmit || echo "TypeScript errors found (ignoring for now to allow tests)"
     cd mobile-judge-app && npm test
+
+# --- Meet Program Viewer Workflows ---
+
+# Start the Meet Program Viewer
+up-viewer:
+    @echo "Starting Meet Program Viewer..."
+    cd meet-program-viewer && npx expo start --web
+
+# Verify the Meet Program Viewer
+verify-viewer:
+    @echo "Verifying Meet Program Viewer..."
+    cd meet-program-viewer && npx tsc --noEmit
+    cd meet-program-viewer && npm test -- --watchAll=false
+
