@@ -377,7 +377,7 @@ export default function App() {
                   title="Save changes"
                   accessibilityLabel="Save changes"
                 >
-                  <Ionicons name="save-outline" size={24} color={COLORS.success} />
+                  <Image source={require('./assets/save_icon.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={onDelete}
@@ -386,7 +386,7 @@ export default function App() {
                   title="Delete DQ and notes"
                   accessibilityLabel="Delete DQ and notes"
                 >
-                  <Ionicons name="trash-outline" size={24} color={COLORS.accent} />
+                  <Image source={require('./assets/delete_icon.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={onCancel}
@@ -395,7 +395,7 @@ export default function App() {
                   title="Cancel changes"
                   accessibilityLabel="Cancel changes"
                 >
-                  <Ionicons name="close-outline" size={24} color={COLORS.secondary} />
+                  <Image source={require('./assets/cancel_icon.png')} style={styles.actionIcon} />
                 </TouchableOpacity>
               </View>
             </View>
