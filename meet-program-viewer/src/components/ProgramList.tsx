@@ -55,10 +55,20 @@ export const ProgramList: React.FC<ProgramListProps> = ({ events, onEventChanged
         const team = isRelay ? '' : entry.team;
 
         // Result display logic
-        const hasResult = entry.finalTime > 0 || entry.dqCode;
-        const resultText = entry.dqCode
-            ? (entry.finalTime > 0 ? `${formatTime(entry.finalTime)} (${entry.dqCode})` : `DQ (${entry.dqCode})`)
-            : (entry.finalTime > 0 ? formatTime(entry.finalTime) : '');
+        let dqCodeText = '';
+        if (entry.dqCode) {
+            dqCodeText = isRelay ? `Team DQ: ${entry.dqCode}` : `DQ: ${entry.dqCode}`;
+        }
+
+        let resultText = '';
+        if (entry.dqCode) {
+            resultText = entry.finalTime > 0 ? `${formatTime(entry.finalTime)} (${dqCodeText})` : dqCodeText;
+        } else if (entry.finalTime > 0) {
+            resultText = formatTime(entry.finalTime);
+        }
+
+
+        const hasResult = entry.finalTime > 0 || !!entry.dqCode;
 
         return (
             <View key={entry.id} style={styles.swimmerRow}>
@@ -119,20 +129,22 @@ export const ProgramList: React.FC<ProgramListProps> = ({ events, onEventChanged
                         #{item.number} {item.name}
                     </Text>
                     <View style={styles.navIcons}>
-                        <TouchableOpacity
-                            onPress={() => scrollToEvent(index - 1)}
-                            disabled={index === 0}
-                            style={[styles.iconButton, index === 0 && styles.disabledIcon]}
-                        >
-                            <Ionicons name="chevron-up" size={24} color={COLORS.icon} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => scrollToEvent(index + 1)}
-                            disabled={index === events.length - 1}
-                            style={[styles.iconButton, index === events.length - 1 && styles.disabledIcon]}
-                        >
-                            <Ionicons name="chevron-down" size={24} color={COLORS.icon} />
-                        </TouchableOpacity>
+                        {index > 0 && (
+                            <TouchableOpacity
+                                onPress={() => scrollToEvent(index - 1)}
+                                style={styles.iconButton}
+                            >
+                                <Ionicons name="chevron-up" size={24} color={COLORS.icon} />
+                            </TouchableOpacity>
+                        )}
+                        {index < events.length - 1 && (
+                            <TouchableOpacity
+                                onPress={() => scrollToEvent(index + 1)}
+                                style={styles.iconButton}
+                            >
+                                <Ionicons name="chevron-down" size={24} color={COLORS.icon} />
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
                 {item.heats.map((heat: any) => renderHeat(heat, item))}
