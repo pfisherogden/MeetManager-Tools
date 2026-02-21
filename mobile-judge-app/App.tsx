@@ -24,7 +24,8 @@ const COLORS = {
   white: '#FFFFFF',
   lightGray: '#F0F0F0',
   success: '#2A9D8F',
-  danger: '#E63946'
+  danger: '#E63946',
+  appHeader: '#1E3A8A'
 };
 
 const getStrokeForEvent = (event: any, leg?: number) => {
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   statusBar: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.appHeader,
     padding: 10,
     alignItems: 'center',
     flexDirection: 'row',
