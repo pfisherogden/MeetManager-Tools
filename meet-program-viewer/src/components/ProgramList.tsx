@@ -76,7 +76,9 @@ export const ProgramList: React.FC<ProgramListProps> = ({ events, onEventChanged
                     {entry.isRelay && entry.relayNames && (
                         <View style={styles.relayNamesContainer}>
                             {entry.relayNames.map((rn: string, i: number) => (
-                                <Text key={i} style={styles.relaySwimmerName}>• {rn}</Text>
+                                <Text key={i} style={styles.relaySwimmerName}>
+                                    {i + 1}) {rn}{i < entry.relayNames.length - 1 ? '  ' : ''}
+                                </Text>
                             ))}
                         </View>
                     )}
@@ -268,13 +270,15 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     relayNamesContainer: {
-        marginTop: 4,
-        paddingLeft: 4,
+        marginTop: 6,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
     },
     relaySwimmerName: {
         fontSize: 13,
         color: COLORS.secondary,
         fontStyle: 'italic',
+        marginRight: 4,
         marginBottom: 2,
     },
     resultContainer: {
