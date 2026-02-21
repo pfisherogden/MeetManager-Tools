@@ -1,37 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>mobile-judge-app</title>
-    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
-    <style id="expo-reset">
-      /* These styles make the body full-height */
-      html,
-      body {
-        height: 100%;
-      }
-      /* These styles disable body scrolling if you are using <ScrollView> */
-      body {
-        overflow: hidden;
-      }
-      /* These styles make the root element full-height */
-      #root {
-        display: flex;
-        height: 100%;
-        flex: 1;
-      }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetManager Tools</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #F0F0F0;
+            color: #333;
+        }
+        header {
+            background-color: #1E3A8A;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid #E0E0E0;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #1E3A8A;
+        }
+        .card p {
+            line-height: 1.5;
+            color: #555;
+        }
+        .button {
+            display: inline-block;
+            background-color: #2A9D8F;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .button:hover {
+            background-color: #21867a;
+        }
+        .params {
+            background: #f8f9fa;
+            border-left: 4px solid #B8860B;
+            padding: 10px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
     </style>
-  <link rel="icon" href="/MeetManager-Tools/favicon.ico" /></head>
+</head>
+<body>
+    <header>
+        <h1>MeetManager Tools</h1>
+    </header>
+    <div class="container">
+        <div class="card">
+            <h2>Stroke & Turn Judge App</h2>
+            <p>A mobile-optimized interface designed for deck referees and judges. It allows officials to quickly record disqualifications (DQs), assign them to specific swimmers or relay legs, manage an offline queue for areas with poor connectivity, and sync results back to the main meet database.</p>
+            <div class="params">
+                <strong>Configuration Params:</strong> None currently supported.
+            </div>
+            <a href="./judge/" class="button">Open Judge App</a>
+        </div>
 
-  <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <!-- The root element for your Expo app. -->
-    <div id="root"></div>
-  <script src="/MeetManager-Tools/_expo/static/js/web/index-b88b85d98ca477ded43cebcbf76e8483.js" defer></script>
+        <div class="card">
+            <h2>Meet Program & Results Viewer</h2>
+            <p>A spectator and coach-friendly dashboard providing a real-time view of the meet. Features include heat and lane assignments, seed times, ordered relay swimmer names, live results with final times, and visual medal indicators for top finishers.</p>
+            <div class="params">
+                <strong>Configuration Params:</strong> None currently supported.
+            </div>
+            <a href="./viewer/" class="button">Open Viewer App</a>
+        </div>
+    </div>
 </body>
 </html>
