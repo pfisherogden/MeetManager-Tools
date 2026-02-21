@@ -4,7 +4,7 @@ import { ProgramList } from './src/components/ProgramList';
 import { useMeetData } from './src/hooks/useMeetData';
 import { COLORS } from './src/constants/colors';
 
-const BUILD_TIME = "02/20/2026, 10:00:05 PM"; // Fixed build time
+const BUILD_TIME = "02/20/2026, 11:01:50 PM PT"; // Fixed build time
 
 export default function App() {
     const { events, isResults, loading } = useMeetData();

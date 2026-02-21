@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	FlatList,
+	Image,
 	Modal,
 	SafeAreaView,
 	ScrollView,
@@ -89,7 +90,7 @@ const getOrderedDQCategories = (
 	return categories;
 };
 
-const BUILD_TIME = "02/20/2026, 10:00:07 PM"; // Fixed build time
+const BUILD_TIME = "02/20/2026, 11:01:50 PM PT"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<
@@ -491,10 +492,9 @@ export default function App() {
 									title="Save changes"
 									accessibilityLabel="Save changes"
 								>
-									<Ionicons
-										name="save-outline"
-										size={24}
-										color={COLORS.success}
+									<Image
+										source={require("./assets/save_icon.png")}
+										style={styles.actionIcon}
 									/>
 								</TouchableOpacity>
 								<TouchableOpacity
@@ -504,10 +504,9 @@ export default function App() {
 									title="Delete DQ and notes"
 									accessibilityLabel="Delete DQ and notes"
 								>
-									<Ionicons
-										name="trash-outline"
-										size={24}
-										color={COLORS.accent}
+									<Image
+										source={require("./assets/delete_icon.png")}
+										style={styles.actionIcon}
 									/>
 								</TouchableOpacity>
 								<TouchableOpacity
@@ -517,10 +516,9 @@ export default function App() {
 									title="Cancel changes"
 									accessibilityLabel="Cancel changes"
 								>
-									<Ionicons
-										name="close-outline"
-										size={24}
-										color={COLORS.secondary}
+									<Image
+										source={require("./assets/cancel_icon.png")}
+										style={styles.actionIcon}
 									/>
 								</TouchableOpacity>
 							</View>
