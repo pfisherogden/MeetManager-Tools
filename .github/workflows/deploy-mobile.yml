@@ -7,6 +7,7 @@ on:
       - feat/judge-app-ui-overhaul
     paths:
       - 'mobile-judge-app/**'
+      - 'meet-program-viewer/**'
       - '.github/workflows/deploy-mobile.yml'
   workflow_dispatch:
 
@@ -26,23 +27,40 @@ jobs:
           cache: 'npm'
           cache-dependency-path: mobile-judge-app/package-lock.json
 
-      - name: Install dependencies
+      - name: Install dependencies (Judge App)
         working-directory: mobile-judge-app
         run: npm ci --legacy-peer-deps
 
-      - name: Build web
+      - name: Build web (Judge App)
         working-directory: mobile-judge-app
         env:
-          APP_BASE_URL: /MeetManager-Tools
+          APP_BASE_URL: /MeetManager-Tools/judge
         run: |
           ls -R
           npm run build-web
 
-      - name: Add .nojekyll
-        run: touch mobile-judge-app/dist/.nojekyll
+      - name: Install dependencies (Viewer App)
+        working-directory: meet-program-viewer
+        run: npm ci
+
+      - name: Build web (Viewer App)
+        working-directory: meet-program-viewer
+        env:
+          APP_BASE_URL: /MeetManager-Tools/viewer
+        run: npm run build-web
+
+      - name: Prepare GitHub Pages Payload
+        run: |
+          mkdir -p gh-pages-root
+          cp -r public/* gh-pages-root/ || true
+          mkdir -p gh-pages-root/judge
+          cp -r mobile-judge-app/dist/* gh-pages-root/judge/
+          mkdir -p gh-pages-root/viewer
+          cp -r meet-program-viewer/dist/* gh-pages-root/viewer/
+          touch gh-pages-root/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./mobile-judge-app/dist
+          publish_dir: ./gh-pages-root

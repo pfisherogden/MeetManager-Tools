@@ -45,6 +45,7 @@ const COLORS = {
 	lightGray: "#F0F0F0",
 	success: "#2A9D8F",
 	danger: "#E63946",
+	appHeader: "#1E3A8A",
 };
 
 const getStrokeForEvent = (event: Event, leg?: number) => {
@@ -88,7 +89,7 @@ const getOrderedDQCategories = (
 	return categories;
 };
 
-const BUILD_TIME = "2026-02-17 07:00:00 PM"; // Fixed build time
+const BUILD_TIME = "02/20/2026, 10:00:07 PM"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<
@@ -688,7 +689,7 @@ const styles = StyleSheet.create({
 		backgroundColor: COLORS.background,
 	},
 	statusBar: {
-		backgroundColor: COLORS.primary,
+		backgroundColor: COLORS.appHeader,
 		padding: 10,
 		alignItems: "center",
 		flexDirection: "row",
