@@ -65,7 +65,7 @@ const getOrderedDQCategories = (currentStroke: string | null) => {
   return categories;
 };
 
-const BUILD_TIME = "02/20/2026, 10:00:07 PM"; // Fixed build time
+const BUILD_TIME = "02/20/2026, 11:01:50 PM PT"; // Fixed build time
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'events' | 'heats' | 'judge' | 'program'>('events');
