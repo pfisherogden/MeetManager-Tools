@@ -10,4 +10,8 @@ export const COLORS = {
     icon: '#FFFFFF',
     success: '#2A9D8F',
     danger: '#E63946',
+    appHeader: '#1E3A8A',
+    gold: '#B8860B',
+    silver: '#707070',
+    bronze: '#8B4513',
 };

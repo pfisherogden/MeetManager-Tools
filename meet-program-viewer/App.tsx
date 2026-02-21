@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     header: {
-        backgroundColor: COLORS.primary,
+        backgroundColor: COLORS.appHeader,
         padding: 15,
         alignItems: 'center',
     },

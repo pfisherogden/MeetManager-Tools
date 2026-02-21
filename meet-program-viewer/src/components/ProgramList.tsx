@@ -39,6 +39,14 @@ export const ProgramList: React.FC<ProgramListProps> = ({ events, onEventChanged
         return time.toFixed(2);
     };
 
+    const getPlaceDisplay = (place: number) => {
+        if (!place || place <= 0) return null;
+        if (place === 1) return <Text style={[styles.placeText, { color: COLORS.gold }]}>🥇 1</Text>;
+        if (place === 2) return <Text style={[styles.placeText, { color: COLORS.silver }]}>🥈 2</Text>;
+        if (place === 3) return <Text style={[styles.placeText, { color: COLORS.bronze }]}>🥉 3</Text>;
+        return <Text style={styles.placeText}>{place}</Text>;
+    };
+
     const renderSwimmer = (entry: any) => {
         if (entry.empty) return null; // Skip empty lanes if data has them marked
 
@@ -48,8 +56,9 @@ export const ProgramList: React.FC<ProgramListProps> = ({ events, onEventChanged
 
         // Result display logic
         const hasResult = entry.finalTime > 0 || entry.dqCode;
-        const resultText = entry.dqCode ? entry.dqCode : (entry.finalTime > 0 ? formatTime(entry.finalTime) : '');
-        const placeText = entry.finalPlace > 0 ? `${entry.finalPlace}` : '-';
+        const resultText = entry.dqCode
+            ? (entry.finalTime > 0 ? `${formatTime(entry.finalTime)} (${entry.dqCode})` : `DQ (${entry.dqCode})`)
+            : (entry.finalTime > 0 ? formatTime(entry.finalTime) : '');
 
         return (
             <View key={entry.id} style={styles.swimmerRow}>
@@ -57,25 +66,24 @@ export const ProgramList: React.FC<ProgramListProps> = ({ events, onEventChanged
                     <Text style={styles.laneText}>L{entry.lane}</Text>
                 </View>
 
+                <View style={styles.placeContainer}>
+                    {getPlaceDisplay(entry.finalPlace)}
+                </View>
+
                 <View style={styles.swimmerDetails}>
                     <Text style={styles.swimmerName}>{name}</Text>
                     {!!team && <Text style={styles.teamName}>{team}</Text>}
-                    <Text style={styles.seedTime}>Seed: {formatTime(entry.seedTime)}</Text>
                 </View>
 
                 <View style={styles.resultContainer}>
                     {hasResult ? (
-                        <>
-                            <Text style={[styles.resultTime, { color: getResultColor(entry) }]}>
-                                {resultText}
-                            </Text>
-                            {!entry.dqCode && (
-                                <Text style={styles.resultPlace}>Pl: {placeText}</Text>
-                            )}
-                        </>
+                        <Text style={[styles.resultTime, { color: getResultColor(entry) }]}>
+                            {resultText}
+                        </Text>
                     ) : (
                         <Text style={styles.noResult}>-</Text>
                     )}
+                    <Text style={styles.seedTimeRight}>Seed: {formatTime(entry.seedTime)}</Text>
                 </View>
             </View>
         );
@@ -207,6 +215,17 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    placeContainer: {
+        width: 45,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    placeText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: COLORS.secondary,
+    },
     swimmerDetails: {
         flex: 1,
     },
@@ -218,24 +237,22 @@ const styles = StyleSheet.create({
     teamName: {
         fontSize: 14,
         color: COLORS.secondary,
-    },
-    seedTime: {
-        fontSize: 12,
-        color: '#888',
         marginTop: 2,
     },
     resultContainer: {
         minWidth: 80,
         alignItems: 'flex-end',
+        justifyContent: 'center',
     },
     resultTime: {
         fontSize: 18,
         fontWeight: 'bold',
         color: COLORS.text,
     },
-    resultPlace: {
+    seedTimeRight: {
         fontSize: 12,
-        color: COLORS.secondary,
+        color: '#888',
+        marginTop: 4,
     },
     noResult: {
         fontSize: 18,
