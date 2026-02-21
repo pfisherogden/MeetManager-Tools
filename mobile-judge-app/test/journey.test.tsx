@@ -4,7 +4,6 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react-native";
-import { act } from "react-test-renderer";
 import App from "../App";
 
 jest.mock("../src/services/dataLoader", () => ({
@@ -43,7 +42,7 @@ jest.mock("../src/database/db", () => ({
 			dq_code: "",
 		},
 	]),
-	getSwimmerById: jest.fn((id) => ({
+	getSwimmerById: jest.fn((_id) => ({
 		id: 100,
 		name: "John Doe",
 		lane: 1,
@@ -77,10 +76,13 @@ describe("User Journey: Record a DQ", () => {
 
 	it("should allow a judge to navigate from events to a swimmer and record a DQ", async () => {
 		render(<App />);
-		
-		await waitFor(() => {
-			expect(screen.queryByTestId("loading-indicator")).toBeNull();
-		}, { timeout: 10000 });
+
+		await waitFor(
+			() => {
+				expect(screen.queryByTestId("loading-indicator")).toBeNull();
+			},
+			{ timeout: 10000 },
+		);
 
 		// 1. View Event List
 		expect(screen.getByText("Events")).toBeTruthy();
@@ -117,4 +119,3 @@ describe("User Journey: Record a DQ", () => {
 		expect(screen.getByText("John Doe")).toBeTruthy();
 	}, 15000);
 });
-

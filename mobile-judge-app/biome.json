@@ -7,24 +7,12 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": [
-			"**",
-			"!**/node_modules",
-			"!**/dist",
-			"!**/build",
-			"!**/.expo"
-		]
+		"includes": ["**", "!**/node_modules", "!**/dist", "!**/build", "!**/.expo"]
 	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
-		"includes": [
-			"**",
-			"!**/node_modules",
-			"!**/dist",
-			"!**/build",
-			"!**/.expo"
-		]
+		"includes": ["**", "!**/node_modules", "!**/dist", "!**/build", "!**/.expo"]
 	},
 	"linter": {
 		"enabled": true,
@@ -34,12 +22,6 @@
 				"noExplicitAny": "off"
 			}
 		},
-		"includes": [
-			"**",
-			"!**/node_modules",
-			"!**/dist",
-			"!**/build",
-			"!**/.expo"
-		]
+		"includes": ["**", "!**/node_modules", "!**/dist", "!**/build", "!**/.expo"]
 	}
 }
