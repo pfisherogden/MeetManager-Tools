@@ -3,8 +3,8 @@ version: '3.8'
 services:
   judge-app:
     build:
-      context: ../../../
-      dockerfile: mobile-judge-app/Dockerfile
+      context: ../../../mobile-judge-app
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
 
@@ -18,7 +18,7 @@ services:
       - "8081:8081"
 
   test-runner:
-    image: mcr.microsoft.com/playwright:v1.49.0-noble
+    image: mcr.microsoft.com/playwright:v1.58.2-noble
     volumes:
       - .:/app
     working_dir: /app

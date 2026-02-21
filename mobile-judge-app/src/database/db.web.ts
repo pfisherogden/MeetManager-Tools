@@ -71,9 +71,20 @@ export const seedData = () => {
 				stroke: "Medley",
 				isRelay: true,
 			},
+			{
+				id: 3,
+				number: 3,
+				name: "Girls 9-10 50 Free",
+				distance: 50,
+				stroke: "Free",
+				isRelay: false,
+			},
 		];
 
-		mockHeats = [{ id: 1, number: 1, event_id: 1, swimmers: [] }];
+		mockHeats = [
+			{ id: 1, number: 1, event_id: 1, swimmers: [] },
+			{ id: 2, number: 1, event_id: 3, swimmers: [] },
+		];
 
 		mockSwimmers = [
 			{
@@ -94,6 +105,18 @@ export const seedData = () => {
 				name: "Bob Jones",
 				team: "FAST",
 				heat_id: 1,
+				isRelay: false,
+				members: [],
+				relay_dqs: [],
+				notes: "",
+				dq_code: "",
+			},
+			{
+				id: 3,
+				lane: 1,
+				name: "Charlie Brown",
+				team: "FAST",
+				heat_id: 2,
 				isRelay: false,
 				members: [],
 				relay_dqs: [],

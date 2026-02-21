@@ -13,7 +13,15 @@ from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
 # Correct path for fixtures that works both locally and in Docker
-FIXTURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/anonymized_meets"))
+# Locally: ../../tests/fixtures/anonymized_meets
+# Docker: /app/data/fixtures_root/anonymized_meets
+FIXTURES_DIR_LOCAL = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/anonymized_meets"))
+FIXTURES_DIR_DOCKER = "/app/data/fixtures_root/anonymized_meets"
+
+if os.path.exists(FIXTURES_DIR_DOCKER):
+    FIXTURES_DIR = FIXTURES_DIR_DOCKER
+else:
+    FIXTURES_DIR = FIXTURES_DIR_LOCAL
 
 
 def get_anonymized_fixtures():

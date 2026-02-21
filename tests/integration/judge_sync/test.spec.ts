@@ -13,16 +13,19 @@ test('judge app syncs DQ to mock server', async ({ page }) => {
   await expect(page.getByText('Events')).toBeVisible({ timeout: 10000 });
 
   // Select an event
-  await page.getByText('Girls 8&U 100 Medley Relay').click();
+  await page.getByText('Girls 9-10 50 Free').click();
 
   // Select a heat
   await page.getByText('Heat 1').click();
 
   // Tap to DQ a swimmer
-  await page.getByText('Alice Smith').click();
+  await page.getByText('Charlie Brown').click();
 
   // Select a DQ code (e.g., 1A)
   await page.getByText('1A').click();
+
+  // Click the save button
+  await page.getByLabel('Save changes').click();
 
   // The app should have triggered a sync.
   // We'll poll the mock server's /verify endpoint to check if it received the DQ.
@@ -35,7 +38,7 @@ test('judge app syncs DQ to mock server', async ({ page }) => {
     
     if (data.length > 0) {
       const dq = data[0][0]; // data is array of requests, each request is array of DQs
-      if (dq.dq_code === '1A' && dq.swimmer_id === 1) {
+      if (dq.dq_code === '1A' && dq.swimmer_id === 3) {
         received = true;
         break;
       }
