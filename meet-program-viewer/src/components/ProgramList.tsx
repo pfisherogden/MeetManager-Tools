@@ -73,6 +73,13 @@ export const ProgramList: React.FC<ProgramListProps> = ({ events, onEventChanged
                 <View style={styles.swimmerDetails}>
                     <Text style={styles.swimmerName}>{name}</Text>
                     {!!team && <Text style={styles.teamName}>{team}</Text>}
+                    {entry.isRelay && entry.relayNames && (
+                        <View style={styles.relayNamesContainer}>
+                            {entry.relayNames.map((rn: string, i: number) => (
+                                <Text key={i} style={styles.relaySwimmerName}>• {rn}</Text>
+                            ))}
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.resultContainer}>
@@ -92,7 +99,11 @@ export const ProgramList: React.FC<ProgramListProps> = ({ events, onEventChanged
     const renderHeat = (heat: any, event: any) => {
         return (
             <View key={heat.id} style={styles.heatContainer}>
-                <Text style={styles.heatHeader}>Heat {heat.number}</Text>
+                <View style={styles.heatHeaderRow}>
+                    <Text style={styles.heatHeader}>Heat {heat.number}</Text>
+                    <Text style={styles.placeHeader}>Place</Text>
+                    <View style={styles.spacer} />
+                </View>
                 {heat.entries.map((entry: any) => renderSwimmer(entry))}
             </View>
         );
@@ -187,12 +198,29 @@ const styles = StyleSheet.create({
     heatContainer: {
         paddingBottom: 10,
     },
-    heatHeader: {
+    heatHeaderRow: {
         backgroundColor: COLORS.heatHeader,
-        padding: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 8,
+    },
+    heatHeader: {
         fontSize: 16,
         fontWeight: 'bold',
         color: COLORS.text,
+        width: 60, // lane container 40 + margin 10 + some extra
+    },
+    placeHeader: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: COLORS.secondary,
+        width: 45,
+        textAlign: 'center',
+        marginRight: 10,
+    },
+    spacer: {
+        flex: 1,
     },
     swimmerRow: {
         flexDirection: 'row',
@@ -238,6 +266,16 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: COLORS.secondary,
         marginTop: 2,
+    },
+    relayNamesContainer: {
+        marginTop: 4,
+        paddingLeft: 4,
+    },
+    relaySwimmerName: {
+        fontSize: 13,
+        color: COLORS.secondary,
+        fontStyle: 'italic',
+        marginBottom: 2,
     },
     resultContainer: {
         minWidth: 80,

@@ -8,6 +8,7 @@ export interface SwimmerEntry {
     name: string;
     team: string;
     relayLetter?: string;
+    relayNames?: string[]; // Array of swimmer names for relays
     isRelay: boolean;
     seedTime: number;
     finalTime: number;
@@ -74,6 +75,12 @@ interface RawAthlete {
     Team_no: number;
 }
 
+interface RawRelayName {
+    Relay_no: number;
+    Pos_no: number;
+    Ath_no: number;
+}
+
 interface RawTeam {
     Team_no: number;
     Team_abbr: string;
@@ -97,13 +104,14 @@ const getEventName = (evt: RawEvent) => {
 
 export const useMeetData = () => {
     const [events, setEvents] = useState<MeetingEvent[]>([]);
+    const [isResults, setIsResults] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // In a real app, you might fetch this. Here we parse the imported JSON.
         const parseData = () => {
             try {
-                const raw = sampleData.data;
+                const raw = (sampleData as any).data;
 
                 // 1. Map Teams and Athletes
                 const teams = new Map<number, string>();
@@ -124,21 +132,37 @@ export const useMeetData = () => {
 
                     if (isRelay) {
                         // Process Relays
-                        // Filter Relay table by Event_ptr (assuming Event_ptr in Relay matches Event_ptr in Event)
                         const relays = raw.Relay.filter((r: RawRelay) => r.Event_ptr === evt.Event_ptr);
-                        entries = relays.map((r: RawRelay) => ({
-                            id: r.Relay_no,
-                            lane: r.Fin_lane,
-                            name: '', // Relay team name constructed in UI or here
-                            team: teams.get(r.Team_no) || 'Unknown',
-                            relayLetter: r.Team_ltr,
-                            isRelay: true,
-                            seedTime: r.ActualSeed_time,
-                            finalTime: r.Fin_Time,
-                            finalPlace: r.Fin_place,
-                            dqCode: r.Fin_dqcode && r.Fin_dqcode !== 'NaN' ? r.Fin_dqcode : null,
-                            heat: r.Fin_heat
-                        }));
+
+                        entries = relays.map((r: RawRelay) => {
+                            // Find relay swimmers
+                            const relaySwimmers = raw.RelayNames
+                                ? raw.RelayNames.filter((rn: RawRelayName) => rn.Relay_no === r.Relay_no)
+                                : [];
+
+                            // Sort by position and map to names
+                            const names = relaySwimmers
+                                .sort((a: RawRelayName, b: RawRelayName) => a.Pos_no - b.Pos_no)
+                                .map((rn: RawRelayName) => {
+                                    const ath = athletes.get(rn.Ath_no);
+                                    return ath ? ath.name : 'Unknown';
+                                });
+
+                            return {
+                                id: r.Relay_no,
+                                lane: r.Fin_lane,
+                                name: '', // Relay team name constructed in UI or here
+                                team: teams.get(r.Team_no) || 'Unknown',
+                                relayLetter: r.Team_ltr,
+                                relayNames: names.length > 0 ? names : undefined,
+                                isRelay: true,
+                                seedTime: r.ActualSeed_time,
+                                finalTime: r.Fin_Time,
+                                finalPlace: r.Fin_place,
+                                dqCode: r.Fin_dqcode && r.Fin_dqcode !== 'NaN' ? r.Fin_dqcode : null,
+                                heat: r.Fin_heat
+                            };
+                        });
                     } else {
                         // Process Individual Entries
                         const inds = raw.Entry.filter((e: RawEntry) => e.Event_ptr === evt.Event_ptr);
@@ -181,12 +205,25 @@ export const useMeetData = () => {
                         name: getEventName(evt),
                         heats
                     };
-                }).filter((e): e is MeetingEvent => e !== null);
+                }).filter((e: MeetingEvent | null): e is MeetingEvent => e !== null);
 
                 // Sort events by number
                 parsedEvents.sort((a, b) => a.number - b.number);
 
+                // Check if this is a results file by looking for any final times
+                let hasResults = false;
+                for (const evt of parsedEvents) {
+                    for (const heat of evt.heats) {
+                        if (heat.entries.some(e => e.finalTime > 0 || e.dqCode !== null)) {
+                            hasResults = true;
+                            break;
+                        }
+                    }
+                    if (hasResults) break;
+                }
+
                 setEvents(parsedEvents);
+                setIsResults(hasResults);
                 setLoading(false);
             } catch (err) {
                 console.error("Failed to parse meet data:", err);
@@ -197,5 +234,5 @@ export const useMeetData = () => {
         setTimeout(parseData, 0);
     }, []);
 
-    return { events, loading };
+    return { events, isResults, loading };
 };

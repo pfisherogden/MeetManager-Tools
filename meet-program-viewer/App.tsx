@@ -5,7 +5,7 @@ import { useMeetData } from './src/hooks/useMeetData';
 import { COLORS } from './src/constants/colors';
 
 export default function App() {
-    const { events, loading } = useMeetData();
+    const { events, isResults, loading } = useMeetData();
 
     if (loading) {
         return (
@@ -20,7 +20,9 @@ export default function App() {
         <SafeAreaView style={styles.container}>
             <StatusBar style="auto" />
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Meet Program Viewer</Text>
+                <Text style={styles.headerTitle}>
+                    {isResults ? 'Meet Results Viewer' : 'Meet Program Viewer'}
+                </Text>
             </View>
             <ProgramList events={events} />
         </SafeAreaView>
