@@ -342,3 +342,22 @@ export async function generateReportBundle(
 		throw new Error("An unknown error occurred");
 	}
 }
+
+export async function publishMeetData() {
+	try {
+		const response = await client.publishMeetData({});
+		if (!response.success) {
+			throw new Error(response.message);
+		}
+		return {
+			success: true,
+			judgeAppUrl: response.judgeAppUrl,
+		};
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (publishMeetData):", err);
+		if (err instanceof Error) {
+			throw new Error(err.message);
+		}
+		throw new Error("An unknown error occurred");
+	}
+}

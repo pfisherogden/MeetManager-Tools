@@ -26,6 +26,20 @@ REPORT_TYPE_MEET_PROGRAM_HTML: ReportType
 REPORT_TYPE_ENTRIES_HYTEK: ReportType
 REPORT_TYPE_ENTRIES_CLUB: ReportType
 
+class PublishMeetDataRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class PublishMeetDataResponse(_message.Message):
+    __slots__ = ("success", "message", "judge_app_url")
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_APP_URL_FIELD_NUMBER: _ClassVar[int]
+    success: bool
+    message: str
+    judge_app_url: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., judge_app_url: _Optional[str] = ...) -> None: ...
+
 class GetMeetsRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...

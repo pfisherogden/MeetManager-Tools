@@ -69,6 +69,21 @@ service MeetManagerService {
   rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
   // GenerateReportBundle generates a set of customized reports bundled in a zip file.
   rpc GenerateReportBundle(GenerateReportBundleRequest) returns (GenerateReportBundleResponse);
+  // PublishMeetData publishes the active meet data to a cloud location for the judge app.
+  rpc PublishMeetData(PublishMeetDataRequest) returns (PublishMeetDataResponse);
+}
+
+// PublishMeetDataRequest is the request for PublishMeetData.
+message PublishMeetDataRequest {}
+
+// PublishMeetDataResponse contains the URL for the judge app.
+message PublishMeetDataResponse {
+  // success indicates if the data was published successfully.
+  bool success = 1;
+  // message provides additional info or error details.
+  string message = 2;
+  // judge_app_url is the full URL (including program_url) for the judge app SPA.
+  string judge_app_url = 3;
 }
 
 // GetMeetsRequest is the request for GetMeets.

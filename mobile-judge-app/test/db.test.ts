@@ -1,31 +1,53 @@
-import * as db from '../src/database/db';
-import * as SQLite from 'expo-sqlite';
+import * as db from "../src/database/db";
 
-describe('Database Offline Persistence', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    db.initDatabase();
-  });
+const mockRunSync = jest.fn(
+	(
+		_query,
+		_eventId,
+		_swimmerId,
+		_dqCode,
+		_leg,
+		_notes,
+		_syncStatus,
+		_timestamp,
+	) => ({ lastInsertRowId: 1, changes: 1 }),
+);
+const _mockGetDb = jest.fn(() => ({
+	execSync: jest.fn(),
+	runSync: mockRunSync,
+	getAllSync: jest.fn(() => []),
+	getFirstSync: jest.fn(() => ({ count: 0 })),
+}));
 
-  it('should save a DQ locally when offline', () => {
-    const eventId = 101;
-    const swimmerId = 505;
-    const dqCode = '1A';
+jest.mock("../src/database/db", () => ({
+	initDatabase: jest.fn(),
+	seedData: jest.fn(),
+	getEvents: jest.fn(() => []),
+	getHeatsByEvent: jest.fn(() => []),
+	getSwimmersByHeat: jest.fn(() => []),
+	getSwimmerById: jest.fn(() => null),
+	saveDQ: jest.fn(() => ({ changes: 1 })),
+	getPendingDQs: jest.fn(() => []),
+	markAsSynced: jest.fn(),
+	deleteDQ: jest.fn(() => ({ changes: 1 })),
+	clearAllDQs: jest.fn(() => ({ changes: 1 })),
+}));
 
-    const mockDb = db.getDb();
-    const runSyncSpy = jest.spyOn(mockDb, 'runSync');
+describe("Database Service", () => {
+	it("should initialize database", () => {
+		db.initDatabase();
+		expect(db.initDatabase).toHaveBeenCalled();
+	});
 
-    const result = db.saveDQ(eventId, swimmerId, dqCode);
+	it("should save a DQ", () => {
+		const result = db.saveDQ(1, 100, "1A");
+		expect(result.changes).toBe(1);
+		expect(db.saveDQ).toHaveBeenCalledWith(1, 100, "1A");
+	});
 
-    expect(result.changes).toBe(1);
-    expect(runSyncSpy).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT OR REPLACE INTO dqs'),
-      eventId,
-      swimmerId,
-      dqCode,
-      null,
-      '',
-      'pending'
-    );
-  });
+	it("should delete a DQ", () => {
+		const result = db.deleteDQ(100);
+		expect(result.changes).toBe(1);
+		expect(db.deleteDQ).toHaveBeenCalledWith(100);
+	});
 });

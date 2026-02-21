@@ -1,13 +1,23 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { Check, Database, Loader2, Trash2, Upload } from "lucide-react";
+import {
+	Check,
+	Database,
+	ExternalLink,
+	Loader2,
+	QrCode,
+	Trash2,
+	Upload,
+} from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	clearAllDatasets,
 	clearDataset,
 	listDatasets,
+	publishMeetData,
 	setActiveDataset,
 	uploadDataset,
 } from "@/app/actions";
@@ -20,6 +30,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
 	Table,
@@ -40,6 +57,8 @@ export function DatasetManager() {
 	const [datasets, setDatasets] = useState<Dataset[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [uploading, setUploading] = useState(false);
+	const [publishing, setPublishing] = useState(false);
+	const [judgeAppUrl, setJudgeAppUrl] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const fetchDatasets = useCallback(async () => {
@@ -69,6 +88,23 @@ export function DatasetManager() {
 		} catch (error) {
 			console.error(error);
 			toast.error("Failed to set active dataset");
+		}
+	};
+
+	const handlePublish = async () => {
+		setPublishing(true);
+		try {
+			const res = await publishMeetData();
+			if (res.success) {
+				setJudgeAppUrl(res.judgeAppUrl);
+				toast.success("Meet data published for Judge App");
+			}
+		} catch (error: unknown) {
+			console.error(error);
+			const msg = error instanceof Error ? error.message : "Unknown error";
+			toast.error(`Failed to publish: ${msg}`);
+		} finally {
+			setPublishing(false);
 		}
 	};
 
@@ -231,6 +267,22 @@ export function DatasetManager() {
 											: "-"}
 									</TableCell>
 									<TableCell className="text-right flex items-center justify-end gap-2">
+										{dataset.isActive && (
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={handlePublish}
+												disabled={publishing}
+												className="gap-2"
+											>
+												{publishing ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<QrCode className="h-4 w-4" />
+												)}
+												Publish to Judge App
+											</Button>
+										)}
 										{!dataset.isActive && (
 											<Button
 												variant="outline"
@@ -255,6 +307,34 @@ export function DatasetManager() {
 					</TableBody>
 				</Table>
 			</CardContent>
+
+			<Dialog open={!!judgeAppUrl} onOpenChange={() => setJudgeAppUrl(null)}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Judge App Setup</DialogTitle>
+						<DialogDescription>
+							Scan this QR code with a mobile device to load the meet data into
+							the Stroke and Turn Judge App.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="flex flex-col items-center justify-center space-y-4 py-4">
+						<div className="bg-white p-4 rounded-lg shadow-sm border">
+							{judgeAppUrl && (
+								<QRCodeSVG value={judgeAppUrl} size={256} level="H" />
+							)}
+						</div>
+						<p className="text-xs text-center text-muted-foreground break-all px-4">
+							{judgeAppUrl}
+						</p>
+						<Button asChild variant="outline" className="w-full">
+							<a href={judgeAppUrl || "#"} target="_blank" rel="noreferrer">
+								<ExternalLink className="mr-2 h-4 w-4" />
+								Open in Browser
+							</a>
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</Card>
 	);
 }
