@@ -42,11 +42,11 @@ def test_get_events_mapping():
             {"Event_no": "3", "Event_stroke": "B ", "Event_sex": " G ", "Event_dist": "100"},  # Whitespace
         ]
     }
-    
+
     # Patch _load_user_data to return our manual cache/config
     def mock_load_user_data(context):
         return service._data_cache, {}
-            
+
     with patch.object(service, "_load_user_data", side_effect=mock_load_user_data):
         response = service.GetEvents(None, None)
         events = response.events
@@ -64,7 +64,7 @@ def test_get_events_mapping():
 
 def test_reload_on_upload():
     service = MeetManagerService()
-    
+
     # Patch _save_user_config and _load_user_config to avoid actual storage
     with patch.object(service, "_save_user_config", return_value=None):
         with patch.object(service, "_load_user_config", return_value={}):

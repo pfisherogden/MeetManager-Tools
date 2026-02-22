@@ -22,11 +22,11 @@ class TestUICorrectness:
         svc = MeetManagerService()
         svc.config = {}
         svc._data_cache = {}
-        
+
         # Patch _load_user_data to return our manual cache/config
         def mock_load_user_data(context):
             return svc._data_cache, svc.config
-            
+
         with patch.object(svc, "_load_user_data", side_effect=mock_load_user_data):
             yield svc
 
