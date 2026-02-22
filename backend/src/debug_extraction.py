@@ -1,5 +1,4 @@
 import logging
-import sys
 
 from mm_to_json.mm_to_json import MmToJsonConverter
 
