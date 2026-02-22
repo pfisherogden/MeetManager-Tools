@@ -208,9 +208,7 @@ body {
     color: #666;
     margin-left: 10pt;
     white-space: nowrap;
-    display: none; /* Replaced by dedicated col-dq */
 }
-
 /* Relay DQ Grid */
 .relay-dq-grid {
     display: flex;
