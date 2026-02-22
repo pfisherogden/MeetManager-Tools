@@ -1,8 +1,9 @@
 @page {
     size: letter;
     margin: 0.5in;
-    margin-top: 1.2in; /* Make room for fixed header in PDF */
-    
+    margin-top: 1.2in;
+    /* Make room for fixed header in PDF */
+
     @bottom-right {
         content: "Page " counter(page);
         font-family: "Helvetica", sans-serif;
@@ -22,14 +23,16 @@ body {
     border-bottom: 1pt solid black;
     padding-bottom: 5pt;
     text-align: center;
-    margin-bottom: 20pt; /* Add spacing for browser view */
+    margin-bottom: 20pt;
+    /* Add spacing for browser view */
     background-color: white;
 }
 
 @media print {
     #header {
         position: fixed;
-        top: -0.9in; /* Position in the top margin area for WeasyPrint */
+        top: -0.9in;
+        /* Position in the top margin area for WeasyPrint */
         left: 0;
         right: 0;
         height: 0.8in;
@@ -63,6 +66,10 @@ body {
 .content-container {
     column-count: 2;
     column-gap: 20pt;
+}
+
+.timer-sheet-content {
+    column-count: 1 !important;
 }
 
 .event-block {
@@ -104,6 +111,10 @@ body {
     padding: 2pt;
 }
 
+.entries-table th.col-time {
+    text-align: right;
+}
+
 .entries-table td {
     padding: 2pt;
     vertical-align: top;
@@ -117,12 +128,43 @@ body {
     background-color: #f2f2f2;
 }
 
-.col-lane { width: 30pt; }
-.col-name { width: auto; }
-.col-age { width: 25pt; }
-.col-team { width: 50pt; }
-.col-relay { width: 30pt; }
-.col-time { width: 50pt; text-align: right; }
+.col-lane {
+    width: 30pt;
+}
+
+.col-name {
+    width: auto;
+}
+
+.col-age {
+    width: 25pt;
+}
+
+.col-team {
+    width: 50pt;
+}
+
+.col-relay {
+    width: 30pt;
+}
+
+.col-time {
+    width: 50pt;
+    text-align: right;
+}
+
+.col-dq {
+    width: 100pt;
+    text-align: center;
+}
+
+.dq-centered {
+    text-align: center !important;
+}
+
+.dotted-row td {
+    border-bottom: 0.5pt dotted #999 !important;
+}
 
 .relay-swimmers-row td {
     font-size: 8pt;
@@ -139,4 +181,64 @@ body {
 /* WeasyPrint specific hacks */
 .page {
     content: counter(page);
+}
+
+/* S&T Judge DQ Lines */
+.dq-lines-row td {
+    padding-top: 0;
+    padding-bottom: 8pt;
+    border-bottom: 0.5pt solid #ccc;
+}
+
+.dq-fields {
+    font-size: 8pt;
+    color: #444;
+    padding-left: 10pt;
+    vertical-align: middle;
+}
+
+.dq-field {
+    margin-right: 30pt;
+    font-family: monospace;
+}
+
+.condensed-dq {
+    font-family: monospace;
+    font-size: 8pt;
+    color: #666;
+    margin-left: 10pt;
+    white-space: nowrap;
+    display: none; /* Replaced by dedicated col-dq */
+}
+
+/* Relay DQ Grid */
+.relay-dq-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 3pt;
+    margin-top: 5pt;
+    margin-bottom: 5pt;
+    padding-left: 10pt;
+}
+
+.relay-swimmer-dq {
+    display: flex;
+    align-items: center;
+    font-size: 8pt;
+    color: #333;
+}
+
+.swimmer-num {
+    width: 15pt;
+    font-weight: bold;
+}
+
+.swimmer-name {
+    width: 140pt;
+}
+
+.swimmer-dq-box {
+    font-family: monospace;
+    color: #666;
+    margin-left: 10pt;
 }

@@ -1,0 +1,53 @@
+{# Macro to render standard entries loop layout. #}
+{% macro render_standard_entry_row(entry, is_zebra, show_dq_lines=false) %}
+    <tr class="entry-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-row{% endif %}">
+        {% if entry.is_relay %}
+            <td class="col-lane">{{ entry.lane }}</td>
+            <td class="col-team">{{ entry.team }}</td>
+            <td class="col-relay">{{ entry.relay_ltr }}</td>
+            <td class="col-time">{{ entry.time }}</td>
+            {% if show_dq_lines %}
+                <td class="col-dq">________________</td>
+            {% endif %}
+        {% else %}
+            <td class="col-lane">{{ entry.lane }}</td>
+            <td class="col-name">{{ entry.name }}</td>
+            <td class="col-age">{{ entry.age }}</td>
+            <td class="col-team">{{ entry.team }}</td>
+            <td class="col-time">{{ entry.time }}</td>
+            {% if show_dq_lines %}
+                <td class="col-dq">________________</td>
+            {% endif %}
+        {% endif %}
+    </tr>
+{% endmacro %}
+
+{# Macro to render the nested swimmers below a relay team #}
+{% macro render_relay_swimmers_row(entry, is_zebra, colspan=3, show_dq_lines=false) %}
+    {% if entry.is_relay and entry.swimmers %}
+    <tr class="relay-swimmers-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-row{% endif %}">
+        <td></td>
+        <td colspan="{{ colspan }}" class="swimmers-list">
+            {% if show_dq_lines %}
+                <div class="relay-dq-grid">
+                    {% for swimmer in entry.swimmers %}
+                    <div class="relay-swimmer-dq">
+                        <span class="swimmer-num">{{ loop.index }})</span>
+                        <span class="swimmer-name">{{ swimmer }}</span>
+                        <span class="swimmer-dq-box">DQ: ________</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% for swimmer in entry.swimmers %}
+                <span>{{ loop.index }}) {{ swimmer }}</span>{% if not loop.last %} {% endif %}
+                {% endfor %}
+            {% endif %}
+        </td>
+    </tr>
+    {% endif %}
+{% endmacro %}
+
+{# Macro to render the DQ lines for Stroke and Turn Judge Reports (UNUSED - replaced by condensed) #}
+{% macro render_dq_lines_row() %}
+{% endmacro %}

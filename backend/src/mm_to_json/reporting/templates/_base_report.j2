@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ meet_name }} - {{ sub_title }}</title>
+    <style>
+        /* Base injection for mm-tools styles */
+        {{ css_content }}
+
+        /* Optional column configuration applied globally if specified */
+        {% if columns_on_page %}
+        .content-container {
+            column-count: {{ columns_on_page }};
+            column-gap: 20pt;
+        }
+        {% endif %}
+        
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div class="header-top">
+            <span class="left">Tri-Valley Swim Lg. C</span>
+            <span class="right">MM-Tools - {{ generation_time }}</span>
+        </div>
+        <div class="header-main">
+            <h1>{{ meet_name }}</h1>
+            <h2>{{ sub_title }}</h2>
+        </div>
+    </div>
+
+    <!-- Main Report Content -->
+    <div class="content-container {% block container_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
