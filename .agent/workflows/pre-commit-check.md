@@ -12,12 +12,12 @@ To ensure high code quality and clear documentation, follow these steps before e
    ```
    *Note: This runs `fix-backend`, `fix-mm-to-json`, and `lint-frontend-fix`.*
 
-2. **Verify All Checks**:
-   Run the verification pipeline to ensure no regressions:
+2. **Verifying All Checks (Mandatory)**:
+   You MUST run the full verification pipeline to catch linting, type-checking, and test regressions before committing:
    ```bash
    just verify
    ```
-   *Note: This runs all linters and the full test suite for both backend and frontend.*
+   *Note: This command is the 'Source of Truth'. It runs all linters (including `mypy` for type-checking) and the full test suite for both backend and frontend. If this fails, DO NOT COMMIT.*
 
 3. **Record Evidence**:
    Before closing any issue, capture a visual recording of the fix in action using the browser subagent or manual methods. This recording MUST demonstrate the resolved bug across all relevant UI components.
