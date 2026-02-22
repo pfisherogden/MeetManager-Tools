@@ -14,6 +14,7 @@ try:
 except ValueError:
     firebase_admin.initialize_app()
 
+
 class AuthInterceptor(grpc.ServerInterceptor):
     def __init__(self):
         def abort(context, code, details):
@@ -28,15 +29,15 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         # Metadata is a list of tuples (key, value)
         metadata = dict(handler_call_details.invocation_metadata)
-        auth_header = metadata.get('authorization', '')
+        auth_header = metadata.get("authorization", "")
 
         uid = None
-        if auth_header.startswith('Bearer '):
+        if auth_header.startswith("Bearer "):
             token = auth_header[7:]
             try:
                 # Verify the ID token
                 decoded_token = auth.verify_id_token(token)
-                uid = decoded_token['uid']
+                uid = decoded_token["uid"]
             except Exception as e:
                 logger.warning(f"Failed to verify ID token: {e}")
                 # We could abort here, but let's just pass None and let the servicer decide
@@ -58,6 +59,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             pass
 
         return handler
+
 
 # For more robust implementation, we wrap the handler to inject the UID
 class AuthHandlerWrapper(grpc.RpcMethodHandler):
@@ -83,22 +85,24 @@ class AuthHandlerWrapper(grpc.RpcMethodHandler):
         def wrapped(request, context):
             context.uid = self.uid
             return behavior(request, context)
+
         return wrapped
+
 
 class FirebaseAuthInterceptor(grpc.ServerInterceptor):
     def intercept_service(self, continuation, handler_call_details):
         metadata = {k.lower(): v for k, v in handler_call_details.invocation_metadata}
-        auth_header = metadata.get('authorization', '')
+        auth_header = metadata.get("authorization", "")
 
         uid = None
-        if auth_header.startswith('Bearer '):
-            token = auth_header[len('Bearer '):]
+        if auth_header.startswith("Bearer "):
+            token = auth_header[len("Bearer ") :]
             try:
                 if token == "dev-token" and os.getenv("GRPC_AUTH_DISABLED") == "true":
                     uid = "dev-user"
                 else:
                     decoded_token = auth.verify_id_token(token)
-                    uid = decoded_token['uid']
+                    uid = decoded_token["uid"]
             except Exception as e:
                 logger.warning(f"Invalid token: {e}")
 

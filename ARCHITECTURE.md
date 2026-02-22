@@ -8,56 +8,57 @@ MeetManager Tools is a web-based application designed to parse, analyze, and vis
 ### Frontend: Next.js (Web Client)
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
 - **Language**: TypeScript
+- **Authentication**: Firebase SDK (Google Login)
 - **Styling**: Tailwind CSS + Shadcn UI
-- **Communication**: gRPC-web via `nice-grpc` and `grpc-web` proxy (or direct if Envoy is used, currently direct via Next.js server actions/client).
+- **Communication**: gRPC-web via `nice-grpc` with a custom auth middleware to inject Bearer tokens.
 - **Location**: `./web-client`
 
 ### Backend: Python (Server)
-- **Runtime**: Python 3.9+
-- **Framework**: gRPC (AsyncIO)
+- **Runtime**: Python 3.11+
+- **Framework**: gRPC (Sync with Interceptors)
+- **Authentication**: `firebase-admin` for verifying ID tokens.
 - **Database Tools**: `mdbtools` for parsing `.mdb` files.
-- **Data Persistence**: In-memory cache backed by file system (MDB/JSON).
+- **Storage Layer**: Abstract `StorageProvider` supporting `LocalStorage` and `GCSStorage`.
 - **Location**: `./backend`
 - **Entry Point**: `src/server.py`
 
 ## Deployment (Docker)
-The system is containerized using Docker Compose.
+The system is containerized and cloud-ready for Google Cloud Run.
 
 - **Backend Container**:
   - Builds from `./backend`
-  - Mounts `./backend/data` for persistence.
-  - Exposes port `50051`.
+  - Uses `StorageProvider` for persistence (Local or GCS).
+  - Exposes port `8080` (normalized for Cloud Run).
 - **Frontend Container**:
   - Builds from `./web-client`
   - Exposes port `3000`.
-  - Connects to backend via `backend:50051`.
+  - Connects to backend via `BACKEND_INTERNAL_HOST`.
 
 ## Data Flow Diagram
 
 ```mermaid
 graph TD
     User[User Browser] <-->|HTTP/3000| Frontend[Next.js Frontend]
-    Frontend <-->|gRPC/50051| Backend[Python gRPC Server]
-    Backend -->|Read/Write| Storage[(Data Folder)]
+    Frontend <-->|gRPC/8080| Backend[Python gRPC Server]
+    Backend -->|Auth| Firebase[Firebase Admin]
+    Backend -->|Read/Write| Storage[StorageProvider: Local/GCS]
+    Storage -->|Sandbox| Users[(users/UID/data)]
     Backend -->|Subprocess| MdbTools[mdb-export]
     MdbTools -->|CSV| Backend
 ```
 
 ## Key Workflows
 
-### 1. View Events
-1. User navigates to `/events`.
-2. Frontend calls `GetEvents()` gRPC method.
-3. Backend reads `Event` table from active dataset.
-4. Backend maps codes (e.g., "A", "F") to human-readable strings ("Freestyle", "Women").
-5. Returns `EventList` protobuf message.
+### 1. Multi-User Authentication
+1. User logs in via Google on the Frontend.
+2. Firebase provides an ID token.
+3. Every gRPC call includes `Authorization: Bearer <token>`.
+4. Backend `FirebaseAuthInterceptor` verifies the token and injects `uid` into the request context.
 
-### 2. Upload Dataset
-1. User uploads `.mdb` file in Admin Dashboard.
-2. File streams to backend via `UploadDataset`.
-3. Backend saves file to `data/` directory.
-4. **Auto-Reload**: Backend detects active file update and refreshes in-memory cache.
-5. Frontend shows success toast.
+### 2. User-Sandboxed Storage
+1. Data is isolated using the user's unique ID (`uid`).
+2. `StorageProvider` maps requests to paths like `users/[UID]/filename.mdb`.
+3. Operations like `UploadDataset`, `ListDatasets`, and `GetScores` only access the authenticated user's sandbox.
 
 ### 3. Entity Navigation
 - **Athletes**: Detailed view at `/athletes/[id]`. joins Team data.

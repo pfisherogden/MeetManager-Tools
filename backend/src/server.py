@@ -61,7 +61,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         if os.getenv("GRPC_AUTH_DISABLED") == "true":
             return "dev-user"
 
-        uid = getattr(context, 'uid', None)
+        uid = getattr(context, "uid", None)
         if uid is None:
             context.abort(grpc.StatusCode.UNAUTHENTICATED, "Authentication required")
         return uid
@@ -79,7 +79,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _save_user_config(self, context, config):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
             json.dump(config, tmp, indent=2)
             tmp_path = tmp.name
         try:
@@ -202,7 +202,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetDashboardStats(self, request, context):
         request = request or pb2.GetDashboardStatsRequest()
         cache, _ = self._load_user_data(context)
-        def _t(n): return cache.get(n, [])
+
+        def _t(n):
+            return cache.get(n, [])
 
         teams = _t("Team")
         athletes = _t("Athlete")
@@ -440,7 +442,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             # Always include Sample_Data.json if nothing else
             if not datasets and self.storage.exists(SOURCE_FILE):
-                datasets.append(pb2.Dataset(filename=SOURCE_FILE, is_active=(active_file == SOURCE_FILE), last_modified="0"))
+                datasets.append(
+                    pb2.Dataset(filename=SOURCE_FILE, is_active=(active_file == SOURCE_FILE), last_modified="0")
+                )
 
         except Exception as e:
             print(f"Error listing datasets: {e}")
@@ -629,9 +633,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         cache, config = self._load_user_data(context)
 
         teams_data = cache.get("Team", [])
-        teams = {
-            t.get("Team_no"): {"name": t.get("Team_name"), "id": t.get("Team_no")} for t in teams_data
-        }
+        teams = {t.get("Team_no"): {"name": t.get("Team_name"), "id": t.get("Team_no")} for t in teams_data}
         scores = {t_id: {"ind": 0.0, "rel": 0.0} for t_id in teams}
 
         entries_data = cache.get("Entry", []) or cache.get("ENTRY", [])
@@ -1354,6 +1356,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             from mm_to_json.judge_app_extractor import JudgeAppExtractor
+
             converter = MmToJsonConverter(table_data=cache)
             extractor = JudgeAppExtractor(converter)
             judge_data = extractor.extract_judge_data()
@@ -1409,10 +1412,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 def serve():
     port = os.getenv("PORT", "50051")
     interceptors = [FirebaseAuthInterceptor()]
-    server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=10),
-        interceptors=interceptors
-    )
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
 
     # Add Health Servicer
     health_servicer = health.HealthServicer()

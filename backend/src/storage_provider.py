@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
 
+
 class StorageProvider(ABC):
     @abstractmethod
     def list_files(self, prefix: str) -> list[str]:
@@ -25,6 +26,7 @@ class StorageProvider(ABC):
     @abstractmethod
     def exists(self, remote_path: str) -> bool:
         pass
+
 
 class LocalStorageProvider(StorageProvider):
     def __init__(self, base_dir: str):
@@ -64,9 +66,11 @@ class LocalStorageProvider(StorageProvider):
     def exists(self, remote_path: str) -> bool:
         return os.path.exists(self._get_full_path(remote_path))
 
+
 class GCSStorageProvider(StorageProvider):
     def __init__(self, bucket_name: str):
         from google.cloud import storage
+
         self.client = storage.Client()
         self.bucket = self.client.bucket(bucket_name)
 
