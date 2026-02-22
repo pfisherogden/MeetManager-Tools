@@ -7,6 +7,8 @@ import pytest
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
+from unittest.mock import MagicMock
+
 from server import MeetManagerService
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -22,6 +24,7 @@ class MockContext:
 
 class MockMeetManagerService(MeetManagerService):
     def __init__(self):
+        self.storage = MagicMock()
         self._data_cache = {}
         # Load fixtures into cache
         for name in ["Relay", "RelayNames", "Entry", "Event", "Session", "Team", "Scoring", "Athlete"]:
@@ -32,8 +35,8 @@ class MockMeetManagerService(MeetManagerService):
                 self._data_cache[name] = []
         self.config = {"meet_name": "Mock Meet", "meet_description": "Mock Description"}
 
-    def _get_table(self, table_name):
-        return self._data_cache.get(table_name, [])
+    def _load_user_data(self, context):
+        return self._data_cache, self.config
 
 
 @pytest.fixture
