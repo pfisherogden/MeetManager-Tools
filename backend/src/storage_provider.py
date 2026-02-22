@@ -1,14 +1,13 @@
-from abc import ABC, abstractmethod
+import logging
 import os
 import shutil
-from typing import List, Optional
-import logging
+from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
 
 class StorageProvider(ABC):
     @abstractmethod
-    def list_files(self, prefix: str) -> List[str]:
+    def list_files(self, prefix: str) -> list[str]:
         pass
 
     @abstractmethod
@@ -35,11 +34,11 @@ class LocalStorageProvider(StorageProvider):
     def _get_full_path(self, path: str) -> str:
         return os.path.join(self.base_dir, path)
 
-    def list_files(self, prefix: str) -> List[str]:
+    def list_files(self, prefix: str) -> list[str]:
         full_prefix_path = self._get_full_path(prefix)
         if not os.path.exists(full_prefix_path):
             return []
-        
+
         files = []
         for root, _, filenames in os.walk(full_prefix_path):
             for filename in filenames:
@@ -71,7 +70,7 @@ class GCSStorageProvider(StorageProvider):
         self.client = storage.Client()
         self.bucket = self.client.bucket(bucket_name)
 
-    def list_files(self, prefix: str) -> List[str]:
+    def list_files(self, prefix: str) -> list[str]:
         blobs = self.bucket.list_blobs(prefix=prefix)
         return [blob.name for blob in blobs]
 

@@ -22,14 +22,13 @@ except ImportError:
 
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc
+
+from auth_interceptor import FirebaseAuthInterceptor
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
-from auth_interceptor import FirebaseAuthInterceptor
-from storage_provider import StorageProvider, LocalStorageProvider, GCSStorageProvider
-from grpc_health.v1 import health
-from grpc_health.v1 import health_pb2
-from grpc_health.v1 import health_pb2_grpc
+from storage_provider import GCSStorageProvider, LocalStorageProvider
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"
@@ -46,10 +45,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         else:
             base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
             self.storage = LocalStorageProvider(base_storage_dir)
-            
+
         self.current_file = SOURCE_FILE
         # Note: We don't load data in __init__ anymore because it's per-user
-        # self._load_data() 
+        # self._load_data()
         # self._load_config()
 
     def _get_user_path(self, context, filename=""):
@@ -61,7 +60,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # Allow disabling auth for local dev/testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true":
             return "dev-user"
-            
+
         uid = getattr(context, 'uid', None)
         if uid is None:
             context.abort(grpc.StatusCode.UNAUTHENTICATED, "Authentication required")
@@ -93,7 +92,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         config = self._load_user_config(context)
         filename = config.get("active_dataset", SOURCE_FILE)
         uid = self._check_auth(context)
-        
+
         user_path = os.path.join("users", uid, filename)
         if not self.storage.exists(user_path):
             # Fallback for prototype: check global Sample_Data.json
@@ -162,7 +161,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         print("DEBUG: UploadDataset called", flush=True)
         uid = self._check_auth(context)
         filename = "uploaded.mdb"
-        
+
         # Temporary buffer to hold file content
         file_content = io.BytesIO()
 
@@ -181,7 +180,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
                 tmp.write(file_content.getvalue())
                 tmp_path = tmp.name
-            
+
             try:
                 self.storage.upload_file(tmp_path, user_path)
             finally:
@@ -204,7 +203,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetDashboardStatsRequest()
         cache, _ = self._load_user_data(context)
         def _t(n): return cache.get(n, [])
-        
+
         teams = _t("Team")
         athletes = _t("Athlete")
         events = _t("Event")
@@ -419,16 +418,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
         config = self._load_user_config(context)
         active_file = config.get("active_dataset", SOURCE_FILE)
-        
+
         datasets = []
         try:
             # List files from users/[uid]/
             user_prefix = os.path.join("users", uid)
             files = self.storage.list_files(user_prefix)
-            
+
             # Also include default Sample_Data.json if it exists and user has no files?
             # For simplicity, let's just list user's files
-            
+
             for rel_path in files:
                 filename = os.path.basename(rel_path)
                 if filename.endswith(".json") or filename.endswith(".mdb"):
@@ -438,7 +437,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     mod_time = "0"
                     is_active = filename == active_file
                     datasets.append(pb2.Dataset(filename=filename, is_active=is_active, last_modified=mod_time))
-                    
+
             # Always include Sample_Data.json if nothing else
             if not datasets and self.storage.exists(SOURCE_FILE):
                 datasets.append(pb2.Dataset(filename=SOURCE_FILE, is_active=(active_file == SOURCE_FILE), last_modified="0"))
@@ -628,7 +627,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetScores(self, request, context):
         request = request or pb2.GetScoresRequest()
         cache, config = self._load_user_data(context)
-        
+
         teams_data = cache.get("Team", [])
         teams = {
             t.get("Team_no"): {"name": t.get("Team_name"), "id": t.get("Team_no")} for t in teams_data
@@ -1338,7 +1337,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def UpdateAdminConfig(self, request, context):
         request = request or pb2.UpdateAdminConfigRequest()
-        uid = self._check_auth(context)
+        self._check_auth(context)
         config = self._load_user_config(context)
         config["meet_name"] = request.meet_name
         config["meet_description"] = request.meet_description
@@ -1352,27 +1351,27 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
         cache, config = self._load_user_data(context)
         current_file = config.get("active_dataset", SOURCE_FILE)
-        
+
         try:
             from mm_to_json.judge_app_extractor import JudgeAppExtractor
             converter = MmToJsonConverter(table_data=cache)
             extractor = JudgeAppExtractor(converter)
             judge_data = extractor.extract_judge_data()
-            
+
             # Save to a user-specific public-accessible location
             pub_dir = os.path.join(os.path.dirname(__file__), DATA_DIR, "published", uid)
             os.makedirs(pub_dir, exist_ok=True)
-            
+
             filename = f"program_{current_file}.json"
             filepath = os.path.join(pub_dir, filename)
             with open(filepath, "w") as f:
                 json.dump(judge_data, f)
-            
+
             # Use uid in the program_url for isolation
             program_url = f"http://localhost:8080/data/published/{uid}/{filename}"
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
             judge_app_url = f"{base_url}?program_url={program_url}"
-            
+
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:
             print(f"Publish failed: {e}")
@@ -1414,14 +1413,14 @@ def serve():
         futures.ThreadPoolExecutor(max_workers=10),
         interceptors=interceptors
     )
-    
+
     # Add Health Servicer
     health_servicer = health.HealthServicer()
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
     health_servicer.set("", health_pb2.HealthCheckResponse.SERVING)
-    
+
     pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
-    
+
     server.add_insecure_port(f"[::]:{port}")
     print(f"Server starting on port {port} with AuthInterceptor and Health check...")
     server.start()

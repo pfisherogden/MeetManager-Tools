@@ -11,6 +11,11 @@ Automate the provisioning and deployment of the application to Google Cloud Run,
 
 ## Implementation Steps
 
+### 0. Cloud-Ready Backend Preparation
+- [x] **Port Normalization**: Update `server.py` to use `PORT` env var.
+- [x] **gRPC Health Check**: Implement standard health servicer.
+- [x] **Container Optimization**: Refine `backend/Dockerfile` for Cloud Run.
+
 ### 1. Infrastructure as Code (Terraform)
 - [ ] Create `deploy/` directory with Terraform configuration (`main.tf`, `variables.tf`).
 - [ ] Define resources:
