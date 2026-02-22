@@ -17,7 +17,7 @@ def generate_examples():
     os.makedirs(base_dir / "src" / "temp_reports", exist_ok=True)
 
     sample_mdb = data_dir / "sample_data_champs_2025-aftermeet.mdb"
-    print(f"Loading data from \'{sample_mdb}\'...")
+    print(f"Loading data from '{sample_mdb}'...")
 
     if not sample_mdb.exists():
         # Fallback for Docker environment if data_dir is different
@@ -48,7 +48,7 @@ def generate_examples():
     timer_data = extractor.extract_timer_sheets_data(lane_filter=0)
     WeasyRenderer(f"{output_base}/example_timer_sheets.pdf").render_entries(timer_data, "timer_sheets.j2")
 
-    print(f"\nExample reports generated in \'{output_base}\'")
+    print(f"\nExample reports generated in '{output_base}'")
 
 
 if __name__ == "__main__":

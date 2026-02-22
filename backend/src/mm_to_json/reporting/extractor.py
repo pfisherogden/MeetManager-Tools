@@ -279,6 +279,7 @@ class ReportDataExtractor:
         age_group_filter: str | None = None,
         columns_on_page: int = 2,
         show_relay_swimmers: bool = True,
+        show_dq_lines: bool = False,
     ) -> dict[str, Any]:
         full_data = self.full_data
         all_events = []
@@ -448,7 +449,12 @@ class ReportDataExtractor:
         }
 
     def extract_timer_sheets_data(
-        self, team_filter=None, report_title=None, gender_filter=None, age_group_filter=None
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
+        lane_filter: int | None = None,
     ) -> dict[str, Any]:
         full_data = self.full_data
         all_events = []
