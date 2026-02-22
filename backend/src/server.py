@@ -39,6 +39,7 @@ CONFIG_FILE = "config.json"
 class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def __init__(self):
         # Initialize storage provider
+        self.storage: StorageProvider
         bucket_name = os.getenv("GCS_BUCKET_NAME")
         if bucket_name:
             self.storage = GCSStorageProvider(bucket_name)
@@ -753,7 +754,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _get_scoring_map(self, cache):
         scoring_data = cache.get("Scoring", []) or cache.get("SCORING", [])
-        scoring_map = {}
+        scoring_map: dict[str, dict[str, dict[int, dict[str, float]]]] = {}
         for row in scoring_data:
             div = row.get("score_divno", "0")
             sex = row.get("score_sex", "M").upper()
