@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import csv
 import datetime
 import io
@@ -28,7 +30,7 @@ from auth_interceptor import FirebaseAuthInterceptor
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
-from storage_provider import GCSStorageProvider, LocalStorageProvider
+from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"

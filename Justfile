@@ -218,6 +218,34 @@ verify-mobile:
     cd mobile-judge-app && npx tsc --noEmit || echo "TypeScript errors found (ignoring for now to allow tests)"
     cd mobile-judge-app && npm test
 
+# --- Cloud Run Deployment (Phase 3) ---
+
+# Deploy the backend to Cloud Run
+# Usage: just deploy-backend PROJECT_ID BUCKET_NAME
+deploy-backend project bucket:
+    @echo "Deploying backend to Cloud Run in project {{project}}..."
+    gcloud config set project {{project}}
+    cd backend && gcloud builds submit --tag gcr.io/{{project}}/meetmanager-backend
+    gcloud run deploy meetmanager-backend \
+        --image gcr.io/{{project}}/meetmanager-backend \
+        --platform managed \
+        --region us-central1 \
+        --allow-unauthenticated \
+        --set-env-vars "GCS_BUCKET_NAME={{bucket}},PORT=8080"
+
+# Deploy the frontend to Cloud Run
+# Usage: just deploy-frontend PROJECT_ID BACKEND_URL
+deploy-frontend project backend_url:
+    @echo "Deploying frontend to Cloud Run in project {{project}}..."
+    gcloud config set project {{project}}
+    cd web-client && gcloud builds submit --tag gcr.io/{{project}}/meetmanager-frontend
+    gcloud run deploy meetmanager-frontend \
+        --image gcr.io/{{project}}/meetmanager-frontend \
+        --platform managed \
+        --region us-central1 \
+        --allow-unauthenticated \
+        --set-env-vars "BACKEND_INTERNAL_HOST={{backend_url}}"
+
 # --- Meet Program Viewer Workflows ---
 
 # Start the Meet Program Viewer
