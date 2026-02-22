@@ -9,12 +9,16 @@ from mm_to_json.reporting.extractor import ReportDataExtractor
 @pytest.fixture
 def sample_extractor():
     base_dir = Path(__file__).parent.parent
-    # Ensure we use an absolute path resolved locally for pytest
+    # 1. Local execution path (assumes from backend/)
     sample_mdb = (base_dir / "data" / "sample_data_champs_2025-aftermeet.mdb").resolve()
 
     if not sample_mdb.exists():
-        # Fallback for Docker environment
+        # 2. Docker CI fallback path
         sample_mdb = Path("/app/data/sample_data_champs_2025-aftermeet.mdb")
+        
+    if not sample_mdb.exists():
+        # 3. Alternative local fallback if running from repo root
+        sample_mdb = Path("backend/data/sample_data_champs_2025-aftermeet.mdb").resolve()
 
     if not sample_mdb.exists():
         pytest.fail(f"Sample MDB not found at {sample_mdb} or local relative path. Check test data availability.")
