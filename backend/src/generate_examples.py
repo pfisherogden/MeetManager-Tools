@@ -1,85 +1,55 @@
-import csv
-import io
+import logging
 import os
-import subprocess
-import sys
+from pathlib import Path
 
-# Add src to sys.path so we can import mm_to_json
-sys.path.append(os.path.join(os.path.dirname(__file__)))
+from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.reporting.extractor import ReportDataExtractor
+from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
-try:
-    from mm_to_json.mm_to_json import MmToJsonConverter
-    from mm_to_json.report_generator import ReportGenerator
-except ImportError as e:
-    print(f"Import error: {e}")
-    sys.exit(1)
+logging.basicConfig(level=logging.INFO)
 
 
-def load_mdb(path):
-    cache = {}
-    try:
-        tables_out = subprocess.check_output(["mdb-tables", "-1", path]).decode("utf-8")
-        tables = tables_out.strip().split()
-        for table in tables:
-            csv_out = subprocess.check_output(["mdb-export", path, table]).decode("utf-8")
-            reader = csv.DictReader(io.StringIO(csv_out))
-            cache[table] = list(reader)
-        return cache
-    except Exception as e:
-        print(f"Error loading MDB: {e}")
-        return {}
+def generate_examples():
+    # Detect the correct data path (works locally and inside Docker)
+    base_dir = Path(__file__).parent.parent
+    data_dir = base_dir / "data"
 
+    os.makedirs(base_dir / "src" / "temp_reports", exist_ok=True)
 
-def main():
-    # Use a real MDB from the data directory
-    mdb_path = "data/2025-07-12 FAST @ DP-Meet2-MeetMgr.mdb"
-    out_dir = "data/example_reports"
-    os.makedirs(out_dir, exist_ok=True)
+    sample_mdb = data_dir / "sample_data_champs_2025-aftermeet.mdb"
+    print(f"Loading data from \'{sample_mdb}\'...")
 
-    if not os.path.exists(mdb_path):
-        print(f"Error: {mdb_path} not found.")
-        # Try to find any MDB
-        data_dir = "data"
-        for f in os.listdir(data_dir):
-            if f.endswith(".mdb"):
-                mdb_path = os.path.join(data_dir, f)
-                break
-        else:
-            print("No MDB files found in data directory.")
-            return
+    if not sample_mdb.exists():
+        # Fallback for Docker environment if data_dir is different
+        sample_mdb = Path("/app/data/sample_data_champs_2025-aftermeet.mdb")
 
-    print(f"Loading {mdb_path}...")
-    table_data = load_mdb(mdb_path)
+    converter = MmToJsonConverter(str(sample_mdb))
+    extractor = ReportDataExtractor(converter)
 
-    # Initialize converter with table_data (skips mdb_writer/Jackcess)
-    converter = MmToJsonConverter(table_data=table_data)
-    hierarchical_data = converter.convert()
+    output_base = "/app/src/temp_reports" if Path("/app/src").exists() else str(base_dir / "src" / "temp_reports")
 
-    reports = [
-        ("psych", "Psych Sheet"),
-        ("entries", "Meet Entries"),
-        ("lineups", "Lineup Sheets"),
-        ("results", "Meet Results"),
-    ]
+    print("Generating Meet Program (1-Column)...")
+    program_data_1col = extractor.extract_meet_program_data(columns_on_page=1)
+    WeasyRenderer(f"{output_base}/example_meet_program_1col.pdf").render_meet_program(program_data_1col)
 
-    rg = ReportGenerator(hierarchical_data)
+    print("Generating Meet Program (2-Column)...")
+    program_data_2col = extractor.extract_meet_program_data(columns_on_page=2)
+    WeasyRenderer(f"{output_base}/example_meet_program_2col.pdf").render_meet_program(program_data_2col)
+    # Compatibility link
+    WeasyRenderer(f"{output_base}/example_meet_program.pdf").render_meet_program(program_data_2col)
 
-    for rtype, rname in reports:
-        out_path = os.path.join(out_dir, f"example_{rtype}.pdf")
-        print(f"Generating {rname}...")
-        try:
-            if rtype == "psych":
-                rg.generate_psych_sheet(out_path)
-            elif rtype == "entries":
-                rg.generate_meet_entries(out_path)
-            elif rtype == "lineups":
-                rg.generate_lineup_sheets(out_path)
-            elif rtype == "results":
-                rg.generate_meet_results(out_path)
-            print(f"Saved to {out_path}")
-        except Exception as e:
-            print(f"Failed to generate {rtype}: {e}")
+    print("Generating S&T Judge Report (1-Column with DQ Lines)...")
+    st_data = extractor.extract_meet_program_data(
+        columns_on_page=1, show_dq_lines=True, report_title="Stroke & Turn Judge Report", show_relay_swimmers=True
+    )
+    WeasyRenderer(f"{output_base}/example_st_judge_report.pdf").render_meet_program(st_data)
+
+    print("Generating Timer Sheets (All Lanes)...")
+    timer_data = extractor.extract_timer_sheets_data(lane_filter=0)
+    WeasyRenderer(f"{output_base}/example_timer_sheets.pdf").render_entries(timer_data, "timer_sheets.j2")
+
+    print(f"\nExample reports generated in \'{output_base}\'")
 
 
 if __name__ == "__main__":
-    main()
+    generate_examples()
