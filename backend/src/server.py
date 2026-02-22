@@ -25,6 +25,11 @@ except ImportError:
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
+from auth_interceptor import FirebaseAuthInterceptor
+from storage_provider import StorageProvider, LocalStorageProvider, GCSStorageProvider
+from grpc_health.v1 import health
+from grpc_health.v1 import health_pb2
+from grpc_health.v1 import health_pb2_grpc
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"
@@ -34,46 +39,85 @@ CONFIG_FILE = "config.json"
 
 class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def __init__(self):
-        self._data_cache: Any = None
-        self._scoring_map: dict[str, dict[str, dict[int, dict[str, float]]]] | None = None
+        # Initialize storage provider
+        bucket_name = os.getenv("GCS_BUCKET_NAME")
+        if bucket_name:
+            self.storage = GCSStorageProvider(bucket_name)
+        else:
+            base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+            self.storage = LocalStorageProvider(base_storage_dir)
+            
         self.current_file = SOURCE_FILE
-        self._load_data()
-        self._load_config()
+        # Note: We don't load data in __init__ anymore because it's per-user
+        # self._load_data() 
+        # self._load_config()
 
-    def _load_config(self):
-        path = os.path.join(os.path.dirname(__file__), DATA_DIR, CONFIG_FILE)
-        if os.path.exists(path):
-            try:
-                with open(path) as f:
-                    self.config = json.load(f)
-            except Exception as e:
-                print(f"Error loading config: {e}")
-                self.config = {"meet_name": "", "meet_description": ""}
-        else:
-            self.config = {"meet_name": "", "meet_description": ""}
+    def _get_user_path(self, context, filename=""):
+        uid = self._check_auth(context)
+        return os.path.join("users", uid, filename)
 
-    def _save_config(self):
-        path = os.path.join(os.path.dirname(__file__), DATA_DIR, CONFIG_FILE)
+    def _check_auth(self, context):
+        """Helper to ensure the request is authenticated."""
+        # Allow disabling auth for local dev/testing
+        if os.getenv("GRPC_AUTH_DISABLED") == "true":
+            return "dev-user"
+            
+        uid = getattr(context, 'uid', None)
+        if uid is None:
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Authentication required")
+        return uid
+
+    def _load_user_config(self, context):
+        uid = self._check_auth(context)
+        config_path = os.path.join("users", uid, CONFIG_FILE)
+        if self.storage.exists(config_path):
+            with tempfile.NamedTemporaryFile() as tmp:
+                self.storage.download_file(config_path, tmp.name)
+                with open(tmp.name) as f:
+                    return json.load(f)
+        return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
+
+    def _save_user_config(self, context, config):
+        uid = self._check_auth(context)
+        config_path = os.path.join("users", uid, CONFIG_FILE)
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+            json.dump(config, tmp, indent=2)
+            tmp_path = tmp.name
         try:
-            with open(path, "w") as f:
-                json.dump(self.config, f, indent=2)
+            self.storage.upload_file(tmp_path, config_path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def _load_user_data(self, context):
+        config = self._load_user_config(context)
+        filename = config.get("active_dataset", SOURCE_FILE)
+        uid = self._check_auth(context)
+        
+        user_path = os.path.join("users", uid, filename)
+        if not self.storage.exists(user_path):
+            # Fallback for prototype: check global Sample_Data.json
+            if self.storage.exists(SOURCE_FILE):
+                user_path = SOURCE_FILE
+            else:
+                return {}, config
+
+        with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            self.storage.download_file(user_path, tmp_path)
+            if filename.endswith(".mdb"):
+                cache = self._load_mdb(tmp_path)
+            else:
+                with open(tmp_path) as f:
+                    cache = json.load(f)
+            return cache, config
         except Exception as e:
-            print(f"Error saving config: {e}")
-
-    def _load_data(self):
-        path = os.path.join(os.path.dirname(__file__), DATA_DIR, self.current_file)
-        if not os.path.exists(path):
-            print(f"Dataset not found at {path}")
-            self._data_cache = {}
-            return
-
-        if self.current_file.endswith(".mdb"):
-            print(f"Loading MDB dataset from {self.current_file}...")
-            self._data_cache = self._load_mdb(path)
-        else:
-            with open(path) as f:
-                self._data_cache = json.load(f)
-            print(f"Loaded dataset from {SOURCE_FILE}. Keys: {list(self._data_cache.keys())}")
+            print(f"Error loading user data: {e}")
+            return {}, config
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     def _load_mdb(self, path):
         """Parsing MDB using mdb-export commands."""
@@ -116,53 +160,55 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def UploadDataset(self, request_iterator, context):
         print("DEBUG: UploadDataset called", flush=True)
+        uid = self._check_auth(context)
         filename = "uploaded.mdb"
-        filepath = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
-
-        # Temporary buffer to hold file content while we wait for filename
+        
+        # Temporary buffer to hold file content
         file_content = io.BytesIO()
 
         try:
             for request in request_iterator:
                 if request.HasField("filename"):
-                    filename = request.filename
-                    safe_name = os.path.basename(filename)
-                    # Security check: Ensure .mdb extension
-                    if not safe_name.lower().endswith(".mdb"):
-                        safe_name += ".mdb"
-
-                    filename = safe_name
-                    filepath = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
+                    filename = os.path.basename(request.filename)
+                    if not filename.lower().endswith(".mdb"):
+                        filename += ".mdb"
 
                 if request.HasField("chunk"):
                     file_content.write(request.chunk)
 
-            # Now write the buffer to the actual file
-            with open(filepath, "wb") as f:
-                f.write(file_content.getvalue())
+            # Upload to storage provider
+            user_path = os.path.join("users", uid, filename)
+            with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
+                tmp.write(file_content.getvalue())
+                tmp_path = tmp.name
+            
+            try:
+                self.storage.upload_file(tmp_path, user_path)
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
 
-            print(f"Saved uploaded file to {filepath}")
+            print(f"Saved uploaded file to {user_path}")
 
-            if filename == self.current_file:
-                print(f"Reloading active dataset {filename}...")
-                self._load_data()
+            # Update active dataset in config
+            config = self._load_user_config(context)
+            config["active_dataset"] = filename
+            self._save_user_config(context, config)
 
             return pb2.UploadDatasetResponse(success=True, message=f"Saved {filename}")
         except Exception as e:
             print(f"Upload failed: {e}")
             return pb2.UploadDatasetResponse(success=False, message=str(e))
 
-    def _get_table(self, table_name):
-        if self._data_cache is None:
-            return []
-        return self._data_cache.get(table_name, [])
-
     def GetDashboardStats(self, request, context):
         request = request or pb2.GetDashboardStatsRequest()
-        teams = self._get_table("Team")
-        athletes = self._get_table("Athlete")
-        events = self._get_table("Event")
-        meets = self._get_table("Meet")
+        cache, _ = self._load_user_data(context)
+        def _t(n): return cache.get(n, [])
+        
+        teams = _t("Team")
+        athletes = _t("Athlete")
+        events = _t("Event")
+        meets = _t("Meet")
 
         return pb2.GetDashboardStatsResponse(
             meet_count=len(meets), team_count=len(teams), athlete_count=len(athletes), event_count=len(events)
@@ -170,7 +216,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetMeets(self, request, context):
         request = request or pb2.GetMeetsRequest()
-        data = self._get_table("Meet")
+        cache, _ = self._load_user_data(context)
+        data = cache.get("Meet", [])
         meets = []
         for item in data:
             name = item.get("Meet_name") or item.get("MName") or "Unknown Meet"
@@ -183,8 +230,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetTeams(self, request, context):
         request = request or pb2.GetTeamsRequest()
-        data = self._get_table("Team")
-        athletes = self._get_table("Athlete")
+        cache, _ = self._load_user_data(context)
+        data = cache.get("Team", [])
+        athletes = cache.get("Athlete", [])
 
         # Count athletes per team
         ath_counts: dict[int, int] = {}
@@ -211,8 +259,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetTeam(self, request, context):
         request = request or pb2.GetTeamRequest()
         team_id = request.id
-        data = self._get_table("Team")
-        athlete_data = self._get_table("Athlete")
+        cache, _ = self._load_user_data(context)
+        data = cache.get("Team", [])
+        athlete_data = cache.get("Athlete", [])
         athlete_counts: dict[int, int] = {}
         for a in athlete_data:
             t_no = self._safe_int(a.get("Team_no") or a.get("team_no"))
@@ -239,8 +288,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetAthletes(self, request, context):
         request = request or pb2.GetAthletesRequest()
-        data = self._get_table("Athlete")
-        teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in self._get_table("Team")}
+        cache, _ = self._load_user_data(context)
+        data = cache.get("Athlete", [])
+        teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in cache.get("Team", [])}
 
         athletes = []
         for item in data:
@@ -270,8 +320,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetAthlete(self, request, context):
         request = request or pb2.GetAthleteRequest()
         ath_id = request.id
-        data = self._get_table("Athlete")
-        teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in self._get_table("Team")}
+        cache, _ = self._load_user_data(context)
+        data = cache.get("Athlete", [])
+        teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in cache.get("Team", [])}
 
         for item in data:
             if int(item.get("Ath_no", 0)) == ath_id:
@@ -296,19 +347,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetEvents(self, request, context):
         request = request or pb2.GetEventsRequest()
-        data = self._get_table("Event")
+        cache, _ = self._load_user_data(context)
+        data = cache.get("Event", [])
         events = []
         stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breaststroke", "D": "Butterfly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "F": "Women", "W": "Women"}
 
         entry_counts: dict[str, int] = {}
-        entries = self._get_table("Entry") or self._get_table("ENTRY")
+        entries = cache.get("Entry", []) or cache.get("ENTRY", [])
         for e in entries:
             evt_ptr = e.get("Event_ptr")
             if evt_ptr:
                 entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
 
-        relays = self._get_table("Relay") or self._get_table("RELAY")
+        relays = cache.get("Relay", []) or cache.get("RELAY", [])
         for r in relays:
             evt_ptr = r.get("Event_ptr")
             if evt_ptr:
@@ -316,8 +368,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Build session mapping from Sessitem (Linking Event_ptr to Session No)
         sess_map = {}
-        sessitem_table = self._get_table("Sessitem") or self._get_table("SESSITEM")
-        session_table = self._get_table("Session") or self._get_table("SESSIONS")
+        sessitem_table = cache.get("Sessitem", []) or cache.get("SESSITEM", [])
+        session_table = cache.get("Session", []) or cache.get("SESSIONS", [])
 
         # ptr_to_no: Sess_ptr -> Sess_no
         ptr_to_no = {s.get("Sess_ptr"): self._safe_int(s.get("Sess_no", 1)) for s in session_table if s.get("Sess_ptr")}
@@ -364,21 +416,33 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def ListDatasets(self, request, context):
         request = request or pb2.ListDatasetsRequest()
+        uid = self._check_auth(context)
+        config = self._load_user_config(context)
+        active_file = config.get("active_dataset", SOURCE_FILE)
+        
         datasets = []
-        data_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
         try:
-            files = os.listdir(data_dir)
-            for filename in files:
+            # List files from users/[uid]/
+            user_prefix = os.path.join("users", uid)
+            files = self.storage.list_files(user_prefix)
+            
+            # Also include default Sample_Data.json if it exists and user has no files?
+            # For simplicity, let's just list user's files
+            
+            for rel_path in files:
+                filename = os.path.basename(rel_path)
                 if filename.endswith(".json") or filename.endswith(".mdb"):
-                    full_path = os.path.join(data_dir, filename)
-                    try:
-                        mod_time = os.path.getmtime(full_path)
-                    except OSError:
-                        mod_time = 0
+                    # We don't easily get mod time from all storage providers without extra calls
+                    # For local, it's easy. For GCS, we need blob.updated.
+                    # For now, placeholder or 0
+                    mod_time = "0"
+                    is_active = filename == active_file
+                    datasets.append(pb2.Dataset(filename=filename, is_active=is_active, last_modified=mod_time))
+                    
+            # Always include Sample_Data.json if nothing else
+            if not datasets and self.storage.exists(SOURCE_FILE):
+                datasets.append(pb2.Dataset(filename=SOURCE_FILE, is_active=(active_file == SOURCE_FILE), last_modified="0"))
 
-                    is_active = filename == self.current_file
-
-                    datasets.append(pb2.Dataset(filename=filename, is_active=is_active, last_modified=str(mod_time)))
         except Exception as e:
             print(f"Error listing datasets: {e}")
 
@@ -386,6 +450,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def SetActiveDataset(self, request, context):
         request = request or pb2.SetActiveDatasetRequest()
+        uid = self._check_auth(context)
         filename = os.path.basename(request.filename)
 
         if not (filename.endswith(".mdb") or filename.endswith(".json")):
@@ -393,38 +458,39 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             context.set_details("Invalid file type")
             return pb2.SetActiveDatasetResponse()
 
-        path = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
-
-        if not os.path.exists(path):
+        user_path = os.path.join("users", uid, filename)
+        if not self.storage.exists(user_path) and not (filename == SOURCE_FILE and self.storage.exists(SOURCE_FILE)):
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"File {filename} not found.")
             return pb2.SetActiveDatasetResponse()
 
-        print(f"Switching dataset to {filename}...")
-        self.current_file = filename
-        self._load_data()
+        print(f"Switching user {uid} dataset to {filename}...")
+        config = self._load_user_config(context)
+        config["active_dataset"] = filename
+        self._save_user_config(context, config)
         return pb2.SetActiveDatasetResponse()
 
     def ClearDataset(self, request, context):
         request = request or pb2.ClearDatasetRequest()
+        uid = self._check_auth(context)
         filename = os.path.basename(request.filename)
         if not (filename.endswith(".mdb") or filename.endswith(".json")):
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("Invalid file type")
             return pb2.ClearDatasetResponse()
 
-        path = os.path.join(os.path.dirname(__file__), DATA_DIR, filename)
-
-        if not os.path.exists(path):
+        user_path = os.path.join("users", uid, filename)
+        if not self.storage.exists(user_path):
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"File {filename} not found.")
             return pb2.ClearDatasetResponse()
 
         try:
-            os.remove(path)
-            if self.current_file == filename:
-                self.current_file = SOURCE_FILE
-                self._load_data()
+            self.storage.delete_file(user_path)
+            config = self._load_user_config(context)
+            if config.get("active_dataset") == filename:
+                config["active_dataset"] = SOURCE_FILE
+                self._save_user_config(context, config)
 
         except Exception as e:
             print(f"Error deleting dataset {filename}: {e}")
@@ -435,22 +501,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def ClearAllDatasets(self, request, context):
         request = request or pb2.ClearAllDatasetsRequest()
-        data_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+        uid = self._check_auth(context)
         try:
-            files = os.listdir(data_dir)
-            for filename in files:
-                if filename == CONFIG_FILE or filename == "Sample_Data.json" or filename == SOURCE_FILE:
+            user_prefix = os.path.join("users", uid)
+            files = self.storage.list_files(user_prefix)
+            for rel_path in files:
+                filename = os.path.basename(rel_path)
+                if filename == CONFIG_FILE:
                     continue
-
                 if filename.endswith(".mdb") or filename.endswith(".json"):
-                    full_path = os.path.join(data_dir, filename)
-                    try:
-                        os.remove(full_path)
-                    except Exception as e:
-                        print(f"Error deleting {filename}: {e}")
+                    self.storage.delete_file(rel_path)
 
-            self.current_file = SOURCE_FILE
-            self._load_data()
+            config = self._load_user_config(context)
+            config["active_dataset"] = SOURCE_FILE
+            self._save_user_config(context, config)
 
         except Exception as e:
             print(f"Error clearing datasets: {e}")
@@ -479,11 +543,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetRelays(self, request, context):
         request = request or pb2.GetRelaysRequest()
-        relays_data = self._get_table("Relay")
+        cache, _ = self._load_user_data(context)
+        relays_data = cache.get("Relay", [])
         if not relays_data:
-            relays_data = self._get_table("RELAY")
+            relays_data = cache.get("RELAY", [])
 
-        relay_names_data = self._get_table("RelayNames")
+        relay_names_data = cache.get("RelayNames", []) or cache.get("RELAYNAMES", [])
         relay_legs_map: dict[tuple[Any, Any, Any], list[Any]] = {}
         for rn in relay_names_data:
             key = (rn.get("Event_ptr"), rn.get("Team_no"), rn.get("Relay_no"))
@@ -491,14 +556,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 relay_legs_map[key] = []
             relay_legs_map[key].append(rn)
 
-        teams = {t.get("Team_no"): t.get("Team_name") for t in self._get_table("Team")}
-        athletes = {a.get("Ath_no"): a for a in self._get_table("Athlete")}
+        teams = {t.get("Team_no"): t.get("Team_name") for t in cache.get("Team", [])}
+        athletes = {a.get("Ath_no"): a for a in cache.get("Athlete", [])}
 
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
-        for e in self._get_table("Event"):
+        for e in cache.get("Event", []):
             e_no = e.get("Event_no") or e.get("Event_ptr")
             if e_no:
                 g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
@@ -562,15 +627,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetScores(self, request, context):
         request = request or pb2.GetScoresRequest()
+        cache, config = self._load_user_data(context)
+        
+        teams_data = cache.get("Team", [])
         teams = {
-            t.get("Team_no"): {"name": t.get("Team_name"), "id": t.get("Team_no")} for t in self._get_table("Team")
+            t.get("Team_no"): {"name": t.get("Team_name"), "id": t.get("Team_no")} for t in teams_data
         }
         scores = {t_id: {"ind": 0.0, "rel": 0.0} for t_id in teams}
 
-        entries_data = self._get_table("Entry") or self._get_table("ENTRY")
-        athletes = {a.get("Ath_no"): a for a in self._get_table("Athlete")}
+        entries_data = cache.get("Entry", []) or cache.get("ENTRY", [])
+        athletes = {a.get("Ath_no"): a for a in cache.get("Athlete", [])}
         events_sex_map = {
-            e.get("Event_no") or e.get("Event_ptr"): e.get("Event_sex", "M") for e in self._get_table("Event")
+            e.get("Event_no") or e.get("Event_ptr"): e.get("Event_sex", "M") for e in cache.get("Event", [])
         }
 
         if entries_data:
@@ -582,10 +650,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     if t_id in scores:
                         e_id = e.get("Event_ptr")
                         sex = events_sex_map.get(e_id, ath.get("Ath_Sex", "M"))
-                        val = self._calculate_points(e, sex, False)
+                        val = self._calculate_points(e, sex, False, cache)
                         scores[t_id]["ind"] += val
 
-        relays_data = self._get_table("Relay") or self._get_table("RELAY")
+        relays_data = cache.get("Relay", []) or cache.get("RELAY", [])
         if relays_data:
             for r in relays_data:
                 t_id = r.get("Team_no")
@@ -595,7 +663,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if t_id in scores:
                     e_id = r.get("Event_ptr")
                     sex = events_sex_map.get(e_id, r.get("Rel_sex", "X"))
-                    val = self._calculate_points(r, sex, True)
+                    val = self._calculate_points(r, sex, True, cache)
                     scores[t_id]["rel"] += val
 
         result = []
@@ -609,7 +677,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     relay_points=s["rel"],
                     total_points=total,
                     rank=0,
-                    meet_name=self.config.get("meet_name", "Unknown Meet"),
+                    meet_name=config.get("meet_name", "Unknown Meet"),
                 )
             )
 
@@ -622,17 +690,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetEntries(self, request, context):
         request = request or pb2.GetEntriesRequest()
-        entries_data = self._get_table("Entry")
-        if not entries_data:
-            entries_data = self._get_table("ENTRY")
+        cache, _ = self._load_user_data(context)
+        entries_data = cache.get("Entry", []) or cache.get("ENTRY", [])
 
-        athletes = {a.get("Ath_no"): a for a in self._get_table("Athlete")}
-        teams = {t.get("Team_no"): t.get("Team_name") for t in self._get_table("Team")}
+        athletes = {a.get("Ath_no"): a for a in cache.get("Athlete", [])}
+        teams = {t.get("Team_no"): t.get("Team_name") for t in cache.get("Team", [])}
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
-        for e in self._get_table("Event"):
+        for e in cache.get("Event", []):
             e_no = e.get("Event_no") or e.get("Event_ptr")
             if e_no:
                 g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
@@ -683,27 +750,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             )
         return pb2.GetEntriesResponse(entries=result)
 
-    def _get_scoring_map(self):
-        if hasattr(self, "_scoring_map") and self._scoring_map is not None:
-            return self._scoring_map
-
-        scoring_data = self._get_table("Scoring") or self._get_table("SCORING")
-        self._scoring_map = {}
+    def _get_scoring_map(self, cache):
+        scoring_data = cache.get("Scoring", []) or cache.get("SCORING", [])
+        scoring_map = {}
         for row in scoring_data:
             div = row.get("score_divno", "0")
             sex = row.get("score_sex", "M").upper()
             place = self._safe_int(row.get("score_place", 0))
 
-            if div not in self._scoring_map:
-                self._scoring_map[div] = {}
-            if sex not in self._scoring_map[div]:
-                self._scoring_map[div][sex] = {}
+            if div not in scoring_map:
+                scoring_map[div] = {}
+            if sex not in scoring_map[div]:
+                scoring_map[div][sex] = {}
 
-            self._scoring_map[div][sex][place] = {
+            scoring_map[div][sex][place] = {
                 "ind": self._safe_float(row.get("ind_score", 0)),
                 "rel": self._safe_float(row.get("rel_score", 0)),
             }
-        return self._scoring_map
+        return scoring_map
 
     def _format_age(self, low, high):
         """Standardize age group naming (e.g., 6 & under)."""
@@ -717,7 +781,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return f"{low} & over"
         return f"{low}-{high}"
 
-    def _calculate_points(self, item, sex, is_relay):
+    def _calculate_points(self, item, sex, is_relay, cache):
         score = self._safe_float(item.get("Ev_score", 0))
         if score > 0:
             return score
@@ -730,7 +794,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         sex_map = {"B": "M", "M": "M", "G": "F", "W": "F", "F": "F", "X": "M"}
         mapped_sex = sex_map.get(sex.upper(), "M")
 
-        scoring_map = self._get_scoring_map()
+        scoring_map = self._get_scoring_map(cache)
         div_map = scoring_map.get(div, scoring_map.get("0", {}))
         sex_scores = div_map.get(mapped_sex, div_map.get("M", {}))
 
@@ -739,10 +803,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetEventScores(self, request, context):
         request = request or pb2.GetEventScoresRequest()
-        entries = self._get_table("Entry") or self._get_table("ENTRY")
-        relays = self._get_table("Relay") or self._get_table("RELAY")
-        athletes_map = {a.get("Ath_no"): a for a in self._get_table("Athlete")}
-        teams_map = {t.get("Team_no"): t.get("Team_name") for t in self._get_table("Team")}
+        cache, _ = self._load_user_data(context)
+        entries = cache.get("Entry", []) or cache.get("ENTRY", [])
+        relays = cache.get("Relay", []) or cache.get("RELAY", [])
+        athletes_map = {a.get("Ath_no"): a for a in cache.get("Athlete", [])}
+        teams_map = {t.get("Team_no"): t.get("Team_name") for t in cache.get("Team", [])}
 
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
@@ -751,7 +816,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         event_dict: dict[str, dict[str, Any]] = {}
         event_raw_map = {}
 
-        for e in self._get_table("Event"):
+        for e in cache.get("Event", []):
             e_no = e.get("Event_no") or e.get("Event_ptr")
             if not e_no:
                 continue
@@ -786,7 +851,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             place = self._safe_int(item.get("Fin_place", item.get("Place", 0)))
 
             ev_raw = event_raw_map.get(e_id, {})
-            points = self._calculate_points(item, ev_raw.get("Event_sex", "M"), False)
+            points = self._calculate_points(item, ev_raw.get("Event_sex", "M"), False, cache)
 
             if not item.get("Fin_Time") and place <= 0:
                 continue
@@ -823,7 +888,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             rel_ltr = item.get("Team_ltr", "")
 
             ev_raw = event_raw_map.get(e_id, {})
-            points = self._calculate_points(item, ev_raw.get("Event_sex", "X"), True)
+            points = self._calculate_points(item, ev_raw.get("Event_sex", "X"), True, cache)
 
             if not item.get("Fin_Time") and place <= 0:
                 continue
@@ -866,7 +931,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         if request is None:
             return pb2.GenerateReportResponse(success=False, message="Missing request")
         try:
-            converter = MmToJsonConverter(table_data=self._data_cache)
+            cache, _ = self._load_user_data(context)
+            converter = MmToJsonConverter(table_data=cache)
 
             rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
             team_filter = None
@@ -1018,7 +1084,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.GenerateReportBundleResponse(success=False, message="Missing request")
 
         try:
-            converter = MmToJsonConverter(table_data=self._data_cache)
+            cache, _ = self._load_user_data(context)
+            converter = MmToJsonConverter(table_data=cache)
             extractor = ReportDataExtractor(converter)
 
             rtype_map = {
@@ -1164,8 +1231,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetSessions(self, request, context):
         request = request or pb2.GetSessionsRequest()
-        data = self._get_table("Session")
-        meets = self._get_table("Meet")
+        cache, _ = self._load_user_data(context)
+        data = cache.get("Session", [])
+        meets = cache.get("Meet", [])
         meet_start = None
         if meets:
             m = meets[0]
@@ -1184,7 +1252,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     pass
 
         # Count events per session from Sessitem for reliability
-        sess_item_table = self._get_table("Sessitem") or self._get_table("SESSITEM")
+        sess_item_table = cache.get("Sessitem", []) or cache.get("SESSITEM", [])
         event_counts_map: dict[Any, int] = {}
         for si in sess_item_table:
             s_ptr = si.get("Sess_ptr")
@@ -1211,7 +1279,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     }
                 )
         else:
-            event_table = self._get_table("Event") or self._get_table("MTEVENT")
+            event_table = cache.get("Event", []) or cache.get("MTEVENT", [])
             sess_ids = sorted({self._safe_int(e.get("Sess_no", e.get("sess_no", 1))) for e in event_table})
             if not sess_ids and not event_table:
                 sess_ids = [1]
@@ -1241,7 +1309,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 sess_date = self._format_date(item.get("Sess_date", ""))
 
             s_no = s_info["id"]
-            events = self._get_table("Event") or self._get_table("MTEVENT")
+            events = cache.get("Event", []) or cache.get("MTEVENT", [])
             ev_count = 0
             if s_no:
                 ev_count = sum(1 for e in events if str(e.get("Sess_no", e.get("sess_no", 1))) == str(s_no))
@@ -1263,18 +1331,52 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetAdminConfig(self, request, context):
         request = request or pb2.GetAdminConfigRequest()
+        config = self._load_user_config(context)
         return pb2.GetAdminConfigResponse(
-            meet_name=self.config.get("meet_name", ""), meet_description=self.config.get("meet_description", "")
+            meet_name=config.get("meet_name", ""), meet_description=config.get("meet_description", "")
         )
 
     def UpdateAdminConfig(self, request, context):
         request = request or pb2.UpdateAdminConfigRequest()
-        self.config["meet_name"] = request.meet_name
-        self.config["meet_description"] = request.meet_description
-        self._save_config()
+        uid = self._check_auth(context)
+        config = self._load_user_config(context)
+        config["meet_name"] = request.meet_name
+        config["meet_description"] = request.meet_description
+        self._save_user_config(context, config)
         return pb2.UpdateAdminConfigResponse(
-            meet_name=self.config.get("meet_name", ""), meet_description=self.config.get("meet_description", "")
+            meet_name=config.get("meet_name", ""), meet_description=config.get("meet_description", "")
         )
+
+    def PublishMeetData(self, request, context):
+        request = request or pb2.PublishMeetDataRequest()
+        uid = self._check_auth(context)
+        cache, config = self._load_user_data(context)
+        current_file = config.get("active_dataset", SOURCE_FILE)
+        
+        try:
+            from mm_to_json.judge_app_extractor import JudgeAppExtractor
+            converter = MmToJsonConverter(table_data=cache)
+            extractor = JudgeAppExtractor(converter)
+            judge_data = extractor.extract_judge_data()
+            
+            # Save to a user-specific public-accessible location
+            pub_dir = os.path.join(os.path.dirname(__file__), DATA_DIR, "published", uid)
+            os.makedirs(pub_dir, exist_ok=True)
+            
+            filename = f"program_{current_file}.json"
+            filepath = os.path.join(pub_dir, filename)
+            with open(filepath, "w") as f:
+                json.dump(judge_data, f)
+            
+            # Use uid in the program_url for isolation
+            program_url = f"http://localhost:8080/data/published/{uid}/{filename}"
+            base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
+            judge_app_url = f"{base_url}?program_url={program_url}"
+            
+            return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
+        except Exception as e:
+            print(f"Publish failed: {e}")
+            return pb2.PublishMeetDataResponse(success=False, message=str(e))
 
     def _safe_int(self, value, default=0):
         try:
@@ -1306,10 +1408,22 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    port = os.getenv("PORT", "50051")
+    interceptors = [FirebaseAuthInterceptor()]
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        interceptors=interceptors
+    )
+    
+    # Add Health Servicer
+    health_servicer = health.HealthServicer()
+    health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
+    health_servicer.set("", health_pb2.HealthCheckResponse.SERVING)
+    
     pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
-    server.add_insecure_port("[::]:50051")
-    print("Server starting on port 50051...")
+    
+    server.add_insecure_port(f"[::]:{port}")
+    print(f"Server starting on port {port} with AuthInterceptor and Health check...")
     server.start()
     server.wait_for_termination()
 

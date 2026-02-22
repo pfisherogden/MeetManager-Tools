@@ -18,6 +18,9 @@ dependencies = [
     "weasyprint>=68.1",
     "beautifulsoup4>=4.14.3",
     "pytz>=2024.1",
+    "firebase-admin>=7.1.0",
+    "google-cloud-storage>=3.9.0",
+    "grpcio-health-checking>=1.78.0",
 ]
 
 [tool.ruff]
