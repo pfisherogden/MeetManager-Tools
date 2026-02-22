@@ -16,11 +16,16 @@ except ImportError:
 class TestBugReproduction:
     @pytest.fixture
     def service(self):
-        with patch.object(MeetManagerService, "_load_data", return_value=None):
-            svc = MeetManagerService()
-            svc.config = {}
-            svc._scoring_map = None
-            return svc
+        svc = MeetManagerService()
+        svc.config = {}
+        svc._data_cache = {}
+        
+        # Patch _load_user_data to return our manual cache/config
+        def mock_load_user_data(context):
+            return svc._data_cache, svc.config
+            
+        with patch.object(svc, "_load_user_data", side_effect=mock_load_user_data):
+            yield svc
 
     def test_bug_1_entries_have_valid_ids(self, service):
         """Bug 1: Entries has an empty 'ID' column (now using Entry_no)."""

@@ -78,6 +78,8 @@ jobs:
         run: just type-check-backend
 
       - name: Test with Pytest
+        env:
+          GRPC_AUTH_DISABLED: "true"
         run: PYTHONPATH=backend/src uv run pytest backend/tests/
 
   web-client:

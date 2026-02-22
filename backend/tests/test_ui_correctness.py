@@ -19,11 +19,16 @@ except ImportError:
 class TestUICorrectness:
     @pytest.fixture
     def service(self):
-        with patch.object(MeetManagerService, "_load_data", return_value=None):
-            with patch.object(MeetManagerService, "_load_config", return_value=None):
-                svc = MeetManagerService()
-                svc.config = {}  # Initialize manually since we mocked _load_config
-                return svc
+        svc = MeetManagerService()
+        svc.config = {}
+        svc._data_cache = {}
+        
+        # Patch _load_user_data to return our manual cache/config
+        def mock_load_user_data(context):
+            return svc._data_cache, svc.config
+            
+        with patch.object(svc, "_load_user_data", side_effect=mock_load_user_data):
+            yield svc
 
     def test_get_teams_athlete_count(self, service):
         service._data_cache = {

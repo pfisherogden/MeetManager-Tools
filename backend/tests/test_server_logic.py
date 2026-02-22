@@ -20,10 +20,7 @@ except ImportError:
 
 
 def test_get_events_mapping():
-    # Patch _load_data to avoid file access during init
-    with patch.object(MeetManagerService, "_load_data", return_value=None):
-        service = MeetManagerService()
-
+    service = MeetManagerService()
     # Mock data
     service._data_cache = {
         "Event": [
@@ -45,35 +42,37 @@ def test_get_events_mapping():
             {"Event_no": "3", "Event_stroke": "B ", "Event_sex": " G ", "Event_dist": "100"},  # Whitespace
         ]
     }
+    
+    # Patch _load_user_data to return our manual cache/config
+    def mock_load_user_data(context):
+        return service._data_cache, {}
+            
+    with patch.object(service, "_load_user_data", side_effect=mock_load_user_data):
+        response = service.GetEvents(None, None)
+        events = response.events
 
-    response = service.GetEvents(None, None)
-    events = response.events
+        assert len(events) == 3
+        assert events[0].stroke == "Freestyle"
+        assert events[0].gender == "Men"  # M -> Men
 
-    assert len(events) == 3
-    assert events[0].stroke == "Freestyle"
-    assert events[0].gender == "Men"  # M -> Men
+        assert events[1].stroke == "Medley Relay"
+        assert events[1].gender == "Women"  # F -> Women
 
-    assert events[1].stroke == "Medley Relay"
-    assert events[1].gender == "Women"  # F -> Women
-
-    assert events[2].stroke == "Backstroke"  # "B " -> "Backstroke"
-    assert events[2].gender == "Girls"  # " G " -> "Girls"
+        assert events[2].stroke == "Backstroke"  # "B " -> "Backstroke"
+        assert events[2].gender == "Girls"  # " G " -> "Girls"
 
 
 def test_reload_on_upload():
-    with patch.object(MeetManagerService, "_load_data", return_value=None) as mock_load:
-        service = MeetManagerService()
-        service.current_file = "uploaded.mdb"
+    service = MeetManagerService()
+    
+    # Patch _save_user_config and _load_user_config to avoid actual storage
+    with patch.object(service, "_save_user_config", return_value=None):
+        with patch.object(service, "_load_user_config", return_value={}):
+            # Simulate upload
+            request = meet_manager_pb2.UploadRequest(filename="uploaded.mdb")
 
-        # Reset mock from init call
-        mock_load.reset_mock()
-
-        # Simulate upload of uploaded.mdb
-        # We need a generator for request_iterator
-        request = meet_manager_pb2.UploadRequest(filename="uploaded.mdb")
-
-        # Mock file writing
-        with patch("builtins.open", new_callable=MagicMock):
-            service.UploadDataset(iter([request]), None)
-
-        mock_load.assert_called_once()
+            # Mock file writing and storage upload
+            with patch("builtins.open", new_callable=MagicMock):
+                with patch.object(service.storage, "upload_file", return_value=None):
+                    with patch.object(service, "_check_auth", return_value="dev-user"):
+                        service.UploadDataset(iter([request]), None)
