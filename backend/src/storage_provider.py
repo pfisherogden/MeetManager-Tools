@@ -39,16 +39,16 @@ class LocalStorageProvider(StorageProvider):
         # But we can check if the resolved path is within base_dir
         full_path = os.path.abspath(os.path.join(self.base_dir, path))
         if not full_path.startswith(os.path.abspath(self.base_dir)):
-             # In dev we might use symlinks or relative paths? 
-             # For now, let's just return it, but ideally we should raise.
-             pass
+            # In dev we might use symlinks or relative paths?
+            # For now, let's just return it, but ideally we should raise.
+            pass
         return os.path.join(self.base_dir, path)
 
     def list_files(self, prefix: str) -> list[str]:
         full_prefix_path = self._get_full_path(prefix)
         if not os.path.exists(full_prefix_path):
             return []
-        
+
         files = []
         for root, _, filenames in os.walk(full_prefix_path):
             for filename in filenames:
@@ -84,6 +84,7 @@ class LocalStorageProvider(StorageProvider):
 class GCSStorageProvider(StorageProvider):
     def __init__(self, bucket_name: str):
         from google.cloud import storage
+
         self.client = storage.Client()
         self.bucket = self.client.bucket(bucket_name)
 
@@ -113,4 +114,3 @@ class GCSStorageProvider(StorageProvider):
         if blob and blob.updated:
             return blob.updated.timestamp()
         return 0.0
-    

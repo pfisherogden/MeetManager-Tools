@@ -100,14 +100,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # Check cache
         if uid in self._user_cache:
             entry = self._user_cache[uid]
-            if entry['filename'] == filename:
+            if entry["filename"] == filename:
                 # Check if modified
                 try:
                     mtime = self.storage.get_last_modified(user_path)
-                    if mtime == entry['mtime']:
-                        return entry['data'], config
+                    if mtime == entry["mtime"]:
+                        return entry["data"], config
                 except Exception:
-                    pass # Force reload on error
+                    pass  # Force reload on error
 
         if not self.storage.exists(user_path):
             # Fallback for prototype: check global Sample_Data.json
@@ -125,11 +125,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             else:
                 with open(tmp_path) as f:
                     cache = json.load(f)
-            
+
             # Update cache
             try:
                 mtime = self.storage.get_last_modified(user_path)
-                self._user_cache[uid] = {'filename': filename, 'mtime': mtime, 'data': cache}
+                self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
             except Exception as e:
                 print(f"Failed to update cache: {e}")
 

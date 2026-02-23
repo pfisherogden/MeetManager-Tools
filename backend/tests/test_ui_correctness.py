@@ -99,7 +99,7 @@ class TestUICorrectness:
     def test_admin_config_persistence(self, service):
         # Setup
         initial_config = {"meet_name": "Old Name", "meet_description": "Old Desc"}
-        
+
         with patch.object(service, "_load_user_config", return_value=initial_config):
             with patch.object(service, "_save_user_config", return_value=None) as mock_save:
                 # Update
