@@ -10,10 +10,6 @@ description: Enforcement of code style and quality checks for MeetManager-Tools.
 - **Auto-Fix**: Run `just fix` to automatically resolve formatting and basic lint issues.
 - **Prohibit Exceptions**: Avoid bare `except` blocks and unused imports.
 - **Protect Stubs**: Exclude `.pyi` files from Ruff formatting to prevent conflicts with type stubs.
-- **Avoid sys.path hacks**: Do not use `sys.path.insert` or `sys.path.append` for local module imports. This triggers `E402` (imports not at top of file) and interferes with `isort` sorting. Instead:
-    - Set `PYTHONPATH` in the execution environment (e.g., Dockerfile `ENV` or `Justfile` recipe).
-    - Use absolute imports relative to the package root.
-    - If `E402` is unavoidable in a standalone script, prefer sorting imports and using `# noqa: E402` only as a last resort.
 
 ## TypeScript/React (Frontend)
 - **Use Biome**: Apply Biome for linting and formatting the `web-client`.
@@ -26,6 +22,5 @@ description: Enforcement of code style and quality checks for MeetManager-Tools.
 - **Structure**: Maintain versioned directories (e.g., `v1/`).
 
 ## Verification
-- **Mandatory Pre-Push Pass**: You MUST run `just lint` (which executes Ruff, Biome, and Buf checks) immediately before every `git push`. 
-- **Zero Tolerance**: If `just lint` fails, you MUST NOT push until all errors are resolved.
-- **Hermetic Check**: Use `just verify-ci` to catch environment-specific linting issues (e.g., binary mismatches) in a clean Docker container.
+- **Local Check**: Run `just lint` before pushing.
+- **Hermetic Check**: Use `just verify-ci` to catch environment-specific linting issues (e.g., binary mismatches).

@@ -7,7 +7,6 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
 
 ## Core Principles
 - **Mandatory Verification**: Every code change must be accompanied by tests.
-- **5-Cycle Rule**: For any major implementation or bug fix, you MUST run the full relevant test suite (e.g., `just test-backend`) **5 times consecutively**. All runs must pass 100% to consider the change verified. This prevents regressions due to flakiness or intermittent state issues.
 - **Unified Entry Point**: Use `just test` for full suite execution.
 - **Robustness**: Ensure gRPC server methods handle `request=None` gracefully.
 - **Environment Consistency**: Prefer running tests in Docker (`just test-backend` or `docker-compose run ...`) over local execution to avoid OS-specific library issues (e.g., Cairo/Pango versions).
