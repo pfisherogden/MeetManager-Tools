@@ -4,11 +4,13 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "50051:50051"
+      - "8080:8080"
     volumes:
       # - ./backend/data:/app/data # Removed to fix locking issues on macOS
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests
+      - ./backend/tests/fixtures:/app/tests/fixtures
+      - ./tests/fixtures/anonymized_meets:/app/tests/fixtures/anonymized_meets
       - ./protos:/app/protos
     environment:
       - PYTHONUNBUFFERED=1
@@ -22,6 +24,6 @@ services:
     volumes:
       - ./protos:/app/protos
     environment:
-      - BACKEND_INTERNAL_HOST=backend:50051
+      - BACKEND_INTERNAL_HOST=backend:8080
     depends_on:
       - backend

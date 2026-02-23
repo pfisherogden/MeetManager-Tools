@@ -18,3 +18,7 @@ description: Best practices for GitHub flows in MeetManager-Tools
 ## Branching
 - Base all new features on `main`.
 - Use descriptive branch names like `feat/feature-name` or `fix/bug-name`.
+
+## Issue Updates
+- **Add Comments**: When updating a GitHub issue with progress or new information, always add a **new comment**.
+- **Do Not Edit**: Do not rewrite or edit previous status updates unless correcting a factual error (e.g., a typo). This ensures the history of the work is preserved.

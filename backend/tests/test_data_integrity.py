@@ -7,13 +7,23 @@ import pytest
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
+from unittest.mock import MagicMock
+
 from server import MeetManagerService
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+# Precise fixture directory discovery
+candidates = [
+    os.path.join(os.path.dirname(__file__), "fixtures"),
+    "/app/backend/tests/fixtures",
+    "/app/tests/fixtures",
+]
+FIXTURES_DIR = next((p for p in candidates if os.path.exists(os.path.join(p, "Athlete.json"))), candidates[0])
 
 
 class MockMeetManagerService(MeetManagerService):
     def __init__(self):
+        self.storage = MagicMock()
+        self.config = {}
         self._data_cache = {}
         for name in ["Relay", "RelayNames", "Entry", "Event", "Session", "Team", "Scoring", "Athlete"]:
             try:
@@ -22,8 +32,8 @@ class MockMeetManagerService(MeetManagerService):
             except FileNotFoundError:
                 self._data_cache[name] = []
 
-    def _get_table(self, table_name):
-        return self._data_cache.get(table_name, [])
+    def _load_user_data(self, context):
+        return self._data_cache, self.config
 
 
 @pytest.fixture

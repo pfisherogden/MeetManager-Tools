@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import type React from "react";
 import "./globals.css";
 import { ConfigProvider } from "@/components/config-provider";
+import { Providers } from "./providers";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -40,7 +41,9 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body className={`font-sans antialiased`}>
-				<ConfigProvider>{children}</ConfigProvider>
+				<Providers>
+					<ConfigProvider>{children}</ConfigProvider>
+				</Providers>
 				<Analytics />
 			</body>
 		</html>
