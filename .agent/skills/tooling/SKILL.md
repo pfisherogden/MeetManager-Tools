@@ -39,6 +39,7 @@ description: Preferred tools for development and dependency management in MeetMa
   - **Piping**: If a command lacks a non-interactive flag, pipe `yes` into it: `yes | command`.
   - **Backgrounding**: Redirect stdout/stderr to files when running long-running containerized tasks in the background to prevent terminal hangs.
   - **Build Debugging**: If a build stalls for >10 minutes, use `--progress=plain` to identify the failing layer.
+  - **Docker OOM on Build**: Next.js production builds (e.g. `npm run build`) in Docker containers are highly prone to aggressive out-of-memory (OOM) kills. If the Docker build hangs silently or exits `137` during type checking or static generation, export `NODE_OPTIONS=--max-old-space-size=4096` in the Dockerfile immediately preceding the build step.
 
 ## Cross-Platform Reliability
 - **System Libraries**: Libraries like WeasyPrint require non-Python system dependencies (e.g., `libpango`, `libffi`). These MUST be explicitly installed in `ci.Dockerfile` and `backend/Dockerfile` using `apt-get`.
