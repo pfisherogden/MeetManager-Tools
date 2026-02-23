@@ -26,5 +26,6 @@ description: Enforcement of code style and quality checks for MeetManager-Tools.
 - **Structure**: Maintain versioned directories (e.g., `v1/`).
 
 ## Verification
-- **Local Check**: Run `just lint` before pushing.
-- **Hermetic Check**: Use `just verify-ci` to catch environment-specific linting issues (e.g., binary mismatches).
+- **Mandatory Pre-Push Pass**: You MUST run `just lint` (which executes Ruff, Biome, and Buf checks) immediately before every `git push`. 
+- **Zero Tolerance**: If `just lint` fails, you MUST NOT push until all errors are resolved.
+- **Hermetic Check**: Use `just verify-ci` to catch environment-specific linting issues (e.g., binary mismatches) in a clean Docker container.
