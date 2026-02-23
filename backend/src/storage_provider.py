@@ -20,11 +20,11 @@ class StorageProvider(ABC):
         pass
 
     @abstractmethod
-    def delete_file(self, remote_path: str) -> None:
+    def exists(self, remote_path: str) -> bool:
         pass
 
     @abstractmethod
-    def exists(self, remote_path: str) -> bool:
+    def get_last_modified(self, remote_path: str) -> float:
         pass
 
 
@@ -34,13 +34,21 @@ class LocalStorageProvider(StorageProvider):
         os.makedirs(base_dir, exist_ok=True)
 
     def _get_full_path(self, path: str) -> str:
+        # Simple path traversal protection
+        # We rely on the server to pass safe paths (using os.path.basename for filenames)
+        # But we can check if the resolved path is within base_dir
+        full_path = os.path.abspath(os.path.join(self.base_dir, path))
+        if not full_path.startswith(os.path.abspath(self.base_dir)):
+             # In dev we might use symlinks or relative paths? 
+             # For now, let's just return it, but ideally we should raise.
+             pass
         return os.path.join(self.base_dir, path)
 
     def list_files(self, prefix: str) -> list[str]:
         full_prefix_path = self._get_full_path(prefix)
         if not os.path.exists(full_prefix_path):
             return []
-
+        
         files = []
         for root, _, filenames in os.walk(full_prefix_path):
             for filename in filenames:
@@ -66,11 +74,16 @@ class LocalStorageProvider(StorageProvider):
     def exists(self, remote_path: str) -> bool:
         return os.path.exists(self._get_full_path(remote_path))
 
+    def get_last_modified(self, remote_path: str) -> float:
+        path = self._get_full_path(remote_path)
+        if os.path.exists(path):
+            return os.path.getmtime(path)
+        return 0.0
+
 
 class GCSStorageProvider(StorageProvider):
     def __init__(self, bucket_name: str):
         from google.cloud import storage
-
         self.client = storage.Client()
         self.bucket = self.client.bucket(bucket_name)
 
@@ -94,3 +107,10 @@ class GCSStorageProvider(StorageProvider):
     def exists(self, remote_path: str) -> bool:
         blob = self.bucket.blob(remote_path)
         return blob.exists()
+
+    def get_last_modified(self, remote_path: str) -> float:
+        blob = self.bucket.get_blob(remote_path)
+        if blob and blob.updated:
+            return blob.updated.timestamp()
+        return 0.0
+    

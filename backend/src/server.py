@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import csv
 import datetime
 import io
 import json
 import logging
 import os
-import subprocess
 import tempfile
 from concurrent import futures
 from typing import Any
@@ -49,6 +47,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
             self.storage = LocalStorageProvider(base_storage_dir)
 
+        # Cache structure: {uid: {'filename': str, 'mtime': float, 'data': dict}}
+        self._user_cache: dict[str, dict[str, Any]] = {}
         self.current_file = SOURCE_FILE
         # Note: We don't load data in __init__ anymore because it's per-user
         # self._load_data()
@@ -97,6 +97,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
 
         user_path = os.path.join("users", uid, filename)
+        # Check cache
+        if uid in self._user_cache:
+            entry = self._user_cache[uid]
+            if entry['filename'] == filename:
+                # Check if modified
+                try:
+                    mtime = self.storage.get_last_modified(user_path)
+                    if mtime == entry['mtime']:
+                        return entry['data'], config
+                except Exception:
+                    pass # Force reload on error
+
         if not self.storage.exists(user_path):
             # Fallback for prototype: check global Sample_Data.json
             if self.storage.exists(SOURCE_FILE):
@@ -113,6 +125,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             else:
                 with open(tmp_path) as f:
                     cache = json.load(f)
+            
+            # Update cache
+            try:
+                mtime = self.storage.get_last_modified(user_path)
+                self._user_cache[uid] = {'filename': filename, 'mtime': mtime, 'data': cache}
+            except Exception as e:
+                print(f"Failed to update cache: {e}")
+
             return cache, config
         except Exception as e:
             print(f"Error loading user data: {e}")
@@ -144,59 +164,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 # might produce ints/floats.
                 # We'll convert to dicts and let Python handle types, but be aware of mismatch.
                 records = df.to_dict("records")
-                # Ensure keys match what server expects (MmToJsonConverter lowercases cols?)
-                # MmToJsonConverter uses table_aliases to map to Logical names (e.g. "Athlete").
-                # It also lowercases columns.
-                # The server logic (e.g. GetAthletes) looks for "Ath_no" or "First_name".
-                # MmToJsonConverter might return "ath_no", "first_name".
-                # We need to normalize or adjust server logic.
-                
-                # Actually, looking at MmToJsonConverter._load_from_data:
-                # df.columns = df.columns.astype(str).str.lower()
-                # So keys will be lowercase.
-                
-                # Server logic: item.get("Ath_no", 0) -> This will fail if key is "ath_no".
-                # We need a case-insensitive getter or we need to update server logic.
-                
-                # To maintain compatibility without rewriting the whole server, 
-                # let's duplicate keys in the cache or normalize them?
-                # Better: MmToJsonConverter.tables keys are Logical (e.g. "Athlete").
-                # Let's clean the records.
-                cleaned_records = []
-                for r in records:
-                    # Convert all keys to Title Case or keep as is?
-                    # The legacy mdb-export output preserved case from Access (often PascalCase).
-                    # But MmToJsonConverter lowercases them.
-                    # Let's create a CaseInsensitiveDict wrapper or just normalize?
-                    # Since we can't easily wrap everything passed to pb2, let's update the keys 
-                    # to match the most common usage in server.py, or just accept lowercase.
-                    
-                    # BUT server.py uses item.get("Ath_no")
-                    # If we change to item.get("ath_no"), we break compatibility with JSON fixtures?
-                    # JSON fixtures keys: "Ath_no", "First_name".
-                    
-                    # Hack: Capitalize first letter? No, "Ath_no".
-                    # Let's just upper-case the first char of keys? "ath_no" -> "Ath_no"?
-                    # No, "ath_sex" -> "Ath_Sex".
-                    
-                    # Maybe we should rely on the fact that we can just fix the keys here.
-                    new_r = {}
-                    for k, v in r.items():
-                        # Simple mapping for common columns
-                        k_str = str(k)
-                        # Try to restore some CamelCase if possible or just store as lowercase
-                        # and update server.py to look for lowercase too.
-                        new_r[k_str] = v
-                        # Also add a TitleCase version for compat if needed?
-                        if "_" in k_str:
-                            parts = k_str.split("_")
-                            title_key = "_".join([p.capitalize() for p in parts])
-                            new_r[title_key] = v
-                            # Special case: "Ath_no" matches "ath_no".capitalize() -> "Ath_No"? No.
-                    
-                    cleaned_records.append(new_r)
-                
-                cache[table_name] = cleaned_records
+                cache[table_name] = records
 
             return cache
         except Exception as e:
