@@ -20,6 +20,10 @@ class StorageProvider(ABC):
         pass
 
     @abstractmethod
+    def delete_file(self, remote_path: str) -> None:
+        pass
+
+    @abstractmethod
     def exists(self, remote_path: str) -> bool:
         pass
 
