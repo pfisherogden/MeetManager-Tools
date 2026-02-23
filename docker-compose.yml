@@ -18,7 +18,7 @@ services:
       context: .
       dockerfile: web-client/Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - ./protos:/app/protos
     environment:

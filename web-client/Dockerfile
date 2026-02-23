@@ -19,6 +19,7 @@ RUN mkdir -p lib/proto && \
 # 3. Copy web-client source and build (layer 3)
 COPY web-client/ .
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Production image

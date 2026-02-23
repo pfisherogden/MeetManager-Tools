@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import type { DQ, Event, Heat, Swimmer } from "../types";
+import sampleData from "../../assets/sample_program.json";
 
 // Web Mock State
 let mockEvents: Event[] = [];
@@ -9,7 +10,7 @@ let mockDQs: DQ[] = [];
 
 export const getDb = () => {
 	return {
-		execSync: () => {},
+		execSync: () => { },
 		runSync: () => ({ lastInsertRowId: 1, changes: 1 }),
 		getAllSync: (_query: string) => [],
 		getFirstSync: () => ({ count: 0 }),
@@ -53,6 +54,18 @@ export const loadFromJSON = (programData: {
 export const seedData = () => {
 	if (Platform.OS === "web") {
 		if (mockEvents.length > 0) return; // Already seeded or loaded
+
+		if (sampleData && sampleData.events) {
+			mockEvents = sampleData.events as unknown as Event[];
+			mockHeats = sampleData.heats as unknown as Heat[];
+			mockSwimmers = sampleData.swimmers as unknown as Swimmer[];
+			console.log("Web Mock DB Seeded from comprehensive JSON:", {
+				events: mockEvents.length,
+				heats: mockHeats.length,
+				swimmers: mockSwimmers.length,
+			});
+			return;
+		}
 
 		mockEvents = [
 			{
