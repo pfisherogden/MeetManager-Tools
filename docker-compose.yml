@@ -9,6 +9,8 @@ services:
       # - ./backend/data:/app/data # Removed to fix locking issues on macOS
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests
+      - ./backend/tests/fixtures:/app/tests/fixtures
+      - ./tests/fixtures/anonymized_meets:/app/tests/fixtures/anonymized_meets
       - ./protos:/app/protos
     environment:
       - PYTHONUNBUFFERED=1

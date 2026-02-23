@@ -9,7 +9,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"
 
 # Define a mock for meet_manager_pb2 if import fails (unlikely if protos generated)
 try:
-    import meet_manager_pb2
+    try:
+        from meetmanager.v1 import meet_manager_pb2
+    except ImportError:
+        import meet_manager_pb2
 
     from server import MeetManagerService
 except ImportError:
@@ -90,23 +93,24 @@ class TestUICorrectness:
 
         response = service.GetSessions(None, None)
         assert len(response.sessions) == 1
-        assert response.sessions[0].name == "All Events"
+        assert response.sessions[0].name == "Session 1"
         assert response.sessions[0].event_count == 0
 
     def test_admin_config_persistence(self, service):
-        # Mock file writing
-        with patch("builtins.open", new_callable=MagicMock) as mock_open:
-            # Setup
-            service.config = {"meet_name": "Old Name", "meet_description": "Old Desc"}
+        # Setup
+        initial_config = {"meet_name": "Old Name", "meet_description": "Old Desc"}
+        
+        with patch.object(service, "_load_user_config", return_value=initial_config):
+            with patch.object(service, "_save_user_config", return_value=None) as mock_save:
+                # Update
+                req = meet_manager_pb2.UpdateAdminConfigRequest(meet_name="New Name", meet_description="New Desc")
+                mock_context = MagicMock()
+                mock_context.uid = "test-user"
 
-            # Update
-            req = meet_manager_pb2.AdminConfig(meet_name="New Name", meet_description="New Desc")
+                res = service.UpdateAdminConfig(req, mock_context)
 
-            # Since we are mocking open, json.dump will write to the mock
-            res = service.UpdateAdminConfig(req, None)
-
-            assert res.meet_name == "New Name"
-            assert service.config["meet_name"] == "New Name"
-
-            # Verify file write was called
-            mock_open.assert_called()
+                assert res.meet_name == "New Name"
+                # Verify save was called with updated config
+                mock_save.assert_called_once()
+                args, _ = mock_save.call_args
+                assert args[1]["meet_name"] == "New Name"

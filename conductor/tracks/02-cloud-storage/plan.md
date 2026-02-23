@@ -13,15 +13,15 @@ Implement data isolation using Google Cloud Storage (GCS) and an abstract storag
 ## Implementation Steps
 
 ### 1. Storage Abstraction
-- [ ] Create `backend/src/storage_provider.py` with an abstract base class.
-- [ ] Implement `LocalStorageProvider` (current functionality).
-- [ ] Implement `GCSStorageProvider` using the `google-cloud-storage` library.
-- [ ] Update `server.py` and `dataset_loader.py` to use the `StorageProvider` interface.
+- [x] Create `backend/src/storage_provider.py` with an abstract base class.
+- [x] Implement `LocalStorageProvider` (current functionality).
+- [x] Implement `GCSStorageProvider` using the `google-cloud-storage` library.
+- [x] Update `server.py` and `dataset_loader.py` to use the `StorageProvider` interface.
 
 ### 2. Multi-User Dataset Loading
-- [ ] Update `UploadDataset` logic to include the authenticated `uid` in the storage path.
-- [ ] Update `ListDatasets` logic to filter files by the user's `uid` prefix in GCS.
-- [ ] Update `GenerateReportBundle` to store results in user-specific temporary directories.
+- [x] Update `UploadDataset` logic to include the authenticated `uid` in the storage path.
+- [x] Update `ListDatasets` logic to filter files by the user's `uid` prefix in GCS.
+- [x] Update `GenerateReportBundle` to store results in user-specific temporary directories.
 
 ## Verification Strategy
 - **Unit Test (Backend)**: Verify `StorageProvider` implementations using mocks for the file system and GCS API.

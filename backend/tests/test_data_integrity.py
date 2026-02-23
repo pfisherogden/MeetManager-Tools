@@ -11,7 +11,13 @@ from unittest.mock import MagicMock
 
 from server import MeetManagerService
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+# Precise fixture directory discovery
+candidates = [
+    os.path.join(os.path.dirname(__file__), "fixtures"),
+    "/app/backend/tests/fixtures",
+    "/app/tests/fixtures",
+]
+FIXTURES_DIR = next((p for p in candidates if os.path.exists(os.path.join(p, "Athlete.json"))), candidates[0])
 
 
 class MockMeetManagerService(MeetManagerService):

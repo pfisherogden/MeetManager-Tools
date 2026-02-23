@@ -13,20 +13,20 @@ Implement secure multi-user authentication using Firebase and ensure that the us
 ## Implementation Steps
 
 ### 1. Firebase Client Setup
-- [ ] Initialize Firebase SDK in `web-client`.
-- [ ] Create `AuthContext.tsx` to manage user state (loading, user, logout).
-- [ ] Implement Google Login flow.
-- [ ] Update `web-client/lib/mm-client.ts` to fetch the current ID token and add it as a `Authorization: Bearer <token>` header to all gRPC calls.
+- [x] Initialize Firebase SDK in `web-client`.
+- [x] Create `AuthContext.tsx` to manage user state (loading, user, logout).
+- [x] Implement Google Login flow.
+- [x] Update `web-client/lib/mm-client.ts` to fetch the current ID token and add it as a `Authorization: Bearer <token>` header to all gRPC calls.
 
 ### 2. Backend JWT Verification
-- [ ] Add `firebase-admin` to `backend/pyproject.toml`.
-- [ ] Create `backend/src/auth_interceptor.py`.
-- [ ] Implement `AsyncServerInterceptor` to:
+- [x] Add `firebase-admin` to `backend/pyproject.toml`.
+- [x] Create `backend/src/auth_interceptor.py`.
+- [x] Implement `AsyncServerInterceptor` to:
     - Extract Bearer token from metadata.
     - Verify token using `auth.verify_id_token`.
     - Extract `uid` and store in `context`.
     - Reject unauthenticated requests to protected methods.
-- [ ] Update `server.py` to use the new interceptor.
+- [x] Update `server.py` to use the new interceptor.
 
 ## Verification Strategy
 - **Unit Test (Backend)**: Mock `firebase-admin` and verify the interceptor correctly extracts and validates the UID.

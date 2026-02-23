@@ -68,6 +68,12 @@ The backend uses Firebase Admin SDK to verify user identity tokens.
 - Ensure your Firebase Project ID matches your Google Cloud Project ID.
 - The user's UID from the ID token is used to sandbox data under `gs://[BUCKET]/users/[UID]/`.
 
+### Using Multi-User Isolation in Development
+When running locally with `docker-compose` or `LocalStorageProvider`:
+1.  **User Directories**: The system will automatically create directories in `backend/data/users/[UID]/`.
+2.  **Mock Authentication**: To skip Firebase setup during local development, set `GRPC_AUTH_DISABLED=true`. The system will then use a default `dev-user` identity for all requests.
+3.  **Manual Login**: If using real Firebase, the web client will handle the Google Login popup and pass the token to the backend.
+
 ## API Definition
 See `protos/meetmanager/v1/meet_manager.proto` for the full Service definition.
 # CI Trigger

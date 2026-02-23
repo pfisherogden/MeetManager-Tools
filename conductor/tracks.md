@@ -4,9 +4,9 @@ This registry tracks the major workstreams (Tracks) for the MeetManager-Tools cl
 
 | ID | Title | Status | Link |
 |:---|:---|:---|:---|
-| `01-multi-user-auth` | [Phase 1] Multi-User Authentication & User Context | 🟢 Proposed | [Plan](./tracks/01-multi-user-auth/plan.md) |
-| `02-cloud-storage` | [Phase 2] User-Sandboxed Data Storage & Management | 🟢 Proposed | [Plan](./tracks/02-cloud-storage/plan.md) |
-| `03-cloud-run-deployment` | [Phase 3] Automated Cloud Infrastructure & CI/CD | 🟢 Proposed | [Plan](./tracks/03-cloud-run-deployment/plan.md) |
+| `01-multi-user-auth` | [Phase 1] Multi-User Authentication & User Context | ✅ Completed | [Plan](./tracks/01-multi-user-auth/plan.md) |
+| `02-cloud-storage` | [Phase 2] User-Sandboxed Data Storage & Management | ✅ Completed | [Plan](./tracks/02-cloud-storage/plan.md) |
+| `03-cloud-run-deployment` | [Phase 3] Automated Cloud Infrastructure & CI/CD | 🟡 In Progress | [Plan](./tracks/03-cloud-run-deployment/plan.md) |
 
 ## Track Descriptions
 

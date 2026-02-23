@@ -11,7 +11,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"
 # But assuming they are there.
 
 try:
-    import meet_manager_pb2
+    try:
+        from meetmanager.v1 import meet_manager_pb2
+    except ImportError:
+        import meet_manager_pb2
 
     from server import MeetManagerService
 except ImportError:
@@ -69,7 +72,7 @@ def test_reload_on_upload():
     with patch.object(service, "_save_user_config", return_value=None):
         with patch.object(service, "_load_user_config", return_value={}):
             # Simulate upload
-            request = meet_manager_pb2.UploadRequest(filename="uploaded.mdb")
+            request = meet_manager_pb2.UploadDatasetRequest(filename="uploaded.mdb")
 
             # Mock file writing and storage upload
             with patch("builtins.open", new_callable=MagicMock):

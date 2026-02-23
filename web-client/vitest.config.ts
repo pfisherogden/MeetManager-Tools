@@ -11,5 +11,11 @@ export default defineConfig({
 		alias: {
 			"@": path.resolve(__dirname, "."),
 		},
+		pool: 'forks',
+		poolOptions: {
+			forks: {
+				singleFork: true,
+			},
+		},
 	},
 });

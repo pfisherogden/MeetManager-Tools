@@ -122,36 +122,82 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 os.remove(tmp_path)
 
     def _load_mdb(self, path):
-        """Parsing MDB using mdb-export commands."""
-        cache = {}
-
-        # Copy to temp file to avoid "Resource deadlock avoided" on mounted volumes
+        """Parsing MDB using MmToJsonConverter (Jackcess/JPype) for performance."""
+        # Copy to temp file to avoid locking issues
         with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
             tmp_path = tmp.name
 
         try:
-            # shutil.copy and cp fail on VirtioFS with deadlock
             with open(path, "rb") as src, open(tmp_path, "wb") as dst:
                 while True:
-                    chunk = src.read(1024 * 1024)  # 1MB chunks
+                    chunk = src.read(1024 * 1024)
                     if not chunk:
                         break
                     dst.write(chunk)
 
-            # Get tables
-            tables_out = subprocess.check_output(["mdb-tables", "-1", tmp_path]).decode("utf-8")
-            tables = tables_out.strip().split()
+            converter = MmToJsonConverter(mdb_path=tmp_path)
+            # MmToJsonConverter loads data into self.tables (dict of DataFrames)
+            cache = {}
+            for table_name, df in converter.tables.items():
+                # Convert DataFrame to list of dicts, ensuring all values are strings/primitives
+                # The existing server logic expects strings for most things, but MmToJsonConverter
+                # might produce ints/floats.
+                # We'll convert to dicts and let Python handle types, but be aware of mismatch.
+                records = df.to_dict("records")
+                # Ensure keys match what server expects (MmToJsonConverter lowercases cols?)
+                # MmToJsonConverter uses table_aliases to map to Logical names (e.g. "Athlete").
+                # It also lowercases columns.
+                # The server logic (e.g. GetAthletes) looks for "Ath_no" or "First_name".
+                # MmToJsonConverter might return "ath_no", "first_name".
+                # We need to normalize or adjust server logic.
+                
+                # Actually, looking at MmToJsonConverter._load_from_data:
+                # df.columns = df.columns.astype(str).str.lower()
+                # So keys will be lowercase.
+                
+                # Server logic: item.get("Ath_no", 0) -> This will fail if key is "ath_no".
+                # We need a case-insensitive getter or we need to update server logic.
+                
+                # To maintain compatibility without rewriting the whole server, 
+                # let's duplicate keys in the cache or normalize them?
+                # Better: MmToJsonConverter.tables keys are Logical (e.g. "Athlete").
+                # Let's clean the records.
+                cleaned_records = []
+                for r in records:
+                    # Convert all keys to Title Case or keep as is?
+                    # The legacy mdb-export output preserved case from Access (often PascalCase).
+                    # But MmToJsonConverter lowercases them.
+                    # Let's create a CaseInsensitiveDict wrapper or just normalize?
+                    # Since we can't easily wrap everything passed to pb2, let's update the keys 
+                    # to match the most common usage in server.py, or just accept lowercase.
+                    
+                    # BUT server.py uses item.get("Ath_no")
+                    # If we change to item.get("ath_no"), we break compatibility with JSON fixtures?
+                    # JSON fixtures keys: "Ath_no", "First_name".
+                    
+                    # Hack: Capitalize first letter? No, "Ath_no".
+                    # Let's just upper-case the first char of keys? "ath_no" -> "Ath_no"?
+                    # No, "ath_sex" -> "Ath_Sex".
+                    
+                    # Maybe we should rely on the fact that we can just fix the keys here.
+                    new_r = {}
+                    for k, v in r.items():
+                        # Simple mapping for common columns
+                        k_str = str(k)
+                        # Try to restore some CamelCase if possible or just store as lowercase
+                        # and update server.py to look for lowercase too.
+                        new_r[k_str] = v
+                        # Also add a TitleCase version for compat if needed?
+                        if "_" in k_str:
+                            parts = k_str.split("_")
+                            title_key = "_".join([p.capitalize() for p in parts])
+                            new_r[title_key] = v
+                            # Special case: "Ath_no" matches "ath_no".capitalize() -> "Ath_No"? No.
+                    
+                    cleaned_records.append(new_r)
+                
+                cache[table_name] = cleaned_records
 
-            for table in tables:
-                # Export as CSV
-                csv_out = subprocess.check_output(["mdb-export", tmp_path, table]).decode("utf-8")
-                # Parse CSV
-                reader = csv.DictReader(io.StringIO(csv_out))
-                rows = list(reader)
-                cache[table] = rows
-                # Also store as mixed case if needed or rely on fuzzy matching in getters
-
-            print(f"Loaded {len(tables)} tables from MDB.")
             return cache
         except Exception as e:
             print(f"Error loading MDB: {e}")

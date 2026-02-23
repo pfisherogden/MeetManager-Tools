@@ -41,6 +41,16 @@ brew install glib pango cairo gdk-pixbuf libffi
     - Backend: `just test-backend`
     - Frontend: `just test-frontend`
 
+## Multi-User & Cloud Storage
+
+The system now supports multi-user environments with strict data isolation.
+
+- **Authentication**: Integrated with Firebase (Google Login). Every request from the web client is verified using ID tokens.
+- **Data Isolation**: Each user has a private sandbox. Datasets and configurations are stored under `users/[UID]/` paths.
+- **Storage Providers**: Supports local file system (default) and Google Cloud Storage (GCS) for production.
+
+For detailed setup instructions (including GCS configuration), see the [Backend README](./backend/README.md#cloud-storage--multi-user-setup).
+
 ## CI/CD
 
 This repository uses GitHub Actions for Continuous Integration.

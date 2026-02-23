@@ -47,11 +47,11 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY backend/pyproject.toml backend/uv.lock ./backend/
 COPY mm_to_json/mm_to_json_py/pyproject.toml mm_to_json/mm_to_json_py/uv.lock ./mm_to_json/mm_to_json_py/
-RUN uv sync --all-packages --dev
+RUN uv sync --all-packages --dev --frozen
 
 # 2. Install Node dependencies (layer 2)
 COPY web-client/package.json web-client/package-lock.json* ./web-client/
-RUN cd web-client && npm install
+RUN cd web-client && npm ci --no-audit --prefer-offline
 
 # 3. Copy the rest of the source code (layer 3)
 COPY . .
