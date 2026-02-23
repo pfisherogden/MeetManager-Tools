@@ -41,10 +41,10 @@ class LocalStorageProvider(StorageProvider):
         # Prevent path traversal by ensuring the resolved path is within base_dir
         base_abs = os.path.abspath(self.base_dir)
         full_path = os.path.abspath(os.path.join(base_abs, path))
-        
+
         if not full_path.startswith(base_abs):
             raise PermissionError(f"Path traversal attempt detected: {path}")
-            
+
         return full_path
 
     def list_files(self, prefix: str) -> list[str]:
