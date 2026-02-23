@@ -38,15 +38,14 @@ class LocalStorageProvider(StorageProvider):
         os.makedirs(base_dir, exist_ok=True)
 
     def _get_full_path(self, path: str) -> str:
-        # Simple path traversal protection
-        # We rely on the server to pass safe paths (using os.path.basename for filenames)
-        # But we can check if the resolved path is within base_dir
-        full_path = os.path.abspath(os.path.join(self.base_dir, path))
-        if not full_path.startswith(os.path.abspath(self.base_dir)):
-            # In dev we might use symlinks or relative paths?
-            # For now, let's just return it, but ideally we should raise.
-            pass
-        return os.path.join(self.base_dir, path)
+        # Prevent path traversal by ensuring the resolved path is within base_dir
+        base_abs = os.path.abspath(self.base_dir)
+        full_path = os.path.abspath(os.path.join(base_abs, path))
+        
+        if not full_path.startswith(base_abs):
+            raise PermissionError(f"Path traversal attempt detected: {path}")
+            
+        return full_path
 
     def list_files(self, prefix: str) -> list[str]:
         full_prefix_path = self._get_full_path(prefix)
