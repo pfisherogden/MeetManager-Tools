@@ -71,6 +71,35 @@ service MeetManagerService {
   rpc GenerateReportBundle(GenerateReportBundleRequest) returns (GenerateReportBundleResponse);
   // PublishMeetData publishes the active meet data to a cloud location for the judge app.
   rpc PublishMeetData(PublishMeetDataRequest) returns (PublishMeetDataResponse);
+  // SyncDQs receives disqualifications from the judge app and stores them.
+  rpc SyncDQs(SyncDQsRequest) returns (SyncDQsResponse);
+  // GetFile retrieves the content of a file from storage.
+  rpc GetFile(GetFileRequest) returns (GetFileResponse);
+}
+
+// GetFileRequest specifies the path of the file to retrieve.
+message GetFileRequest {
+  string path = 1;
+}
+
+// GetFileResponse contains the file content.
+message GetFileResponse {
+  bytes content = 1;
+  string mime_type = 2;
+}
+
+// SyncDQsRequest contains a list of disqualifications to sync.
+message SyncDQsRequest {
+  // dqs is the list of JSON-encoded DQ objects or a structured list.
+  // For simplicity and matching the mobile app, we'll accept a JSON string or repeated messages.
+  // Let's use a JSON string for now to match the existing mobile app payload.
+  string dqs_json = 1;
+}
+
+// SyncDQsResponse indicates the result of the sync operation.
+message SyncDQsResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 // PublishMeetDataRequest is the request for PublishMeetData.

@@ -12,6 +12,7 @@ services:
       - ./backend/tests/fixtures:/app/tests/fixtures
       - ./tests/fixtures/anonymized_meets:/app/tests/fixtures/anonymized_meets
       - ./protos:/app/protos
+      - ./tmp:/app/tmp
     environment:
       - PYTHONUNBUFFERED=1
       - GRPC_AUTH_DISABLED=true

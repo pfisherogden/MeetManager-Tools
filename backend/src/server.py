@@ -1378,24 +1378,95 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             extractor = JudgeAppExtractor(converter)
             judge_data = extractor.extract_judge_data()
 
-            # Save to a user-specific public-accessible location
-            pub_dir = os.path.join(os.path.dirname(__file__), DATA_DIR, "published", uid)
-            os.makedirs(pub_dir, exist_ok=True)
-
+            # Save to a user-specific public-accessible location via StorageProvider
             filename = f"program_{current_file}.json"
-            filepath = os.path.join(pub_dir, filename)
-            with open(filepath, "w") as f:
-                json.dump(judge_data, f)
+            user_pub_path = os.path.join("users", uid, "published", filename)
 
-            # Use uid in the program_url for isolation
-            program_url = f"http://localhost:8080/data/published/{uid}/{filename}"
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                json.dump(judge_data, tmp)
+                tmp_path = tmp.name
+
+            try:
+                self.storage.upload_file(tmp_path, user_pub_path)
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+
+            # Generate URLs
+            program_url = self.storage.get_url(user_pub_path)
+            
+            # Sync URL points to the frontend API which proxies to gRPC SyncDQs
+            # In a real cloud deploy, this would be the public Next.js domain
+            frontend_base = os.getenv("FRONTEND_PUBLIC_URL", "http://localhost:3000")
+            sync_url = f"{frontend_base}/api/sync-dqs"
+
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
-            judge_app_url = f"{base_url}?program_url={program_url}"
+            judge_app_url = f"{base_url}?program_url={program_url}&sync_url={sync_url}"
 
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:
             print(f"Publish failed: {e}")
             return pb2.PublishMeetDataResponse(success=False, message=str(e))
+
+    def SyncDQs(self, request, context):
+        uid = self._check_auth(context)
+        dqs_json = request.dqs_json
+        
+        try:
+            # Parse to validate
+            dqs = json.loads(dqs_json)
+            
+            # Save to user's dataset directory
+            filename = "synced_dqs.json"
+            user_path = os.path.join("users", uid, filename)
+            
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                json.dump(dqs, tmp, indent=2)
+                tmp_path = tmp.name
+                
+            try:
+                self.storage.upload_file(tmp_path, user_path)
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                    
+            print(f"Synced {len(dqs)} DQs for user {uid}")
+            return pb2.SyncDQsResponse(success=True, message=f"Synced {len(dqs)} items")
+        except Exception as e:
+            print(f"Sync failed: {e}")
+            return pb2.SyncDQsResponse(success=False, message=str(e))
+
+    def GetFile(self, request, context):
+        uid = self._check_auth(context)
+        path = request.path
+        
+        # Verify path starts with users/[uid] or is Sample_Data.json
+        if not (path.startswith(f"users/{uid}/") or path == SOURCE_FILE):
+             context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
+             
+        if not self.storage.exists(path):
+            context.abort(grpc.StatusCode.NOT_FOUND, f"File {path} not found")
+            
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp_path = tmp.name
+            
+        try:
+            self.storage.download_file(path, tmp_path)
+            with open(tmp_path, "rb") as f:
+                content = f.read()
+                
+            import mimetypes
+            mime_type, _ = mimetypes.guess_type(path)
+            if not mime_type:
+                mime_type = "application/octet-stream"
+                
+            return pb2.GetFileResponse(content=content, mime_type=mime_type)
+        except Exception as e:
+            print(f"GetFile failed: {e}")
+            context.abort(grpc.StatusCode.INTERNAL, str(e))
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     def _safe_int(self, value, default=0):
         try:

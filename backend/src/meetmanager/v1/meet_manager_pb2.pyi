@@ -26,6 +26,34 @@ REPORT_TYPE_MEET_PROGRAM_HTML: ReportType
 REPORT_TYPE_ENTRIES_HYTEK: ReportType
 REPORT_TYPE_ENTRIES_CLUB: ReportType
 
+class GetFileRequest(_message.Message):
+    __slots__ = ("path",)
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    def __init__(self, path: _Optional[str] = ...) -> None: ...
+
+class GetFileResponse(_message.Message):
+    __slots__ = ("content", "mime_type")
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    MIME_TYPE_FIELD_NUMBER: _ClassVar[int]
+    content: bytes
+    mime_type: str
+    def __init__(self, content: _Optional[bytes] = ..., mime_type: _Optional[str] = ...) -> None: ...
+
+class SyncDQsRequest(_message.Message):
+    __slots__ = ("dqs_json",)
+    DQS_JSON_FIELD_NUMBER: _ClassVar[int]
+    dqs_json: str
+    def __init__(self, dqs_json: _Optional[str] = ...) -> None: ...
+
+class SyncDQsResponse(_message.Message):
+    __slots__ = ("success", "message")
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    success: bool
+    message: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ...) -> None: ...
+
 class PublishMeetDataRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
