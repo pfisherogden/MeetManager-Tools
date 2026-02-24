@@ -32,10 +32,11 @@ brew install glib pango cairo gdk-pixbuf libffi
     just up
     ```
 
-2.  **Run Verification**:
+2.  **Run Full Verification (Mandatory before push)**:
     ```bash
-    just verify
+    just pre-commit
     ```
+    This command runs linters, tests, and validates that both frontend and mobile apps compile correctly.
 
 3.  **Development**:
     - Backend: `just test-backend`
@@ -55,7 +56,8 @@ For detailed setup instructions (including GCS configuration), see the [Backend 
 
 This repository uses GitHub Actions for Continuous Integration.
 
+- **Unified Verification**: Locally, always run `just pre-commit` to catch build-time errors before they reach CI.
 - **Backend**: Runs `ruff` (lint/format) and `pytest`.
-- **Frontend**: Runs `biome` (lint/format) and `vitest`.
+- **Frontend**: Runs `biome` (lint/format), `vitest`, and production builds (`next build`, `expo export`).
 - **Path Filtering**: Workflows run only when relevant files are changed.
 \n

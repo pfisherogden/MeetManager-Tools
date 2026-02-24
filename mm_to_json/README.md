@@ -11,12 +11,10 @@ This code was originally inspired by and ported from the C++ repository:
 
 While this project has evolved and diverges significantly in implementation (Python vs C++), the core logic for parsing the proprietary MDB schema remains rooted in the original work.
 
-## Structure
+## Extraction for Mobile Judge App
 
-*   `mm_to_json_py/`: The main Python package.
-*   `tests/`: Unit tests.
-*   `verify_meet_program.py`: Verification scripts.
+The library now includes `JudgeAppExtractor` (in `mm_to_json/judge_app_extractor.py`), which specifically prepares a simplified, offline-first JSON dataset for the [Mobile Judge App](../mobile-judge-app). This extractor collapses complex meet hierarchies into a flat `events -> heats -> swimmers` structure optimized for mobile performance.
 
 ## Usage
 
-This tool is primarily used as a library by the `backend` service but can also be run standalone for testing.
+This tool is primarily used as a library by the `backend` service but can also be run standalone for testing or data generation (see `generate_judge_sample.py` in the root).
