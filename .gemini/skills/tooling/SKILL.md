@@ -18,6 +18,7 @@ description: Preferred tools for development and dependency management in MeetMa
 - **Dependency First**: Always run `npm install` in `web-client/` before `just codegen` to ensure native binaries (like `grpc-tools`) are available.
 - **Mobile CI**: When building managed Expo web artifacts in GitHub Actions, always use `npm ci --legacy-peer-deps` to bypass strict upstream peer dependency conflicts (e.g., React 19 vs Expo) that will otherwise break automated CI pipelines.
 - **Buf**: Use Buf for Protocol Buffer management.
+- **Tailwind CSS v4 Compatibility**: When migrating a Next.js project to Tailwind CSS v4, traditional `tailwind.config.ts` setups (especially those used by component libraries like Shadcn) will fail during production builds (`next build`) due to missing `@theme` variable definitions. Ensure `globals.css` strictly utilizes the `@theme inline` block syntax to expose design system tokens (e.g., `--border`, `--background`) to the v4 compiler.
 
 ## Deployment
 - **GitHub Pages**: Automate via GitHub Actions using `peaceiris/actions-gh-pages`.
