@@ -9,6 +9,7 @@ A live web-based demo is automatically deployed to:
 
 ## Features
 - **Offline First**: Works without internet connection. Stores data locally (SQLite on native, memory on web).
+- **Comprehensive Demo Data**: Bundled with a real 80-event dataset (`assets/sample_program.json`) for rich out-of-the-box demonstration.
 - **URL Configuration**: Initialize with meet data via URL parameters.
 - **Sync**: Automatically syncs pending DQs when online if a sync URL is provided.
 
@@ -66,6 +67,11 @@ The app is automatically built and deployed to GitHub Pages via GitHub Actions.
   3. Builds the web bundle using `npx expo export --platform web`.
   4. Deploys the `dist/` directory to the `gh-pages` branch.
 
+### Dynamic Base URL
+The app uses `app.config.js` to dynamically handle the base URL:
+- **Docker/Local**: Runs at root `/`.
+- **GitHub Pages**: Set to `/MeetManager-Tools/` via the `APP_BASE_URL` environment variable during CI.
+
 ### Manual Deployment (Emergency/Testing)
 If you need to deploy manually from your local machine:
 1. Ensure you have the build tools installed: `cd mobile-judge-app && npm install`.
@@ -88,7 +94,14 @@ If you need to deploy manually from your local machine:
    npm run web
    ```
 
-3. **Run tests**:
+3. **Regenerate Sample Data**:
+    To update the bundled `assets/sample_program.json` with new meet data:
+    ```bash
+    # From the repository root
+    uv run python generate_judge_sample.py
+    ```
+
+4. **Run tests**:
    ```bash
    npm test
    ```

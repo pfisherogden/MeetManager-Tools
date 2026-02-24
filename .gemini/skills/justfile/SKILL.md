@@ -6,13 +6,12 @@ description: Best practices for writing and maintaining Justfiles in MeetManager
 # Justfile Management
 
 ## Core Principles
-- **Separate Checks from Fixes**: Maintain `lint` (read-only) and `fix` (modifying) recipes.
+- **Source of Truth**: Use the `pre-commit` target to run the absolute full verification suite before pushing.
 - **Manage Dependencies**: Use recipe dependencies (e.g., `test: codegen`) to ensure correct execution order.
 - **Ensure Consistency**: Design recipes to behave identically in both local and Docker environments.
 
 ## Recipe Patterns
-- **Linting**: Group all read-only checks under a `lint` recipe.
-- **Fixing**: Group all modifying actions (formatting, migration) under a `fix` recipe.
+- **Verification**: The `verify` target should include linting, tests, AND production builds (`build-frontend`, `build-mobile`) to catch build-time errors (e.g., Tailwind CSS token mismatches).
 - **Codegen**: Ensure all recipes dependent on generated code explicitly depend on `codegen`.
 - **Cleanup**: Provide a `clean` recipe to purge caches and temporary artifacts.
 

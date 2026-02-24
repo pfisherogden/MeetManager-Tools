@@ -44,6 +44,15 @@ just test-backend
 docker-compose up backend
 ```
 
+## CI/Test Strategy
+
+- **JSON Fixtures**: For CI stability and fresh checkouts, all core reporting tests use committed JSON fixtures located in `tests/fixtures/anonymized_meets/`. This removes the dependency on `.mdb` files which are gitignored.
+- **Mypy**: CI enforces strict type checking. Ensure all new logic in `extractor.py` and service layers has explicit type signatures.
+
+## Reliability Standards
+
+- **5-Cycle Verification**: For all major implementations or bug fixes, run the test suite (`just test-backend`) **5 times consecutively**. All 5 runs must pass 100% to ensure no intermittent flakiness or race conditions exist.
+
 ## Cloud Storage & Multi-User Setup
 
 This backend supports multi-user data isolation and cloud storage using Google Cloud Storage (GCS).
