@@ -127,10 +127,13 @@ test-frontend: codegen
 
 test-local: test-backend-local test-frontend
 
-# Full verification pipeline
-verify: lint test
+# Full verification pipeline (includes production builds to catch styling/turbopack errors)
+verify: lint test build-frontend build-mobile
 
 verify-local: codegen fix lint test-local
+
+# Run the complete pre-commit verification suite
+pre-commit: verify
 
 # Local CI simulation
 verify-ci:

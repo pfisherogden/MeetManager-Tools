@@ -13,11 +13,11 @@ To ensure high code quality and clear documentation, follow these steps before e
    *Note: This runs `fix-backend`, `fix-mm-to-json`, and `lint-frontend-fix`.*
 
 2. **Verifying All Checks (Mandatory)**:
-   You MUST run the full verification pipeline to catch linting, type-checking, and test regressions before committing:
+   You MUST run the full verification pipeline to catch linting, type-checking, CSS token parsing, turbopack compilation, and test regressions before committing:
    ```bash
-   just verify
+   just pre-commit
    ```
-   *Note: This command is the 'Source of Truth'. It runs all linters (including `mypy` for type-checking) and the full test suite for both backend and frontend. If this fails, DO NOT COMMIT.*
+   *Note: This command is the 'Source of Truth'. It runs all linters, the full test suite, and compiles production builds for both Next.js and Expo frontend apps to catch build-time errors. If this fails, DO NOT COMMIT.*
 
 3. **Record Evidence**:
    Before closing any issue, capture a visual recording of the fix in action using the browser subagent or manual methods. This recording MUST demonstrate the resolved bug across all relevant UI components.
