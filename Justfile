@@ -187,9 +187,9 @@ build-mobile:
 
 # Run the mobile judge app in Docker
 up-mobile:
-    @echo "Starting mobile judge app at http://localhost:{{env_var('MOBILE_APP_PORT', '8080')}}"
+    @echo "Starting mobile judge app at http://localhost:{{env_var_or_default('MOBILE_APP_PORT', '8080')}}"
     docker build -t judge-app-v1 mobile-judge-app/
-    docker run -d --name judge-app --rm -p {{env_var('MOBILE_APP_PORT', '8080')}}:8080 judge-app-v1
+    docker run -d --name judge-app --rm -p {{env_var_or_default('MOBILE_APP_PORT', '8080')}}:8080 judge-app-v1
 
 # Stop the mobile judge app container
 down-mobile:
@@ -203,7 +203,7 @@ test-mobile:
 test-integration-sync:
     @echo "Running integration tests for judge app sync..."
     cd tests/integration/judge_sync && docker-compose -f docker-compose.test.yml build
-    cd tests/integration/judge_sync && BACKEND_PORT={{env_var('BACKEND_PORT', '8081')}} FRONTEND_PORT={{env_var('FRONTEND_PORT', '3000')}} docker-compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-runner
+    cd tests/integration/judge_sync && BACKEND_PORT={{env_var_or_default('BACKEND_PORT', '8081')}} FRONTEND_PORT={{env_var_or_default('FRONTEND_PORT', '3000')}} docker-compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-runner
     cd tests/integration/judge_sync && docker-compose -f docker-compose.test.yml down
 
 # --- Fast Verification & Mobile Workflows ---
