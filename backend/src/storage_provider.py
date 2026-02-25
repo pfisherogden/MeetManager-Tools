@@ -89,8 +89,10 @@ class LocalStorageProvider(StorageProvider):
 
     def get_url(self, remote_path: str) -> str:
         # Local URLs point to the frontend's dynamic data endpoint
-        # The frontend will fetch from the backend via gRPC or shared volume
-        return f"http://localhost:3000/api/data?path={remote_path}"
+        # Use environment variables to avoid collisions
+        host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
+        port = os.getenv("FRONTEND_PORT", "3000")
+        return f"http://{host}:{port}/api/data?path={remote_path}"
 
 
 class GCSStorageProvider(StorageProvider):

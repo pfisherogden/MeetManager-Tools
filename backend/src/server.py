@@ -1396,8 +1396,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             program_url = self.storage.get_url(user_pub_path)
             
             # Sync URL points to the frontend API which proxies to gRPC SyncDQs
-            # In a real cloud deploy, this would be the public Next.js domain
-            frontend_base = os.getenv("FRONTEND_PUBLIC_URL", "http://localhost:3000")
+            # Use environment variables to avoid port collisions on shared machines
+            frontend_host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
+            frontend_port = os.getenv("FRONTEND_PORT", "3000")
+            frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
             sync_url = f"{frontend_base}/api/sync-dqs"
 
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"

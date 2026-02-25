@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "8081:8080"
+      - "${BACKEND_PORT:-8081}:8080"
     volumes:
       # - ./backend/data:/app/data # Removed to fix locking issues on macOS
       - ./backend/src:/app/src
@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: web-client/Dockerfile
     ports:
-      - "3001:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ./protos:/app/protos
     environment:
