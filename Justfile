@@ -130,7 +130,7 @@ test-local: test-backend-local test-frontend
 # Run formalized headless journey tests (requires 'just up' first)
 test-journeys:
     @echo "Running Headless Journey Tests..."
-    docker compose exec -T -e TEST_WEB_TARGET=http://frontend:3000 backend python -m pytest tests/test_headless_journeys.py
+    docker compose exec -T -e TEST_WEB_TARGET=http://frontend:3000 backend python -m pytest tests/integration/test_headless_journeys.py
 
 # Full verification pipeline (includes production builds to catch styling/turbopack errors)
 verify: lint test build-frontend build-mobile
