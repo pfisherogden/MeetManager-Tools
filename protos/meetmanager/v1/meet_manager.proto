@@ -79,26 +79,29 @@ service MeetManagerService {
 
 // GetFileRequest specifies the path of the file to retrieve.
 message GetFileRequest {
+  // path is the relative path to the file in storage.
   string path = 1;
 }
 
 // GetFileResponse contains the file content.
 message GetFileResponse {
+  // content is the raw bytes of the file.
   bytes content = 1;
+  // mime_type is the detected MIME type of the file.
   string mime_type = 2;
 }
 
 // SyncDQsRequest contains a list of disqualifications to sync.
 message SyncDQsRequest {
-  // dqs is the list of JSON-encoded DQ objects or a structured list.
-  // For simplicity and matching the mobile app, we'll accept a JSON string or repeated messages.
-  // Let's use a JSON string for now to match the existing mobile app payload.
+  // dqs_json is the JSON-encoded list of DQ objects from the judge app.
   string dqs_json = 1;
 }
 
 // SyncDQsResponse indicates the result of the sync operation.
 message SyncDQsResponse {
+  // success indicates if the sync was successful.
   bool success = 1;
+  // message provides additional info or error details.
   string message = 2;
 }
 
