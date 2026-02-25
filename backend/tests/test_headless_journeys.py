@@ -8,11 +8,12 @@ from meetmanager.v1 import meet_manager_pb2 as pb2
 from meetmanager.v1 import meet_manager_pb2_grpc as pb2_grpc
 
 # Configuration for tests
-# When running inside Docker, backend is 'localhost:8080' (internal)
-# When running from host, backend is 'localhost:8081' (mapped)
+# When running inside Docker, backend is '127.0.0.1:8080' (internal)
+# When running from host, backend is 'localhost:8081' (or whatever BACKEND_PORT is set to)
 # Next.js API is 'localhost:3000' (mapped) or 'frontend:3000' (internal)
 
-GRPC_TARGET = os.getenv("TEST_GRPC_TARGET", "127.0.0.1:8080")
+GRPC_PORT = os.getenv("BACKEND_PORT", "8081")
+GRPC_TARGET = os.getenv("TEST_GRPC_TARGET", f"127.0.0.1:{8080 if os.path.exists('/.dockerenv') else GRPC_PORT}")
 WEB_TARGET = os.getenv("TEST_WEB_TARGET", "http://frontend:3000")
 
 @pytest.fixture(scope="module")
