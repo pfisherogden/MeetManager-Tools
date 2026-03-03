@@ -152,7 +152,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 							disabled={index === 0}
 							style={[styles.iconButton, index === 0 && styles.disabledIcon]}
 						>
-							<Ionicons name="play-skip-back" size={24} color={COLORS.icon} />
+							<Ionicons name="chevron-up-circle" size={24} color={COLORS.icon} />
 						</TouchableOpacity>
 						<TouchableOpacity
 							onPress={() => scrollToEvent(index + 1)}
@@ -162,7 +162,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 								index === events.length - 1 && styles.disabledIcon,
 							]}
 						>
-							<Ionicons name="play-skip-forward" size={24} color={COLORS.icon} />
+							<Ionicons name="chevron-down-circle" size={24} color={COLORS.icon} />
 						</TouchableOpacity>
 					</View>
 				</View>

@@ -253,6 +253,142 @@ export default function App() {
 		setDqModalVisible(false);
 	};
 
+	const loadDQState = (swimmer: Swimmer, leg: number | undefined) => {
+		let dqObj;
+		if (leg === undefined) {
+			dqObj = swimmer.dq_code ? { dq_code: swimmer.dq_code, notes: swimmer.notes } : null;
+		} else {
+			dqObj = swimmer.relay_dqs?.find((d: DQ) => d.leg === leg);
+		}
+		setDqNote(dqObj?.notes || "");
+		setPendingDqCode(dqObj?.dq_code ? dqObj.dq_code.split(",") : []);
+	};
+
+	const navigateToPrevHeat = (autoSelectFirstSwimmer = false) => {
+		const currentHeatIndex = heats.findIndex(h => h.id === selectedHeat?.id);
+		let targetEvent = selectedEvent;
+		let targetHeat = null;
+
+		if (currentHeatIndex > 0) {
+			targetHeat = heats[currentHeatIndex - 1];
+		} else {
+			const currentEventIndex = events.findIndex(e => e.id === selectedEvent?.id);
+			if (currentEventIndex > 0) {
+				targetEvent = events[currentEventIndex - 1];
+				const prevEventHeats = getHeatsByEvent(targetEvent.id);
+				if (prevEventHeats.length > 0) {
+					targetHeat = prevEventHeats[prevEventHeats.length - 1];
+				}
+			}
+		}
+
+		if (targetHeat && targetEvent) {
+			setSelectedEvent(targetEvent);
+			setSelectedHeat(targetHeat);
+			if (autoSelectFirstSwimmer) {
+				const newSwimmers = getSwimmersByHeat(targetHeat.id);
+				if (newSwimmers.length > 0) {
+					setSelectedSwimmer(newSwimmers[0]);
+					setSelectedLeg(undefined);
+					loadDQState(newSwimmers[0], undefined);
+				} else {
+					setDqModalVisible(false);
+				}
+			}
+		}
+	};
+
+	const navigateToNextHeat = (autoSelectFirstSwimmer = false) => {
+		const currentHeatIndex = heats.findIndex(h => h.id === selectedHeat?.id);
+		let targetEvent = selectedEvent;
+		let targetHeat = null;
+
+		if (currentHeatIndex < heats.length - 1) {
+			targetHeat = heats[currentHeatIndex + 1];
+		} else {
+			const currentEventIndex = events.findIndex(e => e.id === selectedEvent?.id);
+			if (currentEventIndex < events.length - 1) {
+				targetEvent = events[currentEventIndex + 1];
+				const nextEventHeats = getHeatsByEvent(targetEvent.id);
+				if (nextEventHeats.length > 0) {
+					targetHeat = nextEventHeats[0];
+				}
+			}
+		}
+
+		if (targetHeat && targetEvent) {
+			setSelectedEvent(targetEvent);
+			setSelectedHeat(targetHeat);
+			if (autoSelectFirstSwimmer) {
+				const newSwimmers = getSwimmersByHeat(targetHeat.id);
+				if (newSwimmers.length > 0) {
+					setSelectedSwimmer(newSwimmers[0]);
+					setSelectedLeg(undefined);
+					loadDQState(newSwimmers[0], undefined);
+				} else {
+					setDqModalVisible(false);
+				}
+			}
+		}
+	};
+
+	const handlePrevSwimmer = () => {
+		if (!selectedSwimmer) return;
+
+		if (selectedSwimmer.isRelay) {
+			if (selectedLeg === 1) {
+				setSelectedLeg(undefined);
+				loadDQState(selectedSwimmer, undefined);
+				return;
+			} else if (selectedLeg !== undefined) {
+				setSelectedLeg(selectedLeg - 1);
+				loadDQState(selectedSwimmer, selectedLeg - 1);
+				return;
+			}
+		}
+
+		const currentSwimmers = getSwimmersByHeat(selectedHeat?.id || 0);
+		const swimmerIndex = currentSwimmers.findIndex(s => s.id === selectedSwimmer.id);
+
+		if (swimmerIndex > 0) {
+			const prevSwimmer = currentSwimmers[swimmerIndex - 1];
+			setSelectedSwimmer(prevSwimmer);
+			if (prevSwimmer.isRelay) {
+				setSelectedLeg(4);
+				loadDQState(prevSwimmer, 4);
+			} else {
+				setSelectedLeg(undefined);
+				loadDQState(prevSwimmer, undefined);
+			}
+		}
+	};
+
+	const handleNextSwimmer = () => {
+		if (!selectedSwimmer) return;
+
+		if (selectedSwimmer.isRelay) {
+			if (selectedLeg === undefined) {
+				setSelectedLeg(1);
+				loadDQState(selectedSwimmer, 1);
+				return;
+			} else if (selectedLeg < 4) {
+				setSelectedLeg(selectedLeg + 1);
+				loadDQState(selectedSwimmer, selectedLeg + 1);
+				return;
+			}
+		}
+
+		const currentSwimmers = getSwimmersByHeat(selectedHeat?.id || 0);
+		const swimmerIndex = currentSwimmers.findIndex(s => s.id === selectedSwimmer.id);
+
+		if (swimmerIndex > -1 && swimmerIndex < currentSwimmers.length - 1) {
+			const nextSwimmer = currentSwimmers[swimmerIndex + 1];
+			setSelectedSwimmer(nextSwimmer);
+			setSelectedLeg(undefined);
+			loadDQState(nextSwimmer, undefined);
+		}
+	};
+
 	// Toggle Handler
 	const toggleViewMode = () => {
 		const newMode = !programMode;
@@ -281,23 +417,7 @@ export default function App() {
 				</TouchableOpacity>
 				<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "center" }}>
 					<TouchableOpacity
-						onPress={() => {
-							const currentHeatIndex = heats.findIndex(h => h.id === selectedHeat?.id);
-							if (currentHeatIndex > 0) {
-								setSelectedHeat(heats[currentHeatIndex - 1]);
-							} else {
-								// First heat, navigate to previous event
-								const currentEventIndex = events.findIndex(e => e.id === selectedEvent?.id);
-								if (currentEventIndex > 0) {
-									const prevEvent = events[currentEventIndex - 1];
-									const prevEventHeats = getHeatsByEvent(prevEvent.id);
-									if (prevEventHeats.length > 0) {
-										setSelectedEvent(prevEvent);
-										setSelectedHeat(prevEventHeats[prevEventHeats.length - 1]);
-									}
-								}
-							}
-						}}
+						onPress={() => navigateToPrevHeat(false)}
 						style={styles.heatNavButton}
 					>
 						<Ionicons name="play-skip-back" size={24} color={COLORS.primary} />
@@ -306,23 +426,7 @@ export default function App() {
 						Event {selectedEvent?.number} - Heat {selectedHeat?.number}
 					</Text>
 					<TouchableOpacity
-						onPress={() => {
-							const currentHeatIndex = heats.findIndex(h => h.id === selectedHeat?.id);
-							if (currentHeatIndex < heats.length - 1) {
-								setSelectedHeat(heats[currentHeatIndex + 1]);
-							} else {
-								// Last heat, navigate to next event
-								const currentEventIndex = events.findIndex(e => e.id === selectedEvent?.id);
-								if (currentEventIndex < events.length - 1) {
-									const nextEvent = events[currentEventIndex + 1];
-									const nextEventHeats = getHeatsByEvent(nextEvent.id);
-									if (nextEventHeats.length > 0) {
-										setSelectedEvent(nextEvent);
-										setSelectedHeat(nextEventHeats[0]);
-									}
-								}
-							}
-						}}
+						onPress={() => navigateToNextHeat(false)}
 						style={styles.heatNavButton}
 					>
 						<Ionicons name="play-skip-forward" size={24} color={COLORS.primary} />
@@ -348,59 +452,58 @@ export default function App() {
 								>
 									<Text style={styles.laneText}>{item.lane}</Text>
 								</View>
-								<TouchableOpacity
-									style={styles.swimmerInfo}
-									onPress={() => handleDQ(item)}
-								>
-									<Text
-										style={[styles.swimmerName, item.empty && styles.emptyText]}
-									>
-										{item.isRelay ? `Team ${item.team}` : item.name}
-									</Text>
-									{!item.isRelay && (
-										<Text style={styles.teamName}>{item.team}</Text>
-									)}
-								</TouchableOpacity>
+								<View style={styles.swimmerInfo}>
+									<TouchableOpacity onPress={() => handleDQ(item)}>
+										<Text
+											style={[styles.swimmerName, item.empty && styles.emptyText]}
+										>
+											{item.isRelay ? `Team ${item.team}` : item.name}
+										</Text>
+										{!item.isRelay && (
+											<Text style={styles.teamName}>{item.team}</Text>
+										)}
+									</TouchableOpacity>
 
-								{!item.empty && (
-									<View style={styles.legsContainer}>
-										{[1, 2, 3, 4].map((leg) => {
-											const dq = item.relay_dqs?.find(
-												(d: DQ) => d.leg === leg,
-											);
-											const legName = item.members?.[leg - 1]
-												? item.members[leg - 1]
-												: `Leg ${leg}`;
-											return (
-												<TouchableOpacity
-													key={leg}
-													style={styles.legRow}
-													onPress={() => handleDQ(item, leg)}
-												>
-													<View style={{ flex: 1 }}>
-														<Text style={styles.legLabel}>{legName}</Text>
-														{dq?.notes ? (
-															<Text
-																style={styles.notePreview}
-																numberOfLines={1}
-															>
-																{dq.notes}
-															</Text>
-														) : null}
-													</View>
-													<Text
-														style={[
-															styles.dqTrigger,
-															!dq && { color: COLORS.secondary },
-														]}
+									{!item.empty && (
+										<View style={styles.legsContainer}>
+											{[1, 2, 3, 4].map((leg) => {
+												const dq = item.relay_dqs?.find(
+													(d: DQ) => d.leg === leg,
+												);
+												const legName = item.members?.[leg - 1]
+													? item.members[leg - 1]
+													: `Leg ${leg}`;
+												return (
+													<TouchableOpacity
+														key={leg}
+														style={styles.legRow}
+														onPress={() => handleDQ(item, leg)}
 													>
-														{dq ? dq.dq_code : "TAP TO DQ"}
-													</Text>
-												</TouchableOpacity>
-											);
-										})}
-									</View>
-								)}
+														<View style={{ flex: 1 }}>
+															<Text style={styles.legLabel}>{legName}</Text>
+															{dq?.notes ? (
+																<Text
+																	style={styles.notePreview}
+																	numberOfLines={1}
+																>
+																	{dq.notes}
+																</Text>
+															) : null}
+														</View>
+														<Text
+															style={[
+																styles.dqTrigger,
+																!dq && { color: COLORS.secondary },
+															]}
+														>
+															{dq ? dq.dq_code : "TAP TO DQ"}
+														</Text>
+													</TouchableOpacity>
+												);
+											})}
+										</View>
+									)}
+								</View>
 							</View>
 						)
 					}
@@ -527,58 +630,26 @@ export default function App() {
 				<View style={styles.modalOverlay}>
 					<View style={[styles.modalContainer, styles.modalPopup]}>
 						<View style={styles.modalHeader}>
-							<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "space-between" }}>
-								{selectedSwimmer?.isRelay && (
-									<TouchableOpacity
-										onPress={() => {
-											if (selectedLeg === 1) setSelectedLeg(undefined);
-											else if (selectedLeg === undefined) setSelectedLeg(4);
-											else setSelectedLeg(selectedLeg - 1);
-											// Refresh DQ note and selected code from selectedSwimmer for new leg
-											let prevDq;
-											if (selectedLeg === 1) {
-												prevDq = selectedSwimmer.dq_code ? { dq_code: selectedSwimmer.dq_code, notes: selectedSwimmer.notes } : null;
-											} else {
-												const targetLeg = selectedLeg === undefined ? 4 : selectedLeg - 1;
-												prevDq = selectedSwimmer.relay_dqs?.find((d: any) => d.leg === targetLeg);
-											}
-											setDqNote(prevDq?.notes || "");
-											setPendingDqCode(prevDq?.dq_code ? prevDq.dq_code.split(",") : []);
-										}}
-										style={{ padding: 10 }}
-									>
-										<Ionicons name="chevron-back" size={24} color={COLORS.primary} />
-									</TouchableOpacity>
-								)}
-								<Text style={[styles.modalTitle, { flex: undefined }]}>
-									DQ:{" "}
-									{selectedLeg !== undefined &&
-										selectedSwimmer?.members?.[selectedLeg - 1]
+							<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "center" }}>
+								<TouchableOpacity onPress={() => navigateToPrevHeat(true)} style={{ padding: 5 }}>
+									<Ionicons name={programMode ? "chevron-up-circle" : "play-skip-back"} size={28} color={COLORS.primary} />
+								</TouchableOpacity>
+								<TouchableOpacity onPress={handlePrevSwimmer} style={{ padding: 5 }}>
+									<Ionicons name="chevron-back" size={28} color={COLORS.primary} />
+								</TouchableOpacity>
+
+								<Text style={[styles.modalTitle, { flex: 1, textAlign: 'center', marginHorizontal: 5, fontSize: 16 }]}>
+									DQ: {selectedLeg !== undefined && selectedSwimmer?.members?.[selectedLeg - 1]
 										? selectedSwimmer.members[selectedLeg - 1]
 										: `${selectedSwimmer?.name || "Swimmer"}${selectedLeg ? ` - Leg ${selectedLeg}` : ""}`}
 								</Text>
-								{selectedSwimmer?.isRelay && (
-									<TouchableOpacity
-										onPress={() => {
-											if (selectedLeg === 4) setSelectedLeg(undefined);
-											else if (selectedLeg === undefined) setSelectedLeg(1);
-											else setSelectedLeg(selectedLeg + 1);
-											// Refresh DQ note and selected code from selectedSwimmer for new leg
-											let nextDq;
-											if (selectedLeg === 4) {
-												nextDq = selectedSwimmer.dq_code ? { dq_code: selectedSwimmer.dq_code, notes: selectedSwimmer.notes } : null;
-											} else {
-												const targetLeg = selectedLeg === undefined ? 1 : selectedLeg + 1;
-												nextDq = selectedSwimmer.relay_dqs?.find((d: any) => d.leg === targetLeg);
-											}
-											setDqNote(nextDq?.notes || "");
-											setPendingDqCode(nextDq?.dq_code ? nextDq.dq_code.split(",") : []);
-										}}
-										style={{ padding: 10 }}
-									>
-										<Ionicons name="chevron-forward" size={24} color={COLORS.primary} />
-									</TouchableOpacity>
-								)}
+
+								<TouchableOpacity onPress={handleNextSwimmer} style={{ padding: 5 }}>
+									<Ionicons name="chevron-forward" size={28} color={COLORS.primary} />
+								</TouchableOpacity>
+								<TouchableOpacity onPress={() => navigateToNextHeat(true)} style={{ padding: 5 }}>
+									<Ionicons name={programMode ? "chevron-down-circle" : "play-skip-forward"} size={28} color={COLORS.primary} />
+								</TouchableOpacity>
 							</View>
 							<View style={styles.headerActions}>
 								<TouchableOpacity
