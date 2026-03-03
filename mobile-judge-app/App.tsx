@@ -651,22 +651,6 @@ export default function App() {
 									<Ionicons name={programMode ? "chevron-down-circle" : "play-skip-forward"} size={28} color={COLORS.primary} />
 								</TouchableOpacity>
 							</View>
-							<View style={styles.headerActions}>
-								<TouchableOpacity
-									onPress={onSave}
-									style={styles.headerIconButton}
-									accessibilityLabel="Save changes"
-								>
-									<Ionicons name="checkmark-circle" size={44} color={COLORS.success} />
-								</TouchableOpacity>
-								<TouchableOpacity
-									onPress={onDelete}
-									style={styles.headerIconButton}
-									accessibilityLabel="Close and delete DQ"
-								>
-									<Ionicons name="close-circle" size={44} color={COLORS.danger} />
-								</TouchableOpacity>
-							</View>
 						</View>
 						<View style={styles.noteContainer}>
 							<TextInput
@@ -726,6 +710,24 @@ export default function App() {
 								</View>
 							))}
 						</ScrollView>
+						<View style={styles.modalFooter}>
+							<TouchableOpacity
+								onPress={onDelete}
+								style={styles.secondaryButton}
+								accessibilityLabel="Delete DQ"
+							>
+								<Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+								<Text style={styles.secondaryButtonText}>DELETE</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								onPress={onSave}
+								style={styles.primaryButton}
+								accessibilityLabel="Save DQ"
+							>
+								<Ionicons name="checkmark-outline" size={20} color={COLORS.white} />
+								<Text style={styles.primaryButtonText}>SAVE DQ</Text>
+							</TouchableOpacity>
+						</View>
 					</View>
 				</View>
 			</Modal>
@@ -1060,6 +1062,46 @@ const styles = StyleSheet.create({
 	},
 	heatNavButton: {
 		paddingHorizontal: 15,
+	},
+	modalFooter: {
+		flexDirection: "row",
+		padding: 15,
+		borderTopWidth: 1,
+		borderTopColor: COLORS.lightGray,
+		justifyContent: "space-between",
+		backgroundColor: COLORS.white,
+		borderBottomLeftRadius: 10,
+		borderBottomRightRadius: 10,
+	},
+	primaryButton: {
+		flex: 1,
+		backgroundColor: COLORS.primary,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		padding: 15,
+		borderRadius: 8,
+		marginLeft: 10,
+	},
+	primaryButtonText: {
+		color: COLORS.white,
+		fontWeight: "bold",
+		marginLeft: 8,
+	},
+	secondaryButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		padding: 15,
+		borderRadius: 8,
+		borderWidth: 1,
+		borderColor: COLORS.danger,
+		width: 120,
+	},
+	secondaryButtonText: {
+		color: COLORS.danger,
+		fontWeight: "bold",
+		marginLeft: 8,
 	},
 	selectedDqItem: {
 		backgroundColor: COLORS.primary,
