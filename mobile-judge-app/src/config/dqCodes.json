@@ -1,21 +1,196 @@
 {
 	"butterfly": [
-		{ "code": "1A", "description": "Alternating kick" },
-		{ "code": "1B", "description": "Kick-Scissors" },
-		{ "code": "1C", "description": "Breaststroke kick" }
+		{
+			"code": "18",
+			"description": "Kick breaststroke type"
+		},
+		{
+			"code": "1A",
+			"description": "Alternating Kick"
+		},
+		{
+			"code": "1C",
+			"description": "Scissors kick"
+		},
+		{
+			"code": "1E",
+			"description": "Non-simultaneous arms"
+		},
+		{
+			"code": "1F",
+			"description": "Arms underwater"
+		},
+		{
+			"code": "1J",
+			"description": "One hand touch"
+		},
+		{
+			"code": "1K",
+			"description": "No touch"
+		},
+		{
+			"code": "1N",
+			"description": "Head did not break surface by 15m"
+		}
 	],
 	"backstroke": [
 		{
-			"code": "2A",
-			"description": "Past vertical at turn: non-continuous turning action"
+			"code": "20",
+			"description": "Did not finish on back"
 		},
 		{
-			"code": "2B",
-			"description": "Past vertical at turn: independent kicks/strokes"
+			"code": "21",
+			"description": "No touch at turn"
+		},
+		{
+			"code": "2L",
+			"description": "Shoulders past vertical toward breast"
+		},
+		{
+			"code": "2N",
+			"description": "Head did not break surface by 15m"
+		},
+		{
+			"code": "2P",
+			"description": "Toes curled over gutter after start"
+		},
+		{
+			"code": "2R",
+			"description": "Completely submerged prior to turn"
+		},
+		{
+			"code": "2U",
+			"description": "Multiple strokes past vertical at turn"
 		}
 	],
 	"breaststroke": [
-		{ "code": "3A", "description": "Alternating kick" },
-		{ "code": "3B", "description": "Butterly kick" }
+		{
+			"code": "3A",
+			"description": "Alternating kick"
+		},
+		{
+			"code": "3B",
+			"description": "Non-simultaneous kick"
+		},
+		{
+			"code": "3D",
+			"description": "Scissors kick"
+		},
+		{
+			"code": "3E",
+			"description": "Hands beyond hipline during stroke"
+		},
+		{
+			"code": "3F",
+			"description": "Non-simultaneous arms"
+		},
+		{
+			"code": "3G",
+			"description": "Arms 2 strokes underwater"
+		},
+		{
+			"code": "3H",
+			"description": "Fly type kick"
+		},
+		{
+			"code": "3J",
+			"description": "One hand touch"
+		},
+		{
+			"code": "3K",
+			"description": "No touch"
+		},
+		{
+			"code": "3P",
+			"description": "Head underwater for 2 or more strokes"
+		}
+	],
+	"freestyle": [
+		{
+			"code": "4K",
+			"description": "No touch on turn"
+		},
+		{
+			"code": "4N",
+			"description": "Head did not break surface by 15m"
+		}
+	],
+	"im": [
+		{
+			"code": "5P",
+			"description": "IM - Strokes out of sequence"
+		}
+	],
+	"relays": [
+		{
+			"code": "61",
+			"description": "Stroke infraction swimmer #1"
+		},
+		{
+			"code": "62",
+			"description": "Stroke infraction swimmer #2"
+		},
+		{
+			"code": "63",
+			"description": "Stroke infraction swimmer #3"
+		},
+		{
+			"code": "64",
+			"description": "Stroke infraction swimmer #4"
+		},
+		{
+			"code": "66",
+			"description": "Early take-off swimmer #2"
+		},
+		{
+			"code": "67",
+			"description": "Early take-off swimmer #3"
+		},
+		{
+			"code": "68",
+			"description": "Early take-off swimmer #4"
+		},
+		{
+			"code": "6P",
+			"description": "Changed order of swimmers"
+		},
+		{
+			"code": "6Q",
+			"description": "Not enough swimmers"
+		}
+	],
+	"miscellaneous": [
+		{
+			"code": "70",
+			"description": "False start (only starter)"
+		},
+		{
+			"code": "70-WB",
+			"description": "Walking on or springing from bottom"
+		},
+		{
+			"code": "7Q",
+			"description": "Did not finish"
+		},
+		{
+			"code": "7S",
+			"description": "Entered water without permission"
+		},
+		{
+			"code": "7T",
+			"description": "Interfered with another swimmer"
+		},
+		{
+			"code": "7W",
+			"description": "Pulling on lane line"
+		},
+		{
+			"code": "7X",
+			"description": "Finish in wrong lane"
+		},
+		{
+			"code": "7Y",
+			"description": "Unsportsmanlike conduct"
+		}
 	]
 }

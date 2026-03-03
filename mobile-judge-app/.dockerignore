@@ -1,3 +1,5 @@
 node_modules
 dist
 .expo
+.npm-cache-local
+.npm-cache

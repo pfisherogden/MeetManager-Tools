@@ -66,7 +66,19 @@ const getStrokeForEvent = (event: Event, leg?: number) => {
 		}
 		return "Free"; // Free Relay
 	}
-	return event.stroke || "Free";
+
+	const stroke = event.stroke || "";
+	if (stroke) return stroke;
+
+	// Fallback: Infer from name
+	const name = event.name.toLowerCase();
+	if (name.includes("butterfly") || name.includes("fly")) return "Fly";
+	if (name.includes("backstroke") || name.includes("back")) return "Back";
+	if (name.includes("breaststroke") || name.includes("breast")) return "Breast";
+	if (name.includes("freestyle") || name.includes("free")) return "Free";
+	if (name.includes("individual medley") || name.includes("im")) return "IM";
+
+	return "Free";
 };
 
 const getOrderedDQCategories = (
@@ -77,20 +89,51 @@ const getOrderedDQCategories = (
 	if (!currentStroke) return categories;
 
 	const priorityMap: { [key: string]: string } = {
-		Fly: "butterfly",
-		Back: "backstroke",
-		Breast: "breaststroke",
+		fly: "butterfly",
+		butterfly: "butterfly",
+		back: "backstroke",
+		backstroke: "backstroke",
+		breast: "breaststroke",
+		breaststroke: "breaststroke",
+		free: "freestyle",
+		freestyle: "freestyle",
+		im: "im",
+		"individual medley": "im",
 	};
 
-	const targetCategory = priorityMap[currentStroke];
+	const targetCategory = priorityMap[currentStroke.toLowerCase()];
 
 	if (targetCategory) {
-		return [targetCategory, ...categories.filter((c) => c !== targetCategory)];
+		const ordered = [
+			targetCategory,
+			...categories.filter((c) => c !== targetCategory && c !== "miscellaneous"),
+		];
+		// Ensure Miscellaneous is always at the end
+		if (categories.includes("miscellaneous")) {
+			ordered.push("miscellaneous");
+		}
+		return ordered;
 	}
-	return categories;
+
+	// Default order: rest, then miscellaneous
+	const defaultOrdered = categories.filter((c) => c !== "miscellaneous");
+	if (categories.includes("miscellaneous")) {
+		defaultOrdered.push("miscellaneous");
+	}
+	return defaultOrdered;
+
+	// Default order: Breast/Back/Fly usually prioritized for Medley, 
+	// but let's just make sure Miscellaneous is at the end.
+	const ordered = [...categories];
+	const miscIdx = ordered.indexOf("miscellaneous");
+	if (miscIdx > -1) {
+		ordered.splice(miscIdx, 1);
+		ordered.push("miscellaneous");
+	}
+	return ordered;
 };
 
-const BUILD_TIME = "02/20/2026, 11:01:50 PM PT"; // Fixed build time
+const BUILD_TIME = "03/02/2026, 10:47:39 PM PT"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<
