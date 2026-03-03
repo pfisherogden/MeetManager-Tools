@@ -279,9 +279,55 @@ export default function App() {
 				<TouchableOpacity onPress={() => setCurrentScreen("heats")}>
 					<Text style={styles.backButton}>BACK</Text>
 				</TouchableOpacity>
-				<Text style={styles.headerTitle}>
-					Event {selectedEvent?.number} - Heat {selectedHeat?.number}
-				</Text>
+				<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "center" }}>
+					<TouchableOpacity
+						onPress={() => {
+							const currentHeatIndex = heats.findIndex(h => h.id === selectedHeat?.id);
+							if (currentHeatIndex > 0) {
+								setSelectedHeat(heats[currentHeatIndex - 1]);
+							} else {
+								// First heat, navigate to previous event
+								const currentEventIndex = events.findIndex(e => e.id === selectedEvent?.id);
+								if (currentEventIndex > 0) {
+									const prevEvent = events[currentEventIndex - 1];
+									const prevEventHeats = getHeatsByEvent(prevEvent.id);
+									if (prevEventHeats.length > 0) {
+										setSelectedEvent(prevEvent);
+										setSelectedHeat(prevEventHeats[prevEventHeats.length - 1]);
+									}
+								}
+							}
+						}}
+						style={styles.heatNavButton}
+					>
+						<Ionicons name="play-skip-back" size={24} color={COLORS.primary} />
+					</TouchableOpacity>
+					<Text style={styles.headerTitle}>
+						Event {selectedEvent?.number} - Heat {selectedHeat?.number}
+					</Text>
+					<TouchableOpacity
+						onPress={() => {
+							const currentHeatIndex = heats.findIndex(h => h.id === selectedHeat?.id);
+							if (currentHeatIndex < heats.length - 1) {
+								setSelectedHeat(heats[currentHeatIndex + 1]);
+							} else {
+								// Last heat, navigate to next event
+								const currentEventIndex = events.findIndex(e => e.id === selectedEvent?.id);
+								if (currentEventIndex < events.length - 1) {
+									const nextEvent = events[currentEventIndex + 1];
+									const nextEventHeats = getHeatsByEvent(nextEvent.id);
+									if (nextEventHeats.length > 0) {
+										setSelectedEvent(nextEvent);
+										setSelectedHeat(nextEventHeats[0]);
+									}
+								}
+							}
+						}}
+						style={styles.heatNavButton}
+					>
+						<Ionicons name="play-skip-forward" size={24} color={COLORS.primary} />
+					</TouchableOpacity>
+				</View>
 			</View>
 			<FlatList
 				data={swimmers}
@@ -302,7 +348,10 @@ export default function App() {
 								>
 									<Text style={styles.laneText}>{item.lane}</Text>
 								</View>
-								<View style={styles.swimmerInfo}>
+								<TouchableOpacity
+									style={styles.swimmerInfo}
+									onPress={() => handleDQ(item)}
+								>
 									<Text
 										style={[styles.swimmerName, item.empty && styles.emptyText]}
 									>
@@ -311,51 +360,52 @@ export default function App() {
 									{!item.isRelay && (
 										<Text style={styles.teamName}>{item.team}</Text>
 									)}
+								</TouchableOpacity>
 
-									{!item.empty && (
-										<View style={styles.legsContainer}>
-											{[1, 2, 3, 4].map((leg) => {
-												const dq = item.relay_dqs?.find(
-													(d: DQ) => d.leg === leg,
-												);
-												const legName = item.members?.[leg - 1]
-													? item.members[leg - 1]
-													: `Leg ${leg}`;
-												return (
-													<TouchableOpacity
-														key={leg}
-														style={styles.legRow}
-														onPress={() => handleDQ(item, leg)}
+								{!item.empty && (
+									<View style={styles.legsContainer}>
+										{[1, 2, 3, 4].map((leg) => {
+											const dq = item.relay_dqs?.find(
+												(d: DQ) => d.leg === leg,
+											);
+											const legName = item.members?.[leg - 1]
+												? item.members[leg - 1]
+												: `Leg ${leg}`;
+											return (
+												<TouchableOpacity
+													key={leg}
+													style={styles.legRow}
+													onPress={() => handleDQ(item, leg)}
+												>
+													<View style={{ flex: 1 }}>
+														<Text style={styles.legLabel}>{legName}</Text>
+														{dq?.notes ? (
+															<Text
+																style={styles.notePreview}
+																numberOfLines={1}
+															>
+																{dq.notes}
+															</Text>
+														) : null}
+													</View>
+													<Text
+														style={[
+															styles.dqTrigger,
+															!dq && { color: COLORS.secondary },
+														]}
 													>
-														<View style={{ flex: 1 }}>
-															<Text style={styles.legLabel}>{legName}</Text>
-															{dq?.notes ? (
-																<Text
-																	style={styles.notePreview}
-																	numberOfLines={1}
-																>
-																	{dq.notes}
-																</Text>
-															) : null}
-														</View>
-														<Text
-															style={[
-																styles.dqTrigger,
-																!dq && { color: COLORS.secondary },
-															]}
-														>
-															{dq ? dq.dq_code : "TAP TO DQ"}
-														</Text>
-													</TouchableOpacity>
-												);
-											})}
-										</View>
-									)}
-								</View>
+														{dq ? dq.dq_code : "TAP TO DQ"}
+													</Text>
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+								)}
 							</View>
-						);
+						)
 					}
 
+					// Render standard swimmer view
 					return (
 						<TouchableOpacity
 							style={[styles.swimmerCard, item.empty && styles.emptyCard]}
@@ -477,49 +527,73 @@ export default function App() {
 				<View style={styles.modalOverlay}>
 					<View style={[styles.modalContainer, styles.modalPopup]}>
 						<View style={styles.modalHeader}>
-							<Text style={styles.modalTitle}>
-								DQ:{" "}
-								{selectedLeg !== undefined &&
-								selectedSwimmer?.members?.[selectedLeg - 1]
-									? selectedSwimmer.members[selectedLeg - 1]
-									: `${selectedSwimmer?.name || "Swimmer"}${selectedLeg ? ` - Leg ${selectedLeg}` : ""}`}
-							</Text>
+							<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "space-between" }}>
+								{selectedSwimmer?.isRelay && (
+									<TouchableOpacity
+										onPress={() => {
+											if (selectedLeg === 1) setSelectedLeg(undefined);
+											else if (selectedLeg === undefined) setSelectedLeg(4);
+											else setSelectedLeg(selectedLeg - 1);
+											// Refresh DQ note and selected code from selectedSwimmer for new leg
+											let prevDq;
+											if (selectedLeg === 1) {
+												prevDq = selectedSwimmer.dq_code ? { dq_code: selectedSwimmer.dq_code, notes: selectedSwimmer.notes } : null;
+											} else {
+												const targetLeg = selectedLeg === undefined ? 4 : selectedLeg - 1;
+												prevDq = selectedSwimmer.relay_dqs?.find((d: any) => d.leg === targetLeg);
+											}
+											setDqNote(prevDq?.notes || "");
+											setPendingDqCode(prevDq?.dq_code ? prevDq.dq_code.split(",") : []);
+										}}
+										style={{ padding: 10 }}
+									>
+										<Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+									</TouchableOpacity>
+								)}
+								<Text style={[styles.modalTitle, { flex: undefined }]}>
+									DQ:{" "}
+									{selectedLeg !== undefined &&
+										selectedSwimmer?.members?.[selectedLeg - 1]
+										? selectedSwimmer.members[selectedLeg - 1]
+										: `${selectedSwimmer?.name || "Swimmer"}${selectedLeg ? ` - Leg ${selectedLeg}` : ""}`}
+								</Text>
+								{selectedSwimmer?.isRelay && (
+									<TouchableOpacity
+										onPress={() => {
+											if (selectedLeg === 4) setSelectedLeg(undefined);
+											else if (selectedLeg === undefined) setSelectedLeg(1);
+											else setSelectedLeg(selectedLeg + 1);
+											// Refresh DQ note and selected code from selectedSwimmer for new leg
+											let nextDq;
+											if (selectedLeg === 4) {
+												nextDq = selectedSwimmer.dq_code ? { dq_code: selectedSwimmer.dq_code, notes: selectedSwimmer.notes } : null;
+											} else {
+												const targetLeg = selectedLeg === undefined ? 1 : selectedLeg + 1;
+												nextDq = selectedSwimmer.relay_dqs?.find((d: any) => d.leg === targetLeg);
+											}
+											setDqNote(nextDq?.notes || "");
+											setPendingDqCode(nextDq?.dq_code ? nextDq.dq_code.split(",") : []);
+										}}
+										style={{ padding: 10 }}
+									>
+										<Ionicons name="chevron-forward" size={24} color={COLORS.primary} />
+									</TouchableOpacity>
+								)}
+							</View>
 							<View style={styles.headerActions}>
 								<TouchableOpacity
 									onPress={onSave}
 									style={styles.headerIconButton}
-									// @ts-expect-error - title is supported on web for tooltips
-									title="Save changes"
 									accessibilityLabel="Save changes"
 								>
-									<Image
-										source={require("./assets/save_icon.png")}
-										style={styles.actionIcon}
-									/>
+									<Ionicons name="checkmark-circle" size={44} color={COLORS.success} />
 								</TouchableOpacity>
 								<TouchableOpacity
 									onPress={onDelete}
 									style={styles.headerIconButton}
-									// @ts-expect-error - title is supported on web for tooltips
-									title="Delete DQ and notes"
-									accessibilityLabel="Delete DQ and notes"
+									accessibilityLabel="Close and delete DQ"
 								>
-									<Image
-										source={require("./assets/delete_icon.png")}
-										style={styles.actionIcon}
-									/>
-								</TouchableOpacity>
-								<TouchableOpacity
-									onPress={onCancel}
-									style={styles.headerIconButton}
-									// @ts-expect-error - title is supported on web for tooltips
-									title="Cancel changes"
-									accessibilityLabel="Cancel changes"
-								>
-									<Image
-										source={require("./assets/cancel_icon.png")}
-										style={styles.actionIcon}
-									/>
+									<Ionicons name="close-circle" size={44} color={COLORS.danger} />
 								</TouchableOpacity>
 							</View>
 						</View>
@@ -910,13 +984,11 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	headerIconButton: {
-		marginLeft: 15,
-		padding: 5,
+		marginLeft: 20,
+		padding: 10,
 	},
-	actionIcon: {
-		width: 24,
-		height: 24,
-		resizeMode: "contain",
+	heatNavButton: {
+		paddingHorizontal: 15,
 	},
 	selectedDqItem: {
 		backgroundColor: COLORS.primary,

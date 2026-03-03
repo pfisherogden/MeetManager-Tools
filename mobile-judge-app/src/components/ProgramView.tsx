@@ -7,6 +7,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { getHeatsByEvent, getSwimmersByHeat } from "../database/db";
 import type { DQ, Event, Heat, Swimmer } from "../types";
 
@@ -151,7 +152,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 							disabled={index === 0}
 							style={[styles.iconButton, index === 0 && styles.disabledIcon]}
 						>
-							<Text style={styles.iconText}>▲</Text>
+							<Ionicons name="play-skip-back" size={24} color={COLORS.icon} />
 						</TouchableOpacity>
 						<TouchableOpacity
 							onPress={() => scrollToEvent(index + 1)}
@@ -161,7 +162,7 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 								index === events.length - 1 && styles.disabledIcon,
 							]}
 						>
-							<Text style={styles.iconText}>▼</Text>
+							<Ionicons name="play-skip-forward" size={24} color={COLORS.icon} />
 						</TouchableOpacity>
 					</View>
 				</View>
