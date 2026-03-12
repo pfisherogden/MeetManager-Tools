@@ -62,7 +62,7 @@
 		"nice-grpc": "^2.1.14",
 		"nice-grpc-common": "^2.0.2",
 		"qrcode.react": "^4.2.0",
-		"react": "19.2.0",
+		"react": "19.2.4",
 		"react-day-picker": "9.13.2",
 		"react-dom": "19.2.0",
 		"react-hook-form": "^7.60.0",
