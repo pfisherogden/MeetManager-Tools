@@ -69,7 +69,6 @@ jobs:
           region: '${{ env.REGION }}'
           env_vars: |
             GCS_BUCKET_NAME=meetmanager-data-mmtools-488404
-            PORT=8080
 
       # Deploy Frontend to Cloud Run
       - name: Deploy Frontend
