@@ -16,7 +16,7 @@ clean:
 # Build Docker containers
 build: clean
     @echo "Building containers..."
-    docker-compose build
+    docker compose build
 
 # Build frontend application
 build-frontend:
@@ -36,13 +36,13 @@ build-frontend-debug:
 # Start services in the background
 up:
     @echo "Starting services..."
-    docker-compose up -d --remove-orphans
+    docker compose up -d --remove-orphans
     @echo "Waiting for services to initialize..."
     sleep 5
 
 # Stop services
 down:
-    docker-compose down
+    docker compose down
 
 codegen-backend:
     @echo "Regenerating Backend Protos..."
@@ -110,7 +110,7 @@ test: codegen lint test-backend test-frontend
 
 test-backend:
     @echo "Running Backend Tests..."
-    docker-compose exec -T backend python -m pytest tests/
+    docker compose exec -T backend python -m pytest tests/
 
 # Setup Java dependencies (JARs and local JRE if needed)
 setup-java:
@@ -126,6 +126,11 @@ test-frontend: codegen
     cd web-client && npm test
 
 test-local: test-backend-local test-frontend
+
+# Run formalized headless journey tests (requires 'just up' first)
+test-journeys:
+    @echo "Running Headless Journey Tests..."
+    docker compose exec -T -e TEST_WEB_TARGET=http://frontend:3000 backend python -m pytest tests/integration/test_headless_journeys.py
 
 # Full verification pipeline (includes production builds to catch styling/turbopack errors)
 verify: lint test build-frontend build-mobile
@@ -154,26 +159,26 @@ ci-local:
 
 # View logs
 logs service="":
-    docker-compose logs -f {{service}}
+    docker compose logs -f {{service}}
 
 # Open a shell in the backend container
 shell:
-    docker-compose exec backend bash
+    docker compose exec backend bash
 
 # --- Reporting & Verification (Support for Report Code Agent) ---
 
 # Generate a verification report PDF and PNG
 report-verify:
     @echo "Generating verification report..."
-    docker-compose run --rm backend python src/verify_report_generation.py
+    docker compose run --rm backend python src/verify_report_generation.py
     @echo "Converting to PNG..."
-    docker-compose run --rm backend bash -c "apt-get update && apt-get install -y poppler-utils && pdftoppm -png -f 1 -l 1 /app/data/example_reports/verification_entries_v5.pdf /app/data/example_reports/verification_entries_v5"
+    docker compose run --rm backend bash -c "apt-get update && apt-get install -y poppler-utils && pdftoppm -png -f 1 -l 1 /app/data/example_reports/verification_entries_v5.pdf /app/data/example_reports/verification_entries_v5"
     @echo "Report generated in backend/data/example_reports/"
 
 # Run the relay/entries data verification test
 test-entries:
     @echo "Running Relay/Entries Data Verification..."
-    docker-compose run --rm backend python src/tests/test_meet_entries_data.py
+    docker compose run --rm backend python src/tests/test_meet_entries_data.py
 
 # Build the mobile judge app web version
 build-mobile:
@@ -182,9 +187,9 @@ build-mobile:
 
 # Run the mobile judge app in Docker
 up-mobile:
-    @echo "Starting mobile judge app at http://localhost:8080"
+    @echo "Starting mobile judge app at http://localhost:{{env_var_or_default('MOBILE_APP_PORT', '8080')}}"
     docker build -t judge-app-v1 mobile-judge-app/
-    docker run -d --name judge-app --rm -p 8080:8080 judge-app-v1
+    docker run -d --name judge-app --rm -p {{env_var_or_default('MOBILE_APP_PORT', '8080')}}:8080 judge-app-v1
 
 # Stop the mobile judge app container
 down-mobile:
@@ -197,9 +202,9 @@ test-mobile:
 # Run integration tests for judge app sync
 test-integration-sync:
     @echo "Running integration tests for judge app sync..."
-    cd tests/integration/judge_sync && docker-compose -f docker-compose.test.yml build
-    cd tests/integration/judge_sync && docker-compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-runner
-    cd tests/integration/judge_sync && docker-compose -f docker-compose.test.yml down
+    cd tests/integration/judge_sync && docker compose -f docker-compose.test.yml build
+    cd tests/integration/judge_sync && BACKEND_PORT={{env_var_or_default('BACKEND_PORT', '8081')}} FRONTEND_PORT={{env_var_or_default('FRONTEND_PORT', '3000')}} docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-runner
+    cd tests/integration/judge_sync && docker compose -f docker-compose.test.yml down
 
 # --- Fast Verification & Mobile Workflows ---
 # Fast verification (skips codegen)
@@ -261,4 +266,3 @@ verify-viewer:
     @echo "Verifying Meet Program Viewer..."
     cd meet-program-viewer && npx tsc --noEmit
     cd meet-program-viewer && npm test -- --watchAll=false
-

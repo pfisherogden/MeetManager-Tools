@@ -32,7 +32,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
 
+	const isAuthDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
+
 	useEffect(() => {
+		if (isAuthDisabled) {
+			// Mock local user
+			const mockUser = {
+				uid: "dev-user",
+				email: "dev@local.host",
+				displayName: "Local Developer",
+			} as User;
+			setUser(mockUser);
+			Cookies.set("idToken", "dev-token", {
+				expires: 1 / 24,
+				secure: false, // Local dev usually not https
+				sameSite: "strict",
+			});
+			setLoading(false);
+			return;
+		}
+
 		const unsubscribe = onAuthStateChanged(auth, async (user) => {
 			setUser(user);
 			if (user) {
@@ -48,18 +67,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			setLoading(false);
 		});
 		return () => unsubscribe();
-	}, []);
+	}, [isAuthDisabled]);
 
 	const login = async () => {
+		if (isAuthDisabled) return {} as UserCredential;
 		return signInWithPopup(auth, googleProvider);
 	};
 
 	const logout = async () => {
 		Cookies.remove("idToken");
+		if (isAuthDisabled) {
+			setUser(null);
+			return;
+		}
 		return signOut(auth);
 	};
 
 	const getToken = async () => {
+		if (isAuthDisabled) return "dev-token";
 		if (!user) return null;
 		return getIdToken(user);
 	};

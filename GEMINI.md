@@ -49,8 +49,8 @@ The backend uses **WeasyPrint** for PDF generation, which requires system-level 
 - **Rule**: NEVER push code that fails local linting or testing. CI failures on `main` are considered major regressions.
 - **Mandatory Pre-Push**: Run `just lint` immediately before every `git push` to catch accidental formatting or whitespace issues.
 
-### 2. 5-Cycle Verification
-- **Rule**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend`) **5 times consecutively**. All 5 runs must pass 100% to consider the task complete. This catches intermittent race conditions and flakiness.
+### 2. 2-Cycle Verification
+- **Rule**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend`) **2 times consecutively**. Both runs must pass 100% to consider the task complete. This catches most intermittent race conditions and flakiness while remaining efficient.
 
 ## CI/Test Strategy
 

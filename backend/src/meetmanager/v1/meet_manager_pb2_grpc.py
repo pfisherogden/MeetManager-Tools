@@ -146,6 +146,16 @@ class MeetManagerServiceStub(object):
                 request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.PublishMeetDataRequest.SerializeToString,
                 response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.PublishMeetDataResponse.FromString,
                 _registered_method=True)
+        self.SyncDQs = channel.unary_unary(
+                '/meetmanager.v1.MeetManagerService/SyncDQs',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.SyncDQsRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.SyncDQsResponse.FromString,
+                _registered_method=True)
+        self.GetFile = channel.unary_unary(
+                '/meetmanager.v1.MeetManagerService/GetFile',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetFileRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetFileResponse.FromString,
+                _registered_method=True)
 
 
 class MeetManagerServiceServicer(object):
@@ -321,6 +331,20 @@ class MeetManagerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SyncDQs(self, request, context):
+        """SyncDQs receives disqualifications from the judge app and stores them.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetFile(self, request, context):
+        """GetFile retrieves the content of a file from storage.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MeetManagerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -433,6 +457,16 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
                     servicer.PublishMeetData,
                     request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.PublishMeetDataRequest.FromString,
                     response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.PublishMeetDataResponse.SerializeToString,
+            ),
+            'SyncDQs': grpc.unary_unary_rpc_method_handler(
+                    servicer.SyncDQs,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.SyncDQsRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.SyncDQsResponse.SerializeToString,
+            ),
+            'GetFile': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetFile,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetFileRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetFileResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -1031,6 +1065,60 @@ class MeetManagerService(object):
             '/meetmanager.v1.MeetManagerService/PublishMeetData',
             meetmanager_dot_v1_dot_meet__manager__pb2.PublishMeetDataRequest.SerializeToString,
             meetmanager_dot_v1_dot_meet__manager__pb2.PublishMeetDataResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SyncDQs(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.v1.MeetManagerService/SyncDQs',
+            meetmanager_dot_v1_dot_meet__manager__pb2.SyncDQsRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.SyncDQsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetFile(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.v1.MeetManagerService/GetFile',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetFileRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetFileResponse.FromString,
             options,
             channel_credentials,
             insecure,

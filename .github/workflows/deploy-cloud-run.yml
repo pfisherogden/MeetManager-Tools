@@ -1,0 +1,82 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'web-client/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy-cloud-run.yml'
+
+env:
+  PROJECT_ID: mmtools-488404
+  REGION: us-west1
+  REPOSITORY: meetmanager
+  BACKEND_SERVICE: meetmanager-backend
+  FRONTEND_SERVICE: meetmanager-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Authentication with Google Cloud
+      # Note: Requires setting up a Workload Identity Pool and Provider in GCP
+      # or using a Service Account Key secret.
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Workload Identity Provider is recommended for security
+          # workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          # service_account: 'meetmanager-runner@mmtools-488404.iam.gserviceaccount.com'
+          
+          # Fallback to credentials_json for simplicity if WIP is not setup
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'Authorize Docker push'
+        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      # Build and Push Backend
+      - name: Build and Push Backend Image
+        run: |
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${BACKEND_SERVICE}:${{ github.sha }} -f backend/Dockerfile .
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${BACKEND_SERVICE}:${{ github.sha }}
+
+      # Build and Push Frontend
+      - name: Build and Push Frontend Image
+        run: |
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${{ github.sha }} -f web-client/Dockerfile .
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${{ github.sha }}
+
+      # Deploy Backend to Cloud Run
+      - name: Deploy Backend
+        id: deploy-backend
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: '${{ env.BACKEND_SERVICE }}'
+          image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}'
+          region: '${{ env.REGION }}'
+          env_vars: |
+            GCS_BUCKET_NAME=meetmanager-data-mmtools-488404
+            PORT=8080
+
+      # Deploy Frontend to Cloud Run
+      - name: Deploy Frontend
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: '${{ env.FRONTEND_SERVICE }}'
+          image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}'
+          region: '${{ env.REGION }}'
+          env_vars: |
+            BACKEND_INTERNAL_HOST=${{ steps.deploy-backend.outputs.url }}
