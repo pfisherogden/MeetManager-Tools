@@ -10,20 +10,21 @@
 ## Critical Configurations
 
 ### 1. Dynamic Base URL
-- **Problem**: The app runs at root `/` in Docker but at `/MeetManager-Tools/` on GitHub Pages.
-- **Solution**:
-  - `app.json` was converted to `app.config.js`.
-  - usage: `experiments: { baseUrl: process.env.APP_BASE_URL || "" }`
-  - **Docker**: `APP_BASE_URL` is empty (default).
-  - **GH Pages**: `APP_BASE_URL` is set to `/MeetManager-Tools` in `.github/workflows/deploy-mobile.yml`.
+... (previous content) ...
 
-### 2. Native Assets on Web
-- **Problem**: `Image` component with `tintColor` renders as a colored square on Web.
-- **Solution**: Use `@expo/vector-icons` (e.g., `Ionicons`) for all UI icons. This ensures crisp, recolorable vector rendering across platforms.
+### 4. macOS File Locking (Resource Deadlock)
+- **Problem**: When mounting `backend/src` as a volume on macOS, Python's attempts to write `.pyc` files can trigger `OSError: [Errno 35] Resource deadlock avoided`.
+- **Solution**: Set `PYTHONDONTWRITEBYTECODE=1` in the Docker environment variables. This prevents the container from writing byte code to the host-mounted volume.
 
-### 3. Docker Build Environment
-- **Problem**: Copying `node_modules` from macOS (M-series chips) to Linux/Alpine containers causes binary incompatibilities (e.g., `esbuild`).
-- **Solution**: Always use `.dockerignore` to exclude `node_modules`. Let the container install its own dependencies.
+### 5. Concurrent Workspace Safety
+- **Problem**: Multiple agents/workspaces on the same machine can collide if using the same Docker container names or ports.
+- **Solution**: 
+  - Use `COMPOSE_PROJECT_NAME` in `.env` to ensure unique container namespaces.
+  - Use `BACKEND_PORT` and `FRONTEND_PORT` environment variables to override host mappings.
+  - The `Justfile` and `docker-compose.yml` are configured to respect these variables.
+
+### 6. Trademark Compliance
+- **Rule**: Use the name "mmtools" for URLs, services, and cloud resources to avoid trademark issues with "Meet Manager".
 
 ## Verification Workflow
 1.  **Local Dev**: `npm start --web` (Fast feedback)

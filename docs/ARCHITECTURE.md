@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The MeetManager Tools project is a modern web application for managing and viewing swimming meet data. It consists of a Next.js frontend and a Python gRPC backend.
+The MMTools project is a modern web application for managing and viewing swimming meet data.
 
 ## key Components
 

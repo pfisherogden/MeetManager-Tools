@@ -1402,7 +1402,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
             sync_url = f"{frontend_base}/api/sync-dqs"
 
-            base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
+            base_url = "https://pfisherogden.github.io/mmtools/judge"
             judge_app_url = f"{base_url}?program_url={program_url}&sync_url={sync_url}"
 
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)

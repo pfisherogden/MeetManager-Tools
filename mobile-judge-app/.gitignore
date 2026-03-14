@@ -39,3 +39,4 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+\n# Local npm cache\n.npm-cache-local/

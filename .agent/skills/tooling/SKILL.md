@@ -40,6 +40,10 @@ description: Preferred tools for development and dependency management in MeetMa
   - **Piping**: If a command lacks a non-interactive flag, pipe `yes` into it: `yes | command`.
   - **Backgrounding**: Redirect stdout/stderr to files when running long-running containerized tasks in the background to prevent terminal hangs.
   - **Build Debugging**: If a build stalls for >10 minutes, use `--progress=plain` to identify the failing layer.
+- **Concurrency & Resource Locking**:
+  - **macOS Deadlock**: When mounting local source as a volume on macOS, Python's `.pyc` writing can deadlock the filesystem. Always set `PYTHONDONTWRITEBYTECODE=1` in the Docker environment.
+  - **Shared Host Safety**: When running multiple agents or workspaces on one machine, use `COMPOSE_PROJECT_NAME` in `.env` to prevent container name collisions.
+  - **Dynamic Ports**: Use environment variables (e.g., `FRONTEND_PORT`, `BACKEND_PORT`) for host port mappings to allow parallel execution without "address already in use" errors.
 
 ## Cross-Platform Reliability
 - **System Libraries**: Libraries like WeasyPrint require non-Python system dependencies (e.g., `libpango`, `libffi`). These MUST be explicitly installed in `ci.Dockerfile` and `backend/Dockerfile` using `apt-get`.
