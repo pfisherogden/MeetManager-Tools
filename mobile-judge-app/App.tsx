@@ -133,7 +133,7 @@ const getOrderedDQCategories = (
 	return ordered;
 };
 
-const BUILD_TIME = "03/02/2026, 10:47:39 PM PT"; // Fixed build time
+const BUILD_TIME = "03/13/2026, 11:21:13 PM PT"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<
@@ -156,6 +156,7 @@ export default function App() {
 	);
 	const [offlineModalVisible, setOfflineModalVisible] = useState(false); // Issue #83
 	const [programMode, setProgramMode] = useState(false); // Toggle state
+	const [showEmptyLanes, setShowEmptyLanes] = useState(true); // Issue #140
 	const [refreshCounter, setRefreshCounter] = useState<number>(0);
 
 	const refreshEvents = useCallback(() => {
@@ -475,13 +476,24 @@ export default function App() {
 						<Ionicons name="play-skip-forward" size={24} color={COLORS.primary} />
 					</TouchableOpacity>
 				</View>
+				<TouchableOpacity
+					onPress={() => setShowEmptyLanes(!showEmptyLanes)}
+					style={styles.headerIconButton}
+				>
+					<Ionicons
+						name={showEmptyLanes ? "eye" : "eye-off"}
+						size={24}
+						color={COLORS.primary}
+					/>
+				</TouchableOpacity>
 			</View>
 			<FlatList
 				data={swimmers}
 				keyExtractor={(item) => item.id.toString()}
 				renderItem={({ item }) => {
+					if (item.empty && !showEmptyLanes) return null;
+
 					if (item.isRelay) {
-						if (item.empty) return null; // Issue #81: Hide empty lanes for relays
 						return (
 							<View
 								style={[
@@ -493,7 +505,9 @@ export default function App() {
 								<View
 									style={[styles.laneCircle, item.empty && styles.emptyLane]}
 								>
-									<Text style={styles.laneText}>{item.lane}</Text>
+									<Text style={styles.laneText}>
+										{item.empty ? `(${item.lane})` : item.lane}
+									</Text>
 								</View>
 								<View style={styles.swimmerInfo}>
 									<TouchableOpacity onPress={() => handleDQ(item)}>
@@ -558,13 +572,15 @@ export default function App() {
 							onPress={() => handleDQ(item)}
 						>
 							<View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
-								<Text style={styles.laneText}>{item.lane}</Text>
+								<Text style={styles.laneText}>
+									{item.empty ? `(${item.lane})` : item.lane}
+								</Text>
 							</View>
 							<View style={styles.swimmerInfo}>
 								<Text
 									style={[styles.swimmerName, item.empty && styles.emptyText]}
 								>
-									{item.name}
+									{item.empty ? "Empty Lane" : item.name}
 								</Text>
 								<Text style={styles.teamName}>{item.team}</Text>
 								{item.notes ? (
@@ -626,10 +642,13 @@ export default function App() {
 					events={events}
 					onSelectSwimmer={(swimmer, event, heat, leg) => {
 						setSelectedEvent(event);
+						setHeats(getHeatsByEvent(event.id));
 						setSelectedHeat(heat);
+						setSwimmers(getSwimmersByHeat(heat.id));
 						handleDQ(swimmer, leg);
 					}}
 					refreshTrigger={refreshCounter}
+					showEmptyLanes={showEmptyLanes}
 				/>
 			)}
 
@@ -670,29 +689,46 @@ export default function App() {
 			{!programMode && currentScreen === "judge" && renderJudgeView()}
 
 			<Modal visible={dqModalVisible} animationType="slide" transparent={true}>
-				<View style={styles.modalOverlay}>
-					<View style={[styles.modalContainer, styles.modalPopup]}>
+				<TouchableOpacity
+					style={styles.modalOverlay}
+					activeOpacity={1}
+					onPress={() => setDqModalVisible(false)}
+				>
+					<TouchableOpacity
+						style={[styles.modalContainer, styles.modalPopup]}
+						activeOpacity={1}
+						onPress={(e) => e.stopPropagation()}
+					>
 						<View style={styles.modalHeader}>
-							<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "center" }}>
-								<TouchableOpacity onPress={() => navigateToPrevHeat(true)} style={{ padding: 5 }}>
-									<Ionicons name={programMode ? "chevron-up-circle" : "play-skip-back"} size={28} color={COLORS.primary} />
-								</TouchableOpacity>
-								<TouchableOpacity onPress={handlePrevSwimmer} style={{ padding: 5 }}>
-									<Ionicons name="chevron-back" size={28} color={COLORS.primary} />
-								</TouchableOpacity>
+							<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "space-between" }}>
+								<View style={{ flexDirection: "row", alignItems: "center" }}>
+									<TouchableOpacity onPress={() => navigateToPrevHeat(true)} style={{ padding: 5, marginRight: 10 }}>
+										<Ionicons name={programMode ? "chevron-up-circle" : "play-skip-back"} size={28} color={COLORS.primary} />
+									</TouchableOpacity>
+									<TouchableOpacity onPress={handlePrevSwimmer} style={{ padding: 5 }}>
+										<Ionicons name="chevron-back" size={28} color={COLORS.primary} />
+									</TouchableOpacity>
+								</View>
 
-								<Text style={[styles.modalTitle, { flex: 1, textAlign: 'center', marginHorizontal: 5, fontSize: 16 }]}>
-									DQ: {selectedLeg !== undefined && selectedSwimmer?.members?.[selectedLeg - 1]
-										? selectedSwimmer.members[selectedLeg - 1]
-										: `${selectedSwimmer?.name || "Swimmer"}${selectedLeg ? ` - Leg ${selectedLeg}` : ""}`}
-								</Text>
+								<View style={{ alignItems: 'center', flex: 1 }}>
+									<Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+										Lane {selectedSwimmer?.lane} • E{selectedEvent?.number} • H{selectedHeat?.number}
+									</Text>
+									<Text style={[styles.modalTitle, { textAlign: 'center', fontSize: 14, fontWeight: 'normal', color: COLORS.secondary }]} numberOfLines={1}>
+										{selectedLeg !== undefined && selectedSwimmer?.members?.[selectedLeg - 1]
+											? selectedSwimmer.members[selectedLeg - 1]
+											: selectedSwimmer?.name || "Swimmer"}{selectedLeg ? ` (Leg ${selectedLeg})` : ""}
+									</Text>
+								</View>
 
-								<TouchableOpacity onPress={handleNextSwimmer} style={{ padding: 5 }}>
-									<Ionicons name="chevron-forward" size={28} color={COLORS.primary} />
-								</TouchableOpacity>
-								<TouchableOpacity onPress={() => navigateToNextHeat(true)} style={{ padding: 5 }}>
-									<Ionicons name={programMode ? "chevron-down-circle" : "play-skip-forward"} size={28} color={COLORS.primary} />
-								</TouchableOpacity>
+								<View style={{ flexDirection: "row", alignItems: "center" }}>
+									<TouchableOpacity onPress={handleNextSwimmer} style={{ padding: 5, marginRight: 10 }}>
+										<Ionicons name="chevron-forward" size={28} color={COLORS.primary} />
+									</TouchableOpacity>
+									<TouchableOpacity onPress={() => navigateToNextHeat(true)} style={{ padding: 5 }}>
+										<Ionicons name={programMode ? "chevron-down-circle" : "play-skip-forward"} size={28} color={COLORS.primary} />
+									</TouchableOpacity>
+								</View>
 							</View>
 							<View style={styles.headerActions}>
 								<TouchableOpacity
@@ -769,8 +805,8 @@ export default function App() {
 								</View>
 							))}
 						</ScrollView>
-					</View>
-				</View>
+					</TouchableOpacity>
+				</TouchableOpacity>
 			</Modal>
 			{/* Build Timestamp */}
 			<View style={styles.footer}>
