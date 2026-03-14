@@ -6,21 +6,20 @@ import {
 	FileText,
 	GitBranch,
 	LayoutDashboard,
+	LogOut,
 	Medal,
+	MoreHorizontal,
 	Timer,
 	Trophy,
 	User,
 	Users,
 	Waves,
-	LogOut,
-	MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useConfig } from "@/components/config-provider";
-import { useAuth } from "@/hooks/use-auth";
-import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -29,7 +28,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 const navItems = [
 	{ name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -119,7 +119,10 @@ function UserNav() {
 					className="w-full justify-start gap-3 px-2 h-12 hover:bg-sidebar-accent"
 				>
 					<Avatar className="h-8 w-8 border border-sidebar-border shadow-sm">
-						<AvatarImage src={user.photoURL || ""} alt={user.displayName || ""} />
+						<AvatarImage
+							src={user.photoURL || ""}
+							alt={user.displayName || ""}
+						/>
 						<AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
 							{initials}
 						</AvatarFallback>
@@ -143,7 +146,9 @@ function UserNav() {
 			>
 				<DropdownMenuLabel className="font-normal">
 					<div className="flex flex-col space-y-1">
-						<p className="text-sm font-medium leading-none">{user.displayName}</p>
+						<p className="text-sm font-medium leading-none">
+							{user.displayName}
+						</p>
 						<p className="text-xs leading-none text-muted-foreground">
 							{user.email}
 						</p>

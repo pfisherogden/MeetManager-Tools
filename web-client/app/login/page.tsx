@@ -1,11 +1,17 @@
 "use client";
 
-import { useAuth } from "@/hooks/use-auth";
+import { LogIn, Waves } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Waves, LogIn } from "lucide-react";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function LoginPage() {
 	const { user, login, loading } = useAuth();
@@ -40,7 +46,9 @@ export default function LoginPage() {
 			<div className="flex min-h-screen items-center justify-center bg-muted/50">
 				<div className="animate-pulse flex flex-col items-center gap-4">
 					<Waves className="h-12 w-12 text-primary" />
-					<p className="text-sm text-muted-foreground font-medium">Loading...</p>
+					<p className="text-sm text-muted-foreground font-medium">
+						Loading...
+					</p>
 				</div>
 			</div>
 		);
@@ -53,7 +61,9 @@ export default function LoginPage() {
 					<div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-4 shadow-inner">
 						<Waves className="h-10 w-10 text-primary-foreground" />
 					</div>
-					<CardTitle className="text-3xl font-bold tracking-tight">MMTools</CardTitle>
+					<CardTitle className="text-3xl font-bold tracking-tight">
+						MMTools
+					</CardTitle>
 					<CardDescription className="text-base">
 						Swim Meet Data Management
 					</CardDescription>
@@ -64,13 +74,14 @@ export default function LoginPage() {
 							{error}
 						</div>
 					)}
-					
+
 					<div className="space-y-4">
 						<p className="text-sm text-center text-muted-foreground px-4">
-							Sign in with your Google account to access your swim meet datasets and reports.
+							Sign in with your Google account to access your swim meet datasets
+							and reports.
 						</p>
-						<Button 
-							className="w-full h-12 text-base font-semibold gap-3 shadow-sm hover:shadow-md transition-all" 
+						<Button
+							className="w-full h-12 text-base font-semibold gap-3 shadow-sm hover:shadow-md transition-all"
 							size="lg"
 							onClick={handleLogin}
 							disabled={isLoggingIn}
@@ -83,7 +94,7 @@ export default function LoginPage() {
 							Sign in with Google
 						</Button>
 					</div>
-					
+
 					<div className="text-center">
 						<p className="text-xs text-muted-foreground font-medium">
 							Your data is automatically sandboxed to your account.

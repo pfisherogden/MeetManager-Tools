@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type React from "react";
 import "./globals.css";
-import { ConfigProvider } from "@/components/config-provider";
 import { AuthGuard } from "@/components/auth-guard";
+import { ConfigProvider } from "@/components/config-provider";
 import { Providers } from "./providers";
 
 const _geist = Geist({ subsets: ["latin"] });
