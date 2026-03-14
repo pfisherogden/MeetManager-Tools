@@ -13,10 +13,13 @@ import {
 // - Server Side (Docker): use 'backend:50051' (or env var)
 // - Client Side (Browser): use 'localhost:50051'
 // Note: NEXT_PUBLIC_ variables are for browser, but here we check window context
-const defaultHost =
+let defaultHost =
 	typeof window === "undefined"
 		? process.env.BACKEND_INTERNAL_HOST || "localhost:50051"
 		: "localhost:50051";
+
+// Strip protocol if present (e.g. from Cloud Run URL)
+defaultHost = defaultHost.replace(/^https?:\/\//, "");
 
 // Create a middleware to add the token to every request
 const authMiddleware = async function* (call: any, options: any) {
@@ -49,9 +52,15 @@ const authMiddleware = async function* (call: any, options: any) {
 // Create a singleton client
 const clientFactory = createClientFactory().use(authMiddleware);
 
+// Use secure credentials if host implies cloud (contains .run.app) or via env var
+const useSsl = defaultHost.includes(".run.app") || process.env.BACKEND_USE_SSL === "true";
+const credentials = useSsl 
+	? ChannelCredentials.createSsl() 
+	: ChannelCredentials.createInsecure();
+
 const client: MeetManagerServiceClient = clientFactory.create(
 	MeetManagerServiceDefinition,
-	createChannel(defaultHost, ChannelCredentials.createInsecure()),
+	createChannel(defaultHost, credentials),
 );
 
 export default client;

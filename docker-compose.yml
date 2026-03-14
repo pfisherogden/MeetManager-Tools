@@ -15,6 +15,7 @@ services:
       - ./tmp:/app/tmp
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
       - GRPC_AUTH_DISABLED=true
 
   frontend:

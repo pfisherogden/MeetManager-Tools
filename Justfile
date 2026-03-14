@@ -8,7 +8,7 @@ clean:
     @echo "Cleaning up..."
     -rm -rf .tmp
     -rm -rf .npm_cache
-    -rm -rf backend/src/__pycache__
+    -find . -name "__pycache__" -exec rm -rf {} +
     -rm -rf web-client/.next
     -rm -f backend/data/uploaded.mdb
     @echo "Cleanup complete."

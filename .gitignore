@@ -65,3 +65,4 @@ backend/src/test_touch
 .gemini/*
 !.gemini/skills/
 !.gemini/agents/
+\n# Terraform\n.terraform/\n*.tfstate\n*.tfstate.backup\n.terraform.lock.hcl

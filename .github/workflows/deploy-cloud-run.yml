@@ -2,7 +2,7 @@ name: Deploy to Cloud Run
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feat/phase-3-cloud-deployment ]
     paths:
       - 'backend/**'
       - 'web-client/**'
@@ -80,3 +80,4 @@ jobs:
           region: '${{ env.REGION }}'
           env_vars: |
             BACKEND_INTERNAL_HOST=${{ steps.deploy-backend.outputs.url }}
+            BACKEND_USE_SSL=true
