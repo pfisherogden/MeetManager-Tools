@@ -103,7 +103,8 @@ describe("User Journey: Record a DQ", () => {
 		// 4. Tap Swimmer to DQ
 		fireEvent.press(screen.getByText("TAP TO DQ"));
 		await waitFor(() => {
-			expect(screen.getByText(/DQ: John Doe/)).toBeTruthy();
+			expect(screen.getByText("Lane 1 • E1 • H1")).toBeTruthy();
+			expect(screen.getByText("John Doe")).toBeTruthy();
 		});
 
 		// 5. Select a DQ Code (e.g., 1A)
@@ -114,7 +115,7 @@ describe("User Journey: Record a DQ", () => {
 
 		// 7. Verify modal is closed (Saving closes modal)
 		await waitFor(() => {
-			expect(screen.queryByLabelText("Cancel changes")).toBeNull();
+			expect(screen.queryByLabelText("Save changes")).toBeNull();
 		});
 		expect(screen.getByText("John Doe")).toBeTruthy();
 	}, 15000);
