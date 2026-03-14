@@ -34,7 +34,12 @@ Automate the provisioning and deployment of the application to Google Cloud Run,
     - Building web-client image and pushing to Artifact Registry.
     - Deploying both to Cloud Run using `google-github-actions/deploy-cloudrun`.
 
+### 3. Identity & Secure Communication
+- [x] **Secure gRPC**: Update `mm-client.ts` to use SSL/TLS for Cloud Run backend connections.
+- [x] **Authentication**: Implement Firebase Google Login and AuthGuard to protect data.
+- [x] **Renaming**: Transition to `mmtools` naming for all cloud resources and project references.
+
 ## Verification Strategy
-- **Infrastructure Test**: Run `terraform plan` and verify resource creation locally.
-- **Deployment Test**: Push a small change to a branch, verify the CI/CD pipeline triggers, builds, and deploys successfully.
-- **End-to-End Test**: Verify the application is accessible and functional at the generated Cloud Run URL.
+- **Local Test**: Run `just up` and `just test-journeys` 3 times consecutively (Passed).
+- **Deployment Test**: Push to branch, verify GitHub Actions CD pipeline (Passed Run #23089841152).
+- **End-to-End Test**: Verify frontend and backend accessible at Cloud Run URLs (Verified).
