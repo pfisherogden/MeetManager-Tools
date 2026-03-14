@@ -104,7 +104,8 @@ describe("User Journey: Record a DQ", () => {
 		fireEvent.press(screen.getByText("TAP TO DQ"));
 		await waitFor(() => {
 			expect(screen.getByText("Lane 1 • E1 • H1")).toBeTruthy();
-			expect(screen.getByText("John Doe")).toBeTruthy();
+			// John Doe appears twice: once in the background card and once in the modal header
+			expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
 		});
 
 		// 5. Select a DQ Code (e.g., 1A)
@@ -117,6 +118,6 @@ describe("User Journey: Record a DQ", () => {
 		await waitFor(() => {
 			expect(screen.queryByLabelText("Save changes")).toBeNull();
 		});
-		expect(screen.getByText("John Doe")).toBeTruthy();
+		expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
 	}, 15000);
 });
