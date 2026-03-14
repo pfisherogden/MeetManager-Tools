@@ -17,19 +17,19 @@ Automate the provisioning and deployment of the application to Google Cloud Run,
 - [x] **Container Optimization**: Refine `backend/Dockerfile` for Cloud Run.
 
 ### 1. Infrastructure as Code (Terraform)
-- [ ] Create `deploy/` directory with Terraform configuration (`main.tf`, `variables.tf`).
-- [ ] Define resources:
+- [x] Create `deploy/` directory with Terraform configuration (`main.tf`, `variables.tf`).
+- [x] Define resources:
     - GCS Bucket for data storage.
     - Artifact Registry for container images.
     - Cloud Run services (Backend and Web Client).
     - Service Accounts with least-privilege IAM roles.
     - Secret Manager for sensitive environment variables.
-- [ ] Output service URLs for use in the application configuration.
+- [x] Output service URLs for use in the application configuration.
 
 ### 2. Continuous Deployment Pipeline
-- [ ] Create `.github/workflows/cd.yml`.
-- [ ] Configure `google-github-actions/auth` and `google-github-actions/setup-gcloud`.
-- [ ] Update build steps for:
+- [x] Create `.github/workflows/cd.yml`.
+- [x] Configure `google-github-actions/auth` and `google-github-actions/setup-gcloud`.
+- [x] Update build steps for:
     - Building backend image and pushing to Artifact Registry.
     - Building web-client image and pushing to Artifact Registry.
     - Deploying both to Cloud Run using `google-github-actions/deploy-cloudrun`.

@@ -53,9 +53,10 @@ const authMiddleware = async function* (call: any, options: any) {
 const clientFactory = createClientFactory().use(authMiddleware);
 
 // Use secure credentials if host implies cloud (contains .run.app) or via env var
-const useSsl = defaultHost.includes(".run.app") || process.env.BACKEND_USE_SSL === "true";
-const credentials = useSsl 
-	? ChannelCredentials.createSsl() 
+const useSsl =
+	defaultHost.includes(".run.app") || process.env.BACKEND_USE_SSL === "true";
+const credentials = useSsl
+	? ChannelCredentials.createSsl()
 	: ChannelCredentials.createInsecure();
 
 const client: MeetManagerServiceClient = clientFactory.create(

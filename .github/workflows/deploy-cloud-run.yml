@@ -12,9 +12,9 @@ on:
 env:
   PROJECT_ID: mmtools-488404
   REGION: us-west1
-  REPOSITORY: meetmanager
-  BACKEND_SERVICE: meetmanager-backend
-  FRONTEND_SERVICE: meetmanager-frontend
+  REPOSITORY: mmtools
+  BACKEND_SERVICE: mmtools-backend
+  FRONTEND_SERVICE: mmtools-frontend
 
 jobs:
   deploy:
@@ -68,7 +68,7 @@ jobs:
           image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}'
           region: '${{ env.REGION }}'
           env_vars: |
-            GCS_BUCKET_NAME=meetmanager-data-mmtools-488404
+            GCS_BUCKET_NAME=mmtools-data-mmtools-488404
 
       # Deploy Frontend to Cloud Run
       - name: Deploy Frontend

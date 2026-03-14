@@ -56,6 +56,7 @@ resource "google_cloud_run_v2_service" "backend" {
   name     = "${var.app_name}-backend"
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false
 
   template {
     service_account = google_service_account.run_sa.email
@@ -83,6 +84,7 @@ resource "google_cloud_run_v2_service" "frontend" {
   name     = "${var.app_name}-frontend"
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false
 
   template {
     service_account = google_service_account.run_sa.email

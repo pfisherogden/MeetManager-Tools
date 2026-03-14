@@ -1,6 +1,6 @@
-# MeetManager Tools
+# MMTools
+A suite of tools for processing and visualizing swim meet data.
 
-A suite of tools for processing and visualizing MeetManager `.mdb` data.
 
 ## Table of Contents
 
