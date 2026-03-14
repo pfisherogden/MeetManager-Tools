@@ -32,12 +32,14 @@ interface ProgramViewProps {
 		leg?: number,
 	) => void;
 	refreshTrigger: number; // Used to force re-render when DQs change
+	showEmptyLanes?: boolean;
 }
 
 export const ProgramView: React.FC<ProgramViewProps> = ({
 	events,
 	onSelectSwimmer,
 	refreshTrigger,
+	showEmptyLanes = true,
 }) => {
 	const flatListRef = useRef<FlatList>(null);
 
@@ -55,11 +57,11 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 		const isRelay = swimmer.isRelay;
 
 		if (isRelay) {
-			if (swimmer.empty) return null; // Issue #81: Hide empty lanes for relays
+			if (swimmer.empty && !showEmptyLanes) return null; // Respect toggle for relays
 			return (
-				<View key={swimmer.id} style={[styles.swimmerRow, styles.relayRow]}>
-					<View style={styles.laneContainer}>
-						<Text style={styles.laneText}>L{swimmer.lane}</Text>
+				<View key={swimmer.id} style={[styles.swimmerRow, styles.relayRow, swimmer.empty && styles.emptyRow]}>
+					<View style={[styles.laneContainer, swimmer.empty && styles.emptyLane]}>
+						<Text style={styles.laneText}>{swimmer.empty ? `(${swimmer.lane})` : `L${swimmer.lane}`}</Text>
 					</View>
 					<View style={styles.swimmerDetails}>
 						<Text style={styles.teamName}>Team {swimmer.team}</Text>
@@ -104,11 +106,11 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 				onPress={() => onSelectSwimmer(swimmer, event, heat)}
 			>
 				<View style={[styles.laneContainer, swimmer.empty && styles.emptyLane]}>
-					<Text style={styles.laneText}>L{swimmer.lane}</Text>
+					<Text style={styles.laneText}>{swimmer.empty ? `(${swimmer.lane})` : `L${swimmer.lane}`}</Text>
 				</View>
 				<View style={styles.swimmerDetails}>
 					<Text style={[styles.swimmerName, swimmer.empty && styles.emptyText]}>
-						{swimmer.name}
+						{swimmer.empty ? "Empty Lane" : swimmer.name}
 					</Text>
 					<Text style={styles.teamName}>{swimmer.team}</Text>
 					{swimmer.notes ? (
