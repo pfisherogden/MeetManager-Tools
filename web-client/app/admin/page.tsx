@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminPage() {
@@ -52,61 +53,66 @@ export default function AdminPage() {
 	};
 
 	return (
-		<div className="flex min-h-screen bg-background">
+		<>
 			<AppSidebar />
-			<main className="flex-1 flex flex-col overflow-hidden">
-				<div className="p-6 pb-0">
-					<h1 className="text-2xl font-bold text-foreground">
-						Admin Configuration
-					</h1>
-					<p className="text-muted-foreground">
-						Manage global settings for the meet
-					</p>
+			<SidebarInset>
+				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
+					<SidebarTrigger className="-ml-1" />
+				</header>
+				<div className="flex-1 flex flex-col overflow-hidden">
+					<div className="p-6 pb-0">
+						<h1 className="text-2xl font-bold text-foreground">
+							Admin Configuration
+						</h1>
+						<p className="text-muted-foreground">
+							Manage global settings for the meet
+						</p>
+					</div>
+
+					<div className="flex-1 p-6 space-y-6">
+						<Card>
+							<CardHeader>
+								<CardTitle>Meet Details</CardTitle>
+								<CardDescription>
+									Configure the global display settings for the meet.
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<form onSubmit={handleSave} className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor="meetName">Meet Name (Top Header)</Label>
+										<Input
+											id="meetName"
+											value={meetName}
+											onChange={(e) => setMeetName(e.target.value)}
+											placeholder="e.g. Summer Season 2025"
+										/>
+									</div>
+
+									<div className="space-y-2">
+										<Label htmlFor="meetDesc">
+											Meet Description (Sidebar Footer)
+										</Label>
+										<Textarea
+											id="meetDesc"
+											value={meetDescription}
+											onChange={(e) => setMeetDescription(e.target.value)}
+											placeholder="e.g. July 15-18, Miami FL"
+											rows={3}
+										/>
+									</div>
+
+									<Button type="submit" disabled={loading}>
+										{loading ? "Saving..." : "Save Configuration"}
+									</Button>
+								</form>
+							</CardContent>
+						</Card>
+
+						<DatasetManager />
+					</div>
 				</div>
-
-				<div className="flex-1 p-6 space-y-6">
-					<Card>
-						<CardHeader>
-							<CardTitle>Meet Details</CardTitle>
-							<CardDescription>
-								Configure the global display settings for the meet.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<form onSubmit={handleSave} className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="meetName">Meet Name (Top Header)</Label>
-									<Input
-										id="meetName"
-										value={meetName}
-										onChange={(e) => setMeetName(e.target.value)}
-										placeholder="e.g. Summer Season 2025"
-									/>
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="meetDesc">
-										Meet Description (Sidebar Footer)
-									</Label>
-									<Textarea
-										id="meetDesc"
-										value={meetDescription}
-										onChange={(e) => setMeetDescription(e.target.value)}
-										placeholder="e.g. July 15-18, Miami FL"
-										rows={3}
-									/>
-								</div>
-
-								<Button type="submit" disabled={loading}>
-									{loading ? "Saving..." : "Save Configuration"}
-								</Button>
-							</form>
-						</CardContent>
-					</Card>
-
-					<DatasetManager />
-				</div>
-			</main>
-		</div>
+			</SidebarInset>
+		</>
 	);
 }

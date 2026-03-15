@@ -106,7 +106,7 @@ format-frontend-check:
     cd web-client && npm run format:check
 
 # Run all tests (enforces linting first)
-test: codegen lint test-backend test-frontend
+test: codegen lint test-backend test-frontend test-e2e
 
 test-backend:
     @echo "Running Backend Tests..."
@@ -124,6 +124,10 @@ test-backend-local: setup-java codegen
 test-frontend: codegen
     @echo "Running Frontend Tests..."
     cd web-client && npm test
+
+test-e2e:
+    @echo "Running Playwright E2E Tests..."
+    cd web-client && npm run test-e2e
 
 test-local: test-backend-local test-frontend
 

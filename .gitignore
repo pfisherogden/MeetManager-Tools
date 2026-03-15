@@ -79,6 +79,10 @@ mobile-judge-app/.expo/
 meet-program-viewer/web-build/
 meet-program-viewer/.expo/
 
+# Playwright
+web-client/playwright-report/
+web-client/test-results/
+
 # Generated Proto files
 backend/src/meetmanager/v1/meet_manager_pb2.py
 backend/src/meetmanager/v1/meet_manager_pb2_grpc.py

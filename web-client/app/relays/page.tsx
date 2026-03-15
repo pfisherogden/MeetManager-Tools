@@ -1,6 +1,7 @@
 import { getRelays } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { RelaysManager } from "@/components/relays-manager";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Relay as UIRelay } from "@/lib/swim-meet-types";
 
 export const dynamic = "force-dynamic";
@@ -46,17 +47,22 @@ export default async function RelaysPage() {
 	}
 
 	return (
-		<div className="flex min-h-screen bg-background">
+		<>
 			<AppSidebar />
-			<main className="flex-1 flex flex-col overflow-hidden">
-				<div className="p-6 pb-0">
-					<h1 className="text-2xl font-bold text-foreground">Relays</h1>
-					<p className="text-muted-foreground">
-						Manage relay team entries and results
-					</p>
+			<SidebarInset>
+				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
+					<SidebarTrigger className="-ml-1" />
+				</header>
+				<div className="flex-1 flex flex-col overflow-hidden">
+					<div className="p-6 pb-0">
+						<h1 className="text-2xl font-bold text-foreground">Relays</h1>
+						<p className="text-muted-foreground">
+							Manage relay teams and entries
+						</p>
+					</div>
+					<RelaysManager initialRelays={mappedRelays} />
 				</div>
-				<RelaysManager initialRelays={mappedRelays} />
-			</main>
-		</div>
+			</SidebarInset>
+		</>
 	);
 }

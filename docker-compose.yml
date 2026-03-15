@@ -13,9 +13,12 @@ services:
       - ./tests/fixtures/anonymized_meets:/app/tests/fixtures/anonymized_meets
       - ./protos:/app/protos
       - ./tmp:/app/tmp
-      # Anonymous volumes to keep high-churn files inside the VM
+      # Anonymous volumes to keep high-churn files inside the VM (hole punching)
       - /app/src/__pycache__
       - /app/tests/__pycache__
+      - /app/.pytest_cache
+      - /app/.venv
+      - /app/src/mm_to_json/lib
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
@@ -25,12 +28,10 @@ services:
     build:
       context: .
       dockerfile: web-client/Dockerfile
+      args:
+        - NEXT_PUBLIC_AUTH_DISABLED=true
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
-    volumes:
-      - ./protos:/app/protos
-      - /app/node_modules
-      - /app/.next
     environment:
       - BACKEND_INTERNAL_HOST=backend:8080
       - NEXT_PUBLIC_AUTH_DISABLED=true
