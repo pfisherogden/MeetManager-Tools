@@ -15,11 +15,11 @@ This skill provides procedures for deploying MMTools services to Google Cloud Ru
 ### Identity Toolkit
 - **Requirement**: The `identitytoolkit.googleapis.com` API must be enabled in the GCP project for Firebase Auth to function.
 
-## 3. gRPC Security
+## 2. gRPC Security
 - **Cloud Communication**: When connecting to a Cloud Run service via gRPC, use **SSL/TLS**.
 - **Detection**: Use `ChannelCredentials.createSsl()` if the hostname contains `.run.app`.
 - **Formatting**: Strip `https://` from the host URL before passing it to the gRPC client.
 
-## 4. Public Accessibility
+## 3. Public Accessibility
 - **Command**: Deploy with the `--allow-unauthenticated` flag to ensure the service is reachable by the public internet.
 - **Workflow**: Ensure this flag is present in `.github/workflows/deploy-cloud-run.yml`.
