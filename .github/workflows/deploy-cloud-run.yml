@@ -92,3 +92,10 @@ jobs:
             BACKEND_INTERNAL_HOST=${{ steps.deploy-backend.outputs.url }}
             BACKEND_USE_SSL=true
             NEXT_PUBLIC_AUTH_DISABLED=false
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ env.PROJECT_ID }}.firebaseapp.com
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.firebasestorage.app
+            NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-KDE7ZPS0X5
