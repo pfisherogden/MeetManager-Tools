@@ -67,6 +67,7 @@ jobs:
           service: '${{ env.BACKEND_SERVICE }}'
           image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}'
           region: '${{ env.REGION }}'
+          flags: '--allow-unauthenticated'
           env_vars: |
             GCS_BUCKET_NAME=mmtools-data-mmtools-488404
 
@@ -77,6 +78,8 @@ jobs:
           service: '${{ env.FRONTEND_SERVICE }}'
           image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}'
           region: '${{ env.REGION }}'
+          flags: '--allow-unauthenticated'
           env_vars: |
             BACKEND_INTERNAL_HOST=${{ steps.deploy-backend.outputs.url }}
             BACKEND_USE_SSL=true
+            NEXT_PUBLIC_AUTH_DISABLED=false
