@@ -13,8 +13,12 @@ const firebaseConfig = {
 		process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
 		"mmtools-488404.firebasestorage.app",
 	messagingSenderId:
-		process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "PLACEHOLDER",
-	appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "PLACEHOLDER",
+		process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "39869978853",
+	appId:
+		process.env.NEXT_PUBLIC_FIREBASE_APP_ID ||
+		"1:39869978853:web:7966328ddf7f3dc071dc0c",
+	measurementId:
+		process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-KDE7ZPS0X5",
 };
 
 // Initialize Firebase

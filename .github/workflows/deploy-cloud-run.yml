@@ -2,7 +2,7 @@ name: Deploy to Cloud Run
 
 on:
   push:
-    branches: [ main, feat/phase-3-cloud-deployment, fix/deployment-permissions ]
+    branches: [ main, feat/phase-3-cloud-deployment ]
     paths:
       - 'backend/**'
       - 'web-client/**'
@@ -56,7 +56,16 @@ jobs:
       # Build and Push Frontend
       - name: Build and Push Frontend Image
         run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${{ github.sha }} -f web-client/Dockerfile .
+          docker build \
+            --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ env.PROJECT_ID }}.firebaseapp.com \
+            --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.firebasestorage.app \
+            --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-KDE7ZPS0X5 \
+            --build-arg NEXT_PUBLIC_AUTH_DISABLED=false \
+            -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${{ github.sha }} -f web-client/Dockerfile .
           docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${{ github.sha }}
 
       # Deploy Backend to Cloud Run
