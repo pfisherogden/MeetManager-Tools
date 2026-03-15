@@ -5,7 +5,8 @@ resource "google_project_service" "apis" {
     "artifactregistry.googleapis.com",
     "storage.googleapis.com",
     "iam.googleapis.com",
-    "secretmanager.googleapis.com"
+    "secretmanager.googleapis.com",
+    "identitytoolkit.googleapis.com"
   ])
   service = each.key
   disable_on_destroy = false
@@ -124,10 +125,6 @@ resource "google_cloud_run_v2_service" "frontend" {
       env {
         name  = "NEXT_PUBLIC_AUTH_DISABLED"
         value = "false"
-      }
-      env {
-        name  = "FRONTEND_PUBLIC_URL"
-        value = google_cloud_run_v2_service.frontend.uri
       }
     }
   }

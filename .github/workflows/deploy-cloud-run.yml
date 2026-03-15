@@ -2,7 +2,7 @@ name: Deploy to Cloud Run
 
 on:
   push:
-    branches: [ main, feat/phase-3-cloud-deployment, fix/firebase-build-args ]
+    branches: [ main, feat/phase-3-cloud-deployment ]
     paths:
       - 'backend/**'
       - 'web-client/**'
