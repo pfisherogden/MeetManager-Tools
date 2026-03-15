@@ -50,7 +50,9 @@ export default async function EventsPage() {
 				<div className="flex-1 flex flex-col overflow-hidden">
 					<div className="p-6 pb-0">
 						<h1 className="text-2xl font-bold text-foreground">Events</h1>
-						<p className="text-muted-foreground">Manage swim events and heats</p>
+						<p className="text-muted-foreground">
+							Manage swim events and heats
+						</p>
 					</div>
 					<EventsManager initialEvents={mappedEvents} />
 				</div>

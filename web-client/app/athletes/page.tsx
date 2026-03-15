@@ -60,7 +60,10 @@ export default async function AthletesPage() {
 							Manage athlete profiles and team assignments
 						</p>
 					</div>
-					<AthletesManager initialAthletes={mappedAthletes} teams={teamOptions} />
+					<AthletesManager
+						initialAthletes={mappedAthletes}
+						teams={teamOptions}
+					/>
 				</div>
 			</SidebarInset>
 		</>
