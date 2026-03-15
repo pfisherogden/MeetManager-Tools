@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAthlete } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +28,9 @@ export default async function AthletePage({
 	}
 
 	return (
-		<SidebarProvider>
+		<>
 			<AppSidebar />
-			<main className="flex-1 flex flex-col min-h-screen bg-background">
+			<SidebarInset className="flex flex-col">
 				<div className="p-4 border-b flex items-center gap-4">
 					<SidebarTrigger />
 					<div className="flex items-center gap-4">
@@ -94,7 +94,7 @@ export default async function AthletePage({
 						</div>
 					</div>
 				</div>
-			</main>
-		</SidebarProvider>
+			</SidebarInset>
+		</>
 	);
 }

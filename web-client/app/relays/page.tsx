@@ -53,15 +53,15 @@ export default async function RelaysPage() {
 				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
 					<SidebarTrigger className="-ml-1" />
 				</header>
-				<main className="flex-1 flex flex-col overflow-hidden">
+				<div className="flex-1 flex flex-col overflow-hidden">
 					<div className="p-6 pb-0">
 						<h1 className="text-2xl font-bold text-foreground">Relays</h1>
 						<p className="text-muted-foreground">
-							Manage relay team entries and results
+							Manage relay teams and entries
 						</p>
 					</div>
 					<RelaysManager initialRelays={mappedRelays} />
-				</main>
+				</div>
 			</SidebarInset>
 		</>
 	);

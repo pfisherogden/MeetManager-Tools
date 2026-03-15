@@ -30,9 +30,9 @@ export default async function HomePage() {
 				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
 					<SidebarTrigger className="-ml-1" />
 				</header>
-				<main className="flex-1 overflow-auto">
+				<div className="flex-1 overflow-auto">
 					<Dashboard stats={stats} />
-				</main>
+				</div>
 			</SidebarInset>
 		</>
 	);
