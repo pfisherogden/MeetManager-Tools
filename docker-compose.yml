@@ -28,6 +28,8 @@ services:
     build:
       context: .
       dockerfile: web-client/Dockerfile
+      args:
+        - NEXT_PUBLIC_AUTH_DISABLED=true
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
