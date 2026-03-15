@@ -26,6 +26,7 @@ This guide covers the core workflows for developing locally and deploying to the
    ```bash
    just test           # Run all unit tests
    just test-journeys  # Run headless end-to-end integration tests
+   just test-e2e       # Run browser-based Playwright E2E tests (desktop & mobile)
    ```
 
 ### Shared Machine Safety

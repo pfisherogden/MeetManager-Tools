@@ -59,5 +59,6 @@ This repository uses GitHub Actions for Continuous Integration.
 - **Unified Verification**: Locally, always run `just pre-commit` to catch build-time errors before they reach CI.
 - **Backend**: Runs `ruff` (lint/format) and `pytest`.
 - **Frontend**: Runs `biome` (lint/format), `vitest`, and production builds (`next build`, `expo export`).
+- **End-to-End**: Runs browser-based journeys using Playwright (`just test-e2e`).
 - **Path Filtering**: Workflows run only when relevant files are changed.
 \n
