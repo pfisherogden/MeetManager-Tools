@@ -26,6 +26,15 @@
 ### 6. Trademark Compliance
 - **Rule**: Use the name "mmtools" for URLs, services, and cloud resources to avoid trademark issues with "Meet Manager".
 
+### 7. Firebase Authentication (Next.js)
+- **Problem**: Firebase configuration values (like `apiKey`) were missing from the client-side bundle on Cloud Run.
+- **Root Cause**: Next.js `NEXT_PUBLIC_` variables must be provided at **build time** to be baked into the static bundle. Runtime env vars are insufficient for client-side code.
+- **Solution**: Use `ARG` in `Dockerfile` and `--build-arg` in CI/CD. See `.agent/skills/cloud-deployment/SKILL.md`.
+
+### 8. gRPC SSL on Cloud Run
+- **Problem**: Connections from Web Client to Cloud Run Backend failed locally but needed SSL in the cloud.
+- **Solution**: Use `ChannelCredentials.createSsl()` if the host ends in `.run.app`. Strip the protocol (`https://`) before passing the host string to `nice-grpc`.
+
 ## Verification Workflow
 1.  **Local Dev**: `npm start --web` (Fast feedback)
 2.  **Docker Simulation**: `just up-mobile` (Verifies production build artifact)
