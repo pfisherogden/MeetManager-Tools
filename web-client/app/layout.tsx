@@ -5,6 +5,7 @@ import type React from "react";
 import "./globals.css";
 import { AuthGuard } from "@/components/auth-guard";
 import { ConfigProvider } from "@/components/config-provider";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { Providers } from "./providers";
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -44,7 +45,9 @@ export default function RootLayout({
 			<body className={`font-sans antialiased`}>
 				<Providers>
 					<AuthGuard>
-						<ConfigProvider>{children}</ConfigProvider>
+						<SidebarProvider defaultOpen={true}>
+							<ConfigProvider>{children}</ConfigProvider>
+						</SidebarProvider>
 					</AuthGuard>
 				</Providers>
 				<Analytics />

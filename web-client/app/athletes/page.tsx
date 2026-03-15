@@ -1,6 +1,7 @@
 import { getAthletes, getTeams } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AthletesManager } from "@/components/athletes-manager";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Athlete as UIAthlete } from "@/lib/swim-meet-types";
 
 export const dynamic = "force-dynamic";
@@ -46,17 +47,22 @@ export default async function AthletesPage() {
 	}
 
 	return (
-		<div className="flex min-h-screen bg-background">
+		<>
 			<AppSidebar />
-			<main className="flex-1 flex flex-col overflow-hidden">
-				<div className="p-6 pb-0">
-					<h1 className="text-2xl font-bold text-foreground">Athletes</h1>
-					<p className="text-muted-foreground">
-						Manage athlete profiles and team assignments
-					</p>
-				</div>
-				<AthletesManager initialAthletes={mappedAthletes} teams={teamOptions} />
-			</main>
-		</div>
+			<SidebarInset>
+				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
+					<SidebarTrigger className="-ml-1" />
+				</header>
+				<main className="flex-1 flex flex-col overflow-hidden">
+					<div className="p-6 pb-0">
+						<h1 className="text-2xl font-bold text-foreground">Athletes</h1>
+						<p className="text-muted-foreground">
+							Manage athlete profiles and team assignments
+						</p>
+					</div>
+					<AthletesManager initialAthletes={mappedAthletes} teams={teamOptions} />
+				</main>
+			</SidebarInset>
+		</>
 	);
 }

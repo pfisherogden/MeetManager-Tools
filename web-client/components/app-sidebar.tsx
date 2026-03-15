@@ -28,6 +28,16 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+	useSidebar,
+} from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
@@ -47,11 +57,12 @@ const navItems = [
 
 export function AppSidebar() {
 	const pathname = usePathname();
+	const { setOpenMobile } = useSidebar();
 
 	return (
-		<aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col h-screen border-r border-sidebar-border">
+		<Sidebar>
 			{/* Logo */}
-			<div className="p-6 border-b border-sidebar-border">
+			<SidebarHeader className="p-6 border-b border-sidebar-border">
 				<Link href="/" className="flex items-center gap-3">
 					<div className="w-10 h-10 rounded-lg bg-sidebar-primary flex items-center justify-center">
 						<Waves className="h-6 w-6 text-sidebar-primary-foreground" />
@@ -65,36 +76,43 @@ export function AppSidebar() {
 						</p>
 					</div>
 				</Link>
-			</div>
+			</SidebarHeader>
 
 			{/* Navigation */}
-			<nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-				{navItems.map((item) => {
-					const isActive = pathname === item.href;
-					return (
-						<Link
-							key={item.name}
-							href={item.href}
-							className={cn(
-								"flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-								isActive
-									? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-									: "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-							)}
-						>
-							<item.icon className="h-5 w-5" />
-							{item.name}
-						</Link>
-					);
-				})}
-			</nav>
+			<SidebarContent className="p-4">
+				<SidebarMenu className="space-y-1">
+					{navItems.map((item) => {
+						const isActive = pathname === item.href;
+						return (
+							<SidebarMenuItem key={item.name}>
+								<SidebarMenuButton
+									asChild
+									isActive={isActive}
+									tooltip={item.name}
+									className={cn(
+										"flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 h-auto",
+										isActive
+											? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+											: "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+									)}
+								>
+									<Link href={item.href} onClick={() => setOpenMobile(false)}>
+										<item.icon className="h-5 w-5" />
+										<span>{item.name}</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						);
+					})}
+				</SidebarMenu>
+			</SidebarContent>
 
 			{/* Footer */}
-			<div className="p-4 border-t border-sidebar-border space-y-4">
+			<SidebarFooter className="p-4 border-t border-sidebar-border space-y-4">
 				<UserNav />
 				<SidebarFooterContent />
-			</div>
-		</aside>
+			</SidebarFooter>
+		</Sidebar>
 	);
 }
 
@@ -127,11 +145,11 @@ function UserNav() {
 							{initials}
 						</AvatarFallback>
 					</Avatar>
-					<div className="flex flex-col items-start overflow-hidden">
-						<span className="text-sm font-semibold truncate w-32 text-left">
+					<div className="flex flex-col items-start overflow-hidden text-left">
+						<span className="text-sm font-semibold truncate w-32">
 							{user.displayName || "User"}
 						</span>
-						<span className="text-[10px] text-sidebar-foreground/50 truncate w-32 text-left">
+						<span className="text-[10px] text-sidebar-foreground/50 truncate w-32">
 							{user.email}
 						</span>
 					</div>

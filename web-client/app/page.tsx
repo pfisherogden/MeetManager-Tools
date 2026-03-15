@@ -1,6 +1,7 @@
 import { getDashboardStats } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Dashboard } from "@/components/dashboard";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { DashboardStats } from "@/lib/proto/meetmanager/v1/meet_manager";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +24,16 @@ export default async function HomePage() {
 	}
 
 	return (
-		<div className="flex min-h-screen bg-background">
+		<>
 			<AppSidebar />
-			<main className="flex-1 overflow-auto">
-				<Dashboard stats={stats} />
-			</main>
-		</div>
+			<SidebarInset>
+				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
+					<SidebarTrigger className="-ml-1" />
+				</header>
+				<main className="flex-1 overflow-auto">
+					<Dashboard stats={stats} />
+				</main>
+			</SidebarInset>
+		</>
 	);
 }

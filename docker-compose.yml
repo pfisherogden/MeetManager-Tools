@@ -13,9 +13,12 @@ services:
       - ./tests/fixtures/anonymized_meets:/app/tests/fixtures/anonymized_meets
       - ./protos:/app/protos
       - ./tmp:/app/tmp
-      # Anonymous volumes to keep high-churn files inside the VM
+      # Anonymous volumes to keep high-churn files inside the VM (hole punching)
       - /app/src/__pycache__
       - /app/tests/__pycache__
+      - /app/.pytest_cache
+      - /app/.venv
+      - /app/src/mm_to_json/lib
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
@@ -27,8 +30,11 @@ services:
       dockerfile: web-client/Dockerfile
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
+    command: tail -f /dev/null
     volumes:
+      - ./web-client:/app
       - ./protos:/app/protos
+      # Hole punching for high-churn frontend directories
       - /app/node_modules
       - /app/.next
     environment:
