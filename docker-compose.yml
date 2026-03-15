@@ -30,13 +30,6 @@ services:
       dockerfile: web-client/Dockerfile
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
-    command: npm run dev
-    volumes:
-      - ./web-client:/app
-      - ./protos:/app/protos
-      # Hole punching for high-churn frontend directories
-      - /app/node_modules
-      - /app/.next
     environment:
       - BACKEND_INTERNAL_HOST=backend:8080
       - NEXT_PUBLIC_AUTH_DISABLED=true
