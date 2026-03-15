@@ -13,6 +13,9 @@ services:
       - ./tests/fixtures/anonymized_meets:/app/tests/fixtures/anonymized_meets
       - ./protos:/app/protos
       - ./tmp:/app/tmp
+      # Anonymous volumes to keep high-churn files inside the VM
+      - /app/src/__pycache__
+      - /app/tests/__pycache__
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
@@ -26,6 +29,8 @@ services:
       - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ./protos:/app/protos
+      - /app/node_modules
+      - /app/.next
     environment:
       - BACKEND_INTERNAL_HOST=backend:8080
       - NEXT_PUBLIC_AUTH_DISABLED=true
