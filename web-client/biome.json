@@ -14,7 +14,9 @@
 			"!**/dist",
 			"!**/build",
 			"!**/lib/proto",
-			"!**/app.full"
+			"!**/app.full",
+			"!**/playwright-report",
+			"!**/test-results"
 		]
 	},
 	"formatter": {
@@ -27,7 +29,9 @@
 			"!**/dist",
 			"!**/build",
 			"!**/lib/proto",
-			"!**/app.full"
+			"!**/app.full",
+			"!**/playwright-report",
+			"!**/test-results"
 		]
 	},
 	"linter": {
@@ -53,7 +57,9 @@
 			"!**/dist",
 			"!**/build",
 			"!**/lib/proto",
-			"!**/app.full"
+			"!**/app.full",
+			"!**/playwright-report",
+			"!**/test-results"
 		]
 	},
 	"javascript": {
