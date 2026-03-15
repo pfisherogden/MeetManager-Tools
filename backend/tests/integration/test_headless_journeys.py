@@ -90,7 +90,7 @@ def test_judge_publish_fetch_sync(grpc_stub):
     assert "events" in prog_data
     if len(prog_data["events"]) == 0:
         pytest.skip("No events found in published data. Skipping remaining journey.")
-    
+
     assert len(prog_data["events"]) > 0
 
     # 3. Sync DQs (Headless)
