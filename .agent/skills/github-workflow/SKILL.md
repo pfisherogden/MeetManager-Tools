@@ -5,6 +5,17 @@ description: Best practices for GitHub flows in MeetManager-Tools
 
 # GitHub Workflow Guidelines
 
+## Project Workflow (Mandatory)
+
+### 1. GitHub Issues
+- **Requirement**: Every task MUST have an associated GitHub Issue. If one doesn't exist, create it before starting work.
+- **Updates**: Periodically update the issue with progress. Use new comments to preserve history.
+- **Closing**: Only close the issue AFTER the Pull Request has been merged into `main` and all CI/CD checks have passed.
+
+### 2. Communication
+- **Google Chat**: For every significant milestone (e.g., finishing research, opening a PR, merging to main), update the user in the `pfo-gemcli` Google Chat space.
+- **Format**: Summarize accomplishments and link to relevant PRs or issues.
+
 ## Mandatory Quality Checks
 **NEVER** commit code without running the following checks locally:
 1. **Linting**: Run `just fix` (to auto-fix) and `just lint` (to verify zero remaining errors).
