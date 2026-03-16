@@ -95,10 +95,15 @@ export default function LoginPage() {
 						</Button>
 					</div>
 
-					<div className="text-center">
+					<div className="text-center space-y-4">
 						<p className="text-xs text-muted-foreground font-medium">
 							Your data is automatically sandboxed to your account.
 						</p>
+						{process.env.NEXT_PUBLIC_BUILD_TIME && (
+							<p className="text-[10px] text-muted-foreground/40 font-mono">
+								Build: {new Date(process.env.NEXT_PUBLIC_BUILD_TIME).toLocaleString()}
+							</p>
+						)}
 					</div>
 				</CardContent>
 			</Card>
