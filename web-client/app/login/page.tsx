@@ -101,7 +101,8 @@ export default function LoginPage() {
 						</p>
 						{process.env.NEXT_PUBLIC_BUILD_TIME && (
 							<p className="text-[10px] text-muted-foreground/40 font-mono">
-								Build: {new Date(process.env.NEXT_PUBLIC_BUILD_TIME).toLocaleString()}
+								Build:{" "}
+								{new Date(process.env.NEXT_PUBLIC_BUILD_TIME).toLocaleString()}
 							</p>
 						)}
 					</div>
