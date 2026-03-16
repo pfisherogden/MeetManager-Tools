@@ -30,6 +30,7 @@ services:
       dockerfile: web-client/Dockerfile
       args:
         - NEXT_PUBLIC_AUTH_DISABLED=true
+        - NEXT_PUBLIC_BUILD_TIME=2026-03-15T00:00:00Z
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:

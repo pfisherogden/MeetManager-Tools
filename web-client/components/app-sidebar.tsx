@@ -187,17 +187,23 @@ function UserNav() {
 
 function SidebarFooterContent() {
 	const { meetDescription } = useConfig();
-	if (!meetDescription) return null;
+	const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME;
 
-	// Split optionally by first newline or just show it
 	return (
 		<div className="px-4 py-3 rounded-lg bg-sidebar-accent/50 space-y-2">
-			<p className="text-xs text-sidebar-foreground/60 whitespace-pre-wrap">
-				{meetDescription}
-			</p>
-			{process.env.NEXT_PUBLIC_BUILD_TIME && (
-				<div className="text-[10px] text-sidebar-foreground/30 font-mono pt-2 border-t border-sidebar-border/50">
-					Build: {new Date(process.env.NEXT_PUBLIC_BUILD_TIME).toLocaleString()}
+			{meetDescription && (
+				<p className="text-xs text-sidebar-foreground/60 whitespace-pre-wrap">
+					{meetDescription}
+				</p>
+			)}
+			{buildTime && (
+				<div
+					className={cn(
+						"text-[10px] text-sidebar-foreground/30 font-mono pt-2",
+						meetDescription && "border-t border-sidebar-border/50",
+					)}
+				>
+					Build: {new Date(buildTime).toLocaleString()}
 				</div>
 			)}
 		</div>
