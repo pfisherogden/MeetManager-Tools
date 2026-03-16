@@ -90,9 +90,11 @@ class ReportDataExtractor:
         full_data = self._get_full_data()
         flat_entries = []
         for sess in full_data.get("sessions", []):
-            if not sess: continue
+            if not sess:
+                continue
             for evt in sess.get("events", []):
-                if not evt: continue
+                if not evt:
+                    continue
                 evt_num = evt.get("eventNum") or evt.get("evt_num")
                 evt_desc = evt.get("eventDesc")
                 is_relay = evt.get("isRelay", False)
@@ -112,7 +114,8 @@ class ReportDataExtractor:
                             continue
 
                 for entry in evt.get("entries", []):
-                    if not entry: continue
+                    if not entry:
+                        continue
                     t_name = entry.get("team", "")
                     key = (entry.get("name"), self._safe_int(entry.get("age", 0)), t_name)
                     heat = self._safe_int(entry.get("heat", 0))
@@ -309,9 +312,11 @@ class ReportDataExtractor:
         print(f"DEBUG: extract_meet_program_data using full_data with keys {list(full_data.keys())} and {len(full_data.get('sessions', []))} sessions", flush=True)
         all_events = []
         for sess in full_data.get("sessions", []):
-            if not sess: continue
+            if not sess:
+                continue
             for evt in sess.get("events", []):
-                if not evt: continue
+                if not evt:
+                    continue
                 all_events.append(evt)
         all_events.sort(key=self._get_event_sort_key)
         report_groups = []
@@ -342,7 +347,8 @@ class ReportDataExtractor:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
                 for e in entries:
-                    if not e: continue
+                    if not e:
+                        continue
                     if e.get("isRelay"):
                         filtered.append(e)
                     else:
@@ -355,7 +361,8 @@ class ReportDataExtractor:
             header = f"Event {evt_num}  {evt_desc}"
             heats: dict[int, list[Any]] = {}
             for entry in entries:
-                if not entry: continue
+                if not entry:
+                    continue
                 h = self._safe_int(entry.get("heat", 0))
                 if h not in heats:
                     heats[h] = []
@@ -416,9 +423,11 @@ class ReportDataExtractor:
         full_data = self._get_full_data()
         all_events = []
         for sess in full_data.get("sessions", []):
-            if not sess: continue
+            if not sess:
+                continue
             for evt in sess.get("events", []):
-                if not evt: continue
+                if not evt:
+                    continue
                 all_events.append(evt)
         all_events.sort(key=self._get_event_sort_key)
         report_groups = []
@@ -444,7 +453,8 @@ class ReportDataExtractor:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
                 for e in entries:
-                    if not e: continue
+                    if not e:
+                        continue
                     ath_sex = self._get_athlete_gender(e)
                     if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
                         filtered.append(e)
@@ -453,7 +463,8 @@ class ReportDataExtractor:
                 continue
 
             def time_sort_key(ent):
-                if not ent: return 999999.0
+                if not ent:
+                    return 999999.0
                 t = ent.get("seedTime", "NT")
                 if t == "NT":
                     return 999999.0
@@ -493,9 +504,11 @@ class ReportDataExtractor:
         full_data = self._get_full_data()
         all_events = []
         for sess in full_data.get("sessions", []):
-            if not sess: continue
+            if not sess:
+                continue
             for evt in sess.get("events", []):
-                if not evt: continue
+                if not evt:
+                    continue
                 all_events.append(evt)
         all_events.sort(key=self._get_event_sort_key)
         report_groups = []
@@ -526,7 +539,8 @@ class ReportDataExtractor:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
                 for e in entries:
-                    if not e: continue
+                    if not e:
+                        continue
                     if e.get("isRelay"):
                         filtered.append(e)
                     else:
@@ -539,7 +553,8 @@ class ReportDataExtractor:
             header = f"Event {evt_num}  {evt_desc}"
             heats: dict[int, list[Any]] = {}
             for e in entries:
-                if not e: continue
+                if not e:
+                    continue
                 h = self._safe_int(e.get("heat", 0))
                 if h not in heats:
                     heats[h] = []
@@ -548,7 +563,8 @@ class ReportDataExtractor:
             for h in sorted_heats:
                 sub_items = []
                 for entry in sorted(heats[h], key=lambda x: self._safe_int(x.get("lane", 0))):
-                    if not entry: continue
+                    if not entry:
+                        continue
                     item_data = {
                         "lane": str(entry.get("lane", "")),
                         "team": entry.get("team", ""),
@@ -585,9 +601,11 @@ class ReportDataExtractor:
         full_data = self._get_full_data()
         all_events = []
         for sess in full_data.get("sessions", []):
-            if not sess: continue
+            if not sess:
+                continue
             for evt in sess.get("events", []):
-                if not evt: continue
+                if not evt:
+                    continue
                 all_events.append(evt)
         all_events.sort(key=self._get_event_sort_key)
         report_groups = []
@@ -613,7 +631,8 @@ class ReportDataExtractor:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
                 for e in entries:
-                    if not e: continue
+                    if not e:
+                        continue
                     if e.get("isRelay"):
                         filtered.append(e)
                     else:
