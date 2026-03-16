@@ -21,11 +21,20 @@ interface ServerRelay {
 	place?: number;
 }
 
-export default async function RelaysPage() {
+export default async function RelaysPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+	const params = await searchParams;
+	const eventId = params.event as string | undefined;
+
 	let mappedRelays: UIRelay[] = [];
 
 	try {
-		const list = (await getRelays()) as unknown as { relays: ServerRelay[] };
+		const list = (await getRelays(eventId)) as unknown as {
+			relays: ServerRelay[];
+		};
 		if (list?.relays) {
 			mappedRelays = list.relays.map((r) => ({
 				id: r.id.toString(),

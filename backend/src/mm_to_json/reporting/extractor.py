@@ -25,20 +25,20 @@ class ReportDataExtractor:
         return 0
 
     def _normalize_gender(self, gender: str | None) -> str:
-        """Normalize gender string to M, F, or X."""
+        """Normalize gender string to M, F, or X. Return 'X' if no filtering is desired."""
         if not gender:
             return "X"
         g = str(gender).strip().lower()
-        if g in ("m", "male", "boys", "boy"):
+        if g in ("m", "male", "boys", "boy", "b"):
             return "M"
-        if g in ("f", "female", "girls", "girl"):
+        if g in ("f", "female", "girls", "girl", "g"):
             return "F"
         return "X"
 
     def _get_athlete_gender(self, entry: dict[str, Any]) -> str:
         """Helper to look up athlete gender using explicit data elements."""
         if entry.get("athleteSex"):
-            sex = entry.get("athleteSex")
+            sex = self._normalize_gender(entry.get("athleteSex"))
             return "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
 
         # Fallback to name-based lookup if athleteSex is missing
@@ -50,7 +50,7 @@ class ReportDataExtractor:
         for _, row in df_ath.iterrows():
             last = str(row.get("last_name", "")).strip().lower()
             first = str(row.get("first_name", "")).strip().lower()
-            sex = str(row.get("sex", "")).strip()
+            sex = self._normalize_gender(row.get("sex", ""))
             fmt_lf = f"{last}, {first}"
             fmt_fl = f"{first} {last}"
             if name.startswith(fmt_lf) or name.startswith(fmt_fl):
@@ -93,7 +93,7 @@ class ReportDataExtractor:
             if not sess: continue
             for evt in sess.get("events", []):
                 if not evt: continue
-                evt_num = evt.get("eventNum")
+                evt_num = evt.get("eventNum") or evt.get("evt_num")
                 evt_desc = evt.get("eventDesc")
                 is_relay = evt.get("isRelay", False)
                 evt_gender = evt.get("gender", "")
@@ -102,13 +102,14 @@ class ReportDataExtractor:
 
                 if gender_filter:
                     target_g = self._normalize_gender(gender_filter)
-                    if evt_gender != target_g and evt_gender != "X":
+                    if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                         continue
 
                 if age_group_filter:
-                    evt_age_str = self._format_age(evt_min_age, evt_max_age)
-                    if age_group_filter.lower() != evt_age_str.lower():
-                        continue
+                    if age_group_filter.lower() != "open":
+                        evt_age_str = self._format_age(evt_min_age, evt_max_age)
+                        if age_group_filter.lower() != evt_age_str.lower():
+                            continue
 
                 for entry in evt.get("entries", []):
                     if not entry: continue
@@ -142,9 +143,10 @@ class ReportDataExtractor:
                 fn = str(row.get("first_name", "")).strip()
                 ln = str(row.get("last_name", "")).strip()
                 s = str(row.get("sex", "")).strip()
+                normalized_s = self._normalize_gender(s)
                 full_fl = f"{fn} {ln}"
                 full_lf = f"{ln}, {fn}"
-                g = "Female" if s == "F" else "Male" if s == "M" else s
+                g = "Female" if normalized_s == "F" else "Male" if normalized_s == "M" else s
                 name_gender_map[full_fl] = g
                 name_gender_map[full_lf] = g
                 tid = row.get("team_no")
@@ -304,6 +306,7 @@ class ReportDataExtractor:
         show_dq_lines: bool = False,
     ) -> dict[str, Any]:
         full_data = self._get_full_data()
+        print(f"DEBUG: extract_meet_program_data using full_data with keys {list(full_data.keys())} and {len(full_data.get('sessions', []))} sessions", flush=True)
         all_events = []
         for sess in full_data.get("sessions", []):
             if not sess: continue
@@ -314,7 +317,7 @@ class ReportDataExtractor:
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, is_relay, entries = (
-                evt.get("eventNum"),
+                evt.get("eventNum") or evt.get("evt_num"),
                 evt.get("eventDesc"),
                 evt.get("isRelay", False),
                 evt.get("entries", []),
@@ -325,12 +328,12 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if evt_gender != target_g and evt_gender != "X":
+                if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                     continue
 
-            if age_group_filter:
+            if age_group_filter and age_group_filter.lower() != "open":
                 evt_age_str = self._format_age(evt_min_age, evt_max_age)
-                if age_group_filter.lower() != evt_age_str.lower():
+                if evt_age_str.lower() != age_group_filter.lower():
                     continue
 
             if team_filter:
@@ -420,19 +423,19 @@ class ReportDataExtractor:
         all_events.sort(key=self._get_event_sort_key)
         report_groups = []
         for evt in all_events:
-            evt_num, evt_desc, entries = evt.get("eventNum"), evt.get("eventDesc"), evt.get("entries", [])
+            evt_num, evt_desc, entries = evt.get("eventNum") or evt.get("evt_num"), evt.get("eventDesc"), evt.get("entries", [])
             evt_gender = evt.get("gender", "")
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if evt_gender != target_g and evt_gender != "X":
+                if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                     continue
 
-            if age_group_filter:
+            if age_group_filter and age_group_filter.lower() != "open":
                 evt_age_str = self._format_age(evt_min_age, evt_max_age)
-                if age_group_filter.lower() != evt_age_str.lower():
+                if evt_age_str.lower() != age_group_filter.lower():
                     continue
 
             if team_filter:
@@ -498,7 +501,7 @@ class ReportDataExtractor:
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, entries, is_relay = (
-                evt.get("eventNum"),
+                evt.get("eventNum") or evt.get("evt_num"),
                 evt.get("eventDesc"),
                 evt.get("entries", []),
                 evt.get("isRelay", False),
@@ -509,12 +512,12 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if evt_gender != target_g and evt_gender != "X":
+                if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                     continue
 
-            if age_group_filter:
+            if age_group_filter and age_group_filter.lower() != "open":
                 evt_age_str = self._format_age(evt_min_age, evt_max_age)
-                if age_group_filter.lower() != evt_age_str.lower():
+                if evt_age_str.lower() != age_group_filter.lower():
                     continue
 
             if team_filter:
@@ -589,19 +592,19 @@ class ReportDataExtractor:
         all_events.sort(key=self._get_event_sort_key)
         report_groups = []
         for evt in all_events:
-            evt_num, evt_desc, entries = evt.get("eventNum"), evt.get("eventDesc"), evt.get("entries", [])
+            evt_num, evt_desc, entries = evt.get("eventNum") or evt.get("evt_num"), evt.get("eventDesc"), evt.get("entries", [])
             evt_gender = evt.get("gender", "")
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if evt_gender != target_g and evt_gender != "X":
+                if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                     continue
 
-            if age_group_filter:
+            if age_group_filter and age_group_filter.lower() != "open":
                 evt_age_str = self._format_age(evt_min_age, evt_max_age)
-                if age_group_filter.lower() != evt_age_str.lower():
+                if evt_age_str.lower() != age_group_filter.lower():
                     continue
 
             if team_filter:

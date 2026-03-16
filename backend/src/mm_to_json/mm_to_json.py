@@ -52,6 +52,7 @@ class MmToJsonConverter:
             self._load_from_db()
 
     def _load_from_data(self, table_data):
+        logger.debug(f"DEBUG: _load_from_data called with keys: {list(table_data.keys())}")
         self.table_aliases = {
             "meet": ["Meet", "MEET"],
             "session": ["Session", "SESSIONS"],
@@ -95,7 +96,9 @@ class MmToJsonConverter:
                         if col in df.columns:
                             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
                 self.tables[logical] = df
+                logger.debug(f"DEBUG: Loaded table {logical} from data")
             else:
+                logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
                 self.tables[logical] = pd.DataFrame()
 
     def _get_val(self, row, key, default=""):
@@ -202,6 +205,7 @@ class MmToJsonConverter:
     def convert(self) -> dict[str, Any]:
         meet = self.get_meet_info()
         sessions: list[Session] = self.get_session_info()
+        logger.debug(f"DEBUG: convert() found {len(sessions)} sessions")
 
         if not sessions:
             if self.schema_type == "B":

@@ -610,9 +610,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         result = []
         for idx, item in enumerate(relays_data):
-            t_id = self._safe_int(item.get("team_ptr") or item.get("team_no") or 0)
-
             event_ptr = item.get("event_ptr")
+            if request and request.event_id and str(event_ptr) != request.event_id:
+                continue
+
+            t_id = self._safe_int(item.get("team_ptr") or item.get("team_no") or 0)
             relay_no = self._safe_int(item.get("relay_no"))
 
             legs = relay_legs_map.get((event_ptr, t_id, relay_no), [])
@@ -1531,5 +1533,5 @@ def serve():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     serve()

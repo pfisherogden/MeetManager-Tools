@@ -237,7 +237,10 @@ message ClearAllDatasetsRequest {}
 message ClearAllDatasetsResponse {}
 
 // GetRelaysRequest is the request for GetRelays.
-message GetRelaysRequest {}
+message GetRelaysRequest {
+  // event_id is an optional filter for a specific event's relays.
+  optional string event_id = 1;
+}
 // GetRelaysResponse contains the list of relay entries.
 message GetRelaysResponse {
   // relays is the list of relay entries.
