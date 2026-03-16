@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Relay } from "@/lib/swim-meet-types";
@@ -101,7 +102,15 @@ interface RelaysManagerProps {
 }
 
 export function RelaysManager({ initialRelays }: RelaysManagerProps) {
-	const [data, setData] = useState<Relay[]>(initialRelays);
+	const searchParams = useSearchParams();
+	const eventFilter = searchParams.get("event");
+
+	// Filter initial data based on URL params
+	const filteredInitial = eventFilter
+		? initialRelays.filter((r) => r.eventId === eventFilter)
+		: initialRelays;
+
+	const [data, setData] = useState<Relay[]>(filteredInitial);
 
 	const handleAdd = () => {
 		const newRelay: Relay = {

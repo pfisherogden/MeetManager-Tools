@@ -11,6 +11,30 @@ class ReportDataExtractor:
         self.converter = converter
         self.full_data = self.converter.convert()
 
+    def _get_full_data(self) -> dict[str, Any]:
+        """Ensure full_data is populated, refreshing from converter if needed."""
+        if not self.full_data or not self.full_data.get("sessions"):
+            self.full_data = self.converter.convert()
+        return self.full_data
+
+    def _get_event_sort_key(self, evt: dict[str, Any]) -> int:
+        """Robustly extract event number for sorting."""
+        num_str = str(evt.get("eventNum") or evt.get("evt_num") or "0")
+        if m := re.search(r"\d+", num_str):
+            return int(m.group())
+        return 0
+
+    def _normalize_gender(self, gender: str | None) -> str:
+        """Normalize gender string to M, F, or X."""
+        if not gender:
+            return "X"
+        g = str(gender).strip().lower()
+        if g in ("m", "male", "boys", "boy"):
+            return "M"
+        if g in ("f", "female", "girls", "girl"):
+            return "F"
+        return "X"
+
     def _get_athlete_gender(self, entry: dict[str, Any]) -> str:
         """Helper to look up athlete gender using explicit data elements."""
         if entry.get("athleteSex"):
@@ -19,14 +43,14 @@ class ReportDataExtractor:
 
         # Fallback to name-based lookup if athleteSex is missing
         name = entry.get("name", "").strip().lower()
-        df_ath = self.converter.tables.get("Athlete")
+        df_ath = self.converter.tables.get("athlete")
         if df_ath is None or df_ath.empty:
             return "Unknown"
 
         for _, row in df_ath.iterrows():
-            last = str(row.get("Last_name", "")).strip().lower()
-            first = str(row.get("First_name", "")).strip().lower()
-            sex = str(row.get("Sex", "")).strip()
+            last = str(row.get("last_name", "")).strip().lower()
+            first = str(row.get("first_name", "")).strip().lower()
+            sex = str(row.get("sex", "")).strip()
             fmt_lf = f"{last}, {first}"
             fmt_fl = f"{first} {last}"
             if name.startswith(fmt_lf) or name.startswith(fmt_fl):
@@ -50,33 +74,34 @@ class ReportDataExtractor:
         gender_filter: str | None = None,
         age_group_filter: str | None = None,
     ) -> dict[str, Any]:
-        df_ath = self.converter.tables.get("Athlete", None)
-        df_team = self.converter.tables.get("Team", None)
+        df_ath = self.converter.tables.get("athlete", None)
+        df_team = self.converter.tables.get("team", None)
         if df_ath is None or df_team is None:
             return {"groups": []}
 
         team_map = {}
         for _, row in df_team.iterrows():
-            t_id = row.get("Team_no")
-            t_code = str(row.get("Team_abbr", "")).strip()
-            t_lsc = str(row.get("Team_lsc", "")).strip()
+            t_id = row.get("team_no")
+            t_code = str(row.get("team_abbr", "")).strip()
+            t_lsc = str(row.get("team_lsc", "")).strip()
             full_code = f"{t_code}-{t_lsc}" if t_lsc else t_code
-            team_map[t_id] = {"name": str(row.get("Team_name", "")).strip(), "code": full_code}
+            team_map[t_id] = {"name": str(row.get("team_name", "")).strip(), "code": full_code}
 
-        full_data = self.full_data
+        full_data = self._get_full_data()
         flat_entries = []
         for sess in full_data.get("sessions", []):
+            if not sess: continue
             for evt in sess.get("events", []):
+                if not evt: continue
                 evt_num = evt.get("eventNum")
                 evt_desc = evt.get("eventDesc")
                 is_relay = evt.get("isRelay", False)
                 evt_gender = evt.get("gender", "")
-                evt_min_age = evt.get("minAge", 0)
-                evt_max_age = evt.get("maxAge", 109)
+                evt_min_age = self._safe_int(evt.get("minAge", 0))
+                evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
                 if gender_filter:
-                    g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
-                    target_g = g_map.get(gender_filter)
+                    target_g = self._normalize_gender(gender_filter)
                     if evt_gender != target_g and evt_gender != "X":
                         continue
 
@@ -86,17 +111,18 @@ class ReportDataExtractor:
                         continue
 
                 for entry in evt.get("entries", []):
+                    if not entry: continue
                     t_name = entry.get("team", "")
-                    key = (entry.get("name"), entry.get("age"), t_name)
-                    heat = entry.get("heat", 0)
-                    lane = entry.get("lane", 0)
+                    key = (entry.get("name"), self._safe_int(entry.get("age", 0)), t_name)
+                    heat = self._safe_int(entry.get("heat", 0))
+                    lane = self._safe_int(entry.get("lane", 0))
                     hl = f"{heat}/{lane}" if heat and lane else ""
 
                     entry_data = {
                         "key": key,
                         "team": t_name,
                         "name": entry.get("name"),
-                        "age": entry.get("age"),
+                        "age": self._safe_int(entry.get("age", 0)),
                         "evt_num": evt_num,
                         "evt_desc": evt_desc,
                         "time": entry.get("seedTime", "NT"),
@@ -113,15 +139,15 @@ class ReportDataExtractor:
         team_code_map = {}
         for _, row in df_ath.iterrows():
             try:
-                fn = str(row.get("First_name", "")).strip()
-                ln = str(row.get("Last_name", "")).strip()
-                s = str(row.get("Sex", "")).strip()
+                fn = str(row.get("first_name", "")).strip()
+                ln = str(row.get("last_name", "")).strip()
+                s = str(row.get("sex", "")).strip()
                 full_fl = f"{fn} {ln}"
                 full_lf = f"{ln}, {fn}"
                 g = "Female" if s == "F" else "Male" if s == "M" else s
                 name_gender_map[full_fl] = g
                 name_gender_map[full_lf] = g
-                tid = row.get("Team_no")
+                tid = row.get("team_no")
                 if tid in team_map:
                     team_code_map[team_map[tid]["name"]] = team_map[tid]["code"]
             except Exception:
@@ -177,14 +203,14 @@ class ReportDataExtractor:
                 found_key = id_lookup.get((t_name, aid))
                 if not found_key:
                     try:
-                        found_key = id_lookup.get((t_name, int(aid)))
+                        found_key = id_lookup.get((t_name, self._safe_int(aid)))
                     except Exception:
                         pass
                 if found_key:
                     grp = grouped[t_name][found_key]
                 else:
                     s_name = f"{ath.get('first', '')} {ath.get('last', '')}".strip()
-                    s_age = ath.get("age", 0)
+                    s_age = self._safe_int(ath.get("age", 0))
                     new_key = (s_name, s_age, t_name)
                     if new_key not in grouped[t_name]:
                         grouped[t_name][new_key] = {
@@ -212,7 +238,7 @@ class ReportDataExtractor:
                 t_code = team_code_map.get(t_name, t_name)
                 parts = ath["name"].split(" ")
                 display_name = f"{parts[-1]}, " + " ".join(parts[:-1]) if len(parts) >= 2 else ath["name"]
-                age_val = ath.get("age") or 0
+                age_val = self._safe_int(ath.get("age", 0))
                 h_parts = []
                 if seq:
                     h_parts.append(f"{seq} {display_name}")
@@ -225,11 +251,7 @@ class ReportDataExtractor:
                 header_str = " - ".join(h_parts) + f" - Ind/Rel: {ath['ind_count']} / {ath['rel_count']}"
                 sorted_events = sorted(
                     ath["events"],
-                    key=lambda e: (
-                        int("".join(filter(str.isdigit, str(e["evt_num"]))))
-                        if any(c.isdigit() for c in str(e["evt_num"]))
-                        else 0
-                    ),
+                    key=self._get_event_sort_key
                 )
                 sub_rows = []
                 for e in sorted_events:
@@ -241,7 +263,7 @@ class ReportDataExtractor:
             if relay_teams_list:
                 team_items.append({"header": "   RELAY TEAMS", "sub_items": []})
                 flat_relays = sorted(
-                    relay_teams_list, key=lambda x: int("".join(filter(str.isdigit, str(x["evt_num"]))))
+                    relay_teams_list, key=self._get_event_sort_key
                 )
                 for idx, r in enumerate(flat_relays):
                     rltr = r.get("relayLtr", "")
@@ -281,12 +303,14 @@ class ReportDataExtractor:
         show_relay_swimmers: bool = True,
         show_dq_lines: bool = False,
     ) -> dict[str, Any]:
-        full_data = self.full_data
+        full_data = self._get_full_data()
         all_events = []
         for sess in full_data.get("sessions", []):
+            if not sess: continue
             for evt in sess.get("events", []):
+                if not evt: continue
                 all_events.append(evt)
-        all_events.sort(key=lambda e: int(m.group()) if (m := re.search(r"\d+", str(e.get("eventNum", "0")))) else 0)
+        all_events.sort(key=self._get_event_sort_key)
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, is_relay, entries = (
@@ -296,12 +320,11 @@ class ReportDataExtractor:
                 evt.get("entries", []),
             )
             evt_gender = evt.get("gender", "")
-            evt_min_age = evt.get("minAge", 0)
-            evt_max_age = evt.get("maxAge", 109)
+            evt_min_age = self._safe_int(evt.get("minAge", 0))
+            evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
             if gender_filter:
-                g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
-                target_g = g_map.get(gender_filter)
+                target_g = self._normalize_gender(gender_filter)
                 if evt_gender != target_g and evt_gender != "X":
                     continue
 
@@ -311,15 +334,17 @@ class ReportDataExtractor:
                     continue
 
             if team_filter:
-                entries = [e for e in entries if team_filter.lower() in e.get("team", "").lower()]
+                entries = [e for e in entries if e and team_filter.lower() in e.get("team", "").lower()]
             if gender_filter:
                 filtered = []
+                target_g = self._normalize_gender(gender_filter)
                 for e in entries:
+                    if not e: continue
                     if e.get("isRelay"):
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)
-                        if ath_sex.lower() == gender_filter.lower() or ath_sex == "Unknown":
+                        if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
                             filtered.append(e)
                 entries = filtered
             if not entries:
@@ -327,14 +352,15 @@ class ReportDataExtractor:
             header = f"Event {evt_num}  {evt_desc}"
             heats: dict[int, list[Any]] = {}
             for entry in entries:
-                h = entry.get("heat", 0)
+                if not entry: continue
+                h = self._safe_int(entry.get("heat", 0))
                 if h not in heats:
                     heats[h] = []
                 heats[h].append(entry)
             sorted_heats, heat_items = sorted(heats.keys()), []
             for h in sorted_heats:
                 sub_items = []
-                for entry in sorted(heats[h], key=lambda x: x.get("lane", 0)):
+                for entry in sorted(heats[h], key=lambda x: self._safe_int(x.get("lane", 0))):
                     lane, seed_time = entry.get("lane", ""), entry.get("seedTime", "NT")
                     if is_relay:
                         names = []
@@ -365,7 +391,7 @@ class ReportDataExtractor:
                             {
                                 "lane": str(lane),
                                 "name": name,
-                                "age": str(entry.get("age", "")),
+                                "age": str(self._safe_int(entry.get("age", 0))),
                                 "team": entry.get("team", ""),
                                 "time": seed_time,
                                 "is_relay": False,
@@ -384,22 +410,23 @@ class ReportDataExtractor:
     def extract_psych_sheet_data(
         self, team_filter=None, report_title=None, gender_filter=None, age_group_filter=None
     ) -> dict[str, Any]:
-        full_data = self.full_data
+        full_data = self._get_full_data()
         all_events = []
         for sess in full_data.get("sessions", []):
+            if not sess: continue
             for evt in sess.get("events", []):
+                if not evt: continue
                 all_events.append(evt)
-        all_events.sort(key=lambda e: int(float(e.get("eventNum", 0))))
+        all_events.sort(key=self._get_event_sort_key)
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, entries = evt.get("eventNum"), evt.get("eventDesc"), evt.get("entries", [])
             evt_gender = evt.get("gender", "")
-            evt_min_age = evt.get("minAge", 0)
-            evt_max_age = evt.get("maxAge", 109)
+            evt_min_age = self._safe_int(evt.get("minAge", 0))
+            evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
             if gender_filter:
-                g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
-                target_g = g_map.get(gender_filter)
+                target_g = self._normalize_gender(gender_filter)
                 if evt_gender != target_g and evt_gender != "X":
                     continue
 
@@ -409,18 +436,21 @@ class ReportDataExtractor:
                     continue
 
             if team_filter:
-                entries = [e for e in entries if team_filter.lower() in e.get("team", "").lower()]
+                entries = [e for e in entries if e and team_filter.lower() in e.get("team", "").lower()]
             if gender_filter:
                 filtered = []
+                target_g = self._normalize_gender(gender_filter)
                 for e in entries:
+                    if not e: continue
                     ath_sex = self._get_athlete_gender(e)
-                    if ath_sex.lower() == gender_filter.lower() or ath_sex == "Unknown":
+                    if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
                         filtered.append(e)
                 entries = filtered
             if not entries:
                 continue
 
             def time_sort_key(ent):
+                if not ent: return 999999.0
                 t = ent.get("seedTime", "NT")
                 if t == "NT":
                     return 999999.0
@@ -436,10 +466,11 @@ class ReportDataExtractor:
                 {
                     "name": e.get("name", ""),
                     "team": e.get("team", ""),
-                    "age": str(e.get("age", "")),
+                    "age": str(self._safe_int(e.get("age", 0))),
                     "time": e.get("seedTime", "NT"),
                 }
                 for e in sorted(entries, key=time_sort_key)
+                if e
             ]
             report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "sections": [{"sub_items": sub_items}]})
         return {
@@ -456,12 +487,14 @@ class ReportDataExtractor:
         age_group_filter: str | None = None,
         lane_filter: int | None = None,
     ) -> dict[str, Any]:
-        full_data = self.full_data
+        full_data = self._get_full_data()
         all_events = []
         for sess in full_data.get("sessions", []):
+            if not sess: continue
             for evt in sess.get("events", []):
+                if not evt: continue
                 all_events.append(evt)
-        all_events.sort(key=lambda e: int(float(e.get("eventNum", 0))))
+        all_events.sort(key=self._get_event_sort_key)
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, entries, is_relay = (
@@ -471,12 +504,11 @@ class ReportDataExtractor:
                 evt.get("isRelay", False),
             )
             evt_gender = evt.get("gender", "")
-            evt_min_age = evt.get("minAge", 0)
-            evt_max_age = evt.get("maxAge", 109)
+            evt_min_age = self._safe_int(evt.get("minAge", 0))
+            evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
             if gender_filter:
-                g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
-                target_g = g_map.get(gender_filter)
+                target_g = self._normalize_gender(gender_filter)
                 if evt_gender != target_g and evt_gender != "X":
                     continue
 
@@ -486,15 +518,17 @@ class ReportDataExtractor:
                     continue
 
             if team_filter:
-                entries = [e for e in entries if team_filter.lower() in e.get("team", "").lower()]
+                entries = [e for e in entries if e and team_filter.lower() in e.get("team", "").lower()]
             if gender_filter:
                 filtered = []
+                target_g = self._normalize_gender(gender_filter)
                 for e in entries:
+                    if not e: continue
                     if e.get("isRelay"):
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)
-                        if ath_sex.lower() == gender_filter.lower() or ath_sex == "Unknown":
+                        if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
                             filtered.append(e)
                 entries = filtered
             if not entries:
@@ -502,14 +536,16 @@ class ReportDataExtractor:
             header = f"Event {evt_num}  {evt_desc}"
             heats: dict[int, list[Any]] = {}
             for e in entries:
-                h = int(float(e.get("heat", 0)))
+                if not e: continue
+                h = self._safe_int(e.get("heat", 0))
                 if h not in heats:
                     heats[h] = []
                 heats[h].append(e)
             sorted_heats, heat_items = sorted(heats.keys()), []
             for h in sorted_heats:
                 sub_items = []
-                for entry in sorted(heats[h], key=lambda x: int(float(x.get("lane", 0)))):
+                for entry in sorted(heats[h], key=lambda x: self._safe_int(x.get("lane", 0))):
+                    if not entry: continue
                     item_data = {
                         "lane": str(entry.get("lane", "")),
                         "team": entry.get("team", ""),
@@ -543,22 +579,23 @@ class ReportDataExtractor:
     def extract_results_data(
         self, team_filter=None, report_title=None, gender_filter=None, age_group_filter=None
     ) -> dict[str, Any]:
-        full_data = self.full_data
+        full_data = self._get_full_data()
         all_events = []
         for sess in full_data.get("sessions", []):
+            if not sess: continue
             for evt in sess.get("events", []):
+                if not evt: continue
                 all_events.append(evt)
-        all_events.sort(key=lambda e: int(float(e.get("eventNum", 0))))
+        all_events.sort(key=self._get_event_sort_key)
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, entries = evt.get("eventNum"), evt.get("eventDesc"), evt.get("entries", [])
             evt_gender = evt.get("gender", "")
-            evt_min_age = evt.get("minAge", 0)
-            evt_max_age = evt.get("maxAge", 109)
+            evt_min_age = self._safe_int(evt.get("minAge", 0))
+            evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
             if gender_filter:
-                g_map = {"Boys": "M", "Girls": "F", "Mixed": "X"}
-                target_g = g_map.get(gender_filter)
+                target_g = self._normalize_gender(gender_filter)
                 if evt_gender != target_g and evt_gender != "X":
                     continue
 
@@ -568,15 +605,17 @@ class ReportDataExtractor:
                     continue
 
             if team_filter:
-                entries = [e for e in entries if team_filter.lower() in e.get("team", "").lower()]
+                entries = [e for e in entries if e and team_filter.lower() in e.get("team", "").lower()]
             if gender_filter:
                 filtered = []
+                target_g = self._normalize_gender(gender_filter)
                 for e in entries:
+                    if not e: continue
                     if e.get("isRelay"):
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)
-                        if ath_sex.lower() == gender_filter.lower() or ath_sex == "Unknown":
+                        if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
                             filtered.append(e)
                 entries = filtered
             if not entries:
@@ -584,18 +623,18 @@ class ReportDataExtractor:
             finished = [
                 e
                 for e in entries
-                if (e.get("place") and int(float(e.get("place", 0))) > 0)
-                or (e.get("finalTime") and e.get("finalTime") != "0.00" and e.get("finalTime") != "")
+                if e and ((e.get("place") and self._safe_int(e.get("place", 0)) > 0)
+                or (e.get("finalTime") and e.get("finalTime") != "0.00" and e.get("finalTime") != ""))
             ]
-            sorted_entries = sorted(finished, key=lambda x: int(float(x.get("place", 0))) or 999)
+            sorted_entries = sorted(finished, key=lambda x: self._safe_int(x.get("place", 0)) or 999)
             sub_items = [
                 {
                     "place": str(e.get("place", "")),
                     "name": e.get("name", ""),
                     "team": e.get("team", ""),
-                    "age": str(e.get("age", "")),
+                    "age": str(self._safe_int(e.get("age", 0))),
                     "time": e.get("finalTime", e.get("seedTime", "")),
-                    "points": str(e.get("points", "0")),
+                    "points": str(self._safe_int(e.get("points", 0))),
                 }
                 for e in sorted_entries
             ]
