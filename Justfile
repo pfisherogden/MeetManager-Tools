@@ -14,7 +14,7 @@ clean:
     @echo "Cleanup complete."
 
 # Build Docker containers
-build: clean
+build:
     @echo "Building containers..."
     docker compose build
 
