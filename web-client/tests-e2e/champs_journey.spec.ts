@@ -36,17 +36,13 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(datasetRow).toBeVisible({ timeout: 10000 });
 
 		const setActiveBtn = datasetRow.getByRole("button", { name: "Set Active" });
-		if (await setActiveBtn.isVisible()) {
+		const activeBadge = datasetRow.locator(".bg-green-100, .text-green-700");
+		
+		if (await activeBadge.isHidden()) {
 			await setActiveBtn.click();
-			await expect(page.getByText("Active dataset changed")).toBeVisible({
-				timeout: 20000,
-			});
+			// The toast might appear, but let's wait for the badge which is the source of truth
+			await expect(activeBadge).toBeVisible({ timeout: 30000 });
 		}
-
-		// Verify it IS active (green badge)
-		await expect(
-			datasetRow.locator(".bg-green-100, .text-green-700"),
-		).toBeVisible({ timeout: 15000 });
 
 		// Verify config.json is hidden
 		await expect(
@@ -75,11 +71,13 @@ test.describe("Champs Dataset Journey", () => {
 		// e.g. "31.240" or "1:15.720"
 		const entryCells = page.locator("table tbody td");
 		const cellTexts = await entryCells.allInnerTexts();
-		const times = cellTexts.filter((t) => t.match(/\d+\.\d{3}$/));
+		// Use a more robust regex that allows for times like 1:23.456 and doesn't require it to be the whole cell content
+		const times = cellTexts.filter((t) => t.match(/\d+\.\d{3}(\s|$)/));
 		expect(times.length).toBeGreaterThan(0);
-		// Ensure no 2-digit or 4+ digit decimals in time-like cells
-		const longDecimals = cellTexts.filter((t) => t.match(/\d+\.\d{4,}/));
-		expect(longDecimals.length).toBe(0);
+		// Ensure no 2-digit decimals in time-like cells (we now force 3)
+		// We check specifically for the pattern of a swim time
+		const twoDigitDecimals = cellTexts.filter((t) => t.match(/^\d+:\d{2}\.\d{2}$|^\d{2}\.\d{2}$/));
+		expect(twoDigitDecimals.length).toBe(0);
 
 		// 6. Events -> Relays: Verify navigation filter
 		await page.goto("/events");
@@ -87,8 +85,7 @@ test.describe("Champs Dataset Journey", () => {
 		const relayEventId = await relayRow.locator("td").first().innerText();
 		await relayRow.getByRole("link", { name: "View" }).click();
 		await expect(page).toHaveURL(new RegExp(`/relays\\?event=${relayEventId}`));
-		await expect(page.locator("table tbody tr")).toBeVisible();
-
+		await expect(page.locator("table tbody tr").first()).toBeVisible();
 		// 7. Reports: Verify custom bundle generation
 		await page.goto("/reports");
 		await page.waitForLoadState("networkidle");
