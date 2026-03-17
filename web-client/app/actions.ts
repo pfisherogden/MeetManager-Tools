@@ -136,17 +136,17 @@ export async function updateAdminConfig(
 	}
 }
 
-export async function getEntries() {
+export async function getEntries(eventId?: string, athleteId?: string) {
 	try {
-		return await client.getEntries({});
+		return await client.getEntries({ eventId, athleteId });
 	} catch (_err) {
 		return { entries: [] };
 	}
 }
 
-export async function getRelays() {
+export async function getRelays(eventId?: string) {
 	try {
-		return await client.getRelays({});
+		return await client.getRelays({ eventId });
 	} catch (_err) {
 		return { relays: [] };
 	}

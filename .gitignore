@@ -38,6 +38,7 @@ mm_to_json/mm_to_json_py/*.json
 
 # Data files
 backend/data/*.mdb
+!backend/data/sample_data_champs_2025-aftermeet.mdb
 backend/data/config.json
 test.mdb
 *.mdb

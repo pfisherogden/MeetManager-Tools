@@ -15,7 +15,7 @@ from meetmanager.v1 import meet_manager_pb2_grpc as pb2_grpc
 
 GRPC_PORT = os.getenv("BACKEND_PORT", "8081")
 GRPC_TARGET = os.getenv("TEST_GRPC_TARGET", f"127.0.0.1:{8080 if os.path.exists('/.dockerenv') else GRPC_PORT}")
-WEB_TARGET = os.getenv("TEST_WEB_TARGET", "http://frontend:3000")
+WEB_TARGET = os.getenv("TEST_WEB_TARGET", f"http://{'frontend' if os.path.exists('/.dockerenv') else 'localhost'}:3000")
 
 
 @pytest.fixture(scope="module")

@@ -34,13 +34,28 @@ class MockMeetManagerService(MeetManagerService):
         self.config = {}
         self._data_cache = {}
         # Load fixtures into cache
-        for name in ["Relay", "RelayNames", "Entry", "Event", "Session", "Team", "Scoring", "Athlete"]:
+        fixtures = {
+            "relay": "Relay",
+            "relaynames": "RelayNames",
+            "entry": "Entry",
+            "event": "Event",
+            "session": "Session",
+            "team": "Team",
+            "scoring": "Scoring",
+            "athlete": "Athlete",
+        }
+        for logical_name, file_base in fixtures.items():
             try:
-                with open(os.path.join(FIXTURES_DIR, f"{name}.json")) as f:
-                    self._data_cache[name] = json.load(f)
+                with open(os.path.join(FIXTURES_DIR, f"{file_base}.json")) as f:
+                    raw_data = json.load(f)
+                    # Lowercase all keys in the records
+                    if isinstance(raw_data, list):
+                        self._data_cache[logical_name] = [{k.lower(): v for k, v in item.items()} for item in raw_data]
+                    else:
+                        self._data_cache[logical_name] = raw_data
             except FileNotFoundError:
-                print(f"Fixture {name}.json not found")
-                self._data_cache[name] = []
+                print(f"Fixture {file_base}.json not found")
+                self._data_cache[logical_name] = []
 
     def _load_user_data(self, context):
         return self._data_cache, self.config
@@ -127,12 +142,12 @@ def test_nt_validity(service):
     """(2) NT is a valid seed time."""
     # Inject mock entries into the service's cache to robustness test the logic
     mock_entries = [
-        {"Event_ptr": "1", "Ath_no": "1", "ActualSeed_time": "0.00", "Seed_Time": "0"},
-        {"Event_ptr": "1", "Ath_no": "2", "ActualSeed_time": "", "Seed_Time": ""},
-        {"Event_ptr": "1", "Ath_no": "3", "ActualSeed_time": "NT", "Seed_Time": "NT"},
+        {"event_ptr": "1", "ath_no": "1", "actualseed_time": "0.000", "seed_time": "0"},
+        {"event_ptr": "1", "ath_no": "2", "actualseed_time": "", "seed_time": ""},
+        {"event_ptr": "1", "ath_no": "3", "actualseed_time": "NT", "seed_time": "NT"},
     ]
     # Access private cache for testing
-    service._data_cache["Entry"] = mock_entries + service._data_cache["Entry"]
+    service._data_cache["entry"] = mock_entries + service._data_cache.get("entry", [])
 
     resp = service.GetEntries(None, None)
 

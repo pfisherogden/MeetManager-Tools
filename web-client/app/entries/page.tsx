@@ -22,12 +22,22 @@ interface ServerEntry {
 	points?: number;
 }
 
-export default async function EntriesPage() {
+export default async function EntriesPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+	const params = await searchParams;
+	const eventId = params.event as string | undefined;
+	const athleteId = params.athlete as string | undefined;
+
 	let mappedEntries: UIEntry[] = [];
 
 	try {
 		// Cast to unknown then to shape because proto definition is stale locally
-		const list = (await getEntries()) as unknown as { entries: ServerEntry[] };
+		const list = (await getEntries(eventId, athleteId)) as unknown as {
+			entries: ServerEntry[];
+		};
 		if (list?.entries) {
 			mappedEntries = list.entries.map((e) => ({
 				id: e.id.toString(), // assuming server provides index as ID

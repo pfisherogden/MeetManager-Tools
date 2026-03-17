@@ -10,7 +10,7 @@ class TestMeetProgramData(unittest.TestCase):
         # Mocking the MmToJsonConverter to avoid needing a real MDB file for this specific test
         self.converter = MmToJsonConverter(table_data={})
         self.converter.tables = {
-            "Relay": pd.DataFrame(
+            "relay": pd.DataFrame(
                 {
                     "event_ptr": [1],
                     "team_no": [10],
@@ -25,7 +25,7 @@ class TestMeetProgramData(unittest.TestCase):
                     "ind_rel": ["R"],
                 }
             ),
-            "RelayNames": pd.DataFrame(
+            "relaynames": pd.DataFrame(
                 {
                     "event_ptr": [1, 1],
                     "team_no": [10, 10],
@@ -35,14 +35,14 @@ class TestMeetProgramData(unittest.TestCase):
                     "pos_no": [1, 2],  # Added pos_no for sorting if needed
                 }
             ),
-            "Athlete": pd.DataFrame(
+            "athlete": pd.DataFrame(
                 [
                     {"ath_no": 101, "first_name": "John", "last_name": "Doe", "ath_age": 14, "team_no": 10},
                     {"ath_no": 102, "first_name": "Jane", "last_name": "Doe", "ath_age": 13, "team_no": 10},
                 ]
             ),
-            "Team": pd.DataFrame([{"team_no": 10, "team_abbr": "TST", "team_short": "Test Team"}]),
-            "Event": pd.DataFrame(
+            "team": pd.DataFrame([{"team_no": 10, "team_abbr": "TST", "team_short": "Test Team"}]),
+            "event": pd.DataFrame(
                 {
                     "event_no": [1],
                     "event_ptr": [1],

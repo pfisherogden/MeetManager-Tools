@@ -24,6 +24,7 @@ class WeasyRenderer:
                 )
 
     def render_meet_program(self, data: dict[str, Any]):
+        print(f"DEBUG: Rendering meet_program.html with {len(data.get('groups', []))} groups", flush=True)
         template = self.env.get_template("meet_program.html")
 
         # Load CSS
@@ -48,6 +49,7 @@ class WeasyRenderer:
         return html_out
 
     def render_entries(self, data: dict[str, Any], template_name: str):
+        print(f"DEBUG: Rendering {template_name} with {len(data.get('groups', []))} groups", flush=True)
         template = self.env.get_template(template_name)
 
         css_path = os.path.join(self.template_dir, "report_style.css")

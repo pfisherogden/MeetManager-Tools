@@ -8,106 +8,106 @@ class TestReportUseCases(unittest.TestCase):
     def setUp(self):
         # 1. Multi-team, Multi-event data (Individual + Relay)
         self.table_data = {
-            "Meet": [
+            "meet": [
                 {
-                    "Meet_name1": "Mock Meet",
-                    "Meet_location": "Mock Pool",
-                    "Meet_start": "2026-02-14",
-                    "Meet_end": "2026-02-14",
-                    "Meet_class": 1,
-                    "Meet_numlanes": 6,
+                    "meet_name1": "Mock Meet",
+                    "meet_location": "Mock Pool",
+                    "meet_start": "2026-02-14",
+                    "meet_end": "2026-02-14",
+                    "meet_class": 1,
+                    "meet_numlanes": 6,
                 }
             ],
-            "Session": [{"Sess_ptr": 1, "Sess_no": 1, "Sess_name": "S1", "Sess_day": 1, "Sess_starttime": 32400}],
-            "Sessitem": [
-                {"Sess_ptr": 1, "Event_ptr": 1, "Sess_order": 1, "Sess_rnd": "F"},  # 6&U
-                {"Sess_ptr": 1, "Event_ptr": 2, "Sess_order": 2, "Sess_rnd": "F"},  # 15-18 (testing 15-16 map)
-                {"Sess_ptr": 1, "Event_ptr": 3, "Sess_order": 3, "Sess_rnd": "F"},  # Relay
+            "session": [{"sess_ptr": 1, "sess_no": 1, "sess_name": "S1", "sess_day": 1, "sess_starttime": 32400}],
+            "sessitem": [
+                {"sess_ptr": 1, "event_ptr": 1, "sess_order": 1, "sess_rnd": "F"},  # 6&U
+                {"sess_ptr": 1, "event_ptr": 2, "sess_order": 2, "sess_rnd": "F"},  # 15-18 (testing 15-16 map)
+                {"sess_ptr": 1, "event_ptr": 3, "sess_order": 3, "sess_rnd": "F"},  # Relay
             ],
-            "Event": [
+            "event": [
                 {
-                    "Event_no": 1,
-                    "Event_ptr": 1,
-                    "Ind_rel": "I",
-                    "Event_gender": "F",
-                    "Event_sex": "Girls",
-                    "Event_dist": 25,
-                    "Event_stroke": "A",
-                    "Low_age": 0,
-                    "High_age": 0,
-                    "Num_finlanes": 6,
-                    "Event_rounds": 1,
+                    "event_no": 1,
+                    "event_ptr": 1,
+                    "ind_rel": "I",
+                    "event_gender": "F",
+                    "event_sex": "Girls",
+                    "event_dist": 25,
+                    "event_stroke": "A",
+                    "low_age": 0,
+                    "high_age": 0,
+                    "num_finlanes": 6,
+                    "event_rounds": 1,
                 },
                 {
-                    "Event_no": 2,
-                    "Event_ptr": 2,
-                    "Ind_rel": "I",
-                    "Event_gender": "M",
-                    "Event_sex": "Boys",
-                    "Event_dist": 50,
-                    "Event_stroke": "A",
-                    "Low_age": 15,
-                    "High_age": 16,
-                    "Num_finlanes": 6,
-                    "Event_rounds": 1,
+                    "event_no": 2,
+                    "event_ptr": 2,
+                    "ind_rel": "I",
+                    "event_gender": "M",
+                    "event_sex": "Boys",
+                    "event_dist": 50,
+                    "event_stroke": "A",
+                    "low_age": 15,
+                    "high_age": 16,
+                    "num_finlanes": 6,
+                    "event_rounds": 1,
                 },
                 {
-                    "Event_no": 3,
-                    "Event_ptr": 3,
-                    "Ind_rel": "R",
-                    "Event_gender": "F",
-                    "Event_sex": "Girls",
-                    "Event_dist": 100,
-                    "Event_stroke": "R",
-                    "Low_age": 7,
-                    "High_age": 8,
-                    "Num_finlanes": 6,
-                    "Event_rounds": 1,
+                    "event_no": 3,
+                    "event_ptr": 3,
+                    "ind_rel": "R",
+                    "event_gender": "F",
+                    "event_sex": "Girls",
+                    "event_dist": 100,
+                    "event_stroke": "R",
+                    "low_age": 7,
+                    "high_age": 8,
+                    "num_finlanes": 6,
+                    "event_rounds": 1,
                 },
             ],
-            "Athlete": [
-                {"Ath_no": 1, "First_name": "Alice", "Last_name": "Athlete", "Ath_age": 6, "Team_no": 1, "Sex": "F"},
-                {"Ath_no": 2, "First_name": "Bob", "Last_name": "Swimmer", "Ath_age": 17, "Team_no": 2, "Sex": "M"},
+            "athlete": [
+                {"ath_no": 1, "first_name": "Alice", "last_name": "Athlete", "ath_age": 6, "team_no": 1, "sex": "F"},
+                {"ath_no": 2, "first_name": "Bob", "last_name": "Swimmer", "ath_age": 17, "team_no": 2, "sex": "M"},
             ],
-            "Team": [
-                {"Team_no": 1, "Team_abbr": "TEAM1", "Team_name": "Team One", "Team_short": "Team One"},
-                {"Team_no": 2, "Team_abbr": "TEAM2", "Team_name": "Team Two", "Team_short": "Team Two"},
+            "team": [
+                {"team_no": 1, "team_abbr": "TEAM1", "team_name": "Team One", "team_short": "Team One"},
+                {"team_no": 2, "team_abbr": "TEAM2", "team_name": "Team Two", "team_short": "Team Two"},
             ],
-            "Entry": [
+            "entry": [
                 {
-                    "Event_ptr": 1,
-                    "Ath_no": 1,
-                    "Fin_heat": 1,
-                    "Fin_lane": 1,
-                    "ConvSeed_time": 20.5,
-                    "Fin_Time": 0.0,
-                    "Fin_Stat": "",
+                    "event_ptr": 1,
+                    "ath_no": 1,
+                    "fin_heat": 1,
+                    "fin_lane": 1,
+                    "convseed_time": 20.5,
+                    "fin_time": 0.0,
+                    "fin_stat": "",
                 },
                 {
-                    "Event_ptr": 2,
-                    "Ath_no": 2,
-                    "Fin_heat": 1,
-                    "Fin_lane": 1,
-                    "ConvSeed_time": 40.0,
-                    "Fin_Time": 0.0,
-                    "Fin_Stat": "",
+                    "event_ptr": 2,
+                    "ath_no": 2,
+                    "fin_heat": 1,
+                    "fin_lane": 1,
+                    "convseed_time": 40.0,
+                    "fin_time": 0.0,
+                    "fin_stat": "",
                 },
             ],
-            "Relay": [
+            "relay": [
                 {
-                    "Event_ptr": 3,
-                    "Team_no": 1,
-                    "Team_ltr": "A",
-                    "ConvSeed_time": 80.5,
-                    "Fin_heat": 1,
-                    "Fin_lane": 1,
-                    "Fin_Time": 0.0,
-                    "Fin_Stat": "",
+                    "event_ptr": 3,
+                    "team_no": 1,
+                    "team_ltr": "A",
+                    "convseed_time": 80.5,
+                    "fin_heat": 1,
+                    "fin_lane": 1,
+                    "fin_time": 0.0,
+                    "fin_stat": "",
                 }
             ],
-            "RelayNames": [{"Event_ptr": 3, "Team_no": 1, "Team_ltr": "A", "Ath_no": 1, "Pos": 1, "Event_round": "F"}],
-            "Relay_Athletes": [],  # Ignored if RelayNames is present
-            "Divisions": [],
+            "relaynames": [{"event_ptr": 3, "team_no": 1, "team_ltr": "A", "ath_no": 1, "pos": 1, "event_round": "F"}],
+            "relay_athletes": [],  # Ignored if RelayNames is present
+            "divisions": [],
         }
         self.converter = MmToJsonConverter(table_data=self.table_data)
         self.extractor = ReportDataExtractor(self.converter)

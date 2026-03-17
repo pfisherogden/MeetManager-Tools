@@ -14,7 +14,7 @@ clean:
     @echo "Cleanup complete."
 
 # Build Docker containers
-build: clean
+build:
     @echo "Building containers..."
     docker compose build
 
@@ -128,6 +128,10 @@ test-frontend: codegen
 test-e2e:
     @echo "Running Playwright E2E Tests..."
     cd web-client && npm run test-e2e
+
+test-e2e-sharded shard total:
+    @echo "Running Playwright E2E Tests (Shard {{shard}}/{{total}})..."
+    cd web-client && npx playwright test --shard={{shard}}/{{total}}
 
 test-local: test-backend-local test-frontend
 

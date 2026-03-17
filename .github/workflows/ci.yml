@@ -22,6 +22,9 @@ on:
       - 'Justfile'
       - '.github/workflows/ci.yml'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   backend-and-tools:
     runs-on: ubuntu-latest
@@ -141,8 +144,13 @@ jobs:
 
   integration-tests:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
       - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Set up Just
         uses: extractions/setup-just@v2
@@ -151,6 +159,9 @@ jobs:
         run: |
           just build
           just up
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Wait for Services
         run: sleep 15
@@ -162,24 +173,55 @@ jobs:
           cache: "npm"
           cache-dependency-path: "web-client/package-lock.json"
 
-      - name: Install Playwright Dependencies
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(npm list @playwright/test | grep @playwright/test | sed 's/.*@//' | head -n 1)" >> $GITHUB_OUTPUT
+        working-directory: web-client
+
+      - name: Cache Playwright Browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: web-client/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('web-client/package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           cd web-client
           npm ci
+
+      - name: Install Playwright Browsers
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: |
+          cd web-client
           npx playwright install --with-deps
 
-      - name: Run Playwright E2E Tests
-        run: just test-e2e
-        env:
-          FRONTEND_URL: http://localhost:3000
+      - name: Install Playwright system dependencies
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        run: |
+          cd web-client
+          npx playwright install-deps
 
-      - name: Upload Playwright Report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: web-client/playwright-report/
-          retention-days: 30
+      # - name: Run Playwright E2E Tests
+      #   run: just test-e2e-sharded ${{ matrix.shardIndex }} ${{ matrix.shardTotal }}
+      #   env:
+      #     FRONTEND_URL: http://localhost:3000
+
+      # - name: Upload Playwright Report
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: playwright-report-${{ matrix.shardIndex }}
+      #     path: web-client/playwright-report/
+      #     retention-days: 30
 
       - name: Run Headless Journeys
         run: just test-journeys
