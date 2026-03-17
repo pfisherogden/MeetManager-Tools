@@ -21,7 +21,7 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(page.locator("table tbody tr").first()).toBeVisible();
 
 		const existingRow = page.locator("tr").filter({
-			has: page.locator("td", { hasText: new RegExp("^" + testFileName + "$") }),
+			has: page.locator("td", { hasText: new RegExp(`^${testFileName}$`) }),
 		});
 		if ((await existingRow.count()) === 0) {
 			const fileChooserPromise = page.waitForEvent("filechooser");
@@ -35,7 +35,7 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Set as active with retry/wait because DB loading is slow
 		const datasetRow = page.locator("tr").filter({
-			has: page.locator("td", { hasText: new RegExp("^" + testFileName + "$") }),
+			has: page.locator("td", { hasText: new RegExp(`^${testFileName}$`) }),
 		});
 		await expect(datasetRow.first()).toBeVisible({ timeout: 10000 });
 
@@ -122,7 +122,7 @@ test.describe("Champs Dataset Journey", () => {
 		await generateZipBtn.click();
 
 		await expect(
-			page.getByText("Bundle generated successfully", { exact: false }),
+			page.getByText("Custom pack generated successfully", { exact: false }),
 		).toBeVisible({ timeout: 60000 });
 	});
 });
