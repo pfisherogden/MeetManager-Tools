@@ -26,23 +26,23 @@ def test_get_events_mapping():
     service = MeetManagerService()
     # Mock data
     service._data_cache = {
-        "Event": [
+        "event": [
             {
-                "Event_no": "1",
-                "Event_stroke": "A",
-                "Event_sex": "M",
-                "Event_dist": "50",
-                "Low_age": "0",
-                "High_Age": "0",
+                "event_no": "1",
+                "event_stroke": "A",
+                "event_sex": "M",
+                "event_dist": "50",
+                "low_age": "0",
+                "high_age": "0",
             },
             {
-                "Event_no": "2",
-                "Event_stroke": "E",
-                "Event_sex": "F",
-                "Event_dist": "200",
-                "Ind_rel": "R",
+                "event_no": "2",
+                "event_stroke": "E",
+                "event_sex": "F",
+                "event_dist": "200",
+                "ind_rel": "R",
             },  # Medley Relay
-            {"Event_no": "3", "Event_stroke": "B ", "Event_sex": " G ", "Event_dist": "100"},  # Whitespace
+            {"event_no": "3", "event_stroke": "B ", "event_sex": " G ", "event_dist": "100"},  # Whitespace
         ]
     }
 

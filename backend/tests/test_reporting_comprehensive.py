@@ -78,8 +78,8 @@ class TestReportingComprehensive(unittest.TestCase):
         entries = group["sections"][0]["sub_items"]
         self.assertEqual(len(entries), 2)
         # Sorted by seed time: 30.5 should be first
-        self.assertEqual(entries[0]["time"], "30.50")
-        self.assertEqual(entries[1]["time"], "32.00")
+        self.assertEqual(entries[0]["time"], "30.500")
+        self.assertEqual(entries[1]["time"], "32.000")
 
     def test_extract_timer_sheets_data(self):
         data = self.extractor.extract_timer_sheets_data()
@@ -101,9 +101,9 @@ class TestReportingComprehensive(unittest.TestCase):
         entries = group["sections"][0]["sub_items"]
         self.assertEqual(len(entries), 2)
         # Sorted by results time: 29.50 should be first
-        self.assertEqual(entries[0]["time"], "29.50")
+        self.assertEqual(entries[0]["time"], "29.500")
         self.assertEqual(entries[0]["place"], "1")
-        self.assertEqual(entries[1]["time"], "31.00")
+        self.assertEqual(entries[1]["time"], "31.000")
         self.assertEqual(entries[1]["place"], "2")
 
 

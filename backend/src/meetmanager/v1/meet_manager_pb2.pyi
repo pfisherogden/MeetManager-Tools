@@ -205,8 +205,10 @@ class ClearAllDatasetsResponse(_message.Message):
     def __init__(self) -> None: ...
 
 class GetRelaysRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("event_id",)
+    EVENT_ID_FIELD_NUMBER: _ClassVar[int]
+    event_id: str
+    def __init__(self, event_id: _Optional[str] = ...) -> None: ...
 
 class GetRelaysResponse(_message.Message):
     __slots__ = ("relays",)

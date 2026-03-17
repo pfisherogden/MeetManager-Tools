@@ -28,31 +28,31 @@ class TestBugReproduction:
             yield svc
 
     def test_bug_1_entries_have_valid_ids(self, service):
-        """Bug 1: Entries has an empty 'ID' column (now using Entry_no)."""
+        """Bug 1: Entries has an empty 'ID' column (now using entry_no)."""
         service._data_cache = {
-            "Entry": [
-                {"Entry_no": "101", "Event_ptr": "1", "Ath_no": "1", "Team_no": "1"},
-                {"Entry_no": "102", "Event_ptr": "1", "Ath_no": "2", "Team_no": "1"},
+            "entry": [
+                {"entry_no": "101", "event_ptr": "1", "ath_no": "1", "team_no": "1"},
+                {"entry_no": "102", "event_ptr": "1", "ath_no": "2", "team_no": "1"},
             ],
-            "Athlete": [{"Ath_no": "1", "First_name": "A", "Last_name": "B", "Team_no": "1"}],
-            "Team": [{"Team_no": "1", "Team_name": "T1"}],
-            "Event": [{"Event_no": "1"}],
+            "athlete": [{"ath_no": "1", "first_name": "A", "last_name": "B", "team_no": "1"}],
+            "team": [{"team_no": "1", "team_name": "T1"}],
+            "event": [{"event_no": "1"}],
         }
 
         response = service.GetEntries(None, None)
         assert len(response.entries) == 2
-        # Verify IDs are populated from Entry_no
+        # Verify IDs are populated from entry_no
         assert response.entries[0].id == 101
         assert response.entries[1].id == 102
 
     def test_bug_2_events_entry_count(self, service):
         """Bug 2: Events has '0' for all of the Entries columns."""
         service._data_cache = {
-            "Event": [
-                {"Event_no": "1", "Event_sex": "F", "Event_dist": "50", "Event_stroke": "A"},
-                {"Event_no": "2", "Event_sex": "M", "Event_dist": "100", "Event_stroke": "B"},
+            "event": [
+                {"event_no": "1", "event_sex": "F", "event_dist": "50", "event_stroke": "A"},
+                {"event_no": "2", "event_sex": "M", "event_dist": "100", "event_stroke": "B"},
             ],
-            "Entry": [{"Event_ptr": "1"}, {"Event_ptr": "1"}, {"Event_ptr": "2"}],
+            "entry": [{"event_ptr": "1"}, {"event_ptr": "1"}, {"event_ptr": "2"}],
         }
 
         response = service.GetEvents(None, None)
@@ -67,24 +67,24 @@ class TestBugReproduction:
     def test_bug_3_sessions_date_and_events(self, service):
         """Bug 3: Sessions is missing 'Date' data and has '0' for all of its Events."""
         service._data_cache = {
-            "Session": [
-                {"Sess_no": "1", "Sess_day": "1", "Sess_name": "Morning"},
+            "session": [
+                {"sess_no": "1", "sess_day": "1", "sess_name": "Morning"},
             ],
-            "Event": [{"Event_no": "1", "Sess_no": "1"}, {"Event_no": "2", "Sess_no": "1"}],
-            "Meet": [{"Start": "07/12/25"}],
+            "event": [{"event_no": "1", "sess_no": "1"}, {"event_no": "2", "sess_no": "1"}],
+            "meet": [{"start": "07/12/25"}],
         }
 
         response = service.GetSessions(None, None)
         assert len(response.sessions) == 1
         s1 = response.sessions[0]
 
-        # Date derived from Meet Start (07/12/25) + Day 1 = 2025-07-12
+        # Date derived from Meet start (07/12/25) + Day 1 = 2025-07-12
         assert "2025-07-12" in s1.date
         assert s1.event_count == 2
 
     def test_bug_4_meets_start_end_date(self, service):
         """Bug 4: Meets has empty 'Start Date' and 'End Date'."""
-        service._data_cache = {"Meet": [{"Meet_name": "Test Meet", "Start": "07/15/2025", "End": "07/17/2025"}]}
+        service._data_cache = {"meet": [{"meet_name": "Test Meet", "start": "07/15/2025", "end": "07/17/2025"}]}
 
         response = service.GetMeets(None, None)
         assert len(response.meets) == 1
@@ -96,11 +96,11 @@ class TestBugReproduction:
     def test_bug_5_scores_meet_context(self, service):
         """Bug 5: Scores > Team Scores shows '1' for the Meet column."""
         service._data_cache = {
-            "Team": [{"Team_no": "1", "Team_name": "Team A"}],
-            "Entry": [{"Ath_no": "1", "Event_ptr": "1", "Ev_score": "5.0", "Team_no": "1"}],
-            "Athlete": [{"Ath_no": "1", "Team_no": "1", "Ath_Sex": "F"}],
-            "Event": [{"Event_no": "1", "Event_sex": "F"}],
-            "Meet": [{"Meet_name": "Championships"}],
+            "team": [{"team_no": "1", "team_name": "Team A"}],
+            "entry": [{"ath_no": "1", "event_ptr": "1", "ev_score": "5.0", "team_no": "1"}],
+            "athlete": [{"ath_no": "1", "team_no": "1", "ath_sex": "F"}],
+            "event": [{"event_no": "1", "event_sex": "F"}],
+            "meet": [{"meet_name": "Championships"}],
         }
         service.config = {"meet_name": "Championships"}
 
@@ -113,13 +113,13 @@ class TestBugReproduction:
     def test_bug_6_event_results_points(self, service):
         """Bug 6: Scores > Event Results is still missing all values for the Points column."""
         # Setup Scoring table logic verification
-        # Case A: Explicit points in Ev_score
+        # Case A: Explicit points in ev_score
         service._data_cache = {
-            "Entry": [{"Ath_no": "1", "Event_ptr": "1", "Ev_score": "9.0", "Fin_place": "1"}],
-            "Athlete": [{"Ath_no": "1", "Team_no": "1", "First_name": "A", "Last_name": "B"}],
-            "Team": [{"Team_no": "1", "Team_name": "Team A"}],
-            "Event": [{"Event_no": "1", "Event_sex": "F"}],
-            "Scoring": [],
+            "entry": [{"ath_no": "1", "event_ptr": "1", "ev_score": "9.0", "fin_place": "1"}],
+            "athlete": [{"ath_no": "1", "team_no": "1", "first_name": "A", "last_name": "B"}],
+            "team": [{"team_no": "1", "team_name": "Team A"}],
+            "event": [{"event_no": "1", "event_sex": "F"}],
+            "scoring": [],
         }
         service._scoring_map = None  # Clear cache
 

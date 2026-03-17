@@ -35,11 +35,11 @@ class TestUICorrectness:
 
     def test_get_teams_athlete_count(self, service):
         service._data_cache = {
-            "Team": [{"Team_no": "1", "Team_name": "Team A"}, {"Team_no": "2", "Team_name": "Team B"}],
-            "Athlete": [
-                {"Ath_no": "1", "Team_no": "1"},
-                {"Ath_no": "2", "Team_no": "1"},
-                {"Ath_no": "3", "Team_no": "2"},
+            "team": [{"team_no": "1", "team_name": "Team A"}, {"team_no": "2", "team_name": "Team B"}],
+            "athlete": [
+                {"ath_no": "1", "team_no": "1"},
+                {"ath_no": "2", "team_no": "1"},
+                {"ath_no": "3", "team_no": "2"},
             ],
         }
 
@@ -55,12 +55,12 @@ class TestUICorrectness:
     def test_get_sessions_from_events(self, service):
         # Case 1: No Session table, infer from Events
         service._data_cache = {
-            "Event": [
-                {"Event_no": "1", "Sess_no": "1"},
-                {"Event_no": "2", "Sess_no": "1"},
-                {"Event_no": "3", "Sess_no": "2"},
+            "event": [
+                {"event_no": "1", "sess_no": "1"},
+                {"event_no": "2", "sess_no": "1"},
+                {"event_no": "3", "sess_no": "2"},
             ],
-            "Session": [],
+            "session": [],
         }
 
         response = service.GetSessions(None, None)
@@ -73,13 +73,13 @@ class TestUICorrectness:
         assert sess_2.event_count == 1
 
     def test_get_sessions_default_all_events(self, service):
-        # Case 2: No Session table, events have no Sess_no (default to 1) or all 1
+        # Case 2: No Session table, events have no sess_no (default to 1) or all 1
         service._data_cache = {
-            "Event": [
-                {"Event_no": "1"},  # defaults to sess 1
-                {"Event_no": "2"},
+            "event": [
+                {"event_no": "1"},  # defaults to sess 1
+                {"event_no": "2"},
             ],
-            "Session": [],
+            "session": [],
         }
 
         response = service.GetSessions(None, None)
@@ -89,7 +89,7 @@ class TestUICorrectness:
 
     def test_get_sessions_absolute_zero_data(self, service):
         # Case 3: No Events, No Sessions
-        service._data_cache = {"Event": [], "Session": []}
+        service._data_cache = {"event": [], "session": []}
 
         response = service.GetSessions(None, None)
         assert len(response.sessions) == 1

@@ -104,7 +104,7 @@ class ReportDataExtractor:
 
                 if gender_filter:
                     target_g = self._normalize_gender(gender_filter)
-                    if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                    if target_g != "X" and self._normalize_gender(evt_gender) != target_g and self._normalize_gender(evt_gender) != "X":
                         continue
 
                 if age_group_filter:
@@ -116,6 +116,13 @@ class ReportDataExtractor:
                 for entry in evt.get("entries", []):
                     if not entry:
                         continue
+
+                    if gender_filter and not is_relay:
+                        target_g = self._normalize_gender(gender_filter)
+                        ath_sex = self._get_athlete_gender(entry)
+                        if self._normalize_gender(ath_sex) != target_g and self._normalize_gender(ath_sex) != "X" and ath_sex != "Unknown":
+                            continue
+
                     t_name = entry.get("team", "")
                     key = (entry.get("name"), self._safe_int(entry.get("age", 0)), t_name)
                     heat = self._safe_int(entry.get("heat", 0))
@@ -331,7 +338,7 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                if target_g != "X" and self._normalize_gender(evt_gender) != target_g and self._normalize_gender(evt_gender) != "X":
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -351,7 +358,7 @@ class ReportDataExtractor:
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)
-                        if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
+                        if self._normalize_gender(ath_sex) == target_g or self._normalize_gender(ath_sex) == "X" or ath_sex == "Unknown":
                             filtered.append(e)
                 entries = filtered
             if not entries:
@@ -441,7 +448,7 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                if target_g != "X" and self._normalize_gender(evt_gender) != target_g and self._normalize_gender(evt_gender) != "X":
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -458,7 +465,7 @@ class ReportDataExtractor:
                     if not e:
                         continue
                     ath_sex = self._get_athlete_gender(e)
-                    if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
+                    if self._normalize_gender(ath_sex) == target_g or self._normalize_gender(ath_sex) == "X" or ath_sex == "Unknown":
                         filtered.append(e)
                 entries = filtered
             if not entries:
@@ -527,7 +534,7 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                if target_g != "X" and self._normalize_gender(evt_gender) != target_g and self._normalize_gender(evt_gender) != "X":
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -547,7 +554,7 @@ class ReportDataExtractor:
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)
-                        if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
+                        if self._normalize_gender(ath_sex) == target_g or self._normalize_gender(ath_sex) == "X" or ath_sex == "Unknown":
                             filtered.append(e)
                 entries = filtered
             if not entries:
@@ -623,7 +630,7 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                if target_g != "X" and self._normalize_gender(evt_gender) != target_g and self._normalize_gender(evt_gender) != "X":
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -643,7 +650,7 @@ class ReportDataExtractor:
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)
-                        if self._normalize_gender(ath_sex) == target_g or ath_sex == "Unknown":
+                        if self._normalize_gender(ath_sex) == target_g or self._normalize_gender(ath_sex) == "X" or ath_sex == "Unknown":
                             filtered.append(e)
                 entries = filtered
             if not entries:

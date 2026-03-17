@@ -10,10 +10,15 @@ test.describe("Champs Dataset Journey", () => {
 		// 1. Admin: Upload and Set Active
 		await page.goto("/admin");
 		const testFileName = "sample_data_champs_2025-aftermeet.mdb";
-		const testFilePath = path.resolve(
-			__dirname,
-			`../../backend/data/${testFileName}`,
-		);
+		// Use absolute path from project root if possible, or fallback
+		const testFilePath = process.env.CI
+			? path.join(process.cwd(), "..", "backend", "data", testFileName)
+			: path.resolve(__dirname, `../../backend/data/${testFileName}`);
+
+		console.log(`Using test file path: ${testFilePath}`);
+
+		// Wait for the table to load
+		await page.waitForSelector("table");
 
 		const existingRow = page.locator("tr").filter({ hasText: testFileName });
 		if ((await existingRow.count()) === 0) {
@@ -22,16 +27,26 @@ test.describe("Champs Dataset Journey", () => {
 			const fileChooser = await fileChooserPromise;
 			await fileChooser.setFiles(testFilePath);
 			await expect(page.getByText("Dataset uploaded successfully")).toBeVisible(
-				{ timeout: 30000 },
+				{ timeout: 45000 },
 			);
 		}
 
+		// Set as active with retry/wait because DB loading is slow
 		const datasetRow = page.locator("tr").filter({ hasText: testFileName });
-		const activeBadge = datasetRow.locator(".bg-green-100");
-		if ((await activeBadge.count()) === 0) {
-			await datasetRow.getByRole("button", { name: "Set Active" }).click();
-			await expect(page.getByText("Active dataset changed")).toBeVisible();
+		await expect(datasetRow).toBeVisible({ timeout: 10000 });
+
+		const setActiveBtn = datasetRow.getByRole("button", { name: "Set Active" });
+		if (await setActiveBtn.isVisible()) {
+			await setActiveBtn.click();
+			await expect(page.getByText("Active dataset changed")).toBeVisible({
+				timeout: 20000,
+			});
 		}
+
+		// Verify it IS active (green badge)
+		await expect(
+			datasetRow.locator(".bg-green-100, .text-green-700"),
+		).toBeVisible({ timeout: 15000 });
 
 		// Verify config.json is hidden
 		await expect(
