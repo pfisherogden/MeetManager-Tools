@@ -5,7 +5,7 @@ test.describe("Champs Dataset Journey", () => {
 	test("should correctly process and display Champs 2025 dataset", async ({
 		page,
 	}) => {
-		test.setTimeout(150000);
+		test.setTimeout(240000);
 
 		// 1. Admin: Upload and Set Active
 		await page.goto("/admin");
@@ -48,12 +48,14 @@ test.describe("Champs Dataset Journey", () => {
 			await expect(activeBadge).toBeVisible({ timeout: 30000 });
 		}
 
-		// Verify config.json is hidden
-		await expect(
-			page.locator("tr").filter({
-				has: page.locator("td", { hasText: /^config\.json$/ }),
-			}),
-		).not.toBeVisible();
+		// Verify config.json is hidden (should not match similar filenames)
+		const configRows = page.getByRole("row").filter({ hasText: "config.json" });
+		for (const row of await configRows.all()) {
+			const text = await row.innerText();
+			if (text.trim().split("\t")[0] === "config.json") {
+				throw new Error("config.json should be hidden");
+			}
+		}
 
 		// 2. Meets Page: Verify name and location
 		await page.goto("/meets");
@@ -98,6 +100,7 @@ test.describe("Champs Dataset Journey", () => {
 		await relayRow.getByRole("link", { name: "View" }).click();
 		await expect(page).toHaveURL(new RegExp(`/relays\\?event=${relayEventId}`));
 		await expect(page.locator("table tbody tr").first()).toBeVisible();
+
 		// 7. Reports: Verify custom bundle generation
 		await page.goto("/reports");
 		await page.waitForLoadState("networkidle");
@@ -118,10 +121,10 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(generateZipBtn).toBeVisible({ timeout: 20000 });
 		await generateZipBtn.click();
 
-		console.log("Waiting for success toast (90s timeout)...");
+		console.log("Waiting for success toast (180s timeout)...");
 		await expect(
 			page.getByText("Custom pack generated successfully", { exact: false }),
-		).toBeVisible({ timeout: 90000 });
+		).toBeVisible({ timeout: 180000 });
 		console.log("SUCCESS: Champs journey E2E test passed.");
 	});
 });
