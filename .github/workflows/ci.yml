@@ -162,7 +162,16 @@ jobs:
           COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Wait for Services
-        run: sleep 15
+        run: |
+          echo "Waiting for frontend to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "Frontend is ready!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 5
+          done
 
       - name: Set up Node.js for Playwright
         uses: actions/setup-node@v4
@@ -209,7 +218,7 @@ jobs:
           npx playwright install-deps
 
       # - name: Run Playwright E2E Tests
-      #   run: just test-e2e-sharded ${{ matrix.shardIndex }} ${{ matrix.shardTotal }}
+      #   run: just test-e2e
       #   env:
       #     FRONTEND_URL: http://localhost:3000
 
@@ -217,7 +226,7 @@ jobs:
       #   uses: actions/upload-artifact@v4
       #   if: always()
       #   with:
-      #     name: playwright-report-${{ matrix.shardIndex }}
+      #     name: playwright-report
       #     path: web-client/playwright-report/
       #     retention-days: 30
 

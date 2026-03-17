@@ -103,15 +103,11 @@ test.describe("Champs Dataset Journey", () => {
 		await page.waitForLoadState("networkidle");
 
 		// Select Report Type Card
-		await page
-			.getByRole("heading", { name: "Meet Program (PDF)", exact: true })
-			.click();
+		await page.getByText("Meet Program (PDF)", { exact: true }).click();
 		await page.getByRole("button", { name: "Add to Pack" }).click();
 
 		// Select Lineup Sheets Card
-		await page
-			.getByRole("heading", { name: "Lineup Sheets", exact: true })
-			.click();
+		await page.getByText("Lineup Sheets", { exact: true }).first().click();
 		await page.getByRole("button", { name: "Add to Pack" }).click();
 
 		// Click Generate Bundle ZIP in the Pack summary section
