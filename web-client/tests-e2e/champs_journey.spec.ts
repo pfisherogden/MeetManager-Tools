@@ -18,9 +18,11 @@ test.describe("Champs Dataset Journey", () => {
 		console.log(`Using test file path: ${testFilePath}`);
 
 		// Wait for the table to load
-		await page.waitForSelector("table");
+		await expect(page.locator("table tbody tr").first()).toBeVisible();
 
-		const existingRow = page.locator("tr").filter({ hasText: testFileName });
+		const existingRow = page.locator("tr").filter({
+			has: page.locator("td", { hasText: new RegExp("^" + testFileName + "$") }),
+		});
 		if ((await existingRow.count()) === 0) {
 			const fileChooserPromise = page.waitForEvent("filechooser");
 			await page.getByRole("button", { name: "Upload Dataset" }).click();
@@ -32,8 +34,10 @@ test.describe("Champs Dataset Journey", () => {
 		}
 
 		// Set as active with retry/wait because DB loading is slow
-		const datasetRow = page.locator("tr").filter({ hasText: testFileName });
-		await expect(datasetRow).toBeVisible({ timeout: 10000 });
+		const datasetRow = page.locator("tr").filter({
+			has: page.locator("td", { hasText: new RegExp("^" + testFileName + "$") }),
+		});
+		await expect(datasetRow.first()).toBeVisible({ timeout: 10000 });
 
 		const setActiveBtn = datasetRow.getByRole("button", { name: "Set Active" });
 		const activeBadge = datasetRow.locator(".bg-green-100, .text-green-700");
@@ -46,11 +50,14 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Verify config.json is hidden
 		await expect(
-			page.locator("tr").filter({ hasText: "config.json" }),
+			page.locator("tr").filter({
+				has: page.locator("td", { hasText: /^config\.json$/ }),
+			}),
 		).not.toBeVisible();
 
 		// 2. Meets Page: Verify name and location
 		await page.goto("/meets");
+		await expect(page.locator("table tbody tr").first()).toBeVisible();
 		await expect(page.locator("table")).toContainText(
 			"TVSL Championship Meet 2025",
 		);
@@ -58,21 +65,24 @@ test.describe("Champs Dataset Journey", () => {
 
 		// 3. Teams Page: Verify data visibility
 		await page.goto("/teams");
+		await expect(page.locator("table tbody tr").first()).toBeVisible();
 		await expect(page.locator("table")).toContainText("Briarhill Swim Team");
 		await expect(page.locator("table")).toContainText("Del Prado Stingrays");
 
 		// 4. Athletes Page: Verify data visibility
 		await page.goto("/athletes");
+		await expect(page.locator("table tbody tr").first()).toBeVisible();
 		await expect(page.locator("table")).toContainText("Bertalotto"); // Evan Bertalotto
 
 		// 5. Entries Page: Verify rounding (3 decimal places)
 		await page.goto("/entries");
+		await expect(page.locator("table tbody tr").first()).toBeVisible();
 		// Check for times with exactly 3 digits after decimal
 		// e.g. "31.240" or "1:15.720"
 		const entryCells = page.locator("table tbody td");
 		const cellTexts = await entryCells.allInnerTexts();
 		// Use a more robust regex that allows for times like 1:23.456 and doesn't require it to be the whole cell content
-		const times = cellTexts.filter((t) => t.match(/\d+\.\d{3}(\s|$)/));
+		const times = cellTexts.filter((t) => t.match(/\d+\.\d{3}([ \t\n]|$)/));
 		expect(times.length).toBeGreaterThan(0);
 		// Ensure no 2-digit decimals in time-like cells (we now force 3)
 		// We check specifically for the pattern of a swim time
