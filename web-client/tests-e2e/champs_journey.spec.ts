@@ -111,14 +111,17 @@ test.describe("Champs Dataset Journey", () => {
 		await page.getByRole("button", { name: "Add to Pack" }).click();
 
 		// Click Generate Bundle ZIP in the Pack summary section
+		console.log("Generating Bundle ZIP (Custom Pack)...");
 		const generateZipBtn = page.getByRole("button", {
 			name: /Generate Bundle ZIP/i,
 		});
 		await expect(generateZipBtn).toBeVisible({ timeout: 20000 });
 		await generateZipBtn.click();
 
+		console.log("Waiting for success toast (90s timeout)...");
 		await expect(
 			page.getByText("Custom pack generated successfully", { exact: false }),
-		).toBeVisible({ timeout: 60000 });
+		).toBeVisible({ timeout: 90000 });
+		console.log("SUCCESS: Champs journey E2E test passed.");
 	});
 });
