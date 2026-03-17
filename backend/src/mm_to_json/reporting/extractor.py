@@ -254,10 +254,7 @@ class ReportDataExtractor:
                 if t_code:
                     h_parts.append(t_code)
                 header_str = " - ".join(h_parts) + f" - Ind/Rel: {ath['ind_count']} / {ath['rel_count']}"
-                sorted_events = sorted(
-                    ath["events"],
-                    key=self._get_event_sort_key
-                )
+                sorted_events = sorted(ath["events"], key=self._get_event_sort_key)
                 sub_rows = []
                 for e in sorted_events:
                     desc = e["evt_desc"] + (" (Relay)" if e["is_relay"] else "")
@@ -267,9 +264,7 @@ class ReportDataExtractor:
             relay_teams_list = grouped[t_name].get("RelayTeams", [])
             if relay_teams_list:
                 team_items.append({"header": "   RELAY TEAMS", "sub_items": []})
-                flat_relays = sorted(
-                    relay_teams_list, key=self._get_event_sort_key
-                )
+                flat_relays = sorted(relay_teams_list, key=self._get_event_sort_key)
                 for idx, r in enumerate(flat_relays):
                     rltr = r.get("relayLtr", "")
                     ltr_str = f" - '{rltr}'" if rltr else ""
@@ -309,7 +304,10 @@ class ReportDataExtractor:
         show_dq_lines: bool = False,
     ) -> dict[str, Any]:
         full_data = self._get_full_data()
-        print(f"DEBUG: extract_meet_program_data using full_data with keys {list(full_data.keys())} and {len(full_data.get('sessions', []))} sessions", flush=True)
+        print(
+            f"DEBUG: extract_meet_program_data using full_data with keys {list(full_data.keys())} and {len(full_data.get('sessions', []))} sessions",
+            flush=True,
+        )
         all_events = []
         for sess in full_data.get("sessions", []):
             if not sess:
@@ -432,7 +430,11 @@ class ReportDataExtractor:
         all_events.sort(key=self._get_event_sort_key)
         report_groups = []
         for evt in all_events:
-            evt_num, evt_desc, entries = evt.get("eventNum") or evt.get("evt_num"), evt.get("eventDesc"), evt.get("entries", [])
+            evt_num, evt_desc, entries = (
+                evt.get("eventNum") or evt.get("evt_num"),
+                evt.get("eventDesc"),
+                evt.get("entries", []),
+            )
             evt_gender = evt.get("gender", "")
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
@@ -610,7 +612,11 @@ class ReportDataExtractor:
         all_events.sort(key=self._get_event_sort_key)
         report_groups = []
         for evt in all_events:
-            evt_num, evt_desc, entries = evt.get("eventNum") or evt.get("evt_num"), evt.get("eventDesc"), evt.get("entries", [])
+            evt_num, evt_desc, entries = (
+                evt.get("eventNum") or evt.get("evt_num"),
+                evt.get("eventDesc"),
+                evt.get("entries", []),
+            )
             evt_gender = evt.get("gender", "")
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
@@ -645,8 +651,11 @@ class ReportDataExtractor:
             finished = [
                 e
                 for e in entries
-                if e and ((e.get("place") and self._safe_int(e.get("place", 0)) > 0)
-                or (e.get("finalTime") and e.get("finalTime") != "0.00" and e.get("finalTime") != ""))
+                if e
+                and (
+                    (e.get("place") and self._safe_int(e.get("place", 0)) > 0)
+                    or (e.get("finalTime") and e.get("finalTime") != "0.00" and e.get("finalTime") != "")
+                )
             ]
             sorted_entries = sorted(finished, key=lambda x: self._safe_int(x.get("place", 0)) or 999)
             sub_items = [

@@ -239,12 +239,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             print(f"DEBUG: Meet item keys: {list(item.keys())}", flush=True)
             # Prefer lowercase keys from MmToJsonConverter
             # MDB column 'Meet_name1' should be 'meet_name1'
-            name = (
-                item.get("meet_name1")
-                or item.get("meet_name")
-                or item.get("mname")
-                or "Unknown Meet"
-            )
+            name = item.get("meet_name1") or item.get("meet_name") or item.get("mname") or "Unknown Meet"
             loc = item.get("location") or item.get("meet_location") or ""
             start = self._format_date(item.get("start") or item.get("start_date") or "")
             end = self._format_date(item.get("end") or item.get("end_date") or "")
@@ -466,7 +461,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             for rel_path in files:
                 filename = os.path.basename(rel_path)
                 # Only allow MDB files or specific data JSONs (not config.json)
-                if filename.lower().endswith(".mdb") or (filename.lower().endswith(".json") and filename != "config.json"):
+                if filename.lower().endswith(".mdb") or (
+                    filename.lower().endswith(".json") and filename != "config.json"
+                ):
                     # We don't easily get mod time from all storage providers without extra calls
                     # For local, it's easy. For GCS, we need blob.updated.
                     # For now, placeholder or 0
@@ -632,11 +629,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 except (ValueError, TypeError):
                     continue
 
-            seed = (
-                item.get("actualseed_time")
-                or item.get("convseed_time")
-                or item.get("seed_time")
-            )
+            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
 
             result.append(
                 pb2.Relay(
@@ -753,11 +746,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if request and request.event_id and str(event_id) != request.event_id:
                 continue
 
-            seed = (
-                item.get("actualseed_time")
-                or item.get("convseed_time")
-                or item.get("seed_time")
-            )
+            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
 
             entry_id_val = item.get("entry_no")
             final_id = self._safe_int(entry_id_val) if entry_id_val else idx
