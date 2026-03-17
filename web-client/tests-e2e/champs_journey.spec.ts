@@ -37,7 +37,7 @@ test.describe("Champs Dataset Journey", () => {
 
 		const setActiveBtn = datasetRow.getByRole("button", { name: "Set Active" });
 		const activeBadge = datasetRow.locator(".bg-green-100, .text-green-700");
-		
+
 		if (await activeBadge.isHidden()) {
 			await setActiveBtn.click();
 			// The toast might appear, but let's wait for the badge which is the source of truth
@@ -76,7 +76,9 @@ test.describe("Champs Dataset Journey", () => {
 		expect(times.length).toBeGreaterThan(0);
 		// Ensure no 2-digit decimals in time-like cells (we now force 3)
 		// We check specifically for the pattern of a swim time
-		const twoDigitDecimals = cellTexts.filter((t) => t.match(/^\d+:\d{2}\.\d{2}$|^\d{2}\.\d{2}$/));
+		const twoDigitDecimals = cellTexts.filter((t) =>
+			t.match(/^\d+:\d{2}\.\d{2}$|^\d{2}\.\d{2}$/),
+		);
 		expect(twoDigitDecimals.length).toBe(0);
 
 		// 6. Events -> Relays: Verify navigation filter
