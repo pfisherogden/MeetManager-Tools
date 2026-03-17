@@ -356,6 +356,7 @@ export function ReportsManager() {
 				{reportTypes.map((report) => (
 					<Card
 						key={report.id}
+						data-testid={`report-card-${report.name.toLowerCase().replace(/\s+/g, "-")}`}
 						className={`cursor-pointer transition-all duration-200 border-2 ${
 							selectedType === report.id
 								? "border-primary bg-primary/5"
