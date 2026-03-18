@@ -102,17 +102,17 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Bug 7 & 9: Searchable team filter in Configuration
 		// Search by text is more reliable than role for this combobox
-		const teamTrigger = page.getByText("All Teams").first();
+		const teamTrigger = page.getByText("All Teams");
 		await teamTrigger.click();
 		await page.getByPlaceholder("Search teams...").fill("Del Prado");
 		await page.getByText("Del Prado Stingrays", { exact: true }).click();
 		await expect(page.getByText("Del Prado Stingrays").first()).toBeVisible();
 
 		// Bug 10: Preset should populate builder
-		await page
-			.getByRole("heading", { name: "Lineup Sheets", exact: true })
-			.click();
-		await page.getByRole("button", { name: "Apply to Builder" }).click();
+		const presetRow = page.locator("div", {
+			has: page.getByRole("heading", { name: "Lineup Sheets", exact: true }),
+		});
+		await presetRow.getByRole("button", { name: "Apply to Builder" }).click();
 
 		const builderSection = page.locator("#custom-builder");
 		await expect(builderSection.getByText("Line Up Report")).toBeVisible();
