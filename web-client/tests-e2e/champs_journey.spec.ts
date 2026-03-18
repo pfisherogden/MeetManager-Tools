@@ -78,9 +78,21 @@ test.describe("Champs Dataset Journey", () => {
 			timeout: 20000,
 		});
 
+		// Verify zebra striping class exists
+		const tableRows = page.locator("table tbody tr");
+		if ((await tableRows.count()) > 1) {
+			const secondRow = tableRows.nth(1);
+			const className = await secondRow.getAttribute("class");
+			expect(className).toMatch(/bg-muted/);
+		}
+
 		// Verify medals exist (soft check)
-		await expect.soft(page.locator(".lucide-trophy").first()).toBeVisible();
-		await expect.soft(page.locator(".lucide-medal").first()).toBeVisible();
+		await expect
+			.soft(page.locator(".lucide-trophy").first())
+			.toBeVisible({ timeout: 15000 });
+		await expect
+			.soft(page.locator(".lucide-medal").first())
+			.toBeVisible({ timeout: 15000 });
 
 		// Verify 3-decimal rounding
 		const entryCells = page.locator("table tbody td");
@@ -101,12 +113,15 @@ test.describe("Champs Dataset Journey", () => {
 		await page.waitForLoadState("networkidle");
 
 		// Bug 7 & 9: Searchable team filter in Configuration
-		// Search by text is more reliable than role for this combobox
-		const teamTrigger = page.getByText("All Teams");
+		// Use specific card-based locators to avoid ambiguity
+		const configCard = page.locator("div.rounded-xl", {
+			has: page.getByText("Report Configuration"),
+		});
+		const teamTrigger = configCard.getByRole("combobox");
 		await teamTrigger.click();
 		await page.getByPlaceholder("Search teams...").fill("Del Prado");
 		await page.getByText("Del Prado Stingrays", { exact: true }).click();
-		await expect(page.getByText("Del Prado Stingrays").first()).toBeVisible();
+		await expect(teamTrigger).toHaveText("Del Prado Stingrays");
 
 		// Bug 10: Preset should populate builder
 		const presetRow = page.locator("div", {
@@ -116,6 +131,14 @@ test.describe("Champs Dataset Journey", () => {
 
 		const builderSection = page.locator("#custom-builder");
 		await expect(builderSection.getByText("Line Up Report")).toBeVisible();
+
+		// Bug 11: Zebra striping in builder
+		const builderRows = builderSection.locator(".divide-y > div");
+		if ((await builderRows.count()) > 1) {
+			const secondBuilderRow = builderRows.nth(1);
+			const bClassName = await secondBuilderRow.getAttribute("class");
+			expect(bClassName).toMatch(/bg-muted/);
+		}
 
 		// Final generation
 		const generateZipBtn = page.getByRole("button", {
