@@ -24,6 +24,15 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
    - This MUST be done before creating or updating a PR to ensure all remote workflows pass.
    - **Cross-Platform**: The `Justfile` automatically detects the host environment. On Apple Silicon (M-series), it forces `--container-architecture linux/amd64` to ensure compatibility with standard Ubuntu-based action runners.
 
+## Reliability Standards (Mandatory)
+- **2-Cycle Verification**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend` or `npm run test-e2e`) **2 times consecutively**. All 2 runs must pass 100% to consider the task complete. This catches flakiness and race conditions efficiently.
+
+## CI Optimization & Browser Testing
+- **E2E Sharding**: Use Playwright sharding (e.g., 4-way) in CI to reduce total runtime. Verify shards pass independently.
+- **Browser Selection**: In CI, limit testing to `chromium` and `Mobile Safari` to maximize speed while maintaining cross-engine coverage. Use all browsers only for local full-suite validation.
+- **Caching**: Ensure `~/.cache/ms-playwright` and `node_modules` are cached using `actions/cache` to skip redundant downloads.
+- **Ready Checks**: Never use `sleep` for service readiness in CI. Use a `curl` or `nc` loop to wait for the frontend (port 3000) and backend (port 8080) to be fully reachable.
+
 ## Data & Mocking Best Practices
 - **Sensitive Data False Positives**: Test logs containing variable names like `gender`, `team`, or `age` may trigger CodeQL's `py/clear-text-logging-sensitive-data` alert. Use the `# codeql [py/clear-text-logging-sensitive-data]` suppression comment on the logging line if the data is anonymized or intended for test verification.
 - **Strict Case Sensitivity**: When mocking Pandas DataFrames or dictionaries for `MmToJsonConverter`, assume case-sensitive column access. Although the converter might normalize *loaded* data to lowercase, tests injecting raw data must match the expected internal keys exactly (e.g., use `convseed_time` not `ConvSeed_time`).

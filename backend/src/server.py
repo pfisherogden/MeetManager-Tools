@@ -691,6 +691,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     val = self._calculate_points(r, sex, True, cache)
                     scores[t_id]["rel"] += val
 
+        meets = cache.get("meet", [])
+        meet_name = config.get("meet_name")
+        if not meet_name and meets:
+            m = meets[0]
+            meet_name = m.get("meet_name1") or m.get("meet_name") or m.get("mname")
+
         result = []
         for t_id, s in scores.items():
             total = s["ind"] + s["rel"]
@@ -702,7 +708,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     relay_points=s["rel"],
                     total_points=total,
                     rank=0,
-                    meet_name=config.get("meet_name", "Unknown Meet"),
+                    meet_name=str(meet_name or "Unknown Meet"),
                 )
             )
 
@@ -1095,8 +1101,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             cache, _ = self._load_user_data(context)
+            # Re-use converter and extractor instances to avoid redundant conversion of entire dataset for each report
             converter = MmToJsonConverter(table_data=cache)
             extractor = ReportDataExtractor(converter)
+            
+            # Pre-fetch full data once
+            _ = extractor._get_full_data()
 
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
@@ -1137,92 +1147,101 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
                     renderer = WeasyRenderer(temp_path)
 
-                    if rtype == "psych":
-                        report_data = extractor.extract_psych_sheet_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "psych_sheet.html")
-                    elif rtype == "entries":
-                        report_data = extractor.extract_meet_entries_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "entries_hytek.html")
-                    elif rtype == "lineups":
-                        report_data = extractor.extract_timer_sheets_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "lineups.html")
-                    elif rtype == "results":
-                        report_data = extractor.extract_results_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "results.html")
-                    elif rtype == "program":
-                        program_data = extractor.extract_meet_program_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                            columns_on_page=columns_on_page,
-                            show_relay_swimmers=show_relay_swimmers,
-                        )
-                        program_data["zebra_striping"] = zebra_striping
-                        renderer.render_meet_program(program_data)
-                    elif rtype == "program_html":
-                        program_data = extractor.extract_meet_program_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                            columns_on_page=columns_on_page,
-                            show_relay_swimmers=show_relay_swimmers,
-                        )
-                        program_data["zebra_striping"] = zebra_striping
-                        html_content = renderer.render_to_html(program_data)
-                        with open(temp_path, "w") as f:
-                            f.write(html_content)
-                    elif rtype == "entries_hytek":
-                        report_data = extractor.extract_meet_entries_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "entries_hytek.html")
-                    elif rtype == "entries_club":
-                        report_data = extractor.extract_meet_entries_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "entries_club.html")
+                    try:
+                        if rtype == "psych":
+                            report_data = extractor.extract_psych_sheet_data(
+                                team_filter=team_filter,
+                                report_title=title,
+                                gender_filter=gender_filter,
+                                age_group_filter=age_group_filter,
+                            )
+                            report_data["zebra_striping"] = zebra_striping
+                            renderer.render_entries(report_data, "psych_sheet.html")
+                        elif rtype == "entries":
+                            report_data = extractor.extract_meet_entries_data(
+                                team_filter=team_filter,
+                                report_title=title,
+                                gender_filter=gender_filter,
+                                age_group_filter=age_group_filter,
+                            )
+                            report_data["zebra_striping"] = zebra_striping
+                            renderer.render_entries(report_data, "entries_hytek.html")
+                        elif rtype == "lineups":
+                            report_data = extractor.extract_timer_sheets_data(
+                                team_filter=team_filter,
+                                report_title=title,
+                                gender_filter=gender_filter,
+                                age_group_filter=age_group_filter,
+                            )
+                            report_data["zebra_striping"] = zebra_striping
+                            renderer.render_entries(report_data, "lineups.html")
+                        elif rtype == "results":
+                            report_data = extractor.extract_results_data(
+                                team_filter=team_filter,
+                                report_title=title,
+                                gender_filter=gender_filter,
+                                age_group_filter=age_group_filter,
+                            )
+                            report_data["zebra_striping"] = zebra_striping
+                            renderer.render_entries(report_data, "results.html")
+                        elif rtype == "program":
+                            program_data = extractor.extract_meet_program_data(
+                                team_filter=team_filter,
+                                report_title=title,
+                                gender_filter=gender_filter,
+                                age_group_filter=age_group_filter,
+                                columns_on_page=columns_on_page,
+                                show_relay_swimmers=show_relay_swimmers,
+                            )
+                            program_data["zebra_striping"] = zebra_striping
+                            renderer.render_meet_program(program_data)
+                        elif rtype == "program_html":
+                            program_data = extractor.extract_meet_program_data(
+                                team_filter=team_filter,
+                                report_title=title,
+                                gender_filter=gender_filter,
+                                age_group_filter=age_group_filter,
+                                columns_on_page=columns_on_page,
+                                show_relay_swimmers=show_relay_swimmers,
+                            )
+                            program_data["zebra_striping"] = zebra_striping
+                            html_content = renderer.render_to_html(program_data)
+                            with open(temp_path, "w") as f:
+                                f.write(html_content)
+                        elif rtype == "entries_hytek":
+                            report_data = extractor.extract_meet_entries_data(
+                                team_filter=team_filter,
+                                report_title=title,
+                                gender_filter=gender_filter,
+                                age_group_filter=age_group_filter,
+                            )
+                            report_data["zebra_striping"] = zebra_striping
+                            renderer.render_entries(report_data, "entries_hytek.html")
+                        elif rtype == "entries_club":
+                            report_data = extractor.extract_meet_entries_data(
+                                team_filter=team_filter,
+                                report_title=title,
+                                gender_filter=gender_filter,
+                                age_group_filter=age_group_filter,
+                            )
+                            report_data["zebra_striping"] = zebra_striping
+                            renderer.render_entries(report_data, "entries_club.html")
 
-                    if os.path.exists(temp_path):
-                        # Clean title for filename
-                        safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-                        ext = ".html" if rtype == "program_html" else ".pdf"
-                        file_name = f"{idx + 1}_{safe_title}{ext}"
-                        zip_file.write(temp_path, file_name)
-                        os.remove(temp_path)
+                        if os.path.exists(temp_path):
+                            # Clean title for filename
+                            safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
+                            ext = ".html" if rtype == "program_html" else ".pdf"
+                            file_name = f"{idx + 1}_{safe_title}{ext}"
+                            zip_file.write(temp_path, file_name)
+                            os.remove(temp_path)
+                    except Exception as re:
+                        print(f"Error generating individual report {idx} ({rtype}): {re}")
+                        if os.path.exists(temp_path):
+                            os.remove(temp_path)
+                        # We continue to next report in bundle rather than failing whole bundle? 
+                        # Actually, failing the whole bundle might be safer for "Default Pack".
+                        # Let's re-raise for now to ensure visibility.
+                        raise re
 
             bundle_name = request.bundle_name or f"meet_bundle_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
             if not bundle_name.endswith(".zip"):

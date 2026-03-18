@@ -1,23 +1,57 @@
 "use client";
 
-// ... imports
+import { Medal, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EventScore, Score } from "@/lib/swim-meet-types";
-
-// Placeholder for fetching full metadata if needed, but currently unused for options
-// const teams = ...
-// const meets = ...
-
-// Helper for meet names if we had a meet list.
-// For now, identity or simple formatting if we don't have the list.
-const _getMeetName = (meetId: string) => meetId;
+import { cn } from "@/lib/utils";
 
 interface ScoresManagerProps {
 	initialScores: Score[];
 	initialEventScores?: EventScore[];
 }
+
+const renderRank = (value: any) => {
+	const rank = Number(value) || null;
+	if (!rank) return <span className="text-muted-foreground">—</span>;
+	const medalStyles = {
+		1: {
+			bg: "bg-sunshine/20 text-sunshine-foreground border-sunshine/50",
+			icon: <Trophy className="h-3 w-3 text-sunshine" />,
+		},
+		2: {
+			bg: "bg-slate-200/50 text-slate-700 border-slate-300",
+			icon: <Medal className="h-3 w-3 text-slate-500" />,
+		},
+		3: {
+			bg: "bg-orange-200/30 text-orange-700 border-orange-300",
+			icon: <Medal className="h-3 w-3 text-orange-500" />,
+		},
+	};
+
+	const style = medalStyles[rank as keyof typeof medalStyles];
+
+	if (style) {
+		return (
+			<div
+				className={cn(
+					"inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-bold shadow-sm",
+					style.bg,
+				)}
+			>
+				{style.icon}
+				{rank}
+			</div>
+		);
+	}
+
+	return (
+		<span className="inline-flex w-6 h-6 items-center justify-center rounded-full text-xs font-medium bg-muted text-muted-foreground">
+			{rank}
+		</span>
+	);
+};
 
 export function ScoresManager({
 	initialScores,
@@ -53,7 +87,9 @@ export function ScoresManager({
 
 	const columns = useMemo<Column<Score>[]>(() => {
 		const uniqueTeams = Array.from(new Set(data.map((d) => d.teamName))).sort();
-		const uniqueMeets = Array.from(new Set(data.map((d) => d.meetName))).sort();
+		const uniqueMeets = Array.from(new Set(data.map((d) => d.meetName)))
+			.filter(Boolean)
+			.sort();
 		const uniqueRanks = Array.from(new Set(data.map((d) => d.rank))).sort(
 			(a, b) => a - b,
 		);
@@ -67,24 +103,7 @@ export function ScoresManager({
 				filterVariant: "faceted",
 				options: uniqueRanks.map(String),
 				width: "w-20",
-				render: (value) => {
-					const rank = value as number;
-					const colors = {
-						1: "bg-sunshine text-foreground font-bold",
-						2: "bg-gray-200 text-gray-800",
-						3: "bg-lane-red/30 text-lane-red",
-					};
-					return (
-						<span
-							className={`inline-flex w-8 h-8 items-center justify-center rounded-full text-sm ${
-								colors[rank as keyof typeof colors] ||
-								"bg-muted text-muted-foreground"
-							}`}
-						>
-							{rank}
-						</span>
-					);
-				},
+				render: renderRank,
 			},
 			{
 				key: "teamName",
@@ -94,15 +113,11 @@ export function ScoresManager({
 				filterVariant: "faceted",
 				options: uniqueTeams,
 				width: "w-48",
-				render: (value) => {
-					// Removed color lookup as we lack team metadata list.
-					// Could inject colors if `data` had it or via another prop.
-					return (
-						<div className="flex items-center gap-2">
-							<span className="font-medium">{value as string}</span>
-						</div>
-					);
-				},
+				render: (value) => (
+					<div className="flex items-center gap-2">
+						<span className="font-medium">{value as string}</span>
+					</div>
+				),
 			},
 			{
 				key: "meetName",
@@ -112,9 +127,11 @@ export function ScoresManager({
 				filterVariant: "faceted",
 				options: uniqueMeets,
 				width: "w-48",
-				render: (value) => (
-					<span className="font-medium">{value as string}</span>
-				),
+				render: (value) => {
+					const meetName = value as string;
+					if (!meetName || meetName === "Unknown Meet") return null;
+					return <span className="font-medium">{meetName}</span>;
+				},
 			},
 			{
 				key: "individualPoints",
@@ -175,6 +192,7 @@ export function ScoresManager({
 				type: "number",
 				filterVariant: "faceted",
 				options: uniqueRanks.map(String),
+				render: renderRank,
 			},
 			{
 				key: "athleteName",
@@ -220,7 +238,7 @@ export function ScoresManager({
 		const newScore: Score = {
 			id: `sc${Date.now()}`,
 			meetId: "1",
-			meetName: "Unknown Meet",
+			meetName: "",
 			teamId: "0",
 			teamName: "New Team",
 			individualPoints: 0,

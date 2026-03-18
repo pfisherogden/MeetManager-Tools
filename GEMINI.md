@@ -81,3 +81,12 @@ All agents MUST follow these workflow steps:
 
 ### 2. Type Checking (Mypy)
 - **Rule**: All new logic in `extractor.py` and service layers must have explicit type signatures. CI runs `just lint-backend` which includes `mypy`.
+
+### 3. CI Performance Optimizations
+- **Sharding**: Parallelizing Playwright tests using 4-way sharding reduces E2E runtimes from 30+ minutes to under 5 minutes.
+- **Caching**: Always cache Docker Buildx layers (`cache-from/to`), Playwright browsers (`~/.cache/ms-playwright`), and `node_modules` to minimize setup overhead.
+- **Health Checks**: Use robust `curl` loops for service readiness checks in CI instead of fixed `sleep` commands to avoid race conditions.
+
+### 4. Schema & Data Standards
+- **Case-Insensitivity**: Standardize all backend table and column lookups to **lowercase** to ensure compatibility with MDB files that may have inconsistent naming.
+- **Time Precision**: All swimming times (seed, final, splits) must be rounded to **3 decimal places** (thousandths) to meet Meet Manager standards and prevent display regressions.
