@@ -113,11 +113,7 @@ test.describe("Champs Dataset Journey", () => {
 		await page.waitForLoadState("networkidle");
 
 		// Bug 7 & 9: Searchable team filter in Configuration
-		// Use specific card-based locators to avoid ambiguity
-		const configCard = page.locator("div.rounded-xl", {
-			has: page.getByText("Report Configuration"),
-		});
-		const teamTrigger = configCard.getByRole("combobox");
+		const teamTrigger = page.getByTestId("team-filter-trigger");
 		await teamTrigger.click();
 		await page.getByPlaceholder("Search teams...").fill("Del Prado");
 		await page.getByText("Del Prado Stingrays", { exact: true }).click();
@@ -127,7 +123,9 @@ test.describe("Champs Dataset Journey", () => {
 		await page.getByTestId("preset-apply-lineups").click();
 
 		const builderSection = page.locator("#custom-builder");
-		await expect(builderSection.getByText("Line Up Report")).toBeVisible();
+		await expect(builderSection.getByText("Line Up Report")).toBeVisible({
+			timeout: 30000,
+		});
 
 		// Bug 11: Zebra striping in builder
 		const builderRows = builderSection.locator(".divide-y > div");

@@ -531,6 +531,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 										<Button
 											variant="outline"
 											role="combobox"
+											data-testid="team-filter-trigger"
 											aria-expanded={teamFilterOpen}
 											className="w-full justify-between"
 										>
