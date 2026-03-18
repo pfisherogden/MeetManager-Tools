@@ -123,7 +123,10 @@ test.describe("Champs Dataset Journey", () => {
 		await page.getByTestId("preset-apply-lineups").click();
 
 		const builderSection = page.locator("#custom-builder");
-		await expect(builderSection.getByText("Line Up Report")).toBeVisible({
+		// Preset report titles are populated in Input fields, use getByDisplayValue
+		await expect(
+			builderSection.getByDisplayValue(/Line Up Report/i).first(),
+		).toBeVisible({
 			timeout: 30000,
 		});
 
