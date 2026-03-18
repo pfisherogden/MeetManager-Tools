@@ -6,128 +6,49 @@
 {% block extra_css %}
         .group-block {
             page-break-after: always;
-            margin-bottom: 20pt;
         }
-
-        .group-header {
-            background-color: #333;
-            color: white;
-            font-weight: bold;
-            font-size: 16pt;
-            padding: 5pt 10pt;
-            margin-bottom: 10pt;
-            text-transform: uppercase;
-            display: flex;
-            justify-content: space-between;
+        .group-block:last-child {
+            page-break-after: auto;
         }
-
-        .entries-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11pt;
-        }
-
-        .entries-table th {
-            text-align: left;
-            border-bottom: 2pt solid #000;
-            padding: 5pt;
-            background-color: #f8f8f8;
-        }
-
-        .entries-table td {
-            padding: 8pt 5pt;
-            border-bottom: 1pt solid #ccc;
-        }
-
-        .col-event {
-            width: 50pt;
-            font-weight: bold;
-        }
-
-        .col-heat {
-            width: 40pt;
-        }
-
-        .col-name {
-            width: auto;
-            font-weight: bold;
-        }
-
-        .col-seed {
-            width: 60pt;
-            text-align: right;
-            color: #666;
-        }
-
-        .col-manual {
-            width: 70pt;
-            text-align: center;
-            border-left: 1pt solid #ccc;
-            font-family: monospace;
-            font-size: 12pt;
-        }
-
-        .manual-line {
-            border-bottom: 1.5pt solid #000;
-            display: block;
-            width: 90%;
-            height: 16pt;
-            margin: 0 auto;
-        }
-
-        .relay-swimmers-row td {
-            font-size: 9pt;
-            padding-top: 0;
-            color: #444;
+        .timer-table td {
+            height: 60pt; /* Ensure enough space for signatures/writing */
+            vertical-align: middle;
         }
 {% endblock %}
 
 {% block content %}
     {% for group in groups %}
     <div class="group-block">
-        <div class="group-header">
-            <span>{{ group.header }}</span>
-        </div>
-
-        {% for item in group.heats %}
+        {% for heat in group.heats %}
         <div class="heat-block">
-            <table class="entries-table">
+            <div class="heat-header">
+                {{ group.header }} - {{ heat.header }}
+            </div>
+            <table class="timer-table">
                 <thead>
                     <tr>
-                        <th class="col-event">Event</th>
-                        <th class="col-heat">Heat</th>
-                        <th class="col-name">Swimmer/Relay</th>
+                        <th class="col-lane">Lane</th>
+                        <th class="col-name">Swimmer / Relay</th>
                         <th class="col-seed">Seed</th>
-                        <th class="col-manual">Timer 1</th>
-                        <th class="col-manual">Timer 2</th>
-                        <th class="col-manual">Stopwatch</th>
+                        <th class="col-box border-left" style="width: 120pt;">Time 1</th>
+                        <th class="col-box border-left" style="width: 120pt;">Time 2 / Final</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for entry in item.sub_items %}
+                    {% for entry in heat.sub_items %}
                     <tr class="entry-row">
-                        <td class="col-event">#{{ entry.event_num }}</td>
-                        <td class="col-heat">H {{ entry.heat }}</td>
+                        <td class="col-lane">{{ entry.lane }}</td>
                         <td class="col-name">
-                            {% if entry.is_relay %}
-                            {{ entry.team }} - '{{ entry.relay_ltr }}'
-                            {% else %}
-                            {{ entry.name }} ({{ entry.team }})
-                            {% endif %}
+                            <div class="swimmer-name-text" style="font-size: 12pt; font-weight: bold;">{{ entry.name }}</div>
+                            <div class="entry-team-name">({{ entry.team }})</div>
                         </td>
-                        <td class="col-seed">{{ entry.time }}</td>
-                        <td class="col-manual">
-                            <div class="manual-line"></div>
-                        </td>
-                        <td class="col-manual">
-                            <div class="manual-line"></div>
-                        </td>
-                        <td class="col-manual">
-                            <div class="manual-line"></div>
-                        </td>
+                        <td class="col-seed font-mono" style="font-size: 11pt;">{{ entry.time }}</td>
+                        <td class="col-box border-left"></td>
+                        <td class="col-box border-left"></td>
                     </tr>
                     
-                    {{ macros.render_relay_swimmers_row(entry, is_zebra=false, colspan=5) }}
+                    {# Relay Swimmers #}
+                    {{ macros.render_relay_swimmers_row(entry, is_zebra=false, colspan=3) }}
                     
                     {% endfor %}
                 </tbody>

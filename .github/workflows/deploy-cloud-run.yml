@@ -27,23 +27,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
       # Authentication with Google Cloud
-      # Note: Requires setting up a Workload Identity Pool and Provider in GCP
-      # or using a Service Account Key secret.
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          # Workload Identity Provider is recommended for security
-          # workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-          # service_account: 'meetmanager-runner@mmtools-488404.iam.gserviceaccount.com'
-          
-          # Fallback to credentials_json for simplicity if WIP is not setup
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
       - name: 'Authorize Docker push'
         run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
@@ -81,6 +80,8 @@ jobs:
           flags: '--allow-unauthenticated'
           env_vars: |
             GCS_BUCKET_NAME=mmtools-data-mmtools-488404
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
       # Deploy Frontend to Cloud Run
       - name: Deploy Frontend
@@ -101,3 +102,5 @@ jobs:
             NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }}
             NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.firebasestorage.app
             NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-KDE7ZPS0X5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'

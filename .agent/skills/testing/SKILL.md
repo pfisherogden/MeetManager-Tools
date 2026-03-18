@@ -33,6 +33,11 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
 - **Caching**: Ensure `~/.cache/ms-playwright` and `node_modules` are cached using `actions/cache` to skip redundant downloads.
 - **Ready Checks**: Never use `sleep` for service readiness in CI. Use a `curl` or `nc` loop to wait for the frontend (port 3000) and backend (port 8080) to be fully reachable.
 
+## Robust Playwright Selectors
+- **Ambiguity**: If multiple buttons have the same name (e.g., "Apply to Builder" in a list), use `data-testid` or scoped locators: `page.locator("div", { has: page.getByText("Specific Item") }).getByRole("button")`.
+- **Inputs**: For verifying text inside an `<input>` or `<textarea>`, prefer `getByDisplayValue()` over `getByText()`, as the latter may not find the value of a form field.
+- **Spinners**: To check for loading states, use `toBeVisible()` on the spinner icon (e.g., `.animate-spin`) or `toBeAttached()` if the transition is very fast.
+
 ## Data & Mocking Best Practices
 - **Sensitive Data False Positives**: Test logs containing variable names like `gender`, `team`, or `age` may trigger CodeQL's `py/clear-text-logging-sensitive-data` alert. Use the `# codeql [py/clear-text-logging-sensitive-data]` suppression comment on the logging line if the data is anonymized or intended for test verification.
 - **Strict Case Sensitivity**: When mocking Pandas DataFrames or dictionaries for `MmToJsonConverter`, assume case-sensitive column access. Although the converter might normalize *loaded* data to lowercase, tests injecting raw data must match the expected internal keys exactly (e.g., use `convseed_time` not `ConvSeed_time`).
