@@ -65,7 +65,7 @@ All agents MUST follow these workflow steps:
 
 ### 1. CI Stability (Zero Tolerance)
 - **Rule**: NEVER push code that fails local linting or testing. CI failures on `main` are considered major regressions.
-- **Mandatory Pre-Push**: Run `just lint` immediately before every `git push` to catch accidental formatting or whitespace issues.
+- **Mandatory Pre-Push**: Run `just lint` immediately before every `git push` to catch accidental formatting or whitespace issues. Better yet, run `just pre-push` to include type checks and fast tests.
 
 ### 2. 2-Cycle Verification
 - **Rule**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend`) **2 times consecutively**. Both runs must pass 100% to consider the task complete. This catches most intermittent race conditions and flakiness while remaining efficient.

@@ -150,14 +150,16 @@ def test_report_filtering_and_title(tmp_path):
 
     # Test Meet Program with filter/title
     program_data = extractor.extract_meet_program_data(team_filter=team_filter, report_title=custom_title)
-    assert program_data["sub_title"] == custom_title
+    assert custom_title in program_data["sub_title"]
+    assert f"Team: {team_filter}" in program_data["sub_title"]
 
     output_pdf = str(tmp_path / "filtered_program.pdf")
     renderer = WeasyRenderer(output_pdf)
     html_content = renderer.render_to_html(program_data)
 
     soup = BeautifulSoup(html_content, "html.parser")
-    assert soup.find("h2").text == custom_title
+    assert custom_title in soup.find("h2").text
+    assert f"Team: {team_filter}" in soup.find("h2").text
 
     # Assert all entries in the HTML are for the filtered team
     # Note: in meet program, team is in .col-team

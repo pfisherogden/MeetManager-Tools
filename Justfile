@@ -148,6 +148,9 @@ verify-local: codegen fix lint test-local
 # Run the complete pre-commit verification suite
 pre-commit: verify
 
+# Verification to run before any git push
+pre-push: codegen lint type-check-backend test-backend-fast test-frontend-fast
+
 # Local CI simulation
 verify-ci:
     @echo "Running verification in a clean CI-like container..."

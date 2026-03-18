@@ -342,7 +342,7 @@ export function DataTable<T extends { id: string }>({
 								className={cn(
 									"group",
 									selectedRows.has(row.id) && "bg-primary/5",
-									rowIndex % 2 === 0 ? "bg-card" : "bg-muted/20",
+									rowIndex % 2 === 0 ? "bg-card" : "bg-muted/30",
 								)}
 							>
 								<td className="w-10 p-0 border-b border-r border-border">
