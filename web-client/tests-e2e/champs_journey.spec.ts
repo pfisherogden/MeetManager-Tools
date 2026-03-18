@@ -109,7 +109,9 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(page.getByText("Del Prado Stingrays").first()).toBeVisible();
 
 		// Bug 10: Preset should populate builder
-		await page.getByText("Lineup Sheets", { exact: true }).click();
+		await page
+			.getByRole("heading", { name: "Lineup Sheets", exact: true })
+			.click();
 		await page.getByRole("button", { name: "Apply to Builder" }).click();
 
 		const builderSection = page.locator("#custom-builder");
