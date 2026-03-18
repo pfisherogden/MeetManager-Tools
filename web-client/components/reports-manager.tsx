@@ -473,6 +473,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 						{reportPresets.map((preset) => (
 							<div
 								key={preset.id}
+								data-testid={`preset-${preset.id}`}
 								className="flex items-center justify-between p-4 border rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors"
 							>
 								<div>
@@ -484,6 +485,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 								<Button
 									variant="outline"
 									size="sm"
+									data-testid={`preset-apply-${preset.id}`}
 									onClick={() => handleApplyPreset(preset)}
 									className="text-xs h-8"
 								>

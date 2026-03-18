@@ -124,10 +124,7 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(teamTrigger).toHaveText("Del Prado Stingrays");
 
 		// Bug 10: Preset should populate builder
-		const presetRow = page.locator("div", {
-			has: page.getByRole("heading", { name: "Lineup Sheets", exact: true }),
-		});
-		await presetRow.getByRole("button", { name: "Apply to Builder" }).click();
+		await page.getByTestId("preset-apply-lineups").click();
 
 		const builderSection = page.locator("#custom-builder");
 		await expect(builderSection.getByText("Line Up Report")).toBeVisible();
