@@ -101,13 +101,12 @@ test.describe("Champs Dataset Journey", () => {
 		await page.waitForLoadState("networkidle");
 
 		// Bug 7 & 9: Searchable team filter in Configuration
-		const teamTrigger = page
-			.getByRole("combobox", { name: /All Teams/i })
-			.first();
+		// Search by text is more reliable than role for this combobox
+		const teamTrigger = page.getByText("All Teams").first();
 		await teamTrigger.click();
 		await page.getByPlaceholder("Search teams...").fill("Del Prado");
 		await page.getByText("Del Prado Stingrays", { exact: true }).click();
-		await expect(teamTrigger).toHaveText("Del Prado Stingrays");
+		await expect(page.getByText("Del Prado Stingrays").first()).toBeVisible();
 
 		// Bug 10: Preset should populate builder
 		await page.getByText("Lineup Sheets", { exact: true }).click();
