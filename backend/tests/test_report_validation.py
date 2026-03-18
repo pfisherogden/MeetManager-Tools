@@ -208,7 +208,7 @@ def test_b_coaches_program_logic():
 
     style_tag = soup.find("style")
     assert "column-count: 2" in style_tag.text
-    assert len(soup.find_all("td", class_="swimmers-list")) > 0
+    assert len(soup.find_all("div", class_="relay-swimmer")) > 0
 
 
 def test_c_posting_program_logic():
@@ -227,7 +227,7 @@ def test_c_posting_program_logic():
     assert not any("Event 2" in h for h in headers)
     assert any("Event 3" in h for h in headers)
 
-    time_cells = soup.find_all("td", class_="col-time")
+    time_cells = soup.find_all("td", class_="col-seed")
     assert len(time_cells) > 0
     assert any("20.000" in t.text for t in time_cells)
 

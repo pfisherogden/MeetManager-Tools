@@ -122,7 +122,7 @@ def test_entries_report_generation(fixture_path, tmp_path):
     hytek_data = extractor.extract_meet_entries_data()
     output_hytek = str(tmp_path / "test_entries_hytek.pdf")
     renderer = WeasyRenderer(output_hytek)
-    renderer.render_entries(hytek_data, "entries_hytek.html")
+    renderer.render_entries(hytek_data, "entries_hytek.j2")
     assert os.path.exists(output_hytek)
     assert os.path.getsize(output_hytek) > 0
 
@@ -130,7 +130,7 @@ def test_entries_report_generation(fixture_path, tmp_path):
     club_data = extractor.extract_meet_entries_data()
     output_club = str(tmp_path / "test_entries_club.pdf")
     renderer = WeasyRenderer(output_club)
-    renderer.render_entries(club_data, "entries_club.html")
+    renderer.render_entries(club_data, "entries_club.j2")
     assert os.path.exists(output_club)
     assert os.path.getsize(output_club) > 0
 

@@ -205,12 +205,9 @@ class MmToJsonConverter:
     def convert(self) -> dict[str, Any]:
         meet = self.get_meet_info()
         sessions: list[Session] = self.get_session_info()
-        logger.debug(f"DEBUG: convert() found {len(sessions)} sessions")
 
         if not sessions:
             if self.schema_type == "B":
-                # In Schema B, columns might be different, but if get_session_info failed,
-                # maybe it's because 'SESS_NO' vs 'SESSION'?
                 pass
             else:
                 sessions.append(self.create_default_session())
@@ -222,9 +219,7 @@ class MmToJsonConverter:
         meet_sessions_data = []
 
         for session in sessions:
-            logger.debug(f"Processing session {session.sess_id} ({session.name})")
             events = self.get_events_by_session(session)
-            logger.debug(f"Found {len(events)} events for session {session.sess_id}")
             session_events_data = []
 
             for event in events:
@@ -888,11 +883,12 @@ class MmToJsonConverter:
                         self.cache_team_map[tid] = name
                     else:
                         tid = row.get("team_no")
+                        full_name = self._get_val(row, "team_name")
                         abbr = self._get_val(row, "team_abbr")
                         short = self._get_val(row, "team_short")
                         lsc = self._get_val(row, "team_lsc")
 
-                        name = short if short else f"{abbr}-{lsc}".strip("-")
+                        name = full_name if full_name else (short if short else f"{abbr}-{lsc}".strip("-"))
                         self.cache_team_map[tid] = name
 
         # Ensure we return a real string and never "nan"

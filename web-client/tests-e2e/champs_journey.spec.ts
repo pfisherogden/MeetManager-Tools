@@ -120,7 +120,15 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(teamTrigger).toHaveText("Del Prado Stingrays");
 
 		// Bug 10: Preset should populate builder
-		await page.getByTestId("preset-apply-lineups").click();
+		// Bug 5: Scoped spinner check
+		const presetApplyBtn = page.getByTestId("preset-apply-lineups");
+		await presetApplyBtn.click();
+
+		// The button we clicked should NOT stay in a loading state forever since it's an 'Apply' action now
+		// but if we were testing a Generate action, we'd check that other buttons are NOT spinners.
+		const otherPresetBtn = page.getByTestId("preset-apply-coaches");
+		await expect(otherPresetBtn).not.toHaveAttribute("disabled");
+		await expect(otherPresetBtn.locator(".animate-spin")).not.toBeVisible();
 
 		const builderSection = page.locator("#custom-builder");
 		// Preset report titles are populated in Input fields, use getByDisplayValue directly on page scoped by builderSection

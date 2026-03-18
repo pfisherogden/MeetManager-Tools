@@ -86,6 +86,7 @@ All agents MUST follow these workflow steps:
 - **Sharding**: Parallelizing Playwright tests using 4-way sharding reduces E2E runtimes from 30+ minutes to under 5 minutes.
 - **Caching**: Always cache Docker Buildx layers (`cache-from/to`), Playwright browsers (`~/.cache/ms-playwright`), and `node_modules` to minimize setup overhead.
 - **Health Checks**: Use robust `curl` loops for service readiness checks in CI instead of fixed `sleep` commands to avoid race conditions.
+- **Node.js 24**: All GitHub Actions MUST use Node.js 24 (or the `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'` override) to avoid deprecation warnings. Ensure this is set at both the job `env` and step `env` levels for maximum reliability.
 
 ### 4. Schema & Data Standards
 - **Case-Insensitivity**: Standardize all backend table and column lookups to **lowercase** to ensure compatibility with MDB files that may have inconsistent naming.

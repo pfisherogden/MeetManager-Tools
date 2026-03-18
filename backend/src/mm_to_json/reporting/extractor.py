@@ -455,6 +455,7 @@ class ReportDataExtractor:
             "groups": report_groups,
             "columns_on_page": columns_on_page,
             "show_relay_swimmers": show_relay_swimmers,
+            "show_dq_lines": show_dq_lines,
         }
 
     def extract_psych_sheet_data(
