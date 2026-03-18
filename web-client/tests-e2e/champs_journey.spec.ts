@@ -123,12 +123,13 @@ test.describe("Champs Dataset Journey", () => {
 		await page.getByTestId("preset-apply-lineups").click();
 
 		const builderSection = page.locator("#custom-builder");
-		// Preset report titles are populated in Input fields, use getByDisplayValue
+		// Preset report titles are populated in Input fields, use getByDisplayValue directly on page scoped by builderSection
 		await expect(
-			builderSection.getByDisplayValue(/Line Up Report/i).first(),
-		).toBeVisible({
-			timeout: 30000,
-		});
+			page
+				.locator("#custom-builder input")
+				.filter({ hasValue: /Line Up Report/i })
+				.first(),
+		).toBeVisible({ timeout: 30000 });
 
 		// Bug 11: Zebra striping in builder
 		const builderRows = builderSection.locator(".divide-y > div");
