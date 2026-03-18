@@ -1104,7 +1104,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Re-use converter and extractor instances to avoid redundant conversion of entire dataset for each report
             converter = MmToJsonConverter(table_data=cache)
             extractor = ReportDataExtractor(converter)
-            
+
             # Pre-fetch full data once
             _ = extractor._get_full_data()
 
@@ -1229,7 +1229,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
                         if os.path.exists(temp_path):
                             # Clean title for filename
-                            safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
+                            safe_title = "".join(
+                                c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")
+                            ).strip()
                             ext = ".html" if rtype == "program_html" else ".pdf"
                             file_name = f"{idx + 1}_{safe_title}{ext}"
                             zip_file.write(temp_path, file_name)
@@ -1238,7 +1240,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         print(f"Error generating individual report {idx} ({rtype}): {re}")
                         if os.path.exists(temp_path):
                             os.remove(temp_path)
-                        # We continue to next report in bundle rather than failing whole bundle? 
+                        # We continue to next report in bundle rather than failing whole bundle?
                         # Actually, failing the whole bundle might be safer for "Default Pack".
                         # Let's re-raise for now to ensure visibility.
                         raise re

@@ -12,7 +12,7 @@ import {
 	Settings2,
 	Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { generateReport, generateReportBundle } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -134,7 +134,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		const reportName =
 			reportTypes.find((r) => r.id === selectedType)?.name || "";
 		const newItem: CustomPackItem = {
-			id: Math.random().toString(36).substr(2, 9),
+			id: crypto.randomUUID(),
 			type: selectedType,
 			title: title || reportName,
 			teamFilter: teamFilter,
@@ -297,7 +297,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 	const handleApplyPreset = (preset: (typeof reportPresets)[0]) => {
 		const targetTeam = presetTeamFilter === "All Teams" ? "" : presetTeamFilter;
 		const newItems: CustomPackItem[] = preset.reports.map((r: any) => ({
-			id: Math.random().toString(36).substr(2, 9),
+			id: crypto.randomUUID(),
 			type: r.type,
 			title: r.title,
 			teamFilter: r.teamFilter || targetTeam,
@@ -871,7 +871,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 															<SelectItem value="11-12">11-12</SelectItem>
 															<SelectItem value="13-14">13-14</SelectItem>
 															<SelectItem value="15-18">15-18</SelectItem>
-														</CommandGroup>
+														</SelectContent>
 													</Select>
 												</div>
 												<div className="flex items-center gap-3 pt-6">

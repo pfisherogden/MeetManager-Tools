@@ -67,9 +67,7 @@ class ReportDataExtractor:
             return f"{min_age} & over"
         return f"{min_age}-{max_age}"
 
-    def _get_report_subtitle(
-        self, base_title: str, team: str | None, gender: str | None, age: str | None
-    ) -> str:
+    def _get_report_subtitle(self, base_title: str, team: str | None, gender: str | None, age: str | None) -> str:
         """Helper to append active filters to report title for clarity."""
         parts = [base_title]
         if team:
