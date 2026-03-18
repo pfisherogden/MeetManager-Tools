@@ -67,6 +67,17 @@ class ReportDataExtractor:
             return f"{min_age} & over"
         return f"{min_age}-{max_age}"
 
+    def _get_report_subtitle(self, base_title: str, team: str | None, gender: str | None, age: str | None) -> str:
+        """Helper to append active filters to report title for clarity."""
+        parts = [base_title]
+        if team:
+            parts.append(f"Team: {team}")
+        if gender and gender.lower() != "mixed":
+            parts.append(f"Gender: {gender}")
+        if age and age.lower() != "open":
+            parts.append(f"Age: {age}")
+        return " - ".join(parts)
+
     def extract_meet_entries_data(
         self,
         team_filter: str | None = None,
@@ -302,9 +313,13 @@ class ReportDataExtractor:
                     ]
                     team_items.append({"header": "", "force_1col": True, "sub_items": sub_items})
             report_groups.append({"header": f"Team Entries - {t_name}", "athletes": team_items})
+
+        sub_title = self._get_report_subtitle(
+            report_title or "Entries - All Events", team_filter, gender_filter, age_group_filter
+        )
         return {
             "meet_name": full_data.get("meetName", ""),
-            "sub_title": report_title or "Entries - All Events",
+            "sub_title": sub_title,
             "groups": report_groups,
         }
 
@@ -430,9 +445,13 @@ class ReportDataExtractor:
                         )
                 heat_items.append({"header": f"Heat {h} of {sorted_heats[-1]} Finals", "sub_items": sub_items})
             report_groups.append({"header": header, "heats": heat_items})
+
+        sub_title = self._get_report_subtitle(
+            report_title or "Meet Program", team_filter, gender_filter, age_group_filter
+        )
         return {
             "meet_name": full_data.get("meetName", ""),
-            "sub_title": report_title or "Meet Program",
+            "sub_title": sub_title,
             "groups": report_groups,
             "columns_on_page": columns_on_page,
             "show_relay_swimmers": show_relay_swimmers,
@@ -520,9 +539,13 @@ class ReportDataExtractor:
                 if e
             ]
             report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "sections": [{"sub_items": sub_items}]})
+
+        sub_title = self._get_report_subtitle(
+            report_title or "Psych Sheet", team_filter, gender_filter, age_group_filter
+        )
         return {
             "meet_name": full_data.get("meetName", ""),
-            "sub_title": report_title or "Psych Sheet",
+            "sub_title": sub_title,
             "groups": report_groups,
         }
 
@@ -630,9 +653,13 @@ class ReportDataExtractor:
                     sub_items.append(item_data)
                 heat_items.append({"header": f"Heat {h} of {sorted_heats[-1]} Finals", "sub_items": sub_items})
             report_groups.append({"header": header, "heats": heat_items})
+
+        sub_title = self._get_report_subtitle(
+            report_title or "Timer Sheets", team_filter, gender_filter, age_group_filter
+        )
         return {
             "meet_name": full_data.get("meetName", ""),
-            "sub_title": report_title or "Timer Sheets",
+            "sub_title": sub_title,
             "groups": report_groups,
         }
 
@@ -717,9 +744,13 @@ class ReportDataExtractor:
                 for e in sorted_entries
             ]
             report_groups.append({"header": f"Event {evt_num}  {evt_desc}", "sections": [{"sub_items": sub_items}]})
+
+        sub_title = self._get_report_subtitle(
+            report_title or "Meet Results", team_filter, gender_filter, age_group_filter
+        )
         return {
             "meet_name": full_data.get("meetName", ""),
-            "sub_title": report_title or "Meet Results",
+            "sub_title": sub_title,
             "groups": report_groups,
         }
 

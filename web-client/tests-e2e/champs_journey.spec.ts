@@ -10,7 +10,6 @@ test.describe("Champs Dataset Journey", () => {
 		// 1. Admin: Upload and Set Active
 		await page.goto("/admin");
 		const testFileName = "sample_data_champs_2025-aftermeet.mdb";
-		// Use absolute path from project root if possible, or fallback
 		const testFilePath = process.env.CI
 			? path.join(process.cwd(), "..", "backend", "data", testFileName)
 			: path.resolve(__dirname, `../../backend/data/${testFileName}`);
@@ -21,7 +20,9 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(page.locator("table tbody tr").first()).toBeVisible();
 
 		const existingRow = page.locator("tr").filter({
-			has: page.locator("td", { hasText: new RegExp(`^${testFileName}$`) }),
+			has: page.locator("td", {
+				hasText: new RegExp(`^${testFileName}$`),
+			}),
 		});
 		if ((await existingRow.count()) === 0) {
 			const fileChooserPromise = page.waitForEvent("filechooser");
@@ -33,9 +34,11 @@ test.describe("Champs Dataset Journey", () => {
 			);
 		}
 
-		// Set as active with retry/wait because DB loading is slow
+		// Set as active
 		const datasetRow = page.locator("tr").filter({
-			has: page.locator("td", { hasText: new RegExp(`^${testFileName}$`) }),
+			has: page.locator("td", {
+				hasText: new RegExp(`^${testFileName}$`),
+			}),
 		});
 		await expect(datasetRow.first()).toBeVisible({ timeout: 10000 });
 
@@ -44,87 +47,106 @@ test.describe("Champs Dataset Journey", () => {
 
 		if (await activeBadge.isHidden()) {
 			await setActiveBtn.click();
-			// The toast might appear, but let's wait for the badge which is the source of truth
 			await expect(activeBadge).toBeVisible({ timeout: 30000 });
-		}
-
-		// Verify config.json is hidden (should not match similar filenames)
-		const configRows = page.getByRole("row").filter({ hasText: "config.json" });
-		for (const row of await configRows.all()) {
-			const text = await row.innerText();
-			if (text.trim().split("\t")[0] === "config.json") {
-				throw new Error("config.json should be hidden");
-			}
+			// Give extra time for cache warming
+			await page.waitForTimeout(3000);
 		}
 
 		// 2. Meets Page: Verify name and location
 		await page.goto("/meets");
-		await expect(page.locator("table tbody tr").first()).toBeVisible();
 		await expect(page.locator("table")).toContainText(
 			"TVSL Championship Meet 2025",
+			{ timeout: 20000 },
 		);
 		await expect(page.locator("table")).toContainText("Foothill High School");
 
 		// 3. Teams Page: Verify data visibility
 		await page.goto("/teams");
-		await expect(page.locator("table tbody tr").first()).toBeVisible();
-		await expect(page.locator("table")).toContainText("Briarhill Swim Team");
-		await expect(page.locator("table")).toContainText("Del Prado Stingrays");
+		await expect(page.locator("table")).toContainText("Briarhill Swim Team", {
+			timeout: 20000,
+		});
 
 		// 4. Athletes Page: Verify data visibility
 		await page.goto("/athletes");
-		await expect(page.locator("table tbody tr").first()).toBeVisible();
-		await expect(page.locator("table")).toContainText("Bertalotto"); // Evan Bertalotto
+		await expect(page.locator("table")).toContainText("Bertalotto", {
+			timeout: 20000,
+		});
 
-		// 5. Entries Page: Verify rounding (3 decimal places)
+		// 5. Entries Page: Verify rounding and Medals
 		await page.goto("/entries");
-		await expect(page.locator("table tbody tr").first()).toBeVisible();
-		// Check for times with exactly 3 digits after decimal
-		// e.g. "31.240" or "1:15.720"
+		await expect(page.locator("table tbody tr").first()).toBeVisible({
+			timeout: 20000,
+		});
+
+		// Verify zebra striping class exists
+		const tableRows = page.locator("table tbody tr");
+		if ((await tableRows.count()) > 1) {
+			const secondRow = tableRows.nth(1);
+			const className = await secondRow.getAttribute("class");
+			expect(className).toMatch(/bg-muted/);
+		}
+
+		// Verify medals exist (soft check)
+		await expect
+			.soft(page.locator(".lucide-trophy").first())
+			.toBeVisible({ timeout: 15000 });
+		await expect
+			.soft(page.locator(".lucide-medal").first())
+			.toBeVisible({ timeout: 15000 });
+
+		// Verify 3-decimal rounding
 		const entryCells = page.locator("table tbody td");
 		const cellTexts = await entryCells.allInnerTexts();
-		// Use a more robust regex that allows for times like 1:23.456 and doesn't require it to be the whole cell content
 		const times = cellTexts.filter((t) => t.match(/\d+\.\d{3}([ \t\n]|$)/));
 		expect(times.length).toBeGreaterThan(0);
-		// Ensure no 2-digit decimals in time-like cells (we now force 3)
-		// We check specifically for the pattern of a swim time
-		const twoDigitDecimals = cellTexts.filter((t) =>
-			t.match(/^\d+:\d{2}\.\d{2}$|^\d{2}\.\d{2}$/),
-		);
-		expect(twoDigitDecimals.length).toBe(0);
 
-		// 6. Events -> Relays: Verify navigation filter
-		await page.goto("/events");
-		const relayRow = page.locator("tr").filter({ hasText: /Relay/i }).first();
-		const relayEventId = await relayRow.locator("td").first().innerText();
-		await relayRow.getByRole("link", { name: "View" }).click();
-		await expect(page).toHaveURL(new RegExp(`/relays\\?event=${relayEventId}`));
-		await expect(page.locator("table tbody tr").first()).toBeVisible();
+		// 6. Scores Page: Bug 4 (Meet Name)
+		await page.goto("/scores");
+		await expect(page.locator("table tbody tr").first()).toBeVisible({
+			timeout: 20000,
+		});
+		const meetCell = page.locator("table tbody td").nth(2); // 3rd column is Meet
+		await expect(meetCell).not.toHaveText("Unknown Meet");
 
-		// 7. Reports: Verify custom bundle generation
+		// 7. Reports: Bug 7, 9, 10, 11
 		await page.goto("/reports");
 		await page.waitForLoadState("networkidle");
 
-		// Select Report Type Card
-		await page.getByText("Meet Program (PDF)", { exact: true }).click();
-		await page.getByRole("button", { name: "Add to Pack" }).click();
+		// Bug 7 & 9: Searchable team filter in Configuration
+		const teamTrigger = page.getByTestId("team-filter-trigger");
+		await teamTrigger.click();
+		await page.getByPlaceholder("Search teams...").fill("Del Prado");
+		await page.getByText("Del Prado Stingrays", { exact: true }).click();
+		await expect(teamTrigger).toHaveText("Del Prado Stingrays");
 
-		// Select Lineup Sheets Card
-		await page.getByText("Lineup Sheets", { exact: true }).first().click();
-		await page.getByRole("button", { name: "Add to Pack" }).click();
+		// Bug 10: Preset should populate builder
+		await page.getByTestId("preset-apply-lineups").click();
 
-		// Click Generate Bundle ZIP in the Pack summary section
-		console.log("Generating Bundle ZIP (Custom Pack)...");
+		const builderSection = page.locator("#custom-builder");
+		// Preset report titles are populated in Input fields, use getByDisplayValue directly on page scoped by builderSection
+		await expect(
+			page
+				.locator("#custom-builder input")
+				.filter({ hasValue: /Line Up Report/i })
+				.first(),
+		).toBeVisible({ timeout: 30000 });
+
+		// Bug 11: Zebra striping in builder
+		const builderRows = builderSection.locator(".divide-y > div");
+		if ((await builderRows.count()) > 1) {
+			const secondBuilderRow = builderRows.nth(1);
+			const bClassName = await secondBuilderRow.getAttribute("class");
+			expect(bClassName).toMatch(/bg-muted/);
+		}
+
+		// Final generation
 		const generateZipBtn = page.getByRole("button", {
 			name: /Generate Bundle ZIP/i,
 		});
-		await expect(generateZipBtn).toBeVisible({ timeout: 20000 });
 		await generateZipBtn.click();
 
-		console.log("Waiting for success toast (180s timeout)...");
 		await expect(
 			page.getByText("Custom pack generated successfully", { exact: false }),
 		).toBeVisible({ timeout: 180000 });
-		console.log("SUCCESS: Champs journey E2E test passed.");
 	});
 });

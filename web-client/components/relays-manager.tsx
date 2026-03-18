@@ -1,9 +1,11 @@
 "use client";
 
+import { Medal, Trophy } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Relay } from "@/lib/swim-meet-types";
+import { cn } from "@/lib/utils";
 
 // ToDo: fetch teams from API
 const teams = [
@@ -78,18 +80,39 @@ const columns: Column<Relay>[] = [
 		render: (value) => {
 			const place = value as number | null;
 			if (!place) return <span className="text-muted-foreground">—</span>;
-			const colors = {
-				1: "bg-sunshine text-foreground",
-				2: "bg-gray-200 text-gray-800",
-				3: "bg-lane-red/30 text-lane-red",
+			const medalStyles = {
+				1: {
+					bg: "bg-sunshine/20 text-sunshine-foreground border-sunshine/50",
+					icon: <Trophy className="h-3 w-3 text-sunshine" />,
+				},
+				2: {
+					bg: "bg-slate-200/50 text-slate-700 border-slate-300",
+					icon: <Medal className="h-3 w-3 text-slate-500" />,
+				},
+				3: {
+					bg: "bg-orange-200/30 text-orange-700 border-orange-300",
+					icon: <Medal className="h-3 w-3 text-orange-500" />,
+				},
 			};
+
+			const style = medalStyles[place as keyof typeof medalStyles];
+
+			if (style) {
+				return (
+					<div
+						className={cn(
+							"inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-bold shadow-sm",
+							style.bg,
+						)}
+					>
+						{style.icon}
+						{place}
+					</div>
+				);
+			}
+
 			return (
-				<span
-					className={`inline-flex w-6 h-6 items-center justify-center rounded-full text-xs font-bold ${
-						colors[place as keyof typeof colors] ||
-						"bg-muted text-muted-foreground"
-					}`}
-				>
+				<span className="inline-flex w-6 h-6 items-center justify-center rounded-full text-xs font-medium bg-muted text-muted-foreground">
 					{place}
 				</span>
 			);

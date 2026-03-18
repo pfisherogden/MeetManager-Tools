@@ -1,6 +1,7 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import type React from "react";
 import "./globals.css";
 import { AuthGuard } from "@/components/auth-guard";
@@ -43,6 +44,17 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body className={`font-sans antialiased`}>
+				<NextTopLoader
+					color="var(--primary)"
+					initialPosition={0.08}
+					crawlSpeed={200}
+					height={3}
+					crawl={true}
+					showSpinner={true}
+					easing="ease"
+					speed={200}
+					shadow="0 0 10px var(--primary),0 0 5px var(--primary)"
+				/>
 				<Providers>
 					<AuthGuard>
 						<SidebarProvider defaultOpen={true}>
