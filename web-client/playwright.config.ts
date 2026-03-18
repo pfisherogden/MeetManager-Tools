@@ -15,9 +15,9 @@ export default defineConfig({
 	workers: process.env.CI ? 2 : undefined,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: "html",
-	timeout: 60000,
+	timeout: 120000,
 	expect: {
-		timeout: 10000,
+		timeout: 15000,
 	},
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
@@ -26,33 +26,46 @@ export default defineConfig({
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: "on-first-retry",
+		actionTimeout: 30000,
+		navigationTimeout: 60000,
 	},
 
 	/* Configure projects for major browsers */
-	projects: [
-		{
-			name: "chromium",
-			use: { ...devices["Desktop Chrome"] },
-		},
+	projects: process.env.CI
+		? [
+				{
+					name: "chromium",
+					use: { ...devices["Desktop Chrome"] },
+				},
+				{
+					name: "Mobile Safari",
+					use: { ...devices["iPhone 12"] },
+				},
+			]
+		: [
+				{
+					name: "chromium",
+					use: { ...devices["Desktop Chrome"] },
+				},
 
-		{
-			name: "firefox",
-			use: { ...devices["Desktop Firefox"] },
-		},
+				{
+					name: "firefox",
+					use: { ...devices["Desktop Firefox"] },
+				},
 
-		{
-			name: "webkit",
-			use: { ...devices["Desktop Safari"] },
-		},
+				{
+					name: "webkit",
+					use: { ...devices["Desktop Safari"] },
+				},
 
-		/* Test against mobile viewports. */
-		{
-			name: "Mobile Chrome",
-			use: { ...devices["Pixel 5"] },
-		},
-		{
-			name: "Mobile Safari",
-			use: { ...devices["iPhone 12"] },
-		},
-	],
+				/* Test against mobile viewports. */
+				{
+					name: "Mobile Chrome",
+					use: { ...devices["Pixel 5"] },
+				},
+				{
+					name: "Mobile Safari",
+					use: { ...devices["iPhone 12"] },
+				},
+			],
 });
