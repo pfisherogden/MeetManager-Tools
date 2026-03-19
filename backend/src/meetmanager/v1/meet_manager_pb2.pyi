@@ -429,7 +429,7 @@ class Meet(_message.Message):
     def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., location: _Optional[str] = ..., start_date: _Optional[str] = ..., end_date: _Optional[str] = ..., status: _Optional[str] = ...) -> None: ...
 
 class Team(_message.Message):
-    __slots__ = ("id", "name", "code", "lsc", "city", "state", "athlete_count")
+    __slots__ = ("id", "name", "code", "lsc", "city", "state", "athlete_count", "color")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     CODE_FIELD_NUMBER: _ClassVar[int]
@@ -437,6 +437,7 @@ class Team(_message.Message):
     CITY_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     ATHLETE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    COLOR_FIELD_NUMBER: _ClassVar[int]
     id: int
     name: str
     code: str
@@ -444,7 +445,8 @@ class Team(_message.Message):
     city: str
     state: str
     athlete_count: int
-    def __init__(self, id: _Optional[int] = ..., name: _Optional[str] = ..., code: _Optional[str] = ..., lsc: _Optional[str] = ..., city: _Optional[str] = ..., state: _Optional[str] = ..., athlete_count: _Optional[int] = ...) -> None: ...
+    color: str
+    def __init__(self, id: _Optional[int] = ..., name: _Optional[str] = ..., code: _Optional[str] = ..., lsc: _Optional[str] = ..., city: _Optional[str] = ..., state: _Optional[str] = ..., athlete_count: _Optional[int] = ..., color: _Optional[str] = ...) -> None: ...
 
 class Athlete(_message.Message):
     __slots__ = ("id", "first_name", "last_name", "gender", "age", "team_id", "team_name", "school_year", "reg_no", "date_of_birth")

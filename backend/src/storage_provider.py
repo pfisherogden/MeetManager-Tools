@@ -92,7 +92,8 @@ class LocalStorageProvider(StorageProvider):
         # Use environment variables to avoid collisions
         host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
         port = os.getenv("FRONTEND_PORT", "3000")
-        return f"http://{host}:{port}/api/data?path={remote_path}"
+        token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+        return f"http://{host}:{port}/api/data?path={remote_path}&token={token}"
 
 
 class GCSStorageProvider(StorageProvider):

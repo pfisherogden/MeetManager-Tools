@@ -467,6 +467,8 @@ message Team {
   string state = 6;
   // athlete_count is the number of athletes on the team.
   int32 athlete_count = 7;
+  // color is the hex code assigned to the team.
+  string color = 8;
 }
 
 // Athlete represents a swimmer in the meet.

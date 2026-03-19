@@ -34,9 +34,16 @@ const mockEvents: SwimEvent[] = [
 	},
 ];
 
+const mockSessions = [
+	{ id: "1", name: "Session 1" },
+	{ id: "2", name: "Session 2" },
+];
+
 describe("EventsManager", () => {
 	it("renders events table with data", () => {
-		render(<EventsManager initialEvents={mockEvents} />);
+		render(
+			<EventsManager initialEvents={mockEvents} sessions={mockSessions} />,
+		);
 
 		expect(screen.getByText("Freestyle")).toBeDefined();
 		expect(screen.getByText("IM")).toBeDefined();
@@ -49,7 +56,9 @@ describe("EventsManager", () => {
 	it("filters events based on session search param", () => {
 		mockGet.mockReturnValue("1");
 
-		render(<EventsManager initialEvents={mockEvents} />);
+		render(
+			<EventsManager initialEvents={mockEvents} sessions={mockSessions} />,
+		);
 
 		expect(screen.getByText("Freestyle")).toBeDefined();
 		expect(screen.queryByText("IM")).toBeNull();
