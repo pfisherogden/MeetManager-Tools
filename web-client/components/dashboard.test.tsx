@@ -22,13 +22,13 @@ describe("Dashboard", () => {
 
 		expect(screen.getByText("Total Meets")).toBeDefined();
 		expect(screen.getByText("1")).toBeDefined();
-		
+
 		expect(screen.getByText("Teams")).toBeDefined();
 		expect(screen.getByText("5")).toBeDefined();
-		
+
 		expect(screen.getByText("Athletes")).toBeDefined();
 		expect(screen.getByText("120")).toBeDefined();
-		
+
 		expect(screen.getByText("Events")).toBeDefined();
 		expect(screen.getByText("45")).toBeDefined();
 	});

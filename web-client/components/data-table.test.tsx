@@ -1,6 +1,6 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { DataTable, type Column } from "./data-table";
+import { type Column, DataTable } from "./data-table";
 
 interface TestData {
 	id: string;
@@ -33,14 +33,14 @@ describe("DataTable", () => {
 		render(<DataTable data={mockData} columns={mockColumns} />);
 
 		const nameHeader = screen.getByText("Name");
-		
+
 		// Initial order: Alice, Bob, Charlie
 		let rows = screen.getAllByRole("row").slice(1); // skip header row
 		expect(rows[0].textContent).toContain("Alice");
 
 		// Click to sort (already asc by default usually or first click is asc)
 		fireEvent.click(nameHeader);
-		
+
 		// Click again for desc
 		fireEvent.click(nameHeader);
 		rows = screen.getAllByRole("row").slice(1);
@@ -60,7 +60,9 @@ describe("DataTable", () => {
 
 	it("handles row selection", () => {
 		const onDelete = vi.fn();
-		render(<DataTable data={mockData} columns={mockColumns} onDelete={onDelete} />);
+		render(
+			<DataTable data={mockData} columns={mockColumns} onDelete={onDelete} />,
+		);
 
 		const checkboxes = screen.getAllByRole("checkbox");
 		const firstRow = checkboxes[1];

@@ -30,7 +30,9 @@ const mockTeams = ["USA", "Other"];
 
 describe("AthletesManager", () => {
 	it("renders athletes table with data", () => {
-		render(<AthletesManager initialAthletes={mockAthletes} teams={mockTeams} />);
+		render(
+			<AthletesManager initialAthletes={mockAthletes} teams={mockTeams} />,
+		);
 
 		expect(screen.getByText("Michael")).toBeDefined();
 		expect(screen.getByText("Phelps")).toBeDefined();
@@ -40,7 +42,9 @@ describe("AthletesManager", () => {
 	});
 
 	it("renders gender labels correctly", () => {
-		render(<AthletesManager initialAthletes={mockAthletes} teams={mockTeams} />);
+		render(
+			<AthletesManager initialAthletes={mockAthletes} teams={mockTeams} />,
+		);
 
 		expect(screen.getByText("Male")).toBeDefined();
 		expect(screen.getByText("Female")).toBeDefined();

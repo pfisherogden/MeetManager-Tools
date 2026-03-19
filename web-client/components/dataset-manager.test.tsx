@@ -4,12 +4,14 @@ import { DatasetManager } from "./dataset-manager";
 
 // Mock server actions
 vi.mock("@/app/actions", () => ({
-	listDatasets: vi.fn(() => Promise.resolve({ 
-		datasets: [
-			{ filename: "meet1.mdb", isActive: true, lastModified: "1710720000" },
-			{ filename: "meet2.mdb", isActive: false, lastModified: "1710633600" }
-		] 
-	})),
+	listDatasets: vi.fn(() =>
+		Promise.resolve({
+			datasets: [
+				{ filename: "meet1.mdb", isActive: true, lastModified: "1710720000" },
+				{ filename: "meet2.mdb", isActive: false, lastModified: "1710633600" },
+			],
+		}),
+	),
 	setActiveDataset: vi.fn(),
 	uploadDataset: vi.fn(),
 	clearDataset: vi.fn(),

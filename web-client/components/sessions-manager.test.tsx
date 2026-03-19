@@ -28,7 +28,9 @@ const mockMeets = [{ id: "m1", name: "Summer Champs" }];
 
 describe("SessionsManager", () => {
 	it("renders sessions table with data", () => {
-		render(<SessionsManager initialSessions={mockSessions} meets={mockMeets} />);
+		render(
+			<SessionsManager initialSessions={mockSessions} meets={mockMeets} />,
+		);
 
 		expect(screen.getByText("Saturday Morning")).toBeDefined();
 		expect(screen.getByText("Sunday Afternoon")).toBeDefined();
