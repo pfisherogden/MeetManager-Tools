@@ -1,8 +1,8 @@
-import { getEvents } from "@/app/actions";
+import { getEvents, getSessions } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { EventsManager } from "@/components/events-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import type { SwimEvent } from "@/lib/swim-meet-types";
+import type { Session, SwimEvent } from "@/lib/swim-meet-types";
 import { formatAgeGroup } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -21,14 +21,19 @@ interface ServerEvent {
 
 export default async function EventsPage() {
 	let mappedEvents: SwimEvent[] = [];
+	let sessions: Session[] = [];
 
 	try {
-		const list = (await getEvents()) as unknown as { events: ServerEvent[] };
-		if (list?.events) {
-			mappedEvents = list.events.map((e) => ({
+		const [eventsList, sessionsList] = await Promise.all([
+			getEvents() as unknown as { events: ServerEvent[] },
+			getSessions() as unknown as { sessions: Session[] },
+		]);
+
+		if (eventsList?.events) {
+			mappedEvents = eventsList.events.map((e) => ({
 				id: e.id.toString(),
-				sessionId: e.session.toString(), // Needs robust mapping if sessions are entities
-				eventNumber: e.id, // Assuming ID is event number
+				sessionId: e.session.toString(),
+				eventNumber: e.id,
 				distance: e.distance,
 				stroke: e.stroke,
 				gender: e.gender,
@@ -36,8 +41,12 @@ export default async function EventsPage() {
 				entryCount: e.entryCount || 0,
 			}));
 		}
+
+		if (sessionsList?.sessions) {
+			sessions = sessionsList.sessions;
+		}
 	} catch (e) {
-		console.error("Failed to fetch events", e);
+		console.error("Failed to fetch events or sessions", e);
 	}
 
 	return (
@@ -54,7 +63,7 @@ export default async function EventsPage() {
 							Manage swim events and heats
 						</p>
 					</div>
-					<EventsManager initialEvents={mappedEvents} />
+					<EventsManager initialEvents={mappedEvents} sessions={sessions} />
 				</div>
 			</SidebarInset>
 		</>

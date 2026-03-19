@@ -150,6 +150,12 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		setCustomPack(customPack.filter((item) => item.id !== id));
 	};
 
+	const clearPack = () => {
+		if (customPack.length === 0) return;
+		setCustomPack([]);
+		toast.success("Cleared custom pack");
+	};
+
 	const updatePackItem = (id: string, updates: Partial<CustomPackItem>) => {
 		setCustomPack(
 			customPack.map((item) =>
@@ -165,7 +171,12 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		}
 		setIsBundling(true);
 		try {
-			const result = await generateReportBundle(customPack, "custom_pack.zip");
+			const timestamp = new Date()
+				.toISOString()
+				.replace(/[:.]/g, "-")
+				.slice(0, 19);
+			const suggestedName = `reports_${timestamp}_${customPack.length}_items.zip`;
+			const result = await generateReportBundle(customPack, suggestedName);
 			if (result.success && result.zipContent) {
 				const blob = new Blob([new Uint8Array(result.zipContent)], {
 					type: "application/zip",
@@ -173,7 +184,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement("a");
 				a.href = url;
-				a.download = result.filename || "custom_pack.zip";
+				a.download = result.filename || suggestedName;
 				document.body.appendChild(a);
 				a.click();
 				document.body.removeChild(a);
@@ -663,7 +674,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 			</div>
 
 			<Card id="custom-builder" className="shadow-lg border-primary/30">
-				<CardHeader className="bg-primary/5 border-b">
+				<CardHeader className="bg-primary/5 border-b rounded-t-xl">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							<Package className="h-6 w-6 text-primary" />
@@ -676,6 +687,18 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 							</div>
 						</div>
 						<div className="flex items-center gap-4">
+							{customPack.length > 0 && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={clearPack}
+									className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
+									data-testid="clear-pack-button"
+								>
+									<Trash2 className="h-4 w-4 mr-1" />
+									Clear All
+								</Button>
+							)}
 							<div className="text-right">
 								<p className="text-sm font-medium">
 									{customPack.length} Reports Selected

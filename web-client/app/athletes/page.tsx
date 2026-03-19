@@ -14,20 +14,31 @@ interface ServerAthlete {
 	teamName: string;
 	gender: string;
 	age: number;
+	dateOfBirth: string;
+}
+
+interface ServerTeam {
+	id: number;
+	name: string;
+	color: string;
 }
 
 export default async function AthletesPage() {
-	let mappedAthletes: UIAthlete[] = [];
+	let mappedAthletes: (UIAthlete & { teamColor?: string })[] = [];
 	let teamOptions: string[] = [];
 
 	try {
 		const [athleteList, teamList] = await Promise.all([
 			getAthletes() as unknown as { athletes: ServerAthlete[] },
-			getTeams() as unknown as { teams: { name: string }[] },
+			getTeams() as unknown as { teams: ServerTeam[] },
 		]);
 
+		const teamColorMap: Record<number, string> = {};
 		if (teamList?.teams) {
 			teamOptions = teamList.teams.map((t) => t.name).sort();
+			for (const t of teamList.teams) {
+				teamColorMap[t.id] = t.color;
+			}
 		}
 
 		if (athleteList?.athletes) {
@@ -37,9 +48,10 @@ export default async function AthletesPage() {
 				lastName: a.lastName,
 				teamId: a.teamId.toString(),
 				teamName: a.teamName,
-				dateOfBirth: "2010-01-01", // Placeholder as DoB is not in current proto
+				dateOfBirth: a.dateOfBirth,
 				gender: a.gender as "M" | "F",
 				age: a.age,
+				teamColor: teamColorMap[a.teamId],
 			}));
 		}
 	} catch (e) {

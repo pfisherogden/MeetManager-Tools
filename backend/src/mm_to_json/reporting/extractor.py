@@ -381,7 +381,7 @@ class ReportDataExtractor:
                 for e in entries:
                     if not e:
                         continue
-                    if e.get("isRelay"):
+                    if e.get("isRelay") or target_g == "X":
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)
@@ -504,13 +504,16 @@ class ReportDataExtractor:
                 for e in entries:
                     if not e:
                         continue
-                    ath_sex = self._get_athlete_gender(e)
-                    if (
-                        self._normalize_gender(ath_sex) == target_g
-                        or self._normalize_gender(ath_sex) == "X"
-                        or ath_sex == "Unknown"
-                    ):
+                    if target_g == "X":
                         filtered.append(e)
+                    else:
+                        ath_sex = self._get_athlete_gender(e)
+                        if (
+                            self._normalize_gender(ath_sex) == target_g
+                            or self._normalize_gender(ath_sex) == "X"
+                            or ath_sex == "Unknown"
+                        ):
+                            filtered.append(e)
                 entries = filtered
             if not entries:
                 continue
@@ -602,7 +605,7 @@ class ReportDataExtractor:
                 for e in entries:
                     if not e:
                         continue
-                    if e.get("isRelay"):
+                    if e.get("isRelay") or target_g == "X":
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)
@@ -710,7 +713,7 @@ class ReportDataExtractor:
                 for e in entries:
                     if not e:
                         continue
-                    if e.get("isRelay"):
+                    if e.get("isRelay") or target_g == "X":
                         filtered.append(e)
                     else:
                         ath_sex = self._get_athlete_gender(e)

@@ -12,12 +12,18 @@ const columns: Column<Team>[] = [
 		editable: true,
 		width: "w-52",
 		render: (value, row) => (
-			<Link
-				href={`/teams/${row.id}`}
-				className="hover:underline text-primary font-medium"
-			>
-				{value as string}
-			</Link>
+			<div className="flex items-center gap-2">
+				<span
+					className="w-2.5 h-2.5 rounded-full shrink-0"
+					style={{ backgroundColor: row.color }}
+				/>
+				<Link
+					href={`/teams/${row.id}`}
+					className="hover:underline text-primary font-medium"
+				>
+					{value as string}
+				</Link>
+			</div>
 		),
 	},
 	{ key: "abbreviation", label: "Abbr", editable: true, width: "w-20" },

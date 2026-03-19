@@ -229,6 +229,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             meet_count=len(meets), team_count=len(teams), athlete_count=len(athletes), event_count=len(events)
         )
 
+    def _get_team_color(self, team_id: int) -> str:
+        """Assign a stable, pleasing color to a team based on its ID."""
+        palette = [
+            "#3b82f6",  # blue-500
+            "#ef4444",  # red-500
+            "#10b981",  # emerald-500
+            "#f59e0b",  # amber-500
+            "#8b5cf6",  # violet-500
+            "#ec4899",  # pink-500
+            "#06b6d4",  # cyan-500
+            "#f97316",  # orange-500
+            "#84cc16",  # lime-500
+            "#6366f1",  # indigo-500
+            "#a855f7",  # purple-500
+            "#14b8a6",  # teal-500
+        ]
+        return palette[team_id % len(palette)]
+
     def GetMeets(self, request, context):
         request = request or pb2.GetMeetsRequest()
         cache, _ = self._load_user_data(context)
@@ -280,6 +298,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     city=str(item.get("team_city", "") or ""),
                     state=str(item.get("team_statenew", "") or ""),
                     athlete_count=ath_counts.get(t_id, 0),
+                    color=self._get_team_color(t_id),
                 )
             )
         return pb2.GetTeamsResponse(teams=teams)
@@ -307,6 +326,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         city=str(item.get("team_city", "") or ""),
                         state=str(item.get("team_statenew", "") or ""),
                         athlete_count=athlete_counts.get(team_id, 0),
+                        color=self._get_team_color(team_id),
                     )
                 )
 
@@ -1245,7 +1265,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         # Let's re-raise for now to ensure visibility.
                         raise re
 
-            bundle_name = request.bundle_name or f"meet_bundle_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+            num_reports = len(request.reports)
+            bundle_name = (
+                request.bundle_name
+                or f"meet_bundle_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{num_reports}_items.zip"
+            )
             if not bundle_name.endswith(".zip"):
                 bundle_name += ".zip"
 
@@ -1415,7 +1439,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
             sync_url = f"{frontend_base}/api/sync-dqs"
 
-            base_url = "https://pfisherogden.github.io/mmtools/judge"
+            base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
             judge_app_url = f"{base_url}?program_url={program_url}&sync_url={sync_url}"
 
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)

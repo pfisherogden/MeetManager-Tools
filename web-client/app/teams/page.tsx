@@ -19,7 +19,7 @@ export default async function TeamsPage() {
 				city: t.city,
 				state: t.state,
 				athleteCount: t.athleteCount,
-				color: "#0077B6", // Default color
+				color: t.color || "#3b82f6",
 			}));
 		}
 	} catch (e) {
