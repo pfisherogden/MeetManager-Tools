@@ -224,7 +224,10 @@ export function DatasetManager() {
 						{loading ? (
 							<TableRow>
 								<TableCell colSpan={4} className="text-center py-8">
-									<Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+									<Loader2
+										role="status"
+										className="h-6 w-6 animate-spin mx-auto text-muted-foreground"
+									/>
 								</TableCell>
 							</TableRow>
 						) : datasets.length === 0 ? (

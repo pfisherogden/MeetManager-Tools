@@ -8,6 +8,11 @@ import requests
 from meetmanager.v1 import meet_manager_pb2 as pb2
 from meetmanager.v1 import meet_manager_pb2_grpc as pb2_grpc
 
+# Skip all tests in this module if not in CI
+pytestmark = pytest.mark.skipif(
+    not os.environ.get("CI"), reason="Integration tests require live services; skipping locally."
+)
+
 # Configuration for tests
 # When running inside Docker, backend is '127.0.0.1:8080' (internal)
 # When running from host, backend is 'localhost:8081' (or whatever BACKEND_PORT is set to)
