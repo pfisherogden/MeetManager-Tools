@@ -37,3 +37,10 @@ description: Best practices for GitHub flows in MeetManager-Tools
 ## Issue Updates
 - **Add Comments**: When updating a GitHub issue with progress or new information, always add a **new comment**.
 - **Do Not Edit**: Do not rewrite or edit previous status updates unless correcting a factual error (e.g., a typo). This ensures the history of the work is preserved.
+
+## Context Optimization (Mandatory)
+To maintain context efficiency and prevent Out-Of-Memory (OOM) crashes in large projects:
+1. **Surgical Reads**: NEVER read large source files (e.g., >500 lines) in their entirety. ALWAYS use `start_line` and `end_line` parameters with `read_file`.
+2. **Efficient Discovery**: Prioritize `grep_search` with `context` to identify specific logic points before reading files.
+3. **Precise Edits**: Provide significant context in `old_string` when using `replace` to ensure unambiguous targeting.
+4. **Lean History**: Keep conversation history high-signal. Avoid conversational filler and repetitive tool-use narration.

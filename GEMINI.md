@@ -35,6 +35,15 @@
 - **Problem**: Connections from Web Client to Cloud Run Backend failed locally but needed SSL in the cloud.
 - **Solution**: Use `ChannelCredentials.createSsl()` if the host ends in `.run.app`. Strip the protocol (`https://`) before passing the host string to `nice-grpc`.
 
+### 9. Context Efficiency & OOM Prevention
+- **Rule**: NEVER read large files (e.g., `server.py`, `extractor.py`) in their entirety. ALWAYS use `start_line` and `end_line` for surgical, targeted reads.
+- **Rule**: Prioritize `grep_search` for discovery over bulk file reads.
+- **Rule**: Keep session history lean by providing concise, high-signal summaries of progress and avoiding conversational filler.
+
+### 10. Security & Secret Management
+- **Rule**: Use `DATA_ACCESS_TOKEN` for authorized program data access by the Judge SPA.
+- **Setup**: In production (GCP), add `DATA_ACCESS_TOKEN` to Secrets Manager and expose it as an environment variable to both frontend and backend services. For local development, it defaults to a fallback value.
+
 ## Verification Workflow
 1.  **Local Dev**: `npm start --web` (Fast feedback)
 2.  **Docker Simulation**: `just up-mobile` (Verifies production build artifact)
