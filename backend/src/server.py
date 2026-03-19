@@ -1113,13 +1113,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             print(f"Error generating report: {e}")
             return pb2.GenerateReportResponse(success=False, message=str(e))
 
-    def _generate_single_report_task(self, idx, report_req, extractor, rtype_map):
+    def _generate_single_report_task(self, idx, report_req, cache_data, rtype_map):
         rtype_val = report_req.type
         rtype = rtype_map.get(rtype_val, "psych")
         title = report_req.title
         team_filter = report_req.team_filter
         gender_filter = report_req.gender_filter
         age_group_filter = report_req.age_group_filter
+
+        # Fresh converter/extractor for this thread to ensure thread-safety
+        converter = MmToJsonConverter(table_data=cache_data)
+        extractor = ReportDataExtractor(converter)
+        _ = extractor._get_full_data()
 
         # New variation fields
         columns_on_page = 2
@@ -1245,9 +1250,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             cache, _ = self._load_user_data(context)
-            converter = MmToJsonConverter(table_data=cache)
-            extractor = ReportDataExtractor(converter)
-            _ = extractor._get_full_data()
 
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
@@ -1260,13 +1262,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
             }
 
-            # Generate reports in parallel
+            # Generate reports in parallel with ISOLATED extractors
             tasks = []
             with ThreadPoolExecutor(max_workers=4) as executor:
                 for idx, report_req in enumerate(request.reports):
-                    tasks.append(
-                        executor.submit(self._generate_single_report_task, idx, report_req, extractor, rtype_map)
-                    )
+                    tasks.append(executor.submit(self._generate_single_report_task, idx, report_req, cache, rtype_map))
 
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
