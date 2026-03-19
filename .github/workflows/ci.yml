@@ -29,7 +29,7 @@ jobs:
   backend-and-tools:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
@@ -101,7 +101,7 @@ jobs:
       run:
         working-directory: web-client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
@@ -135,7 +135,7 @@ jobs:
       run:
         working-directory: mobile-judge-app
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
@@ -168,7 +168,7 @@ jobs:
         shardIndex: [1, 2, 3, 4]
         shardTotal: [4]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
