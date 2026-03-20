@@ -17,14 +17,16 @@ test.describe("Champs Dataset Journey", () => {
 		console.log(`Using test file path: ${testFilePath}`);
 
 		// Wait for the table to load
-		await expect(page.locator("table tbody tr").first()).toBeVisible({ timeout: 30000 });
+		await expect(page.locator("table tbody tr").first()).toBeVisible({
+			timeout: 30000,
+		});
 
 		const existingRow = page.locator("tr").filter({
 			has: page.locator("td", {
 				hasText: new RegExp(`^${testFileName}$`),
 			}),
 		});
-		
+
 		if ((await existingRow.count()) === 0) {
 			const fileChooserPromise = page.waitForEvent("filechooser");
 			await page.getByRole("button", { name: "Upload Dataset" }).click();
@@ -122,7 +124,7 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(otherPresetBtn).not.toHaveAttribute("disabled");
 		await expect(otherPresetBtn.locator(".animate-spin")).not.toBeVisible();
 
-		const builderSection = page.locator("#custom-builder");
+		const _builderSection = page.locator("#custom-builder");
 		await expect(
 			page
 				.locator("#custom-builder input")
