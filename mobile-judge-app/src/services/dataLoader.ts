@@ -85,11 +85,11 @@ export const loadDataFromUrl = async () => {
 				if (!response.ok) throw new Error("Failed to fetch DQ data");
 				const data = await response.json();
 
-				// Structure validation: must be an array
-				if (Array.isArray(data)) {
+				// Structure validation: must be an object (map of category to DqCode[])
+				if (data && typeof data === "object" && !Array.isArray(data)) {
 					dqData = data;
 				} else {
-					console.error("Invalid DQ data structure: expected array");
+					console.error("Invalid DQ data structure: expected object");
 				}
 			} catch (e) {
 				console.error("Error loading DQ data:", e);

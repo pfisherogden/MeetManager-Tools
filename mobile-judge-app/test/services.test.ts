@@ -83,7 +83,7 @@ describe("Data Loader Service", () => {
 
 		(global.fetch as jest.Mock).mockResolvedValue({
 			ok: true,
-			json: () => Promise.resolve({ not_an_array: true }),
+			json: () => Promise.resolve(["array_not_object"]),
 		});
 
 		const result = await loadDataFromUrl();
