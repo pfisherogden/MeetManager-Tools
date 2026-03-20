@@ -3,27 +3,40 @@ import { expect, test } from "@playwright/test";
 
 test.describe("Reports Generation Journey", () => {
 	test.beforeEach(async ({ page }) => {
-		// 1. Go to Admin and upload the champs MDB
-		await page.goto("/admin");
+		// 1. Go to Meets and upload the champs MDB
+		await page.goto("/meets");
 		await expect(
 			page.getByRole("heading", { name: "Dataset Management" }),
-		).toBeVisible();
+		).toBeVisible({ timeout: 30000 });
 
-		const fileChooserPromise = page.waitForEvent("filechooser");
-		await page.getByRole("button", { name: "Upload Dataset" }).click();
-		const fileChooser = await fileChooserPromise;
-
-		// Path relative to the web-client directory where playwright runs
-		const mdbPath = path.join(
-			__dirname,
-			"../../../backend/data/sample_data_champs_2025-aftermeet.mdb",
-		);
-		await fileChooser.setFiles(mdbPath);
-
-		// Wait for upload success toast
-		await expect(page.getByText("Dataset uploaded successfully")).toBeVisible({
-			timeout: 60000,
+		// Check if champs dataset is already active
+		const champsRow = page.locator("tr", {
+			hasText: "sample_data_champs_2025-aftermeet.mdb",
 		});
+		const isActive = await champsRow.locator("text=Active").isVisible();
+
+		if (!isActive) {
+			const fileChooserPromise = page.waitForEvent("filechooser");
+			await page.getByRole("button", { name: "Upload Dataset" }).click();
+			const fileChooser = await fileChooserPromise;
+
+			// Path relative to the web-client directory where playwright runs
+			const mdbPath = path.join(
+				__dirname,
+				"../../../backend/data/sample_data_champs_2025-aftermeet.mdb",
+			);
+			await fileChooser.setFiles(mdbPath);
+
+			// Wait for upload success toast or the active badge
+			await Promise.race([
+				expect(page.getByText("Dataset uploaded successfully")).toBeVisible({
+					timeout: 60000,
+				}),
+				expect(champsRow.locator("text=Active")).toBeVisible({
+					timeout: 60000,
+				}),
+			]);
+		}
 
 		// 2. Go to Reports
 		await page.goto("/reports");
