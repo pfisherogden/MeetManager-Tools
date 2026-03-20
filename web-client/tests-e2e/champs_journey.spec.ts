@@ -8,7 +8,7 @@ test.describe("Champs Dataset Journey", () => {
 		test.setTimeout(240000);
 
 		// 1. Admin: Upload and Set Active
-		await page.goto("/admin");
+		await page.goto("/admin", { waitUntil: "networkidle" });
 		const testFileName = "anonymized_champs.json";
 		const testFilePath = process.env.CI
 			? path.join(process.cwd(), "..", "tests", "fixtures", testFileName)
@@ -29,14 +29,16 @@ test.describe("Champs Dataset Journey", () => {
 
 		if ((await existingRow.count()) === 0) {
 			const fileChooserPromise = page.waitForEvent("filechooser");
-			await page.getByRole("button", { name: "Upload Dataset" }).click();
+			// Use getByText for more resilience
+			const uploadBtn = page.getByText("Upload Dataset");
+			await expect(uploadBtn).toBeVisible({ timeout: 20000 });
+			await uploadBtn.click();
 			const fileChooser = await fileChooserPromise;
 			await fileChooser.setFiles(testFilePath);
-			await expect(page.getByText("Dataset uploaded successfully")).toBeVisible(
+			await expect(page.getByText(/Dataset uploaded successfully/i)).toBeVisible(
 				{ timeout: 60000 },
 			);
 		}
-
 		// Set as active
 		const datasetRow = page.locator("tr").filter({
 			has: page.locator("td", {
