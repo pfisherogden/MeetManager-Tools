@@ -61,12 +61,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _check_auth(self, context):
         """Helper to ensure the request is authenticated."""
         if context is not None:
-            # Allow custom user ID via metadata for E2E test isolation
-            metadata = dict(context.invocation_metadata())
-            if "x-user-id" in metadata:
-                uid = metadata["x-user-id"]
-                print(f"DEBUG: Auth using x-user-id metadata: {uid}")
-                return uid
+            try:
+                # Allow custom user ID via metadata for E2E test isolation
+                metadata = dict(context.invocation_metadata())
+                if "x-user-id" in metadata:
+                    uid = metadata["x-user-id"]
+                    print(f"DEBUG: Auth using x-user-id metadata: {uid}")
+                    return uid
+            except (AttributeError, TypeError):
+                # Context might be a mock or None-like without invocation_metadata
+                pass
 
         # Allow disabling auth for local dev/testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true":
@@ -248,6 +252,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Temporary buffer to hold file content
         file_content = io.BytesIO()
+        total_bytes = 0
 
         try:
             for request in request_iterator:
@@ -260,7 +265,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             filename += ".mdb"
 
                 if request.HasField("chunk"):
+                    chunk_len = len(request.chunk)
                     file_content.write(request.chunk)
+                    total_bytes += chunk_len
+
+            print(f"DEBUG: UploadDataset received total {total_bytes} bytes for {filename}")
 
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
@@ -273,6 +282,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             suffix = os.path.splitext(filename)[1]
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                file_content.seek(0)
                 tmp.write(file_content.getvalue())
                 tmp_path = tmp.name
                 tmp.flush()

@@ -91,8 +91,12 @@ class MmToJsonConverter:
                 df = pd.DataFrame(found_data)
                 if not df.empty:
                     df.columns = df.columns.astype(str).str.lower()
-                    # Remove duplicate columns after lowercasing
-                    df = df.loc[:, ~df.columns.duplicated()]
+
+                    # Remove duplicate columns, keeping the LAST one.
+                    # In our anonymized JSON, the anonymized fields (team_name, first_name)
+                    # often appear AFTER the original ones (Team_name, First_name)
+                    # or are more reliably lowercase.
+                    df = df.loc[:, ~df.columns.duplicated(keep="last")]
 
                     # Standardize IDs to int if they look like IDs
                     for col in ["event_ptr", "team_no", "ath_no", "sess_ptr", "mtevent", "mtev", "athlete"]:
