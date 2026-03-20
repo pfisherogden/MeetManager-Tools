@@ -518,12 +518,30 @@ export default function App() {
 									</Text>
 								</View>
 								<View style={styles.swimmerInfo}>
-									<TouchableOpacity onPress={() => handleDQ(item)}>
+									<TouchableOpacity
+										onPress={() => handleDQ(item)}
+										style={{
+											flexDirection: "row",
+											alignItems: "center",
+											justifyContent: "space-between",
+										}}
+									>
 										<Text
 											style={[styles.swimmerName, item.empty && styles.emptyText]}
 										>
 											{item.isRelay ? `Team ${item.team}` : item.name}
 										</Text>
+										{item.isRelay && item.dq_code ? (
+											<Text
+												style={[
+													styles.dqTrigger,
+													styles.dqSetText,
+													{ marginRight: 10 },
+												]}
+											>
+												{item.dq_code}
+											</Text>
+										) : null}
 										{!item.isRelay && (
 											<Text style={styles.teamName}>{item.team}</Text>
 										)}

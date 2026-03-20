@@ -1,74 +1,66 @@
+import json
 import os
 import sys
-import json
+import tempfile
+
+# Add backend/src to path
+repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(repo_root, 'backend', 'src'))
+
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
-from mm_to_json.reporting.weasy_renderer import WeasyRenderer
-from bs4 import BeautifulSoup
+from mm_to_json.reporting.renderer import PDFRenderer
+from mm_to_json.reporting.report_definitions import MEET_PROGRAM_CONFIG
 
-def test_real_report():
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    fixture_path = os.path.join(base_dir, "tests/fixtures/anonymized_meets/sample_data_champs_2025-aftermeet.json")
-    
-    if not os.path.exists(fixture_path):
-        print(f"Fixture not found at {fixture_path}")
-        return
-
-    print(f"Loading Fixture: {fixture_path}")
+def test_report_from_fixture():
+    fixture_path = os.path.join(repo_root, "tests/fixtures/anonymized_champs.json")
     with open(fixture_path, 'r') as f:
-        cache_raw = json.load(f)
-    
-    # Mirror server.py logic
-    cache_data = cache_raw.get("data", cache_raw)
-    cache = {k.lower(): v for k, v in cache_data.items()}
+        payload = json.load(f)
+        table_data = payload.get("data", payload)
 
-    converter = MmToJsonConverter(table_data=cache)
+    print(f"Loading data from {fixture_path}...")
+    converter = MmToJsonConverter(table_data=table_data)
     extractor = ReportDataExtractor(converter)
     
-    print("Extracting meet program data...")
-    # Test with default settings (Mixed gender, all teams)
-    data = extractor.extract_meet_program_data()
+    print("Extracting Meet Program data...")
+    program_data = extractor.extract_meet_program_data()
+    groups = program_data.get("groups", [])
+    print(f"Extracted {len(groups)} groups.")
     
-    print(f"Extraction complete. Groups found: {len(data.get('groups', []))}")
-    
-    if len(data.get('groups', [])) == 0:
-        print("❌ FAILURE: Groups list is empty!")
-        return
+    if not groups:
+        print("ERROR: No groups extracted!")
+        return False
 
-    # Verify first group entries
-    first_group = data['groups'][0]
-    total_entries = 0
-    for heat in first_group.get('heats', []):
-        total_entries += len(heat.get('sub_items', []))
+    # Check for items in the first group
+    first_group = groups[0]
+    items = first_group.get("items", [])
+    print(f"Group 1 '{first_group.get('header')}' has {len(items)} items (heats).")
     
-    print(f"First group '{first_group['header']}' has {total_entries} entries.")
-    
-    if total_entries == 0:
-        print("❌ FAILURE: First group has no entries!")
-        return
+    if not items:
+        print("ERROR: First group has no items!")
+        return False
 
-    # Render to HTML
-    print("Rendering to HTML...")
-    output_pdf = "test_output.pdf"
-    renderer = WeasyRenderer(output_pdf)
-    html = renderer.render_to_html(data)
+    output_pdf = os.path.join(repo_root, "backend/data/example_reports/test_anonymized_program.pdf")
+    os.makedirs(os.path.dirname(output_pdf), exist_ok=True)
     
-    soup = BeautifulSoup(html, "html.parser")
-    entry_rows = soup.find_all("tr", class_="entry-row")
-    print(f"HTML rendering complete. Found {len(entry_rows)} entry rows in HTML.")
+    print(f"Rendering PDF to {output_pdf}...")
+    renderer = PDFRenderer(output_pdf, MEET_PROGRAM_CONFIG)
     
-    if len(entry_rows) == 0:
-        print("❌ FAILURE: No entry rows found in rendered HTML!")
-        # Print a snippet of HTML for debugging
-        content_div = soup.find("div", class_="content-container")
-        print("\nContent Container snippet:")
-        print(str(content_div)[:500])
-        return
+    # Internal verification of built elements
+    elements = renderer._build_elements(program_data, 500)
+    tables = [e for e in elements if hasattr(e, '__class__') and e.__class__.__name__ == 'Table']
+    print(f"Internal Verification: Built {len(elements)} elements, including {len(tables)} data tables.")
+    
+    if len(tables) < 10: # We expect many tables for a full meet
+        print(f"ERROR: Too few tables ({len(tables)}). Report likely missing body data.")
+        return False
 
-    print("✅ SUCCESS: Report has data.")
+    renderer.render(program_data)
+    print(f"SUCCESS: Report generated and verified. Size: {os.path.getsize(output_pdf) / 1024:.1f} KB")
+    return True
 
 if __name__ == "__main__":
-    # Ensure we are in backend/src context
-    os.chdir(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend/src"))
-    sys.path.append(os.getcwd())
-    test_real_report()
+    if test_report_from_fixture():
+        sys.exit(0)
+    else:
+        sys.exit(1)

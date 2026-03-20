@@ -70,27 +70,13 @@ class JudgeAppExtractor:
                     }
                     judge_heats.append(judge_heat)
 
-                    for entry in entries:
-                        current_swimmer_id = swimmer_id_counter
-                        swimmer_id_counter += 1
-
-                        members = []
-                        if is_relay:
-                            # Try to get individual members
-                            if "relayAthletes" in entry:
-                                members = [
-                                    f"{a.get('first', '')} {a.get('last', '')}".strip() for a in entry["relayAthletes"]
-                                ]
-                            elif "name" in entry and entry.get("name"):
-                                # Fallback to split string
-                                members = [n.strip() for n in entry["name"].split(",")]
-
-                        # Pad members to 4 for relays if needed
-                        if is_relay and len(members) < 4:
-                            members.extend([""] * (4 - len(members)))
+                        # Use stable ID from MDB if available (athleteId for individual, relay_no for relays)
+                        stable_id = entry.get("athleteId") or swimmer_id_counter
+                        if not entry.get("athleteId"):
+                            swimmer_id_counter += 1
 
                         judge_swimmer = {
-                            "id": current_swimmer_id,
+                            "id": stable_id,
                             "lane": entry.get("lane", 0),
                             "name": entry.get("name", ""),
                             "team": entry.get("team", ""),

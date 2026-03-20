@@ -741,6 +741,7 @@ class MmToJsonConverter:
                             "finalTime": entry_info["time"],
                             "place": entry_info["place"],
                             "isRelay": True,
+                            "athleteId": self._safe_int(row.get("relay_no")),
                             "relayLtr": relay_ltr,
                             "relaySwimmers": swimmers_list,
                             "relayAthletes": relay_athletes,  # Full objects for extractor

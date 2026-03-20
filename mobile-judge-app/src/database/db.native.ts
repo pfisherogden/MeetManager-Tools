@@ -255,8 +255,19 @@ export const saveDQ = (
 		});
 		return { changes: 1 };
 	}
-	return getDb().runSync(
-		"INSERT OR REPLACE INTO dqs (event_id, swimmer_id, dq_code, leg, notes, sync_status) VALUES (?, ?, ?, ?, ?, ?)",
+	
+	const db = getDb();
+	// Remove existing DQ first to handle leg=NULL unique constraint issues in SQLite
+	db.runSync(
+		"DELETE FROM dqs WHERE event_id = ? AND swimmer_id = ? AND (leg = ? OR (leg IS NULL AND ? IS NULL))",
+		eventId,
+		sid,
+		leg || null,
+		leg || null,
+	);
+
+	return db.runSync(
+		"INSERT INTO dqs (event_id, swimmer_id, dq_code, leg, notes, sync_status) VALUES (?, ?, ?, ?, ?, ?)",
 		eventId,
 		sid,
 		dqCode,
