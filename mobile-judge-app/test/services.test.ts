@@ -44,6 +44,53 @@ describe("Data Loader Service", () => {
 		expect(result.loaded).toBe(true);
 		expect(result.syncUrl).toBe("http://example.com/sync");
 	});
+
+	it("blocks untrusted URLs", async () => {
+		Platform.OS = "ios";
+		(Linking.getInitialURL as jest.Mock).mockResolvedValue(
+			"meetmanager://app?program_url=http://malicious.com/program.json",
+		);
+
+		const result = await loadDataFromUrl();
+
+		expect(global.fetch).not.toHaveBeenCalled();
+		expect(result.loaded).toBe(false);
+	});
+
+	it("validates program data structure", async () => {
+		Platform.OS = "ios";
+		(Linking.getInitialURL as jest.Mock).mockResolvedValue(
+			"meetmanager://app?program_url=http://example.com/program.json",
+		);
+
+		(global.fetch as jest.Mock).mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ wrong_key: [] }),
+		});
+
+		const result = await loadDataFromUrl();
+
+		expect(global.fetch).toHaveBeenCalled();
+		expect(db.loadFromJSON).not.toHaveBeenCalled();
+		expect(result.loaded).toBe(false);
+	});
+
+	it("validates DQ data structure", async () => {
+		Platform.OS = "ios";
+		(Linking.getInitialURL as jest.Mock).mockResolvedValue(
+			"meetmanager://app?dq_url=http://example.com/dqs.json",
+		);
+
+		(global.fetch as jest.Mock).mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ not_an_array: true }),
+		});
+
+		const result = await loadDataFromUrl();
+
+		expect(global.fetch).toHaveBeenCalled();
+		expect(result.dqData).toBeNull();
+	});
 });
 
 describe("Sync Service", () => {

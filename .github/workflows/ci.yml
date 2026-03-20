@@ -203,6 +203,15 @@ jobs:
             echo "Waiting... ($i/30)"
             sleep 5
           done
+          echo "Waiting for judge-app to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8080 > /dev/null; then
+              echo "Judge App is ready!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 5
+          done
 
       - name: Set up Node.js for Playwright
         uses: actions/setup-node@v4
@@ -258,6 +267,7 @@ jobs:
         run: just test-e2e-sharded ${{ matrix.shardIndex }} ${{ matrix.shardTotal }}
         env:
           FRONTEND_URL: http://localhost:3000
+          MOBILE_APP_URL: http://localhost:8080
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
