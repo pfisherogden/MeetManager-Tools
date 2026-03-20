@@ -5,7 +5,7 @@ test.describe("Reports Generation Journey", () => {
 	test.beforeEach(async ({ page }) => {
 		// 1. Go to Meets and upload the champs MDB
 		await page.goto("/");
-		await page.getByRole("link", { name: "Meets", exact: true }).click();
+		await page.locator("nav").getByRole("link", { name: "Meets", exact: true }).click();
 		await expect(
 			page.getByRole("heading", { name: "Dataset Management" }),
 		).toBeVisible({ timeout: 30000 });
@@ -40,7 +40,7 @@ test.describe("Reports Generation Journey", () => {
 		}
 
 		// 2. Go to Reports
-		await page.getByRole("link", { name: "Reports" }).click();
+		await page.locator("nav").getByRole("link", { name: "Reports", exact: true }).click();
 		await expect(
 			page.getByRole("heading", { name: "Reports", exact: true }),
 		).toBeVisible();
