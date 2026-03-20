@@ -124,6 +124,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if self.storage.exists(SOURCE_FILE):
                 print(f"DEBUG: Falling back to global {SOURCE_FILE}")
                 user_path = SOURCE_FILE
+                filename = SOURCE_FILE
             else:
                 return {}, config
         else:
