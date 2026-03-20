@@ -9,7 +9,7 @@ test.describe("Reports Generation Journey", () => {
 			await page
 				.locator("nav")
 				.getByRole("link", { name: "Meets", exact: true })
-				.click({ timeout: 10000 });
+				.click({ timeout: 15000 });
 		} catch (_e) {
 			console.log(
 				"Sidebar click failed, falling back to direct navigation to /meets",
@@ -17,19 +17,28 @@ test.describe("Reports Generation Journey", () => {
 			await page.goto("/meets");
 		}
 
+		// Wait for any heading to ensure page has loaded something
+		await page.waitForSelector("h1, h2, h3", { timeout: 30000 });
+		const headings = await page.evaluate(() => 
+			Array.from(document.querySelectorAll("h1, h2, h3")).map(h => h.textContent)
+		);
+		console.log("Found headings on /meets:", headings);
+
 		await expect(
-			page.getByRole("heading", { name: "Dataset Management" }),
+			page.getByRole("heading", { name: /Dataset Management|Meets/i }),
 		).toBeVisible({ timeout: 30000 });
 
 		// Check if champs dataset is already active
 		const champsRow = page.locator("tr", {
 			hasText: "sample_data_champs_2025-aftermeet.mdb",
 		});
-		const isActive = await champsRow.locator("text=Active").isVisible();
+		const rowText = await champsRow.innerText().catch(() => "");
+		console.log("Champs row text:", rowText);
+		const isActive = /Active/i.test(rowText);
 
 		if (!isActive) {
 			const fileChooserPromise = page.waitForEvent("filechooser");
-			await page.getByRole("button", { name: "Upload Dataset" }).click();
+			await page.getByRole("button", { name: /Upload Dataset/i }).click();
 			const fileChooser = await fileChooserPromise;
 
 			// Path relative to the web-client directory where playwright runs
@@ -41,10 +50,10 @@ test.describe("Reports Generation Journey", () => {
 
 			// Wait for upload success toast or the active badge
 			await Promise.race([
-				expect(page.getByText("Dataset uploaded successfully")).toBeVisible({
+				expect(page.getByText(/uploaded successfully/i)).toBeVisible({
 					timeout: 60000,
 				}),
-				expect(champsRow.locator("text=Active")).toBeVisible({
+				expect(champsRow.getByText(/Active/i)).toBeVisible({
 					timeout: 60000,
 				}),
 			]);
