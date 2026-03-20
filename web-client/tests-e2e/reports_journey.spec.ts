@@ -32,13 +32,15 @@ test.describe("Reports Generation Journey", () => {
 		await page.waitForTimeout(10000);
 		const iframe = page.frameLocator('iframe[title="Meet Program Preview"]');
 
-		// The HTML report should contain some content
+		// The HTML report should contain "Event" and "Heat" markers
+		// Use a more robust check by looking at the full text content
 		const bodyText = await iframe.locator("body").innerText();
 		console.log("HTML Report Preview Length:", bodyText.length);
 
-		// Basic verification: Preview should render at least the header/branding
-		expect(bodyText.length).toBeGreaterThan(50);
-		expect(bodyText.toLowerCase()).toContain("mm-tools");
+		// Verified fix: Report should have substantial content
+		expect(bodyText.length).toBeGreaterThan(500);
+		expect(bodyText.toLowerCase()).toContain("event");
+		expect(bodyText.toLowerCase()).toContain("heat");
 	});
 
 	test("should generate PDF Entries report", async ({ page }) => {

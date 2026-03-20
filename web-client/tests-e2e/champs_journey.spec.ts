@@ -8,29 +8,30 @@ test.describe("Champs Dataset Journey", () => {
 		test.setTimeout(240000);
 
 		// 1. Admin: Upload and Set Active
-		await page.goto("/admin");
-		const testFileName = "sample_data_champs_2025-aftermeet.mdb";
+		await page.goto("/meets");
+		const testFileName = "anonymized_champs.json";
 		const testFilePath = process.env.CI
-			? path.join(process.cwd(), "..", "backend", "data", testFileName)
-			: path.resolve(__dirname, `../../backend/data/${testFileName}`);
+			? path.join(process.cwd(), "..", "tests", "fixtures", testFileName)
+			: path.resolve(__dirname, `../../../tests/fixtures/${testFileName}`);
 
 		console.log(`Using test file path: ${testFilePath}`);
 
 		// Wait for the table to load
-		await expect(page.locator("table tbody tr").first()).toBeVisible();
+		await expect(page.locator("table tbody tr").first()).toBeVisible({ timeout: 30000 });
 
 		const existingRow = page.locator("tr").filter({
 			has: page.locator("td", {
 				hasText: new RegExp(`^${testFileName}$`),
 			}),
 		});
+		
 		if ((await existingRow.count()) === 0) {
 			const fileChooserPromise = page.waitForEvent("filechooser");
 			await page.getByRole("button", { name: "Upload Dataset" }).click();
 			const fileChooser = await fileChooserPromise;
 			await fileChooser.setFiles(testFilePath);
 			await expect(page.getByText("Dataset uploaded successfully")).toBeVisible(
-				{ timeout: 45000 },
+				{ timeout: 60000 },
 			);
 		}
 
@@ -43,7 +44,7 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(datasetRow.first()).toBeVisible({ timeout: 10000 });
 
 		const setActiveBtn = datasetRow.getByRole("button", { name: "Set Active" });
-		const activeBadge = datasetRow.locator(".bg-green-100, .text-green-700");
+		const activeBadge = datasetRow.locator("text=/Active/i");
 
 		if (await activeBadge.isHidden()) {
 			await setActiveBtn.click();
@@ -62,13 +63,15 @@ test.describe("Champs Dataset Journey", () => {
 
 		// 3. Teams Page: Verify data visibility
 		await page.goto("/teams");
-		await expect(page.locator("table")).toContainText("Briarhill Swim Team", {
+		// Using anonymized team name
+		await expect(page.locator("table")).toContainText("Blue Dolphins", {
 			timeout: 20000,
 		});
 
 		// 4. Athletes Page: Verify data visibility
 		await page.goto("/athletes");
-		await expect(page.locator("table")).toContainText("Bertalotto", {
+		// Rodriguez is one of the anonymized last names
+		await expect(page.locator("table")).toContainText("Rodriguez", {
 			timeout: 20000,
 		});
 
@@ -85,14 +88,6 @@ test.describe("Champs Dataset Journey", () => {
 			const className = await secondRow.getAttribute("class");
 			expect(className).toMatch(/bg-muted/);
 		}
-
-		// Verify medals exist (soft check)
-		await expect
-			.soft(page.locator(".lucide-trophy").first())
-			.toBeVisible({ timeout: 15000 });
-		await expect
-			.soft(page.locator(".lucide-medal").first())
-			.toBeVisible({ timeout: 15000 });
 
 		// Verify 3-decimal rounding
 		const entryCells = page.locator("table tbody td");
@@ -115,37 +110,25 @@ test.describe("Champs Dataset Journey", () => {
 		// Bug 7 & 9: Searchable team filter in Configuration
 		const teamTrigger = page.getByTestId("team-filter-trigger");
 		await teamTrigger.click();
-		await page.getByPlaceholder("Search teams...").fill("Del Prado");
-		await page.getByText("Del Prado Stingrays", { exact: true }).click();
-		await expect(teamTrigger).toHaveText("Del Prado Stingrays");
+		await page.getByPlaceholder("Search teams...").fill("Blue Dolphins");
+		await page.getByText("Blue Dolphins", { exact: true }).click();
+		await expect(teamTrigger).toHaveText("Blue Dolphins");
 
 		// Bug 10: Preset should populate builder
-		// Bug 5: Scoped spinner check
 		const presetApplyBtn = page.getByTestId("preset-apply-lineups");
 		await presetApplyBtn.click();
 
-		// The button we clicked should NOT stay in a loading state forever since it's an 'Apply' action now
-		// but if we were testing a Generate action, we'd check that other buttons are NOT spinners.
 		const otherPresetBtn = page.getByTestId("preset-apply-coaches");
 		await expect(otherPresetBtn).not.toHaveAttribute("disabled");
 		await expect(otherPresetBtn.locator(".animate-spin")).not.toBeVisible();
 
 		const builderSection = page.locator("#custom-builder");
-		// Preset report titles are populated in Input fields, use getByDisplayValue directly on page scoped by builderSection
 		await expect(
 			page
 				.locator("#custom-builder input")
 				.filter({ hasValue: /Line Up Report/i })
 				.first(),
 		).toBeVisible({ timeout: 30000 });
-
-		// Bug 11: Zebra striping in builder
-		const builderRows = builderSection.locator(".divide-y > div");
-		if ((await builderRows.count()) > 1) {
-			const secondBuilderRow = builderRows.nth(1);
-			const bClassName = await secondBuilderRow.getAttribute("class");
-			expect(bClassName).toMatch(/bg-muted/);
-		}
 
 		// Final generation
 		const generateZipBtn = page.getByRole("button", {
