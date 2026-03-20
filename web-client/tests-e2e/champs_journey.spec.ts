@@ -110,9 +110,19 @@ test.describe("Champs Dataset Journey", () => {
 
 		// 6. Reports Page: Generate custom pack
 		await page.goto("/reports");
+		
+		// Select a report type first
+		const clubCard = page.getByTestId("report-card-entries-(club-style)");
+		await clubCard.click();
+
+		// Add to pack to enable the generate button
+		await page.getByRole("button", { name: /Add to Pack/i }).click();
+		await expect(page.getByText(/Added to custom pack/i)).toBeVisible();
+
 		const generateZipBtn = page.getByRole("button", {
 			name: /Generate Bundle ZIP/i,
 		});
+		await expect(generateZipBtn).toBeEnabled();
 		await generateZipBtn.click();
 
 		await expect(
