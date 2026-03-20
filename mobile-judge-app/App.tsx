@@ -5,6 +5,7 @@ import {
 	FlatList,
 	Image,
 	Modal,
+	Platform,
 	SafeAreaView,
 	ScrollView,
 	StyleSheet,
@@ -1142,6 +1143,10 @@ const styles = StyleSheet.create({
 		color: COLORS.accent,
 		fontWeight: "900",
 		fontSize: 12,
+	},
+	dqSetText: {
+		color: COLORS.danger,
+		fontWeight: "bold",
 	},
 	notePreview: {
 		fontSize: 10,
