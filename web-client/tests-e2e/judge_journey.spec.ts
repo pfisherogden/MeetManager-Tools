@@ -12,30 +12,42 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// 2. Tap an individual event (e.g., Event 1)
 		// Assuming seed data has Event 1
-		await page.getByText(/Event 1/).first().click();
+		await page
+			.getByText(/Event 1/)
+			.first()
+			.click();
 
 		// 3. Tap a heat (e.g., Heat 1)
-		await page.getByText(/Heat 1/).first().click();
+		await page
+			.getByText(/Heat 1/)
+			.first()
+			.click();
 
 		// 4. Tap "TAP TO DQ" for a swimmer
 		await expect(page.getByText("TAP TO DQ").first()).toBeVisible();
 		await page.getByText("TAP TO DQ").first().click();
 
 		// 5. Verify DQ Modal opens
-		await expect(page.getByPlaceholder("Add notes here (optional)")).toBeVisible();
+		await expect(
+			page.getByPlaceholder("Add notes here (optional)"),
+		).toBeVisible();
 
 		// 6. Select a DQ code (e.g., "1A")
 		// The code is usually in a text element next to description
 		await page.getByText("1A").first().click();
 
 		// 7. Add a note
-		await page.getByPlaceholder("Add notes here (optional)").fill("Test DQ Note");
+		await page
+			.getByPlaceholder("Add notes here (optional)")
+			.fill("Test DQ Note");
 
 		// 8. Tap Save (checkmark-circle icon)
 		await page.getByLabel("Save changes").click();
 
 		// 9. Verification: Modal closes and DQ code is displayed
-		await expect(page.getByPlaceholder("Add notes here (optional)")).not.toBeVisible();
+		await expect(
+			page.getByPlaceholder("Add notes here (optional)"),
+		).not.toBeVisible();
 		await expect(page.getByText("1A")).toBeVisible();
 
 		// 10. Verification: Offline Queue count increments
@@ -54,7 +66,7 @@ test.describe("Mobile Judge App Journey", () => {
 		// Verify Program View is shown (Continuous list)
 		// The ProgramView component has different structure
 		await expect(page.getByText("SWITCH TO EVENT VIEW")).toBeVisible();
-		
+
 		// In program mode, check if we see event headers
 		await expect(page.getByText(/Event 1/)).toBeVisible();
 
@@ -67,8 +79,14 @@ test.describe("Mobile Judge App Journey", () => {
 		await page.goto("/");
 
 		// Add a DQ first
-		await page.getByText(/Event 1/).first().click();
-		await page.getByText(/Heat 1/).first().click();
+		await page
+			.getByText(/Event 1/)
+			.first()
+			.click();
+		await page
+			.getByText(/Heat 1/)
+			.first()
+			.click();
 		await page.getByText("TAP TO DQ").first().click();
 		await page.getByText("1A").first().click();
 		await page.getByLabel("Save changes").click();
@@ -87,10 +105,15 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// Verification
 		await expect(page.getByText("No pending DQs")).toBeVisible();
-		
+
 		// Close modal (X icon)
-		await page.locator('header').filter({ hasText: 'Offline Queue' }).getByRole('button').nth(1).click();
-		
+		await page
+			.locator("header")
+			.filter({ hasText: "Offline Queue" })
+			.getByRole("button")
+			.nth(1)
+			.click();
+
 		// Queue count should be 0
 		await expect(page.getByText(/Offline Queue: 0/)).toBeVisible();
 	});
