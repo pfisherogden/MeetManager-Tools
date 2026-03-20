@@ -334,10 +334,6 @@ class ReportDataExtractor:
         show_dq_lines: bool = False,
     ) -> dict[str, Any]:
         full_data = self._get_full_data()
-        print(
-            f"DEBUG: extract_meet_program_data using full_data with keys {list(full_data.keys())} and {len(full_data.get('sessions', []))} sessions",
-            flush=True,
-        )
         all_events = []
         for sess in full_data.get("sessions", []):
             if not sess:
@@ -347,7 +343,6 @@ class ReportDataExtractor:
                     continue
                 all_events.append(evt)
         all_events.sort(key=self._get_event_sort_key)
-        print(f"DEBUG: Found {len(all_events)} events total", flush=True)
         report_groups = []
         for evt in all_events:
             evt_num, evt_desc, is_relay, entries = (
@@ -356,7 +351,6 @@ class ReportDataExtractor:
                 evt.get("isRelay", False),
                 evt.get("entries", []),
             )
-            print(f"DEBUG: Processing event {evt_num} ({evt_desc}) with {len(entries)} entries", flush=True)
             evt_gender = evt.get("gender", "")
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
@@ -395,9 +389,7 @@ class ReportDataExtractor:
                             filtered.append(e)
                 entries = filtered
             if not entries:
-                print(f"DEBUG: Event {evt_num} has no entries after filtering", flush=True)
                 continue
-            print(f"DEBUG: Event {evt_num} has {len(entries)} entries after filtering", flush=True)
             header = f"Event {evt_num}  {evt_desc}"
             heats: dict[int, list[Any]] = {}
             for entry in entries:
@@ -627,9 +619,7 @@ class ReportDataExtractor:
                             filtered.append(e)
                 entries = filtered
             if not entries:
-                print(f"DEBUG: Event {evt_num} has no entries after filtering", flush=True)
                 continue
-            print(f"DEBUG: Event {evt_num} has {len(entries)} entries after filtering", flush=True)
             header = f"Event {evt_num}  {evt_desc}"
             heats: dict[int, list[Any]] = {}
             for e in entries:
