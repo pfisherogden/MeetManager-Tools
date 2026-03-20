@@ -107,11 +107,13 @@ test.describe("Mobile Judge App Journey", () => {
 		// Verification
 		await expect(page.getByText("No pending DQs")).toBeVisible();
 
-		// Close modal (Press Escape as a fallback or click the first button which is usually X)
+		// Close modal (Press Escape as a fallback or click the X button)
 		await page.keyboard.press("Escape");
-		// If still visible, try clicking the first button in the dialog
-		if (await page.getByRole("dialog").isVisible()) {
-			await page.getByRole("dialog").getByRole("button").first().click();
+		
+		// If still visible, try clicking the button with the X icon (close)
+		const closeButton = page.getByRole("button").filter({ has: page.locator("svg") }).first();
+		if (await closeButton.isVisible()) {
+			await closeButton.click();
 		}
 
 		// Queue count should be 0

@@ -27,13 +27,15 @@ test.describe("Reports Generation Journey", () => {
 		await expect(dialog.getByText("Meet Program Preview")).toBeVisible();
 
 		// 5. Verify iframe content (Wait for iframe to load and have content)
-		// Small delay to allow srcDoc to render
-		await page.waitForTimeout(5000);
+		// Delay to allow srcDoc to render
+		await page.waitForTimeout(10000);
 		const iframe = page.frameLocator('iframe[title="Meet Program Preview"]');
 
 		// The HTML report should contain "Event" and "Heat" markers
 		// Use a more robust check by looking at the full text content
 		const bodyText = await iframe.locator("body").innerText();
+		console.log("HTML Report Preview Length:", bodyText.length);
+		
 		expect(bodyText.toLowerCase()).toContain("event");
 		expect(bodyText.toLowerCase()).toContain("heat");
 
