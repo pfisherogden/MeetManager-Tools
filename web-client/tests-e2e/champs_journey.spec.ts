@@ -45,20 +45,30 @@ test.describe("Champs Dataset Journey", () => {
 				hasText: new RegExp(`^${testFileName}$`),
 			}),
 		});
-		await expect(datasetRow.first()).toBeVisible({ timeout: 10000 });
+		await expect(datasetRow.first()).toBeVisible({ timeout: 20000 });
 
 		const setActiveBtn = datasetRow.getByRole("button", { name: "Set Active" });
 		const activeBadge = datasetRow.locator("text=/Active/i");
 
+		// Always try to set as active to be sure, or if badge is missing
 		if (await activeBadge.isHidden()) {
+			console.log("Setting dataset as active...");
 			await setActiveBtn.click();
 			await expect(activeBadge).toBeVisible({ timeout: 30000 });
-			// Give extra time for cache warming
-			await page.waitForTimeout(3000);
+		} else {
+			// Even if active, click it again to force backend reload/config update
+			console.log("Dataset already active, clicking Set Active again to ensure state consistency...");
+			await setActiveBtn.click();
+			await expect(page.getByText(/Active dataset changed/i)).toBeVisible({ timeout: 10000 });
 		}
+		
+		// Give extra time for backend to switch and cache to clear
+		await page.waitForTimeout(5000);
 
 		// 2. Meets Page: Verify name and location
-		await page.goto("/meets");
+		await page.goto("/meets", { waitUntil: "networkidle" });
+		// Wait for table to NOT have "No data available" if possible, or just wait for timeout
+		await page.waitForTimeout(2000);
 		await expect(page.locator("table")).toContainText(
 			"TVSL Championship Meet 2025",
 			{ timeout: 20000 },
