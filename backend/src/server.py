@@ -60,17 +60,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _check_auth(self, context):
         """Helper to ensure the request is authenticated."""
-        # Allow custom user ID via metadata for E2E test isolation
-        metadata = dict(context.invocation_metadata())
-        if "x-user-id" in metadata:
-            uid = metadata["x-user-id"]
-            print(f"DEBUG: Auth using x-user-id metadata: {uid}")
-            return uid
+        if context is not None:
+            # Allow custom user ID via metadata for E2E test isolation
+            metadata = dict(context.invocation_metadata())
+            if "x-user-id" in metadata:
+                uid = metadata["x-user-id"]
+                print(f"DEBUG: Auth using x-user-id metadata: {uid}")
+                return uid
 
         # Allow disabling auth for local dev/testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true":
-            print("DEBUG: Auth disabled, using dev-user")
+            # print("DEBUG: Auth disabled, using dev-user")
             return "dev-user"
+
+        if context is None:
+            raise ValueError("Context is required for authentication")
 
         uid = getattr(context, "uid", None)
         if uid is None:
@@ -80,8 +84,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _load_user_config(self, context):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
-        print(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
+        # For LocalStorageProvider, print absolute path for debugging
+        if hasattr(self.storage, "base_dir"):
+            abs_path = os.path.abspath(os.path.join(self.storage.base_dir, config_path))
+            print(f"DEBUG: Checking for config at {config_path} (abs: {abs_path}, uid: {uid})")
+        else:
+            print(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
+
         if self.storage.exists(config_path):
+            # ... rest of the method unchanged ...
             with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
                 tmp_path = tmp.name
                 tmp.close()
@@ -125,7 +136,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
 
         user_path = os.path.join("users", uid, filename)
-        print(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
+        # For LocalStorageProvider, print absolute path for debugging
+        if hasattr(self.storage, "base_dir"):
+            abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
+            print(
+                f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path} (abs: {abs_user_path})"
+            )
+        else:
+            print(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
 
         # Check cache
         if uid in self._user_cache:
@@ -246,6 +264,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
+            # For LocalStorageProvider, print absolute path for debugging
+            if hasattr(self.storage, "base_dir"):
+                abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
+                print(f"DEBUG: UploadDataset saving to {user_path} (abs: {abs_user_path}) for {uid}")
+            else:
+                print(f"DEBUG: UploadDataset saving to {user_path} for {uid}")
+
             suffix = os.path.splitext(filename)[1]
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
                 tmp.write(file_content.getvalue())
