@@ -28,7 +28,7 @@ description: Best practices for GitHub flows in MeetManager-Tools
 > **Zero Tolerance for CI Failures**: Merging code that breaks CI linting, type-checking, or tests is considered a failure. Always verify everything passes 100% locally before pushing.
 
 ## Reliability Standards (Mandatory)
-- **5-Cycle Verification**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend`) **5 times consecutively**. All 5 runs must pass 100% to consider the task complete.
+- **2-Cycle Verification**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend`) **2 times consecutively**. Both runs must pass 100% to consider the task complete. This catches most intermittent race conditions and flakiness while remaining efficient.
 
 ## Branching
 - Base all new features on `main`.

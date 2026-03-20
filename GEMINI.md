@@ -100,3 +100,5 @@ All agents MUST follow these workflow steps:
 ### 4. Schema & Data Standards
 - **Case-Insensitivity**: Standardize all backend table and column lookups to **lowercase** to ensure compatibility with MDB files that may have inconsistent naming.
 - **Time Precision**: All swimming times (seed, final, splits) must be rounded to **3 decimal places** (thousandths) to meet Meet Manager standards and prevent display regressions.
+- **Backend Compatibility & Multi-Renderer Support**: When updating `ReportDataExtractor`, ensure that output dictionaries maintain backward compatibility. Specifically, include both generic keys (like `items`) for the legacy `PDFRenderer` and semantic keys (like `heats`, `athletes`) for modern Jinja2 templates.
+- **Conditional Test Execution**: Use `pytest.mark.skipif` or `try-except` blocks for tests requiring system-level libraries (e.g., `WeasyPrint`/`libgobject`) to allow core test suites to run even in restricted environments.
