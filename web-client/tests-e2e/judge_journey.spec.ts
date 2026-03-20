@@ -107,15 +107,16 @@ test.describe("Mobile Judge App Journey", () => {
 		// Verification
 		await expect(page.getByText("No pending DQs")).toBeVisible();
 
-		// Close modal with multiple strategies
-		const closeButton = page.getByLabel("Close offline queue");
-		if (await closeButton.isVisible()) {
-			await closeButton.click();
-		} else {
-			await page.keyboard.press("Escape");
-			await page.waitForTimeout(1000);
-			// Final attempt - click outside or top-left
-			if (await page.getByText("Offline Queue").first().isVisible()) {
+		// Close modal
+		await page.keyboard.press("Escape");
+		await page.waitForTimeout(1000);
+		
+		// If still visible, try accessibility label or click outside
+		if (await page.getByText("Offline Queue").first().isVisible()) {
+			const closeButton = page.getByLabel("Close offline queue");
+			if (await closeButton.isVisible()) {
+				await closeButton.click();
+			} else {
 				await page.mouse.click(10, 10);
 			}
 		}
