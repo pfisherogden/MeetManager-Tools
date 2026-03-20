@@ -8,7 +8,7 @@ test.describe("Champs Dataset Journey", () => {
 		test.setTimeout(240000);
 
 		// 1. Admin: Upload and Set Active
-		await page.goto("/meets");
+		await page.goto("/admin");
 		const testFileName = "anonymized_champs.json";
 		const testFilePath = process.env.CI
 			? path.join(process.cwd(), "..", "tests", "fixtures", testFileName)
@@ -16,10 +16,10 @@ test.describe("Champs Dataset Journey", () => {
 
 		console.log(`Using test file path: ${testFilePath}`);
 
-		// Wait for the table to load
-		await expect(page.locator("table tbody tr").first()).toBeVisible({
-			timeout: 30000,
-		});
+		// Wait for any heading or the dataset manager card
+		await expect(
+			page.getByRole("heading", { name: /Admin Configuration|Dataset Management/i }),
+		).toBeVisible({ timeout: 30000 });
 
 		const existingRow = page.locator("tr").filter({
 			has: page.locator("td", {
