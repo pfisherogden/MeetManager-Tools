@@ -97,6 +97,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
 
         user_path = os.path.join("users", uid, filename)
+        print(f"DEBUG: Loading data for user {uid}, active_dataset config: {filename}")
+
         # Check cache
         if uid in self._user_cache:
             entry = self._user_cache[uid]
@@ -105,16 +107,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 try:
                     mtime = self.storage.get_last_modified(user_path)
                     if mtime == entry["mtime"]:
+                        print(f"DEBUG: Returning cached data for {filename}")
                         return entry["data"], config
                 except Exception:
                     pass  # Force reload on error
 
         if not self.storage.exists(user_path):
+            print(f"DEBUG: User file {user_path} not found in storage.")
             # Fallback for prototype: check global Sample_Data.json
             if self.storage.exists(SOURCE_FILE):
+                print(f"DEBUG: Falling back to global {SOURCE_FILE}")
                 user_path = SOURCE_FILE
             else:
                 return {}, config
+        else:
+            print(f"DEBUG: Found user file at {user_path}")
 
         with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
             tmp_path = tmp.name
