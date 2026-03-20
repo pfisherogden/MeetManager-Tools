@@ -84,7 +84,7 @@ class MmToJsonConverter:
                     if k.lower() == candidate.lower():
                         found_data = table_data[k]
                         break
-                if found_data:
+                if found_data is not None:
                     break
 
             if found_data is not None:
@@ -850,6 +850,7 @@ class MmToJsonConverter:
                             "first": self._get_val(row, "first"),
                             "last": self._get_val(row, "last"),
                             "age": self._safe_int(row.get("age")),
+                            "sex": self._get_val(row, "sex"),
                             "schoolYear": self._get_val(row, "class"),
                             "team": team_name,
                         }
@@ -861,6 +862,7 @@ class MmToJsonConverter:
                             "first": self._get_val(row, "first_name"),
                             "last": self._get_val(row, "last_name"),
                             "age": self._safe_int(row.get("ath_age")),
+                            "sex": self._get_val(row, "sex"),
                             "schoolYear": self._get_val(row, "schl_yr"),
                             "team": team_name,
                         }

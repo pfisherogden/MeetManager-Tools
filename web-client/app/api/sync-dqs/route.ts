@@ -2,6 +2,16 @@ import { type NextRequest, NextResponse } from "next/server";
 import client from "@/lib/mm-client";
 
 export async function POST(request: NextRequest) {
+	const { searchParams } = new URL(request.url);
+	const token = searchParams.get("token");
+
+	// Basic security check
+	const secretToken =
+		process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
+	if (token !== secretToken) {
+		return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
+	}
+
 	try {
 		const dqs = await request.json();
 		const dqsJson = JSON.stringify(dqs);
