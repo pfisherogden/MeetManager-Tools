@@ -1451,7 +1451,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             frontend_host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
             frontend_port = os.getenv("FRONTEND_PORT", "3000")
             frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
-            sync_url = f"{frontend_base}/api/sync-dqs"
+            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+            sync_url = f"{frontend_base}/api/sync-dqs?token={token}"
 
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
             judge_app_url = f"{base_url}?program_url={program_url}&sync_url={sync_url}"

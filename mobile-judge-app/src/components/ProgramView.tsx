@@ -56,6 +56,8 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 	const renderSwimmer = (swimmer: Swimmer, event: any, heat: any) => {
 		const isRelay = swimmer.isRelay;
 
+		if (!isRelay && swimmer.empty && !showEmptyLanes) return null;
+
 		if (isRelay) {
 			if (swimmer.empty && !showEmptyLanes) return null; // Respect toggle for relays
 			return (

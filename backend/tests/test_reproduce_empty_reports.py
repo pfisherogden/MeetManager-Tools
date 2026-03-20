@@ -51,3 +51,18 @@ def test_reproduce_mixed_gender_empty_report(sample_data):
     assert len(event["heats"]) > 0
     heat = event["heats"][0]
     assert len(heat["sub_items"]) > 0, "Should have entries in the heat"
+
+    # Verify legacy PDFRenderer builds elements from this data
+    import tempfile
+
+    from mm_to_json.reporting.config import ReportConfig
+    from mm_to_json.reporting.renderer import PDFRenderer
+
+    config = ReportConfig(title="Test")
+    with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
+        renderer = PDFRenderer(tmp.name, config)
+        elements = renderer._build_elements(res, 500)
+        from reportlab.platypus import Table
+
+        tables = [e for e in elements if isinstance(e, Table)]
+        assert len(tables) > 0, "PDFRenderer failed to build tables; data likely missing from items key"
