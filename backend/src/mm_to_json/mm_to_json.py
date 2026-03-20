@@ -226,6 +226,7 @@ class MmToJsonConverter:
 
         meet = self.get_meet_info()
         sessions: list[Session] = self.get_session_info()
+        print(f"DEBUG: Initial sessions found: {len(sessions)}")
 
         if not sessions:
             if self.schema_type == "B":
@@ -235,6 +236,7 @@ class MmToJsonConverter:
 
         # If we still have no sessions but have events, create default
         if not sessions and not self.tables["event"].empty:
+            print("DEBUG: No sessions found, creating default session")
             sessions.append(self.create_default_session())
 
         meet_sessions_data = []
@@ -251,7 +253,7 @@ class MmToJsonConverter:
 
             # Fallback for data missing sessitem (like some JSON exports)
             if not session_events_data and session.is_default:
-                logger.info("Default session has no linked events via sessitem, falling back to all events")
+                print(f"DEBUG: Default session {session.number} has no linked events via sessitem, falling back to all events")
                 events = self.get_all_events()
                 for event in events:
                     event.create_description(meet["meetType"])
@@ -266,7 +268,7 @@ class MmToJsonConverter:
         # create a default catch-all session so reports aren't empty.
         has_any_linked_events = any(len(s.get("events", [])) > 0 for s in meet_sessions_data)
         if not has_any_linked_events and not self.tables["event"].empty:
-            logger.info("No events linked to any session, creating catch-all default session for reports")
+            print("DEBUG: No events linked to any session, creating catch-all default session for reports")
             default_session = self.create_default_session()
             events = self.get_all_events()
             session_events_data = []
@@ -433,10 +435,13 @@ class MmToJsonConverter:
             # Schema A: Link via Sessitem
             df_sessitem = self.tables["sessitem"]
             if not df_sessitem.empty and "sess_ptr" in df_sessitem.columns:
-                target = session.sess_id
-                items = df_sessitem[df_sessitem["sess_ptr"] == target]
-                if items.empty:
-                    # Try string comparison just in case
+                try:
+                    target = int(float(session.sess_id))
+                    if "sess_ptr_numeric" not in df_sessitem.columns:
+                        df_sessitem["sess_ptr_numeric"] = pd.to_numeric(df_sessitem["sess_ptr"], errors="coerce").fillna(0).astype(int)
+                    items = df_sessitem[df_sessitem["sess_ptr_numeric"] == target]
+                except Exception:
+                    target = session.sess_id
                     items = df_sessitem[df_sessitem["sess_ptr"].astype(str) == str(target)]
 
                 if not items.empty:
@@ -482,7 +487,16 @@ class MmToJsonConverter:
             # Should not be called if logic flows correctly for Schema B, but just in case
             if df.empty or "mtev" not in df.columns:
                 return None
-            rows = df[df["mtev"] == event_ptr]
+            
+            # Robust numeric comparison
+            try:
+                target = int(float(event_ptr))
+                if "mtev_numeric" not in df.columns:
+                    df["mtev_numeric"] = pd.to_numeric(df["mtev"], errors="coerce").fillna(0).astype(int)
+                rows = df[df["mtev_numeric"] == target]
+            except Exception:
+                rows = df[df["mtev"].astype(str) == str(event_ptr)]
+
             if rows.empty:
                 return None
             return self._create_event_from_row(rows.iloc[0], round_ltr)
@@ -490,8 +504,17 @@ class MmToJsonConverter:
             if df.empty or "event_ptr" not in df.columns:
                 return None
 
-            rows = df[df["event_ptr"] == event_ptr]
+            # Robust numeric comparison
+            try:
+                target = int(float(event_ptr))
+                if "event_ptr_numeric" not in df.columns:
+                    df["event_ptr_numeric"] = pd.to_numeric(df["event_ptr"], errors="coerce").fillna(0).astype(int)
+                rows = df[df["event_ptr_numeric"] == target]
+            except Exception:
+                rows = df[df["event_ptr"].astype(str) == str(event_ptr)]
+
             if rows.empty:
+                logger.debug(f"Event lookup failed for event_ptr {event_ptr} (type {type(event_ptr)})")
                 return None
 
             return self._create_event_from_row(rows.iloc[0], round_ltr)
