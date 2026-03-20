@@ -124,7 +124,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 cache = self._load_mdb(tmp_path)
             else:
                 with open(tmp_path) as f:
-                    cache = json.load(f)
+                    raw_data = json.load(f)
+                # Use converter to normalize keys/types even for JSON
+                from mm_to_json.mm_to_json import MmToJsonConverter
+
+                converter = MmToJsonConverter(table_data=raw_data)
+                cache = converter.export_raw()
 
             # Update cache
             try:
