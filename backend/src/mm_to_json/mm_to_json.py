@@ -227,6 +227,15 @@ class MmToJsonConverter:
                 self.add_entries_to_event(event)
                 session_events_data.append(event.to_dict())
 
+            # Fallback for data missing sessitem (like some JSON exports)
+            if not session_events_data and session.is_default:
+                logger.info("Default session has no linked events via sessitem, falling back to all events")
+                events = self.get_all_events()
+                for event in events:
+                    event.create_description(meet["meetType"])
+                    self.add_entries_to_event(event)
+                    session_events_data.append(event.to_dict())
+
             session_data = session.to_dict()
             session_data["events"] = session_events_data
             meet_sessions_data.append(session_data)

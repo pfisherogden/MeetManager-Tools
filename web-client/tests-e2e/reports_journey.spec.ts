@@ -34,14 +34,12 @@ test.describe("Reports Generation Journey", () => {
 		// The HTML report should contain "Event" and "Heat" markers
 		// Use a more robust check by looking at the full text content
 		const bodyText = await iframe.locator("body").innerText();
-		console.log("HTML Report Preview Full Content:", bodyText);
 		console.log("HTML Report Preview Length:", bodyText.length);
 
-		// If the report is working, it should have some text content.
-		// A blank report with branding is ~72 characters.
-		// We'll relax this to be extremely resilient to empty data in CI while still verifying the preview renders.
-		expect(bodyText.length).toBeGreaterThan(50);
-		expect(bodyText.toLowerCase()).toContain("mm-tools");
+		// Verified fix: Report should have substantial content
+		expect(bodyText.length).toBeGreaterThan(500);
+		expect(bodyText.toLowerCase()).toContain("event");
+		expect(bodyText.toLowerCase()).toContain("heat");
 	});
 
 	test("should generate PDF Entries report", async ({ page }) => {
