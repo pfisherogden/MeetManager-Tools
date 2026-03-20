@@ -96,6 +96,7 @@ test.describe("Champs Dataset Journey", () => {
 		// Verify 3-decimal rounding (handle both SS.sss and MM:SS.sss)
 		const entryCells = page.locator("table tbody td");
 		const cellTexts = await entryCells.allInnerTexts();
+		console.log("First 10 cell texts on Entries page:", cellTexts.slice(0, 10));
 		const times = cellTexts.filter((t) => t.match(/(\d+:)?\d+\.\d{3}([ \t\n]|$)/));
 		expect(times.length).toBeGreaterThan(0);
 
