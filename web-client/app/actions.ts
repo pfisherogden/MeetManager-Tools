@@ -19,7 +19,9 @@ async function getAuthMetadata() {
 		console.log(`DEBUG: getAuthMetadata found x-user-id: ${userId}`);
 		return { "x-user-id": userId };
 	}
-	console.log("DEBUG: getAuthMetadata did NOT find x-user-id in headers or cookies");
+	console.log(
+		"DEBUG: getAuthMetadata did NOT find x-user-id in headers or cookies",
+	);
 	return {};
 }
 

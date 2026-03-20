@@ -4,7 +4,7 @@ test.describe("Mobile Judge App Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		// Set a unique user ID for this test to avoid collisions in the backend
 		const userId = `e2e-judge-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
-		
+
 		// Set header for all requests from this page
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,

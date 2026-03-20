@@ -23,6 +23,9 @@ test.describe("Reports Generation Journey", () => {
 		console.log(`Using isolated User ID: ${userId}`);
 	});
 
+	test("should ensure Sample_Data.json is active and navigate to Reports", async ({
+		page,
+	}) => {
 		// 1. Go to Admin to ensure Sample_Data.json is active
 		await page.goto("/admin", { waitUntil: "networkidle" });
 
@@ -49,6 +52,9 @@ test.describe("Reports Generation Journey", () => {
 	});
 
 	test("should generate and preview HTML Meet Program", async ({ page }) => {
+		// Ensure we are on reports page
+		await page.goto("/reports", { waitUntil: "networkidle" });
+
 		// 1. Select the "Meet Program (HTML)" card
 		const htmlCard = page.getByTestId("report-card-meet-program-(html)");
 		await htmlCard.click();
@@ -84,6 +90,9 @@ test.describe("Reports Generation Journey", () => {
 	});
 
 	test("should generate PDF Entries report", async ({ page }) => {
+		// Ensure we are on reports page
+		await page.goto("/reports", { waitUntil: "networkidle" });
+
 		// 1. Select the "Entries (Club Style)" card
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
 		await clubCard.click();
@@ -100,6 +109,9 @@ test.describe("Reports Generation Journey", () => {
 	});
 
 	test("should verify other report types are selectable", async ({ page }) => {
+		// Ensure we are on reports page
+		await page.goto("/reports", { waitUntil: "networkidle" });
+
 		const types = [
 			"Psych Sheet",
 			"Meet Entries",
