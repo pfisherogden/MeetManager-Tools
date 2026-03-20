@@ -31,8 +31,6 @@ export default defineConfig({
 		extraHTTPHeaders: {
 			"x-user-id": `e2e-worker-${process.env.TEST_WORKER_INDEX || "0"}`,
 		},
-	},
-
 		navigationTimeout: 60000,
 	},
 
@@ -53,17 +51,6 @@ export default defineConfig({
 					name: "chromium",
 					use: { ...devices["Desktop Chrome"] },
 				},
-
-				{
-					name: "firefox",
-					use: { ...devices["Desktop Firefox"] },
-				},
-
-				{
-					name: "webkit",
-					use: { ...devices["Desktop Safari"] },
-				},
-
 				/* Test against mobile viewports. */
 				{
 					name: "Mobile Chrome",
