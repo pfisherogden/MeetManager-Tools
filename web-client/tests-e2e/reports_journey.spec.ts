@@ -5,7 +5,7 @@ test.describe("Reports Generation Journey", () => {
 	test.beforeEach(async ({ page }) => {
 		// 1. Go to Meets and upload the champs MDB
 		await page.goto("/");
-		await page.getByRole("link", { name: "Meets" }).click();
+		await page.getByRole("link", { name: "Meets", exact: true }).click();
 		await expect(
 			page.getByRole("heading", { name: "Dataset Management" }),
 		).toBeVisible({ timeout: 30000 });
