@@ -3,14 +3,12 @@ import io
 import os
 import subprocess
 import sys
-import json
 
 # Ensure mm_to_json is in path
 sys.path.append(os.path.dirname(__file__))  # Add backend/src
 
 # Correct imports
 from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.reporting.config import GroupConfig, ReportConfig, ReportLayout, TextStyle
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.renderer import PDFRenderer
 
@@ -34,6 +32,7 @@ def load_mdb(db_path):
             print(f"Skipping table {t}: {e}")
     return data
 
+
 def inspect_data_step_by_step(table_data):
     print("\n--- STEP 1: Raw Table Inspection ---")
     for tname in ["Meet", "Session", "Sessitem", "Event", "Entry", "Relay", "Athlete"]:
@@ -50,7 +49,7 @@ def inspect_data_step_by_step(table_data):
     converted_data = converter.convert()
     sessions = converted_data.get("sessions", [])
     print(f"Converted Sessions: {len(sessions)}")
-    
+
     total_events = 0
     total_entries = 0
     for i, sess in enumerate(sessions):
@@ -58,13 +57,13 @@ def inspect_data_step_by_step(table_data):
         total_events += len(evts)
         sess_entries = sum(len(e.get("entries", [])) for e in evts)
         total_entries += sess_entries
-        print(f"  Session {i+1}: {len(evts)} events, {sess_entries} entries total")
-    
+        print(f"  Session {i + 1}: {len(evts)} events, {sess_entries} entries total")
+
     print(f"Total Converted: {total_events} events, {total_entries} entries")
 
     print("\n--- STEP 3: Extractor Inspection ---")
     extractor = ReportDataExtractor(converter)
-    
+
     # Meet Program
     program_data = extractor.extract_meet_program_data()
     groups = program_data.get("groups", [])
@@ -88,6 +87,7 @@ def inspect_data_step_by_step(table_data):
 
     return converter, extractor
 
+
 def verify_report_generation():
     # 1. Load Data
     data_path = "data/sample_data_champs_2025-aftermeet.mdb"
@@ -99,7 +99,7 @@ def verify_report_generation():
 
     print(f"Loading MDB from {data_path}...")
     table_data = load_mdb(data_path)
-    
+
     # 2. Inspect intermediate steps
     converter, extractor = inspect_data_step_by_step(table_data)
 
@@ -114,16 +114,17 @@ def verify_report_generation():
     print("Generating Meet Program...")
     program_data = extractor.extract_meet_program_data()
     from mm_to_json.reporting.report_definitions import MEET_PROGRAM_CONFIG
+
     prog_path = os.path.join(output_dir, "verify_champs_program.pdf")
     renderer = PDFRenderer(prog_path, MEET_PROGRAM_CONFIG)
-    
+
     # Verification: Inspect elements before rendering
     elements = renderer._build_elements(program_data, 500)
-    tables = [e for e in elements if hasattr(e, '__class__') and e.__class__.__name__ == 'Table']
+    tables = [e for e in elements if hasattr(e, "__class__") and e.__class__.__name__ == "Table"]
     print(f"  Internal Verification: Found {len(elements)} elements and {len(tables)} data tables.")
     if len(tables) == 0:
         print("  ERROR: No data tables built! Report would be empty.")
-    
+
     renderer.render(program_data)
     print(f"  Saved to {prog_path} ({os.path.getsize(prog_path) / 1024:.1f} KB)")
 
@@ -131,11 +132,13 @@ def verify_report_generation():
     print("Generating Meet Results...")
     results_data = extractor.extract_results_data()
     from mm_to_json.reporting.report_definitions import RESULTS_REPORT_CONFIG
+
     res_path = os.path.join(output_dir, "verify_champs_results.pdf")
     PDFRenderer(res_path, RESULTS_REPORT_CONFIG).render(results_data)
     print(f"  Saved to {res_path} ({os.path.getsize(res_path) / 1024:.1f} KB)")
 
     print("\nDone!")
+
 
 if __name__ == "__main__":
     verify_report_generation()

@@ -23,35 +23,25 @@ class JudgeAppExtractor:
         judge_heats = []
         judge_swimmers = []
 
-        # Track unique IDs to avoid duplicates if same event/heat appears across sessions (rare but possible in MDB)
-        # However, usually we just flatten everything.
-
         heat_id_counter = 1
         swimmer_id_counter = 1
 
         for sess in self.full_data.get("sessions", []):
             for evt in sess.get("events", []):
-                # 1. Event
-                # id in Judge App should be unique. MDB has event_no which is usually enough.
-                # But event_no can repeat if there are multiple rounds (Pre/Fin).
-                # Hierarchical 'convert' combines rounds? I need to check.
-                # Actually converter.convert() is session-based.
-
                 event_num = evt.get("eventNum")
                 is_relay = evt.get("isRelay", False)
 
                 judge_event = {
-                    "id": event_num,  # Using event number as ID for now
+                    "id": event_num,
                     "number": event_num,
                     "name": evt.get("eventDesc"),
-                    "distance": evt.get("distance", 0),  # Added to Event model in converter if needed
+                    "distance": evt.get("distance", 0),
                     "stroke": evt.get("stroke", ""),
                     "isRelay": is_relay,
                 }
                 judge_events.append(judge_event)
 
-                # Group entries by heat
-                heats_map: dict[int, list[dict[str, Any]]] = {}  # heat_num -> entries
+                heats_map: dict[int, list[dict[str, Any]]] = {}
                 for entry in evt.get("entries", []):
                     h_num = entry.get("heat", 0)
                     if h_num not in heats_map:
@@ -66,14 +56,26 @@ class JudgeAppExtractor:
                         "id": current_heat_id,
                         "number": h_num,
                         "event_id": event_num,
-                        "swimmers": [],  # Will be populated in the app if using DB, but we provide flat swimmers list
+                        "swimmers": [],
                     }
                     judge_heats.append(judge_heat)
 
-                        # Use stable ID from MDB if available (athleteId for individual, relay_no for relays)
+                    for entry in entries:
                         stable_id = entry.get("athleteId") or swimmer_id_counter
                         if not entry.get("athleteId"):
                             swimmer_id_counter += 1
+
+                        members = []
+                        if is_relay:
+                            if "relayAthletes" in entry:
+                                members = [
+                                    f"{a.get('first', '')} {a.get('last', '')}".strip() for a in entry["relayAthletes"]
+                                ]
+                            elif "name" in entry and entry.get("name"):
+                                members = [n.strip() for n in entry["name"].split(",")]
+
+                        if is_relay and len(members) < 4:
+                            members.extend([""] * (4 - len(members)))
 
                         judge_swimmer = {
                             "id": stable_id,

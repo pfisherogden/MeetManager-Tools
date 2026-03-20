@@ -110,7 +110,8 @@ class MmToJsonConverter:
         except ValueError:
             if isinstance(val, pd.Series) and not val.empty:
                 val = val.iloc[0]
-                if pd.isna(val): return default
+                if pd.isna(val):
+                    return default
             else:
                 return default
         return str(val).strip()
