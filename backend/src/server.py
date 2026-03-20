@@ -63,10 +63,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # Allow custom user ID via metadata for E2E test isolation
         metadata = dict(context.invocation_metadata())
         if "x-user-id" in metadata:
-            return metadata["x-user-id"]
+            uid = metadata["x-user-id"]
+            print(f"DEBUG: Auth using x-user-id metadata: {uid}")
+            return uid
 
         # Allow disabling auth for local dev/testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true":
+            print("DEBUG: Auth disabled, using dev-user")
             return "dev-user"
 
         uid = getattr(context, "uid", None)
@@ -77,15 +80,25 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _load_user_config(self, context):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
-        print(f"DEBUG: Checking for config at {config_path}")
+        print(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
         if self.storage.exists(config_path):
-            with tempfile.NamedTemporaryFile() as tmp:
-                self.storage.download_file(config_path, tmp.name)
-                with open(tmp.name) as f:
+            with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+                tmp_path = tmp.name
+                tmp.close()
+            
+            try:
+                self.storage.download_file(config_path, tmp_path)
+                with open(tmp_path) as f:
                     config = json.load(f)
-                    print(f"DEBUG: Loaded user config: {config}")
+                    print(f"DEBUG: Loaded user config for {uid}: {config}")
                     return config
-        print(f"DEBUG: No user config found at {config_path}, using defaults")
+            except Exception as e:
+                print(f"DEBUG: Failed to load user config for {uid}: {e}")
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                    
+        print(f"DEBUG: No user config found at {config_path} for {uid}, using defaults")
         return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
 
     def _save_user_config(self, context, config):
@@ -112,7 +125,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
 
         user_path = os.path.join("users", uid, filename)
-        print(f"DEBUG: Loading data for user {uid}, active_dataset config: {filename}")
+        print(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
 
         # Check cache
         if uid in self._user_cache:
@@ -122,25 +135,32 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 try:
                     mtime = self.storage.get_last_modified(user_path)
                     if mtime == entry["mtime"]:
-                        print(f"DEBUG: Returning cached data for {filename}")
+                        print(f"DEBUG: Returning cached data for {uid}/{filename}")
                         return entry["data"], config
-                except Exception:
+                    else:
+                        print(f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})")
+                except Exception as e:
+                    print(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
                     pass  # Force reload on error
 
         if not self.storage.exists(user_path):
-            print(f"DEBUG: User file {user_path} not found in storage.")
+            print(f"DEBUG: User file {user_path} NOT FOUND in storage.")
             # Fallback for prototype: check global Sample_Data.json
             if self.storage.exists(SOURCE_FILE):
                 print(f"DEBUG: Falling back to global {SOURCE_FILE}")
                 user_path = SOURCE_FILE
                 filename = SOURCE_FILE
             else:
+                print(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
                 return {}, config
         else:
             print(f"DEBUG: Found user file at {user_path}")
 
+        print(f"DEBUG: Loading data from {user_path}...")
         with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
             tmp_path = tmp.name
+            tmp.close() # Close to avoid locking
+            
         try:
             self.storage.download_file(user_path, tmp_path)
             if filename.endswith(".mdb"):
@@ -153,17 +173,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
                 converter = MmToJsonConverter(table_data=raw_data)
                 cache = converter.export_raw()
-
+            
             # Update cache
             try:
                 mtime = self.storage.get_last_modified(user_path)
                 self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+                print(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
             except Exception as e:
-                print(f"Failed to update cache: {e}")
+                print(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
 
             return cache, config
         except Exception as e:
-            print(f"Error loading user data: {e}")
+            print(f"DEBUG: Error loading data from {user_path}: {e}")
             return {}, config
         finally:
             if os.path.exists(tmp_path):
@@ -330,7 +351,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         print(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams in cache['team']")
         if len(data) > 0:
             print(f"DEBUG: First team in cache: {data[0].get('team_name')}")
-        
+
         athletes = cache.get("athlete", [])
 
         # Count athletes per team

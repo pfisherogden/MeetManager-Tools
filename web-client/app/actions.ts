@@ -8,8 +8,10 @@ async function getAuthMetadata() {
 	const headerList = await headers();
 	const userId = headerList.get("x-user-id");
 	if (userId) {
+		console.log(`DEBUG: getAuthMetadata found x-user-id: ${userId}`);
 		return { "x-user-id": userId };
 	}
+	console.log("DEBUG: getAuthMetadata did NOT find x-user-id in headers");
 	return {};
 }
 
