@@ -273,6 +273,10 @@ jobs:
           FRONTEND_URL: http://localhost:3000
           MOBILE_APP_URL: http://localhost:8080
 
+      - name: Print Backend Logs on Failure
+        if: failure()
+        run: docker compose logs backend
+
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
         if: always()
