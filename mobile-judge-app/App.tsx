@@ -922,7 +922,10 @@ export default function App() {
 									</TouchableOpacity>
 								)}
 							</View>
-							<TouchableOpacity onPress={() => setOfflineModalVisible(false)}>
+							<TouchableOpacity
+								onPress={() => setOfflineModalVisible(false)}
+								accessibilityLabel="Close offline queue"
+							>
 								<Ionicons name="close" size={24} color={COLORS.accent} />
 							</TouchableOpacity>
 						</View>

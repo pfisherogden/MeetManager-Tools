@@ -133,6 +133,10 @@ test-e2e-judge:
     @echo "Running Judge App E2E Tests..."
     cd web-client && npx playwright test tests-e2e/judge_journey.spec.ts
 
+test-e2e-reports:
+    @echo "Running Reports E2E Tests..."
+    cd web-client && npx playwright test tests-e2e/reports_journey.spec.ts
+
 test-e2e-sharded shard total:
     @echo "Running Playwright E2E Tests (Shard {{shard}}/{{total}})..."
     cd web-client && npx playwright test --shard={{shard}}/{{total}}

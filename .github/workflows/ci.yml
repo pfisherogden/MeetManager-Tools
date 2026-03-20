@@ -55,11 +55,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: "npm"
-          cache-dependency-path: "web-client/package-lock.json"
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'web-client/package-lock.json'
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 
       - name: Install dependencies
         run: |
@@ -110,11 +111,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: 24
           cache: 'npm'
-          cache-dependency-path: web-client/package-lock.json
+          cache-dependency-path: 'web-client/package-lock.json'
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 
       - name: Install dependencies
         run: npm ci
@@ -144,11 +146,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: 24
           cache: 'npm'
-          cache-dependency-path: mobile-judge-app/package-lock.json
+          cache-dependency-path: 'web-client/package-lock.json'
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
@@ -216,11 +219,12 @@ jobs:
       - name: Set up Node.js for Playwright
         uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: "npm"
-          cache-dependency-path: "web-client/package-lock.json"
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'web-client/package-lock.json'
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 
       - name: Get Playwright version
         id: playwright-version

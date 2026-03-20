@@ -11,15 +11,16 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
 
 		// 2. Tap an individual event (e.g., Event 1)
-		// Assuming seed data has Event 1
+		// Assuming seed data has Event 1.
+		// Use a more robust selector that works for both "Event 1" and "#1"
 		await page
-			.getByText(/Event 1/)
+			.getByText(/#1 |Event 1/i)
 			.first()
 			.click();
 
 		// 3. Tap a heat (e.g., Heat 1)
 		await page
-			.getByText(/Heat 1/)
+			.getByText(/Heat 1/i)
 			.first()
 			.click();
 
@@ -68,7 +69,7 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(page.getByText("SWITCH TO EVENT VIEW")).toBeVisible();
 
 		// In program mode, check if we see event headers
-		await expect(page.getByText(/Event 1/)).toBeVisible();
+		await expect(page.getByText(/#1 |Event 1/i).first()).toBeVisible();
 
 		// Switch back
 		await page.getByText("SWITCH TO EVENT VIEW").click();
@@ -80,11 +81,11 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// Add a DQ first
 		await page
-			.getByText(/Event 1/)
+			.getByText(/#1 |Event 1/i)
 			.first()
 			.click();
 		await page
-			.getByText(/Heat 1/)
+			.getByText(/Heat 1/i)
 			.first()
 			.click();
 		await page.getByText("TAP TO DQ").first().click();
@@ -106,13 +107,18 @@ test.describe("Mobile Judge App Journey", () => {
 		// Verification
 		await expect(page.getByText("No pending DQs")).toBeVisible();
 
-		// Close modal (X icon)
-		await page
-			.locator("header")
-			.filter({ hasText: "Offline Queue" })
-			.getByRole("button")
-			.nth(1)
-			.click();
+		// Close modal
+		await page.keyboard.press("Escape");
+		await page.waitForTimeout(1000);
+		// If still visible, try accessibility label or click outside
+		if (await page.getByText("Offline Queue").first().isVisible()) {
+			const closeButton = page.getByLabel("Close offline queue");
+			if (await closeButton.isVisible()) {
+				await closeButton.click();
+			} else {
+				await page.mouse.click(10, 10);
+			}
+		}
 
 		// Queue count should be 0
 		await expect(page.getByText(/Offline Queue: 0/)).toBeVisible();
