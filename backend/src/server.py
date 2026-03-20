@@ -85,7 +85,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
                 tmp_path = tmp.name
                 tmp.close()
-            
+
             try:
                 self.storage.download_file(config_path, tmp_path)
                 with open(tmp_path) as f:
@@ -97,7 +97,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
-                    
+
         print(f"DEBUG: No user config found at {config_path} for {uid}, using defaults")
         return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
 
@@ -159,8 +159,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         print(f"DEBUG: Loading data from {user_path}...")
         with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
             tmp_path = tmp.name
-            tmp.close() # Close to avoid locking
-            
+            tmp.close()  # Close to avoid locking
+
         try:
             self.storage.download_file(user_path, tmp_path)
             if filename.endswith(".mdb"):
@@ -173,7 +173,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
                 converter = MmToJsonConverter(table_data=raw_data)
                 cache = converter.export_raw()
-            
+
             # Update cache
             try:
                 mtime = self.storage.get_last_modified(user_path)
@@ -1679,3 +1679,4 @@ def serve():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     serve()
+# Triggering fresh CI run with clean lint state
