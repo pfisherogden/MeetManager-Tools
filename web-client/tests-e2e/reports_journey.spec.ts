@@ -2,8 +2,26 @@ import { expect, test } from "@playwright/test";
 
 test.describe("Reports Generation Journey", () => {
 	test.beforeEach(async ({ page }) => {
-		// 1. Go to Reports directly to avoid navigation flakiness
-		await page.goto("/reports");
+		// 1. Go to Admin to ensure Sample_Data.json is active
+		await page.goto("/admin", { waitUntil: "networkidle" });
+
+		const sampleRow = page.locator("tr").filter({
+			has: page.locator("td", {
+				hasText: /^Sample_Data.json$/i,
+			}),
+		});
+
+		if ((await sampleRow.count()) > 0) {
+			const activeBadge = sampleRow.locator("text=/Active/i");
+			if (await activeBadge.isHidden()) {
+				console.log("Setting Sample_Data.json as active for report tests...");
+				await sampleRow.getByRole("button", { name: "Set Active" }).click();
+				await expect(activeBadge).toBeVisible({ timeout: 20000 });
+			}
+		}
+
+		// 2. Go to Reports
+		await page.goto("/reports", { waitUntil: "networkidle" });
 		await expect(
 			page.getByRole("heading", { name: "Reports", exact: true }),
 		).toBeVisible({ timeout: 30000 });
