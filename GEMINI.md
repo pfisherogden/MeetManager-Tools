@@ -102,3 +102,8 @@ All agents MUST follow these workflow steps:
 - **Time Precision**: All swimming times (seed, final, splits) must be rounded to **3 decimal places** (thousandths) to meet Meet Manager standards and prevent display regressions.
 - **Backend Compatibility & Multi-Renderer Support**: When updating `ReportDataExtractor`, ensure that output dictionaries maintain backward compatibility. Specifically, include both generic keys (like `items`) for the legacy `PDFRenderer` and semantic keys (like `heats`, `athletes`) for modern Jinja2 templates.
 - **Conditional Test Execution**: Use `pytest.mark.skipif` or `try-except` blocks for tests requiring system-level libraries (e.g., `WeasyPrint`/`libgobject`) to allow core test suites to run even in restricted environments.
+
+## Judge App Security & Reliability
+- **Hostname Whitelisting**: The Judge App (`dataLoader.ts`) maintains an `ALLOWED_HOSTS` list. Any `program_url` or `dq_url` must point to a whitelisted host to prevent SSRF.
+- **Structure Validation**: Data loaded via URL must be validated: program data must contain `sessions` or `events`, and DQ data must be an array.
+- **Automated E2E Testing**: Core user journeys for the Judge App (DQ submission, view toggling, offline queue) are automated via Playwright in `web-client/tests-e2e/judge_journey.spec.ts`. These tests run against the `judge-app` Docker service.
