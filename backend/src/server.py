@@ -1010,8 +1010,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GenerateReport(self, request, context):
         if request is None:
             return pb2.GenerateReportResponse(success=False, message="Missing request")
+        uid = self._check_auth(context)
         try:
-            cache, _ = self._load_user_data(context)
+            cache, config = self._load_user_data(context)
+            print(f"DEBUG: GenerateReport for user {uid}, cache keys: {list(cache.keys())}")
+            for tname, rows in cache.items():
+                if isinstance(rows, list):
+                    print(f"DEBUG: Cache table '{tname}' has {len(rows)} rows")
+
             converter = MmToJsonConverter(table_data=cache)
 
             rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
