@@ -216,6 +216,10 @@ class MmToJsonConverter:
         return rows
 
     def convert(self) -> dict[str, Any]:
+        # Print table counts for CI debugging
+        for tname, df in self.tables.items():
+            print(f"DEBUG: Table '{tname}' has {len(df)} rows")
+
         meet = self.get_meet_info()
         sessions: list[Session] = self.get_session_info()
 
