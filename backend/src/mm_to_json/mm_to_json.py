@@ -253,6 +253,23 @@ class MmToJsonConverter:
             session_data["events"] = session_events_data
             meet_sessions_data.append(session_data)
 
+        # BROAD FALLBACK: If NO sessions have any events, but we have events in the table,
+        # create a default catch-all session so reports aren't empty.
+        has_any_linked_events = any(len(s.get("events", [])) > 0 for s in meet_sessions_data)
+        if not has_any_linked_events and not self.tables["event"].empty:
+            logger.info("No events linked to any session, creating catch-all default session for reports")
+            default_session = self.create_default_session()
+            events = self.get_all_events()
+            session_events_data = []
+            for event in events:
+                event.create_description(meet["meetType"])
+                self.add_entries_to_event(event)
+                session_events_data.append(event.to_dict())
+
+            ds_data = default_session.to_dict()
+            ds_data["events"] = session_events_data
+            meet_sessions_data.append(ds_data)
+
         meet_data = meet.copy()
         meet_data["sessions"] = meet_sessions_data
 
