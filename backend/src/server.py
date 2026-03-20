@@ -220,6 +220,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             config["active_dataset"] = filename
             self._save_user_config(context, config)
 
+            # Invalidate cache to force reload of the new dataset
+            if uid in self._user_cache:
+                del self._user_cache[uid]
+
             return pb2.UploadDatasetResponse(success=True, message=f"Saved {filename}")
         except Exception as e:
             print(f"Upload failed: {e}")
@@ -538,9 +542,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.SetActiveDatasetResponse()
 
         print(f"Switching user {uid} dataset to {filename}...")
+        # Update config
         config = self._load_user_config(context)
         config["active_dataset"] = filename
         self._save_user_config(context, config)
+
+        # Invalidate cache to force reload
+        if uid in self._user_cache:
+            del self._user_cache[uid]
+
         return pb2.SetActiveDatasetResponse()
 
     def ClearDataset(self, request, context):
