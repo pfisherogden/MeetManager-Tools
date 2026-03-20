@@ -18,7 +18,9 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Wait for any heading or the dataset manager card
 		await expect(
-			page.getByRole("heading", { name: /Admin Configuration|Dataset Management/i }),
+			page.getByRole("heading", {
+				name: /Admin Configuration|Dataset Management/i,
+			}),
 		).toBeVisible({ timeout: 30000 });
 
 		const existingRow = page.locator("tr").filter({
@@ -35,9 +37,9 @@ test.describe("Champs Dataset Journey", () => {
 			await uploadBtn.click();
 			const fileChooser = await fileChooserPromise;
 			await fileChooser.setFiles(testFilePath);
-			await expect(page.getByText(/Dataset uploaded successfully/i)).toBeVisible(
-				{ timeout: 60000 },
-			);
+			await expect(
+				page.getByText(/Dataset uploaded successfully/i),
+			).toBeVisible({ timeout: 60000 });
 		}
 		// Set as active
 		const datasetRow = page.locator("tr").filter({
@@ -101,7 +103,9 @@ test.describe("Champs Dataset Journey", () => {
 		// Verify 3-decimal rounding (handle both SS.sss and MM:SS.sss)
 		const entryCells = page.locator("table tbody td");
 		const cellTexts = await entryCells.allInnerTexts();
-		const times = cellTexts.filter((t) => t.match(/(\d+:)?\d+\.\d{3}([ \t\n]|$)/));
+		const times = cellTexts.filter((t) =>
+			t.match(/(\d+:)?\d+\.\d{3}([ \t\n]|$)/),
+		);
 		expect(times.length).toBeGreaterThan(0);
 
 		// 6. Scores Page: Bug 4 (Meet Name)

@@ -72,21 +72,27 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _load_user_config(self, context):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
+        print(f"DEBUG: Checking for config at {config_path}")
         if self.storage.exists(config_path):
             with tempfile.NamedTemporaryFile() as tmp:
                 self.storage.download_file(config_path, tmp.name)
                 with open(tmp.name) as f:
-                    return json.load(f)
+                    config = json.load(f)
+                    print(f"DEBUG: Loaded user config: {config}")
+                    return config
+        print(f"DEBUG: No user config found at {config_path}, using defaults")
         return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
 
     def _save_user_config(self, context, config):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
+        print(f"DEBUG: Saving user config to {config_path}: {config}")
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
             json.dump(config, tmp, indent=2)
             tmp_path = tmp.name
         try:
             self.storage.upload_file(tmp_path, config_path)
+            print(f"DEBUG: User config saved to {config_path}")
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
