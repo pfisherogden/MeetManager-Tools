@@ -35,6 +35,7 @@ test.describe("Reports Generation Journey", () => {
 		// The HTML report should contain "Event" and "Heat" markers
 		// Use a more robust check by looking at the full text content
 		const bodyText = await iframe.locator("body").innerText();
+		console.log("HTML Report Preview Content:", bodyText);
 		console.log("HTML Report Preview Length:", bodyText.length);
 
 		// Verified fix: Report should have substantial content
