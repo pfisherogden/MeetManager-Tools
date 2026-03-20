@@ -12,7 +12,7 @@ export default defineConfig({
 	/* Retry on CI only */
 	retries: process.env.CI ? 2 : 0,
 	/* Opt out of parallel tests on CI. */
-	workers: process.env.CI ? 2 : undefined,
+	workers: 1,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: "html",
 	timeout: 120000,
@@ -26,11 +26,6 @@ export default defineConfig({
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: "on-first-retry",
-
-		/* Add custom headers for test isolation */
-		extraHTTPHeaders: {
-			"x-user-id": `e2e-worker-${process.env.TEST_WORKER_INDEX || "0"}`,
-		},
 		navigationTimeout: 60000,
 	},
 
