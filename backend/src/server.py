@@ -229,6 +229,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
                 tmp.write(file_content.getvalue())
                 tmp_path = tmp.name
+                tmp.flush()
+                tmp.close()
 
             try:
                 self.storage.upload_file(tmp_path, user_path)
