@@ -932,10 +932,15 @@ class MmToJsonConverter:
         return self.cache_division_map.get(div_no, "")
 
     def num_to_string(self, num):
-        # replicate util.h numToString which prints "%.2f" for floats and "%d" for ints
-        # But C++ overloaded it. seedTime is float.
-        # User requested 3 decimal places (thousandths)
-        return f"{num:.3f}"
+        if num is None or num == "":
+            return "NT"
+        try:
+            val = float(num)
+            if val <= 0:
+                return "NT"
+            return f"{val:.3f}"
+        except (ValueError, TypeError):
+            return "NT"
 
     def time_to_string(self, time_val, status):
         # logic from util.h
@@ -947,9 +952,13 @@ class MmToJsonConverter:
             return "DNF"
         if status and status.upper() == "DQ":
             return "DQ"
-        if time_val == 0.0:
+        try:
+            val = float(time_val or 0.0)
+            if val <= 0:
+                return "NT"
+            return f"{val:.3f}"
+        except (ValueError, TypeError):
             return "NT"
-        return f"{time_val:.3f}"
 
     def _safe_int(self, val, default=0):
         try:
