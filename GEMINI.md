@@ -66,9 +66,11 @@ The backend uses **WeasyPrint** for PDF generation, which requires system-level 
 
 All agents MUST follow these workflow steps:
 1. **GitHub Issues**: Every task requires an associated GitHub Issue. Create one if it doesn't exist. Update it periodically with progress comments.
-2. **Issue Closure**: Only close issues AFTER the corresponding PR is merged into `main` and CI/CD is passing.
-3. **Communication**: Update the user in the `pfo-gemcli` Google Chat space at significant milestones (e.g., PR created, work completed).
-4. **Skills**: Rigorously follow the instructions in `.agent/skills/github-workflow/SKILL.md`.
+2. **Branching & PRs**: **NEVER** commit or push directly to `main`. All work MUST be performed in a separate branch (`feat/*` or `fix/*`) and submitted via a Pull Request.
+3. **CI/CD Pass**: Merging into `main` is **ONLY** permitted after ALL GitHub Actions and CI checks have passed successfully.
+4. **Issue Closure**: Only close issues AFTER the corresponding PR is merged into `main` and CI/CD is passing on the main branch.
+5. **Communication**: Update the user in the `pfo-gemcli` Google Chat space at significant milestones (e.g., PR created, work completed).
+6. **Skills**: Rigorously follow the instructions in `.agent/skills/github-workflow/SKILL.md`.
 
 ## Reliability Standards
 

@@ -30,9 +30,11 @@ description: Best practices for GitHub flows in MeetManager-Tools
 ## Reliability Standards (Mandatory)
 - **2-Cycle Verification**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend`) **2 times consecutively**. Both runs must pass 100% to consider the task complete. This catches most intermittent race conditions and flakiness while remaining efficient.
 
-## Branching
-- Base all new features on `main`.
-- Use descriptive branch names like `feat/feature-name` or `fix/bug-name`.
+## Branching & PRs (Mandatory)
+- **Separate Branches**: **NEVER** work in or push directly to `main`. Base all new work on `main` but into a descriptive branch name like `feat/feature-name` or `fix/bug-name`.
+- **Pull Requests**: All changes MUST be submitted via a Pull Request (PR).
+- **CI Verification**: Do **NOT** merge a PR until ALL GitHub Actions and CI checks have passed successfully. If checks fail, fix them within the branch and push again.
+- **Merge Strategy**: Use "Squash and merge" when merging to keep the main history clean.
 
 ## Issue Updates
 - **Add Comments**: When updating a GitHub issue with progress or new information, always add a **new comment**.
