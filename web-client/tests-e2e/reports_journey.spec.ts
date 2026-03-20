@@ -10,11 +10,13 @@ test.describe("Reports Generation Journey", () => {
 				.locator("nav")
 				.getByRole("link", { name: "Meets", exact: true })
 				.click({ timeout: 10000 });
-		} catch (e) {
-			console.log("Sidebar click failed, falling back to direct navigation to /meets");
+		} catch (_e) {
+			console.log(
+				"Sidebar click failed, falling back to direct navigation to /meets",
+			);
 			await page.goto("/meets");
 		}
-		
+
 		await expect(
 			page.getByRole("heading", { name: "Dataset Management" }),
 		).toBeVisible({ timeout: 30000 });
@@ -54,11 +56,13 @@ test.describe("Reports Generation Journey", () => {
 				.locator("nav")
 				.getByRole("link", { name: "Reports", exact: true })
 				.click({ timeout: 10000 });
-		} catch (e) {
-			console.log("Sidebar click failed, falling back to direct navigation to /reports");
+		} catch (_e) {
+			console.log(
+				"Sidebar click failed, falling back to direct navigation to /reports",
+			);
 			await page.goto("/reports");
 		}
-		
+
 		await expect(
 			page.getByRole("heading", { name: "Reports", exact: true }),
 		).toBeVisible();
