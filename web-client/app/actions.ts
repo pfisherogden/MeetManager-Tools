@@ -139,10 +139,13 @@ export async function updateAdminConfig(
 ) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.updateAdminConfig({
-			meetName,
-			meetDescription,
-		}, { metadata });
+		const response = await client.updateAdminConfig(
+			{
+				meetName,
+				meetDescription,
+			},
+			{ metadata },
+		);
 		revalidatePath("/", "layout");
 		return response;
 	} catch (err: unknown) {
@@ -295,16 +298,19 @@ export async function generateReport(
 ) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.generateReport({
-			type,
-			title,
-			teamFilter,
-			genderFilter,
-			ageGroupFilter,
-			columnsOnPage,
-			showRelaySwimmers,
-			zebraStriping,
-		}, { metadata });
+		const response = await client.generateReport(
+			{
+				type,
+				title,
+				teamFilter,
+				genderFilter,
+				ageGroupFilter,
+				columnsOnPage,
+				showRelaySwimmers,
+				zebraStriping,
+			},
+			{ metadata },
+		);
 
 		if (!response.success) {
 			throw new Error(response.message);
@@ -331,20 +337,23 @@ export async function generateReportBundle(
 ) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.generateReportBundle({
-			reports: reports.map((r) => ({
-				type: r.type,
-				title: r.title,
-				teamFilter: r.teamFilter || "",
-				genderFilter: r.genderFilter,
-				ageGroupFilter: r.ageGroupFilter,
-				columnsOnPage: r.columnsOnPage || 2,
-				showRelaySwimmers:
-					r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
-				zebraStriping: !!r.zebraStriping,
-			})),
-			bundleName,
-		}, { metadata });
+		const response = await client.generateReportBundle(
+			{
+				reports: reports.map((r) => ({
+					type: r.type,
+					title: r.title,
+					teamFilter: r.teamFilter || "",
+					genderFilter: r.genderFilter,
+					ageGroupFilter: r.ageGroupFilter,
+					columnsOnPage: r.columnsOnPage || 2,
+					showRelaySwimmers:
+						r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
+					zebraStriping: !!r.zebraStriping,
+				})),
+				bundleName,
+			},
+			{ metadata },
+		);
 
 		if (!response.success) {
 			throw new Error(response.message);
