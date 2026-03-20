@@ -68,20 +68,33 @@ export function EventsManager({ initialEvents, sessions }: EventsManagerProps) {
 			render: (value) => {
 				const stroke = value as string;
 				const colors: Record<string, string> = {
-					Freestyle: "bg-pool-blue/20 text-pool-blue",
-					Backstroke: "bg-sunshine/30 text-foreground",
-					Breaststroke: "bg-lane-red/20 text-lane-red",
-					Butterfly: "bg-pool-light/50 text-foreground",
-					IM: "bg-muted text-foreground",
-					"Medley Relay": "bg-purple-100 text-purple-700",
-					"Free Relay": "bg-green-100 text-green-700",
+					Freestyle: "bg-pool-blue/20 text-pool-blue border-pool-blue/30",
+					Free: "bg-pool-blue/20 text-pool-blue border-pool-blue/30",
+					Backstroke:
+						"bg-sunshine/20 text-sunshine-foreground border-sunshine/30",
+					Back: "bg-sunshine/20 text-sunshine-foreground border-sunshine/30",
+					Breaststroke: "bg-lane-red/20 text-lane-red border-lane-red/30",
+					Breast: "bg-lane-red/20 text-lane-red border-lane-red/30",
+					Butterfly: "bg-indigo-100 text-indigo-700 border-indigo-200",
+					Fly: "bg-indigo-100 text-indigo-700 border-indigo-200",
+					IM: "bg-purple-100 text-purple-700 border-purple-200",
+					Relay: "bg-emerald-100 text-emerald-700 border-emerald-200",
+					"Medley Relay": "bg-emerald-100 text-emerald-700 border-emerald-200",
+					"Free Relay": "bg-emerald-100 text-emerald-700 border-emerald-200",
 				};
-				// Simple fallback color if not found
-				const colorClass = colors[stroke] || "bg-muted text-muted-foreground";
+
+				// Standardize search
+				const matchedKey = Object.keys(colors).find((k) =>
+					stroke.toLowerCase().includes(k.toLowerCase()),
+				);
+
+				const colorClass = matchedKey
+					? colors[matchedKey]
+					: "bg-muted text-muted-foreground border-border";
 
 				return (
 					<span
-						className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}
+						className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border tracking-wider uppercase ${colorClass}`}
 					>
 						{stroke}
 					</span>

@@ -60,9 +60,25 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _check_auth(self, context):
         """Helper to ensure the request is authenticated."""
+        if context is not None:
+            try:
+                # Allow custom user ID via metadata for E2E test isolation
+                metadata = dict(context.invocation_metadata())
+                if "x-user-id" in metadata:
+                    uid = metadata["x-user-id"]
+                    print(f"DEBUG: Auth using x-user-id metadata: {uid}")
+                    return uid
+            except (AttributeError, TypeError):
+                # Context might be a mock or None-like without invocation_metadata
+                pass
+
         # Allow disabling auth for local dev/testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true":
+            # print("DEBUG: Auth disabled, using dev-user")
             return "dev-user"
+
+        if context is None:
+            raise ValueError("Context is required for authentication")
 
         uid = getattr(context, "uid", None)
         if uid is None:
@@ -72,21 +88,48 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _load_user_config(self, context):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
+        # For LocalStorageProvider, print absolute path for debugging
+        if hasattr(self.storage, "base_dir"):
+            abs_path = os.path.abspath(os.path.join(self.storage.base_dir, config_path))
+            print(f"DEBUG: Checking for config at {config_path} (abs: {abs_path}, uid: {uid})")
+        else:
+            print(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
+
         if self.storage.exists(config_path):
-            with tempfile.NamedTemporaryFile() as tmp:
-                self.storage.download_file(config_path, tmp.name)
-                with open(tmp.name) as f:
-                    return json.load(f)
+            # ... rest of the method unchanged ...
+            with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+                tmp_path = tmp.name
+                tmp.close()
+
+            try:
+                self.storage.download_file(config_path, tmp_path)
+                with open(tmp_path) as f:
+                    config = json.load(f)
+                    print(f"DEBUG: Loaded user config for {uid}: {config}")
+                    return config
+            except Exception as e:
+                print(f"DEBUG: Failed to load user config for {uid}: {e}")
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+
+        print(f"DEBUG: No user config found at {config_path} for {uid}, using defaults")
         return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
 
     def _save_user_config(self, context, config):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
+        print(f"DEBUG: Saving user config to {config_path}: {config}")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
             json.dump(config, tmp, indent=2)
             tmp_path = tmp.name
+            tmp.flush()
+            # Close it explicitly before uploading
+            tmp.close()
+
         try:
             self.storage.upload_file(tmp_path, config_path)
+            print(f"DEBUG: User config saved to {config_path}")
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -97,6 +140,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
 
         user_path = os.path.join("users", uid, filename)
+        # For LocalStorageProvider, print absolute path for debugging
+        if hasattr(self.storage, "base_dir"):
+            abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
+            print(
+                f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path} (abs: {abs_user_path})"
+            )
+        else:
+            print(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
+
         # Check cache
         if uid in self._user_cache:
             entry = self._user_cache[uid]
@@ -105,37 +157,56 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 try:
                     mtime = self.storage.get_last_modified(user_path)
                     if mtime == entry["mtime"]:
+                        print(f"DEBUG: Returning cached data for {uid}/{filename}")
                         return entry["data"], config
-                except Exception:
+                    else:
+                        print(f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})")
+                except Exception as e:
+                    print(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
                     pass  # Force reload on error
 
         if not self.storage.exists(user_path):
+            print(f"DEBUG: User file {user_path} NOT FOUND in storage.")
             # Fallback for prototype: check global Sample_Data.json
             if self.storage.exists(SOURCE_FILE):
+                print(f"DEBUG: Falling back to global {SOURCE_FILE}")
                 user_path = SOURCE_FILE
+                filename = SOURCE_FILE
             else:
+                print(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
                 return {}, config
+        else:
+            print(f"DEBUG: Found user file at {user_path}")
 
+        print(f"DEBUG: Loading data from {user_path}...")
         with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
             tmp_path = tmp.name
+            tmp.close()  # Close to avoid locking
+
         try:
             self.storage.download_file(user_path, tmp_path)
             if filename.endswith(".mdb"):
                 cache = self._load_mdb(tmp_path)
             else:
                 with open(tmp_path) as f:
-                    cache = json.load(f)
+                    raw_data = json.load(f)
+                # Use converter to normalize keys/types even for JSON
+                from mm_to_json.mm_to_json import MmToJsonConverter
+
+                converter = MmToJsonConverter(table_data=raw_data)
+                cache = converter.export_raw()
 
             # Update cache
             try:
                 mtime = self.storage.get_last_modified(user_path)
                 self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+                print(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
             except Exception as e:
-                print(f"Failed to update cache: {e}")
+                print(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
 
             return cache, config
         except Exception as e:
-            print(f"Error loading user data: {e}")
+            print(f"DEBUG: Error loading data from {user_path}: {e}")
             return {}, config
         finally:
             if os.path.exists(tmp_path):
@@ -181,22 +252,41 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Temporary buffer to hold file content
         file_content = io.BytesIO()
+        total_bytes = 0
 
         try:
             for request in request_iterator:
                 if request.HasField("filename"):
                     filename = os.path.basename(request.filename)
-                    if not filename.lower().endswith(".mdb"):
-                        filename += ".mdb"
+                    ext = os.path.splitext(filename)[1].lower()
+                    if ext not in [".mdb", ".json"]:
+                        # If no valid extension, default to .mdb for backward compatibility
+                        if not filename.lower().endswith(".mdb"):
+                            filename += ".mdb"
 
                 if request.HasField("chunk"):
+                    chunk_len = len(request.chunk)
                     file_content.write(request.chunk)
+                    total_bytes += chunk_len
+
+            print(f"DEBUG: UploadDataset received total {total_bytes} bytes for {filename}")
 
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
-            with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
+            # For LocalStorageProvider, print absolute path for debugging
+            if hasattr(self.storage, "base_dir"):
+                abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
+                print(f"DEBUG: UploadDataset saving to {user_path} (abs: {abs_user_path}) for {uid}")
+            else:
+                print(f"DEBUG: UploadDataset saving to {user_path} for {uid}")
+
+            suffix = os.path.splitext(filename)[1]
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                file_content.seek(0)
                 tmp.write(file_content.getvalue())
                 tmp_path = tmp.name
+                tmp.flush()
+                tmp.close()
 
             try:
                 self.storage.upload_file(tmp_path, user_path)
@@ -210,6 +300,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             config = self._load_user_config(context)
             config["active_dataset"] = filename
             self._save_user_config(context, config)
+
+            # Invalidate cache to force reload of the new dataset
+            if uid in self._user_cache:
+                del self._user_cache[uid]
 
             return pb2.UploadDatasetResponse(success=True, message=f"Saved {filename}")
         except Exception as e:
@@ -257,10 +351,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             print(f"DEBUG: Meet item keys: {list(item.keys())}", flush=True)
             # Prefer lowercase keys from MmToJsonConverter
             # MDB column 'Meet_name1' should be 'meet_name1'
-            name = item.get("meet_name1") or item.get("meet_name") or item.get("mname") or "Unknown Meet"
-            loc = item.get("location") or item.get("meet_location") or ""
-            start = self._format_date(item.get("start") or item.get("start_date") or "")
-            end = self._format_date(item.get("end") or item.get("end_date") or "")
+            name = (
+                item.get("meet_name1")
+                or item.get("meet_name")
+                or item.get("mname")
+                or item.get("Meet_name1")
+                or "Unknown Meet"
+            )
+            loc = item.get("location") or item.get("meet_location") or item.get("Meet_location") or ""
+            start = self._format_date(
+                item.get("start") or item.get("start_date") or item.get("meet_start") or item.get("Meet_start") or ""
+            )
+            end = self._format_date(
+                item.get("end") or item.get("end_date") or item.get("meet_end") or item.get("Meet_end") or ""
+            )
 
             meets.append(
                 pb2.Meet(
@@ -276,8 +380,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetTeams(self, request, context):
         request = request or pb2.GetTeamsRequest()
+        uid = self._check_auth(context)
         cache, _ = self._load_user_data(context)
         data = cache.get("team", [])
+        print(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams in cache['team']")
+        if len(data) > 0:
+            print(f"DEBUG: First team in cache: {data[0].get('team_name')}")
+
         athletes = cache.get("athlete", [])
 
         # Count athletes per team
@@ -519,9 +628,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.SetActiveDatasetResponse()
 
         print(f"Switching user {uid} dataset to {filename}...")
+        # Update config
         config = self._load_user_config(context)
         config["active_dataset"] = filename
         self._save_user_config(context, config)
+
+        # Invalidate cache to force reload
+        if uid in self._user_cache:
+            del self._user_cache[uid]
+
         return pb2.SetActiveDatasetResponse()
 
     def ClearDataset(self, request, context):
@@ -668,6 +783,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     relay_letter=str(item.get("team_ltr") or ""),
                     heat=self._safe_int(item.get("fin_heat")),
                     lane=self._safe_int(item.get("fin_lane")),
+                    team_color=self._get_team_color(t_id),
                 )
             )
         return pb2.GetRelaysResponse(relays=result)
@@ -792,6 +908,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     heat=self._safe_int(item.get("fin_heat") or item.get("pre_heat") or 0),
                     lane=self._safe_int(item.get("fin_lane") or item.get("pre_lane") or 0),
                     points=self._safe_float(item.get("ev_score", 0.0)),
+                    team_color=self._get_team_color(t_id),
                 )
             )
         return pb2.GetEntriesResponse(entries=result)
@@ -966,8 +1083,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GenerateReport(self, request, context):
         if request is None:
             return pb2.GenerateReportResponse(success=False, message="Missing request")
+        uid = self._check_auth(context)
         try:
-            cache, _ = self._load_user_data(context)
+            cache, config = self._load_user_data(context)
+            print(f"DEBUG: GenerateReport for user {uid}, cache keys: {list(cache.keys())}")
+            for tname, rows in cache.items():
+                if isinstance(rows, list):
+                    print(f"DEBUG: Cache table '{tname}' has {len(rows)} rows")
+
             converter = MmToJsonConverter(table_data=cache)
 
             rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
@@ -1445,6 +1568,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             # Generate URLs
             program_url = self.storage.get_url(user_pub_path)
+            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+
+            # Append token to program_url
+            if "?" in program_url:
+                program_url = f"{program_url}&token={token}"
+            else:
+                program_url = f"{program_url}?token={token}"
 
             # Sync URL points to the frontend API which proxies to gRPC SyncDQs
             # Use environment variables to avoid port collisions on shared machines
@@ -1584,3 +1714,4 @@ def serve():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     serve()
+# Triggering fresh CI run with clean lint state

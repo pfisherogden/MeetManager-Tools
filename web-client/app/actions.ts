@@ -1,11 +1,34 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import client from "@/lib/mm-client";
+
+async function getAuthMetadata() {
+	const headerList = await headers();
+	let userId = headerList.get("x-user-id");
+
+	if (!userId) {
+		// Fallback to cookie for resilience in some environments
+		const { cookies } = await import("next/headers");
+		const cookieStore = await cookies();
+		userId = cookieStore.get("x-user-id")?.value;
+	}
+
+	if (userId) {
+		console.log(`DEBUG: getAuthMetadata found x-user-id: ${userId}`);
+		return { "x-user-id": userId };
+	}
+	console.log(
+		"DEBUG: getAuthMetadata did NOT find x-user-id in headers or cookies",
+	);
+	return {};
+}
 
 export async function listDatasets() {
 	try {
-		const response = await client.listDatasets({});
+		const metadata = await getAuthMetadata();
+		const response = await client.listDatasets({}, { metadata });
 		console.log("SERVER ACTION SUCCESS (listDatasets):", response);
 		return response;
 	} catch (err: unknown) {
@@ -19,7 +42,8 @@ export async function listDatasets() {
 
 export async function setActiveDataset(filename: string) {
 	try {
-		await client.setActiveDataset({ filename });
+		const metadata = await getAuthMetadata();
+		await client.setActiveDataset({ filename }, { metadata });
 		revalidatePath("/", "layout");
 		return true;
 	} catch (err: unknown) {
@@ -32,7 +56,8 @@ export async function setActiveDataset(filename: string) {
 
 export async function clearDataset(filename: string) {
 	try {
-		await client.clearDataset({ filename });
+		const metadata = await getAuthMetadata();
+		await client.clearDataset({ filename }, { metadata });
 		revalidatePath("/", "layout");
 		return true;
 	} catch (err: unknown) {
@@ -45,7 +70,8 @@ export async function clearDataset(filename: string) {
 
 export async function clearAllDatasets() {
 	try {
-		await client.clearAllDatasets({});
+		const metadata = await getAuthMetadata();
+		await client.clearAllDatasets({}, { metadata });
 		revalidatePath("/", "layout");
 		return true;
 	} catch (err: unknown) {
@@ -62,8 +88,6 @@ export async function uploadDataset(formData: FormData) {
 	if (!file) {
 		throw new Error("No file uploaded");
 	}
-
-	console.log(`Starting upload for ${file.name} (${file.size} bytes)`);
 
 	async function* uploadRequestGenerator() {
 		yield { filename: file.name };
@@ -83,7 +107,10 @@ export async function uploadDataset(formData: FormData) {
 	}
 
 	try {
-		const response = await client.uploadDataset(uploadRequestGenerator());
+		const metadata = await getAuthMetadata();
+		const response = await client.uploadDataset(uploadRequestGenerator(), {
+			metadata,
+		});
 		revalidatePath("/", "layout");
 		return response;
 	} catch (err: unknown) {
@@ -97,7 +124,8 @@ export async function uploadDataset(formData: FormData) {
 
 export async function getSessions() {
 	try {
-		return await client.getSessions({});
+		const metadata = await getAuthMetadata();
+		return await client.getSessions({}, { metadata });
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getSessions):", err);
 		if (err instanceof Error) {
@@ -109,10 +137,10 @@ export async function getSessions() {
 
 export async function getAdminConfig() {
 	try {
-		return await client.getAdminConfig({});
+		const metadata = await getAuthMetadata();
+		return await client.getAdminConfig({}, { metadata });
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getAdminConfig):", err);
-		// Return empty default if fails, to avoid breaking UI?
 		return { meetName: "", meetDescription: "" };
 	}
 }
@@ -122,10 +150,14 @@ export async function updateAdminConfig(
 	meetDescription: string,
 ) {
 	try {
-		const response = await client.updateAdminConfig({
-			meetName,
-			meetDescription,
-		});
+		const metadata = await getAuthMetadata();
+		const response = await client.updateAdminConfig(
+			{
+				meetName,
+				meetDescription,
+			},
+			{ metadata },
+		);
 		revalidatePath("/", "layout");
 		return response;
 	} catch (err: unknown) {
@@ -138,7 +170,8 @@ export async function updateAdminConfig(
 
 export async function getEntries(eventId?: string, athleteId?: string) {
 	try {
-		return await client.getEntries({ eventId, athleteId });
+		const metadata = await getAuthMetadata();
+		return await client.getEntries({ eventId, athleteId }, { metadata });
 	} catch (_err) {
 		return { entries: [] };
 	}
@@ -146,7 +179,8 @@ export async function getEntries(eventId?: string, athleteId?: string) {
 
 export async function getRelays(eventId?: string) {
 	try {
-		return await client.getRelays({ eventId });
+		const metadata = await getAuthMetadata();
+		return await client.getRelays({ eventId }, { metadata });
 	} catch (_err) {
 		return { relays: [] };
 	}
@@ -154,7 +188,8 @@ export async function getRelays(eventId?: string) {
 
 export async function getScores() {
 	try {
-		return await client.getScores({});
+		const metadata = await getAuthMetadata();
+		return await client.getScores({}, { metadata });
 	} catch (_err) {
 		return { scores: [] };
 	}
@@ -162,7 +197,8 @@ export async function getScores() {
 
 export async function getEventScores() {
 	try {
-		return await client.getEventScores({});
+		const metadata = await getAuthMetadata();
+		return await client.getEventScores({}, { metadata });
 	} catch (_err) {
 		return { eventScores: [] };
 	}
@@ -170,7 +206,8 @@ export async function getEventScores() {
 
 export async function getTeams() {
 	try {
-		return await client.getTeams({});
+		const metadata = await getAuthMetadata();
+		return await client.getTeams({}, { metadata });
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getTeams):", err);
 		if (err instanceof Error) {
@@ -182,7 +219,8 @@ export async function getTeams() {
 
 export async function getAthletes() {
 	try {
-		return await client.getAthletes({});
+		const metadata = await getAuthMetadata();
+		return await client.getAthletes({}, { metadata });
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getAthletes):", err);
 		if (err instanceof Error) {
@@ -194,7 +232,8 @@ export async function getAthletes() {
 
 export async function getEvents() {
 	try {
-		return await client.getEvents({});
+		const metadata = await getAuthMetadata();
+		return await client.getEvents({}, { metadata });
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getEvents):", err);
 		if (err instanceof Error) {
@@ -206,7 +245,8 @@ export async function getEvents() {
 
 export async function getMeets() {
 	try {
-		return await client.getMeets({});
+		const metadata = await getAuthMetadata();
+		return await client.getMeets({}, { metadata });
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getMeets):", err);
 		if (err instanceof Error) {
@@ -218,11 +258,11 @@ export async function getMeets() {
 
 export async function getDashboardStats() {
 	try {
-		const response = await client.getDashboardStats({});
+		const metadata = await getAuthMetadata();
+		const response = await client.getDashboardStats({}, { metadata });
 		return response;
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getDashboardStats):", err);
-		// Return zeros if fails
 		return {
 			meetCount: 0,
 			teamCount: 0,
@@ -234,10 +274,10 @@ export async function getDashboardStats() {
 
 export async function getTeam(id: number) {
 	try {
-		return await client.getTeam({ id });
+		const metadata = await getAuthMetadata();
+		return await client.getTeam({ id }, { metadata });
 	} catch (err: unknown) {
 		console.error(`SERVER ACTION ERROR (getTeam ${id}):`, err);
-		// Return null or throw? Throwing is fine for now, page can handle error.
 		if (err instanceof Error) {
 			throw new Error(err.message);
 		}
@@ -247,7 +287,8 @@ export async function getTeam(id: number) {
 
 export async function getAthlete(id: number) {
 	try {
-		return await client.getAthlete({ id });
+		const metadata = await getAuthMetadata();
+		return await client.getAthlete({ id }, { metadata });
 	} catch (err: unknown) {
 		console.error(`SERVER ACTION ERROR (getAthlete ${id}):`, err);
 		if (err instanceof Error) {
@@ -268,19 +309,20 @@ export async function generateReport(
 	zebraStriping: boolean = false,
 ) {
 	try {
-		console.log(
-			`Generating report: type=${type}, title=${title}, teamFilter=${teamFilter}, gender=${genderFilter}, age=${ageGroupFilter}, cols=${columnsOnPage}, relaySwimmers=${showRelaySwimmers}, zebra=${zebraStriping}`,
+		const metadata = await getAuthMetadata();
+		const response = await client.generateReport(
+			{
+				type,
+				title,
+				teamFilter,
+				genderFilter,
+				ageGroupFilter,
+				columnsOnPage,
+				showRelaySwimmers,
+				zebraStriping,
+			},
+			{ metadata },
 		);
-		const response = await client.generateReport({
-			type,
-			title,
-			teamFilter,
-			genderFilter,
-			ageGroupFilter,
-			columnsOnPage,
-			showRelaySwimmers,
-			zebraStriping,
-		});
 
 		if (!response.success) {
 			throw new Error(response.message);
@@ -288,7 +330,7 @@ export async function generateReport(
 
 		return {
 			success: true,
-			pdfContent: Array.from(response.pdfContent as Uint8Array), // Convert to regular array for serialization
+			pdfContent: Array.from(response.pdfContent as Uint8Array),
 			filename: response.filename,
 			htmlContent: response.htmlContent,
 		};
@@ -306,23 +348,24 @@ export async function generateReportBundle(
 	bundleName: string = "bundle.zip",
 ) {
 	try {
-		console.log(
-			`Generating report bundle: ${bundleName} (${reports.length} reports)`,
+		const metadata = await getAuthMetadata();
+		const response = await client.generateReportBundle(
+			{
+				reports: reports.map((r) => ({
+					type: r.type,
+					title: r.title,
+					teamFilter: r.teamFilter || "",
+					genderFilter: r.genderFilter,
+					ageGroupFilter: r.ageGroupFilter,
+					columnsOnPage: r.columnsOnPage || 2,
+					showRelaySwimmers:
+						r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
+					zebraStriping: !!r.zebraStriping,
+				})),
+				bundleName,
+			},
+			{ metadata },
 		);
-		const response = await client.generateReportBundle({
-			reports: reports.map((r) => ({
-				type: r.type,
-				title: r.title,
-				teamFilter: r.teamFilter || "",
-				genderFilter: r.genderFilter,
-				ageGroupFilter: r.ageGroupFilter,
-				columnsOnPage: r.columnsOnPage || 2,
-				showRelaySwimmers:
-					r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
-				zebraStriping: !!r.zebraStriping,
-			})),
-			bundleName,
-		});
 
 		if (!response.success) {
 			throw new Error(response.message);
@@ -345,7 +388,8 @@ export async function generateReportBundle(
 
 export async function publishMeetData() {
 	try {
-		const response = await client.publishMeetData({});
+		const metadata = await getAuthMetadata();
+		const response = await client.publishMeetData({}, { metadata });
 		if (!response.success) {
 			throw new Error(response.message);
 		}

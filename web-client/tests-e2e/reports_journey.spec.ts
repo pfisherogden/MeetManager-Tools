@@ -1,16 +1,60 @@
-import * as path from "node:path";
 import { expect, test } from "@playwright/test";
 
 test.describe("Reports Generation Journey", () => {
-	test.beforeEach(async ({ page }) => {
-		// 1. Go to Reports directly to avoid navigation flakiness
-		await page.goto("/reports");
+	test.beforeEach(async ({ page, context }, testInfo) => {
+		// Set a unique user ID for this test to avoid collisions in the backend
+		const userId = `e2e-reports-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+
+		// Set header for all requests from this page
+		await page.setExtraHTTPHeaders({
+			"x-user-id": userId,
+		});
+
+		// Set cookie for additional resilience
+		await context.addCookies([
+			{
+				name: "x-user-id",
+				value: userId,
+				domain: "localhost",
+				path: "/",
+			},
+		]);
+
+		console.log(`Using isolated User ID: ${userId}`);
+	});
+
+	test("should ensure Sample_Data.json is active and navigate to Reports", async ({
+		page,
+	}) => {
+		// 1. Go to Admin to ensure Sample_Data.json is active
+		await page.goto("/admin", { waitUntil: "networkidle" });
+
+		const sampleRow = page.locator("tr").filter({
+			has: page.locator("td", {
+				hasText: /^Sample_Data.json$/i,
+			}),
+		});
+
+		if ((await sampleRow.count()) > 0) {
+			const activeBadge = sampleRow.locator("text=/Active/i");
+			if (await activeBadge.isHidden()) {
+				console.log("Setting Sample_Data.json as active for report tests...");
+				await sampleRow.getByRole("button", { name: "Set Active" }).click();
+				await expect(activeBadge).toBeVisible({ timeout: 20000 });
+			}
+		}
+
+		// 2. Go to Reports
+		await page.goto("/reports", { waitUntil: "networkidle" });
 		await expect(
 			page.getByRole("heading", { name: "Reports", exact: true }),
 		).toBeVisible({ timeout: 30000 });
 	});
 
 	test("should generate and preview HTML Meet Program", async ({ page }) => {
+		// Ensure we are on reports page
+		await page.goto("/reports", { waitUntil: "networkidle" });
+
 		// 1. Select the "Meet Program (HTML)" card
 		const htmlCard = page.getByTestId("report-card-meet-program-(html)");
 		await htmlCard.click();
@@ -33,16 +77,22 @@ test.describe("Reports Generation Journey", () => {
 		await page.waitForTimeout(10000);
 		const iframe = page.frameLocator('iframe[title="Meet Program Preview"]');
 
-		// The HTML report should contain some content
+		// The HTML report should contain "Event" and "Heat" markers
+		// Use a more robust check by looking at the full text content
 		const bodyText = await iframe.locator("body").innerText();
+		console.log("HTML Report Preview Content:", bodyText);
 		console.log("HTML Report Preview Length:", bodyText.length);
 
-		// Basic verification: Preview should render at least the header/branding
-		expect(bodyText.length).toBeGreaterThan(50);
-		expect(bodyText.toLowerCase()).toContain("mm-tools");
+		// Verified fix: Report should have substantial content
+		expect(bodyText.length).toBeGreaterThan(500);
+		expect(bodyText.toLowerCase()).toContain("event");
+		expect(bodyText.toLowerCase()).toContain("heat");
 	});
 
 	test("should generate PDF Entries report", async ({ page }) => {
+		// Ensure we are on reports page
+		await page.goto("/reports", { waitUntil: "networkidle" });
+
 		// 1. Select the "Entries (Club Style)" card
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
 		await clubCard.click();
@@ -59,6 +109,9 @@ test.describe("Reports Generation Journey", () => {
 	});
 
 	test("should verify other report types are selectable", async ({ page }) => {
+		// Ensure we are on reports page
+		await page.goto("/reports", { waitUntil: "networkidle" });
+
 		const types = [
 			"Psych Sheet",
 			"Meet Entries",

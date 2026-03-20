@@ -10,6 +10,37 @@ class ReportDataExtractor:
     def __init__(self, converter: "MmToJsonConverter"):
         self.converter = converter
         self.full_data = self.converter.convert()
+        self.team_color_map = self._build_team_color_map()
+
+    def _build_team_color_map(self) -> dict[str, str]:
+        """Map team names to their assigned colors for UI consistency."""
+        df_team = self.converter.tables.get("team")
+        if df_team is None or df_team.empty:
+            return {}
+
+        color_map = {}
+        for _, row in df_team.iterrows():
+            t_id = self._safe_int(row.get("team_no"))
+            t_name = str(row.get("team_name", "")).strip()
+            if t_name:
+                # Use same logic as server.py
+                palette = [
+                    "#3b82f6",
+                    "#ef4444",
+                    "#10b981",
+                    "#f59e0b",
+                    "#8b5cf6",
+                    "#ec4899",
+                    "#06b6d4",
+                    "#f97316",
+                    "#84cc16",
+                    "#6366f1",
+                    "#a855f7",
+                    "#14b8a6",
+                ]
+                color = palette[t_id % len(palette)]
+                color_map[t_name] = color
+        return color_map
 
     def _get_full_data(self) -> dict[str, Any]:
         """Ensure full_data is populated, refreshing from converter if needed."""
@@ -151,6 +182,7 @@ class ReportDataExtractor:
                     entry_data = {
                         "key": key,
                         "team": t_name,
+                        "team_color": self.team_color_map.get(t_name, ""),
                         "name": entry.get("name"),
                         "age": self._safe_int(entry.get("age", 0)),
                         "evt_num": evt_num,
@@ -418,6 +450,7 @@ class ReportDataExtractor:
                             {
                                 "lane": str(lane),
                                 "team": entry.get("team", ""),
+                                "team_color": self.team_color_map.get(entry.get("team", ""), ""),
                                 "relay_ltr": entry.get("relay_ltr", entry.get("relayLtr", "")),
                                 "time": seed_time,
                                 "swimmers": names,
@@ -435,6 +468,7 @@ class ReportDataExtractor:
                                 "name": name,
                                 "age": str(self._safe_int(entry.get("age", 0))),
                                 "team": entry.get("team", ""),
+                                "team_color": self.team_color_map.get(entry.get("team", ""), ""),
                                 "time": seed_time,
                                 "is_relay": False,
                             }
@@ -532,6 +566,7 @@ class ReportDataExtractor:
                 {
                     "name": e.get("name", ""),
                     "team": e.get("team", ""),
+                    "team_color": self.team_color_map.get(e.get("team", ""), ""),
                     "age": str(self._safe_int(e.get("age", 0))),
                     "time": e.get("seedTime", "NT"),
                 }
@@ -743,6 +778,7 @@ class ReportDataExtractor:
                     "place": str(e.get("place", "")),
                     "name": e.get("name", ""),
                     "team": e.get("team", ""),
+                    "team_color": self.team_color_map.get(e.get("team", ""), ""),
                     "age": str(self._safe_int(e.get("age", 0))),
                     "time": e.get("finalTime", e.get("seedTime", "")),
                     "points": str(self._safe_int(e.get("points", 0))),

@@ -4,6 +4,10 @@
     margin-top: 1.2in;
     /* Make room for fixed header in PDF */
 
+    @top-center {
+        content: element(header);
+    }
+
     @bottom-right {
         content: "Page " counter(page);
         font-family: "Helvetica", sans-serif;
@@ -19,7 +23,7 @@ body {
     padding: 0;
 }
 
-.header-container {
+#header {
     position: running(header);
     width: 100%;
     border-bottom: 1px solid #000;
@@ -171,4 +175,13 @@ td {
     column-count: 2;
     column-gap: 20pt;
     column-rule: 0.5pt solid #eee;
+}
+
+.team-dot {
+    display: inline-block;
+    width: 6pt;
+    height: 6pt;
+    border-radius: 50%;
+    margin-right: 3pt;
+    vertical-align: middle;
 }

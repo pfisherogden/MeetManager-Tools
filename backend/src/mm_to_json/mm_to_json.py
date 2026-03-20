@@ -91,21 +91,36 @@ class MmToJsonConverter:
                 df = pd.DataFrame(found_data)
                 if not df.empty:
                     df.columns = df.columns.astype(str).str.lower()
+
+                    # Remove duplicate columns, keeping the LAST one.
+                    # In our anonymized JSON, the anonymized fields (team_name, first_name)
+                    # often appear AFTER the original ones (Team_name, First_name)
+                    # or are more reliably lowercase.
+                    df = df.loc[:, ~df.columns.duplicated(keep="last")]
+
                     # Standardize IDs to int if they look like IDs
                     for col in ["event_ptr", "team_no", "ath_no", "sess_ptr", "mtevent", "mtev", "athlete"]:
                         if col in df.columns:
                             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
-                self.tables[logical] = df
+                self.tables[logical.lower()] = df
                 logger.debug(f"DEBUG: Loaded table {logical} from data")
             else:
                 logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
                 self.tables[logical] = pd.DataFrame()
 
     def _get_val(self, row, key, default=""):
-        """Safely retrieve value from a row, handling pandas NaN/None."""
+        """Safely retrieve value from a row, handling pandas NaN/None and ambiguous Series."""
         val = row.get(key)
-        if pd.isna(val):
-            return default
+        try:
+            if pd.isna(val):
+                return default
+        except ValueError:
+            if isinstance(val, pd.Series) and not val.empty:
+                val = val.iloc[0]
+                if pd.isna(val):
+                    return default
+            else:
+                return default
         return str(val).strip()
 
     def _load_from_db(self):
@@ -153,8 +168,10 @@ class MmToJsonConverter:
 
                 if not df.empty:
                     df.columns = df.columns.astype(str).str.lower()
+                    # Remove duplicate columns after lowercasing
+                    df = df.loc[:, ~df.columns.duplicated()]
 
-                self.tables[logical] = df
+                self.tables[logical.lower()] = df
                 logger.info(f"Loaded {logical} from {found_name} ({len(df)} rows)")
             else:
                 # If Schema B, Sessitem might be missing, which is fine
@@ -203,6 +220,10 @@ class MmToJsonConverter:
         return rows
 
     def convert(self) -> dict[str, Any]:
+        # Print table counts for CI debugging
+        for tname, df in self.tables.items():
+            print(f"DEBUG: Table '{tname}' has {len(df)} rows")
+
         meet = self.get_meet_info()
         sessions: list[Session] = self.get_session_info()
 
@@ -221,6 +242,7 @@ class MmToJsonConverter:
         for session in sessions:
             events = self.get_events_by_session(session)
             session_events_data = []
+            print(f"DEBUG: Processing session {session.number}, found {len(events)} events")
 
             for event in events:
                 event.create_description(meet["meetType"])
@@ -239,6 +261,23 @@ class MmToJsonConverter:
             session_data = session.to_dict()
             session_data["events"] = session_events_data
             meet_sessions_data.append(session_data)
+
+        # BROAD FALLBACK: If NO sessions have any events, but we have events in the table,
+        # create a default catch-all session so reports aren't empty.
+        has_any_linked_events = any(len(s.get("events", [])) > 0 for s in meet_sessions_data)
+        if not has_any_linked_events and not self.tables["event"].empty:
+            logger.info("No events linked to any session, creating catch-all default session for reports")
+            default_session = self.create_default_session()
+            events = self.get_all_events()
+            session_events_data = []
+            for event in events:
+                event.create_description(meet["meetType"])
+                self.add_entries_to_event(event)
+                session_events_data.append(event.to_dict())
+
+            ds_data = default_session.to_dict()
+            ds_data["events"] = session_events_data
+            meet_sessions_data.append(ds_data)
 
         meet_data = meet.copy()
         meet_data["sessions"] = meet_sessions_data
@@ -626,7 +665,7 @@ class MmToJsonConverter:
             for _, row in entries.iterrows():
                 entry_info = self.get_heat_lane_time(event.round_ltr, event.stroke, row)
                 if entry_info["heat"] != 0 and entry_info["lane"] != 0:
-                    ath_no = row.get("ath_no")
+                    ath_no = self._safe_int(row.get("ath_no"))
                     athlete = self.get_athlete_by_number(ath_no)
                     if athlete:
                         event.add_entry(
@@ -708,9 +747,9 @@ class MmToJsonConverter:
             for _, row in entries.iterrows():
                 entry_info = self.get_heat_lane_time(event.round_ltr, event.stroke, row)
                 if entry_info["heat"] != 0 and entry_info["lane"] != 0:
-                    team_no = row.get("team_no")
+                    team_no = self._safe_int(row.get("team_no"))
                     team_name = self.get_team_name(team_no)
-                    relay_ltr = row.get("team_ltr", "A")
+                    relay_ltr = str(row.get("team_ltr", "A")).strip()
 
                     # Get Relay Athletes
                     relay_athletes = self.get_relay_athletes(event.event_ptr, team_no, relay_ltr, event.round_ltr)
@@ -734,6 +773,7 @@ class MmToJsonConverter:
                             "finalTime": entry_info["time"],
                             "place": entry_info["place"],
                             "isRelay": True,
+                            "athleteId": self._safe_int(row.get("relay_no")),
                             "relayLtr": relay_ltr,
                             "relaySwimmers": swimmers_list,
                             "relayAthletes": relay_athletes,  # Full objects for extractor
@@ -882,9 +922,10 @@ class MmToJsonConverter:
             self.cache_team_map = {}
             df = self.tables["team"]
             if not df.empty:
-                for _, row in df.iterrows():
+                for idx in range(len(df)):
+                    row = df.iloc[idx]
                     if self.schema_type == "B":
-                        tid = row.get("team")
+                        tid = self._safe_int(row.get("team"))
                         abbr = self._get_val(row, "tcode")
                         short = self._get_val(row, "short")
                         lsc = self._get_val(row, "lsc")
@@ -893,7 +934,7 @@ class MmToJsonConverter:
                         name = short if short else f"{abbr}-{lsc}".strip("-")
                         self.cache_team_map[tid] = name
                     else:
-                        tid = row.get("team_no")
+                        tid = self._safe_int(row.get("team_no"))
                         full_name = self._get_val(row, "team_name")
                         abbr = self._get_val(row, "team_abbr")
                         short = self._get_val(row, "team_short")
@@ -913,18 +954,24 @@ class MmToJsonConverter:
             self.cache_division_map = {}
             df = self.tables["divisions"]
             if not df.empty:
-                for _, row in df.iterrows():
-                    did = row.get("div_no")
+                for idx in range(len(df)):
+                    row = df.iloc[idx]
+                    did = self._safe_int(row.get("div_no"))
                     name = str(row.get("div_name", "")).strip()
                     if name:
                         self.cache_division_map[did] = name
         return self.cache_division_map.get(div_no, "")
 
     def num_to_string(self, num):
-        # replicate util.h numToString which prints "%.2f" for floats and "%d" for ints
-        # But C++ overloaded it. seedTime is float.
-        # User requested 3 decimal places (thousandths)
-        return f"{num:.3f}"
+        if num is None or num == "":
+            return "NT"
+        try:
+            val = float(num)
+            if val <= 0:
+                return "NT"
+            return f"{val:.3f}"
+        except (ValueError, TypeError):
+            return "NT"
 
     def time_to_string(self, time_val, status):
         # logic from util.h
@@ -936,9 +983,13 @@ class MmToJsonConverter:
             return "DNF"
         if status and status.upper() == "DQ":
             return "DQ"
-        if time_val == 0.0:
+        try:
+            val = float(time_val or 0.0)
+            if val <= 0:
+                return "NT"
+            return f"{val:.3f}"
+        except (ValueError, TypeError):
             return "NT"
-        return f"{time_val:.3f}"
 
     def _safe_int(self, val, default=0):
         try:

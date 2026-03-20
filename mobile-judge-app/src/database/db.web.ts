@@ -274,6 +274,13 @@ export const getSwimmerById = (id: number | string): Swimmer | null => {
 	return null;
 };
 
+const parseSwimmerId = (id: number | string): number => {
+	if (typeof id === "number") return id;
+	// Handle strings like "Relay-1" or "empty-101"
+	const numeric = id.replace(/[^0-9]/g, "");
+	return parseInt(numeric, 10) || 0;
+};
+
 export const saveDQ = (
 	eventId: number,
 	swimmerId: number | string,
@@ -281,20 +288,16 @@ export const saveDQ = (
 	leg?: number,
 	notes?: string,
 ) => {
-	console.log("Web Mock DQ Saved:", { eventId, swimmerId, dqCode, leg, notes });
-
-	const sid =
-		typeof swimmerId === "string"
-			? parseInt(swimmerId.replace("empty-", ""), 10)
-			: swimmerId;
+	const sid = parseSwimmerId(swimmerId);
+	console.log("Web Mock DQ Saved:", { eventId, swimmerId, sid, dqCode, leg, notes });
 
 	// Remove existing DQ for the same context
 	if (leg) {
 		mockDQs = mockDQs.filter(
-			(dq) => !(dq.swimmer_id === sid && dq.leg === leg),
+			(dq) => !(dq.swimmer_id === sid && dq.leg === leg && dq.event_id === eventId),
 		);
 	} else {
-		mockDQs = mockDQs.filter((dq) => !(dq.swimmer_id === sid && !dq.leg));
+		mockDQs = mockDQs.filter((dq) => !(dq.swimmer_id === sid && !dq.leg && dq.event_id === eventId));
 	}
 
 	const newDQ: DQ = {
@@ -324,10 +327,7 @@ export const markAsSynced = (id: number) => {
 };
 
 export const deleteDQ = (swimmerId: number | string, leg?: number) => {
-	const sid =
-		typeof swimmerId === "string"
-			? parseInt(swimmerId.replace("empty-", ""), 10)
-			: swimmerId;
+	const sid = parseSwimmerId(swimmerId);
 	mockDQs = mockDQs.filter((d) => !(d.swimmer_id === sid && d.leg === leg));
 	return { changes: 1 };
 };

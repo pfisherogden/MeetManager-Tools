@@ -5,6 +5,7 @@ import {
 	FlatList,
 	Image,
 	Modal,
+	Platform,
 	SafeAreaView,
 	ScrollView,
 	StyleSheet,
@@ -159,6 +160,8 @@ export default function App() {
 	const [showEmptyLanes, setShowEmptyLanes] = useState(true); // Issue #140
 	const [refreshCounter, setRefreshCounter] = useState<number>(0);
 
+	const [loadError, setLoadError] = useState<string | null>(null);
+
 	const refreshEvents = useCallback(() => {
 		const evts = getEvents();
 		setEvents(evts);
@@ -177,7 +180,7 @@ export default function App() {
 		const initializeApp = async () => {
 			initDatabase();
 
-			const { loaded, dqData, syncUrl } = await loadDataFromUrl();
+			const { loaded, dqData, syncUrl, errorMessage } = await loadDataFromUrl();
 
 			if (dqData) {
 				setDqCodes(dqData);
@@ -191,6 +194,12 @@ export default function App() {
 			initSyncService(updatePendingCount);
 
 			if (!loaded) {
+				// If error message exists, it means we TRIED to load but failed
+				if (errorMessage) {
+					setLoadError(errorMessage);
+					setIsLoading(false);
+					return;
+				}
 				seedData();
 			}
 
@@ -510,12 +519,30 @@ export default function App() {
 									</Text>
 								</View>
 								<View style={styles.swimmerInfo}>
-									<TouchableOpacity onPress={() => handleDQ(item)}>
+									<TouchableOpacity
+										onPress={() => handleDQ(item)}
+										style={{
+											flexDirection: "row",
+											alignItems: "center",
+											justifyContent: "space-between",
+										}}
+									>
 										<Text
 											style={[styles.swimmerName, item.empty && styles.emptyText]}
 										>
 											{item.isRelay ? `Team ${item.team}` : item.name}
 										</Text>
+										{item.isRelay && item.dq_code ? (
+											<Text
+												style={[
+													styles.dqTrigger,
+													styles.dqSetText,
+													{ marginRight: 10 },
+												]}
+											>
+												{item.dq_code}
+											</Text>
+										) : null}
 										{!item.isRelay && (
 											<Text style={styles.teamName}>{item.team}</Text>
 										)}
@@ -613,6 +640,26 @@ export default function App() {
 					color={COLORS.primary}
 				/>
 				<Text style={styles.loadingText}>Loading Data...</Text>
+			</View>
+		);
+	}
+
+	if (loadError) {
+		return (
+			<View style={styles.loadingContainer}>
+				<Ionicons name="alert-circle" size={64} color={COLORS.danger} />
+				<Text style={[styles.loadingText, { color: COLORS.danger, marginTop: 20 }]}>
+					Failed to Load Meet Data
+				</Text>
+				<Text style={{ textAlign: 'center', marginHorizontal: 40, marginTop: 10, color: COLORS.secondary }}>
+					{loadError}
+				</Text>
+				<TouchableOpacity 
+					onPress={() => Platform.OS === 'web' ? window.location.reload() : {}}
+					style={{ marginTop: 30, backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+				>
+					<Text style={{ color: COLORS.white, fontWeight: 'bold' }}>RETRY</Text>
+				</TouchableOpacity>
 			</View>
 		);
 	}
@@ -950,7 +997,9 @@ export default function App() {
 											onPress={() => handleEditDQ(dq)}
 										>
 											<Text style={styles.pendingText}>
-												Event {dq.event_id} - Swimmer {dq.swimmer_id}
+												Event {dq.event_id} -{" "}
+												{getSwimmerById(dq.swimmer_id)?.name ||
+													`Swimmer ${dq.swimmer_id}`}
 												{dq.leg ? ` (Leg ${dq.leg})` : ""}
 											</Text>
 											<Text style={styles.pendingCodes}>{dq.dq_code}</Text>
@@ -1094,6 +1143,10 @@ const styles = StyleSheet.create({
 		color: COLORS.accent,
 		fontWeight: "900",
 		fontSize: 12,
+	},
+	dqSetText: {
+		color: COLORS.danger,
+		fontWeight: "bold",
 	},
 	notePreview: {
 		fontSize: 10,

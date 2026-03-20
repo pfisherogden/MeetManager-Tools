@@ -1,6 +1,28 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Dashboard Smoke Test", () => {
+	test.beforeEach(async ({ page, context }, testInfo) => {
+		// Set a unique user ID for this test to avoid collisions in the backend
+		const userId = `e2e-smoke-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+
+		// Set header for all requests from this page
+		await page.setExtraHTTPHeaders({
+			"x-user-id": userId,
+		});
+
+		// Set cookie for additional resilience
+		await context.addCookies([
+			{
+				name: "x-user-id",
+				value: userId,
+				domain: "localhost",
+				path: "/",
+			},
+		]);
+
+		console.log(`Using isolated User ID: ${userId}`);
+	});
+
 	test("should load the dashboard with stats", async ({ page }) => {
 		await page.goto("/");
 
