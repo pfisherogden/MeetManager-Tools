@@ -6,12 +6,20 @@ import client from "@/lib/mm-client";
 
 async function getAuthMetadata() {
 	const headerList = await headers();
-	const userId = headerList.get("x-user-id");
+	let userId = headerList.get("x-user-id");
+
+	if (!userId) {
+		// Fallback to cookie for resilience in some environments
+		const { cookies } = await import("next/headers");
+		const cookieStore = await cookies();
+		userId = cookieStore.get("x-user-id")?.value;
+	}
+
 	if (userId) {
 		console.log(`DEBUG: getAuthMetadata found x-user-id: ${userId}`);
 		return { "x-user-id": userId };
 	}
-	console.log("DEBUG: getAuthMetadata did NOT find x-user-id in headers");
+	console.log("DEBUG: getAuthMetadata did NOT find x-user-id in headers or cookies");
 	return {};
 }
 

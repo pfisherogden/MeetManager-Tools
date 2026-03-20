@@ -1,13 +1,27 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Reports Generation Journey", () => {
-	test.beforeEach(async ({ page }, testInfo) => {
+	test.beforeEach(async ({ page, context }, testInfo) => {
 		// Set a unique user ID for this test to avoid collisions in the backend
 		const userId = `e2e-reports-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+
+		// Set header for all requests from this page
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 		});
+
+		// Set cookie for additional resilience
+		await context.addCookies([
+			{
+				name: "x-user-id",
+				value: userId,
+				domain: "localhost",
+				path: "/",
+			},
+		]);
+
 		console.log(`Using isolated User ID: ${userId}`);
+	});
 
 		// 1. Go to Admin to ensure Sample_Data.json is active
 		await page.goto("/admin", { waitUntil: "networkidle" });
