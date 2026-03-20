@@ -62,6 +62,24 @@ The backend uses **WeasyPrint** for PDF generation, which requires system-level 
     ```bash
     just test-backend-fast
     ```
+
+## CI/CD & Docker Learnings
+
+### 1. Ubuntu 24.04 Dependencies
+- **Problem**: `WeasyPrint` requires `libgobject-2.0-0`, but this package was renamed in Ubuntu 24.04 (Noble Numbat).
+- **Solution**: Install `libglib2.0-0t64` and `libglib2.0-dev` in CI and Dockerfiles to provide the necessary GObject libraries.
+
+### 2. Absolute Pathing in Docker
+- **Problem**: Relative paths like `DATA_DIR = "../data"` can resolve incorrectly depending on the `WORKDIR` and how the Python process is started (e.g., via `pytest` vs `python src/server.py`).
+- **Solution**: Always use absolute paths for critical directories in `server.py`:
+  ```python
+  DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data"))
+  ```
+
+### 3. Multi-Channel E2E Isolation
+- **Problem**: In parallel CI environments, `x-user-id` headers set by Playwright were sometimes lost during Next.js Server Action or Client-side transitions, leading to "Briarhill" (default data) fallback collisions.
+- **Solution**: Implement a hybrid isolation strategy. Set `x-user-id` as **both** a custom HTTP header and a cookie in Playwright `beforeEach` hooks. Update the backend to check both locations to ensure the identity is preserved across all request types.
+
 ## Project Workflow (Mandatory)
 
 All agents MUST follow these workflow steps:
