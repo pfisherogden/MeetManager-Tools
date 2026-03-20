@@ -112,8 +112,9 @@ export function DatasetManager() {
 		const file = e.target.files?.[0];
 		if (!file) return;
 
-		if (!file.name.endsWith(".mdb")) {
-			toast.error("Invalid file type. Please upload an .mdb file.");
+		const ext = file.name.split(".").pop()?.toLowerCase();
+		if (ext !== "mdb" && ext !== "json") {
+			toast.error("Invalid file type. Please upload an .mdb or .json file.");
 			return;
 		}
 
@@ -178,7 +179,7 @@ export function DatasetManager() {
 				<div>
 					<Input
 						type="file"
-						accept=".mdb"
+						accept=".mdb,.json"
 						className="hidden"
 						ref={fileInputRef}
 						onChange={handleUpload}

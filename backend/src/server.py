@@ -186,15 +186,19 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             for request in request_iterator:
                 if request.HasField("filename"):
                     filename = os.path.basename(request.filename)
-                    if not filename.lower().endswith(".mdb"):
-                        filename += ".mdb"
+                    ext = os.path.splitext(filename)[1].lower()
+                    if ext not in [".mdb", ".json"]:
+                        # If no valid extension, default to .mdb for backward compatibility
+                        if not filename.lower().endswith(".mdb"):
+                            filename += ".mdb"
 
                 if request.HasField("chunk"):
                     file_content.write(request.chunk)
 
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
-            with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
+            suffix = os.path.splitext(filename)[1]
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
                 tmp.write(file_content.getvalue())
                 tmp_path = tmp.name
 
