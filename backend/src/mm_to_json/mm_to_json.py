@@ -234,6 +234,7 @@ class MmToJsonConverter:
         for session in sessions:
             events = self.get_events_by_session(session)
             session_events_data = []
+            logger.info(f"Processing session {session.number}, found {len(events)} events")
 
             for event in events:
                 event.create_description(meet["meetType"])
