@@ -60,6 +60,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _check_auth(self, context):
         """Helper to ensure the request is authenticated."""
+        # Allow custom user ID via metadata for E2E test isolation
+        metadata = dict(context.invocation_metadata())
+        if "x-user-id" in metadata:
+            return metadata["x-user-id"]
+
         # Allow disabling auth for local dev/testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true":
             return "dev-user"
