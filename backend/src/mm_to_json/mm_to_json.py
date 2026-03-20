@@ -253,7 +253,9 @@ class MmToJsonConverter:
 
             # Fallback for data missing sessitem (like some JSON exports)
             if not session_events_data and session.is_default:
-                print(f"DEBUG: Default session {session.number} has no linked events via sessitem, falling back to all events")
+                print(
+                    f"DEBUG: Default session {session.number} has no linked events via sessitem, falling back to all events"
+                )
                 events = self.get_all_events()
                 for event in events:
                     event.create_description(meet["meetType"])
@@ -438,7 +440,9 @@ class MmToJsonConverter:
                 try:
                     target = int(float(session.sess_id))
                     if "sess_ptr_numeric" not in df_sessitem.columns:
-                        df_sessitem["sess_ptr_numeric"] = pd.to_numeric(df_sessitem["sess_ptr"], errors="coerce").fillna(0).astype(int)
+                        df_sessitem["sess_ptr_numeric"] = (
+                            pd.to_numeric(df_sessitem["sess_ptr"], errors="coerce").fillna(0).astype(int)
+                        )
                     items = df_sessitem[df_sessitem["sess_ptr_numeric"] == target]
                 except Exception:
                     target = session.sess_id
@@ -487,7 +491,7 @@ class MmToJsonConverter:
             # Should not be called if logic flows correctly for Schema B, but just in case
             if df.empty or "mtev" not in df.columns:
                 return None
-            
+
             # Robust numeric comparison
             try:
                 target = int(float(event_ptr))

@@ -82,7 +82,7 @@ def repro_empty_reports():
             return
 
     print(f"Loading JSON from {json_path}...")
-    with open(json_path, "r") as f:
+    with open(json_path) as f:
         table_data = json.load(f)
 
     # 2. Inspect intermediate steps
@@ -102,6 +102,7 @@ def repro_empty_reports():
     # Wrap in try-except to catch WeasyPrint errors if libraries missing
     try:
         from mm_to_json.reporting.weasy_renderer import WeasyRenderer
+
         print("Using WeasyRenderer (HTML-based)...")
         renderer = WeasyRenderer(prog_path, MEET_PROGRAM_CONFIG)
         renderer.render(program_data)
@@ -117,6 +118,7 @@ def repro_empty_reports():
     print("Generating Psych Sheet...")
     psych_data = extractor.extract_psych_sheet_data()
     from mm_to_json.reporting.report_definitions import PSYCH_SHEET_CONFIG
+
     p_path = os.path.join(output_dir, "repro_champs_psych.pdf")
     PDFRenderer(p_path, PSYCH_SHEET_CONFIG).render(psych_data)
     print(f"  Saved to {p_path} ({os.path.getsize(p_path) / 1024:.1f} KB)")
