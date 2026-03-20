@@ -91,6 +91,9 @@ class MmToJsonConverter:
                 df = pd.DataFrame(found_data)
                 if not df.empty:
                     df.columns = df.columns.astype(str).str.lower()
+                    # Remove duplicate columns after lowercasing
+                    df = df.loc[:, ~df.columns.duplicated()]
+
                     # Standardize IDs to int if they look like IDs
                     for col in ["event_ptr", "team_no", "ath_no", "sess_ptr", "mtevent", "mtev", "athlete"]:
                         if col in df.columns:
@@ -161,6 +164,8 @@ class MmToJsonConverter:
 
                 if not df.empty:
                     df.columns = df.columns.astype(str).str.lower()
+                    # Remove duplicate columns after lowercasing
+                    df = df.loc[:, ~df.columns.duplicated()]
 
                 self.tables[logical.lower()] = df
                 logger.info(f"Loaded {logical} from {found_name} ({len(df)} rows)")
