@@ -29,17 +29,26 @@ const columns: Column<Entry>[] = [
 		editable: true,
 		width: "w-40",
 		filterVariant: "faceted",
-		render: (value, row) =>
-			row.teamId ? (
-				<Link
-					href={`/teams/${row.teamId}`}
-					className="hover:underline text-primary"
-				>
-					{value as string}
-				</Link>
-			) : (
-				<span>{value as string}</span>
-			),
+		render: (value, row) => (
+			<div className="flex items-center gap-2">
+				{row.teamColor && (
+					<span
+						className="w-2.5 h-2.5 rounded-full shrink-0"
+						style={{ backgroundColor: row.teamColor }}
+					/>
+				)}
+				{row.teamId ? (
+					<Link
+						href={`/teams/${row.teamId}`}
+						className="hover:underline text-primary"
+					>
+						{value as string}
+					</Link>
+				) : (
+					<span>{value as string}</span>
+				)}
+			</div>
+		),
 	},
 	{
 		key: "heat",

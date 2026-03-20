@@ -55,12 +55,13 @@ export const loadDataFromUrl = async () => {
 
 	let loaded = false;
 	let dqData = null;
+	let errorMessage = "";
 
 	if (programUrl) {
 		if (validateUrl(programUrl)) {
 			try {
 				const response = await fetch(programUrl as string);
-				if (!response.ok) throw new Error("Failed to fetch program data");
+				if (!response.ok) throw new Error(`Server returned ${response.status}`);
 				const data = await response.json();
 
 				// Structure validation: must contain 'sessions' or 'events'
@@ -68,13 +69,16 @@ export const loadDataFromUrl = async () => {
 					loadFromJSON(data);
 					loaded = true;
 				} else {
-					console.error("Invalid program data structure");
+					errorMessage = "Invalid program data structure from URL";
+					console.error(errorMessage);
 				}
-			} catch (e) {
-				console.error("Error loading program data:", e);
+			} catch (e: any) {
+				errorMessage = `Failed to fetch program data: ${e.message}`;
+				console.error(errorMessage);
 			}
 		} else {
-			console.warn(`Blocked untrusted program URL: ${programUrl}`);
+			errorMessage = `Blocked untrusted program URL: ${programUrl}`;
+			console.warn(errorMessage);
 		}
 	}
 
@@ -82,7 +86,7 @@ export const loadDataFromUrl = async () => {
 		if (validateUrl(dqUrl)) {
 			try {
 				const response = await fetch(dqUrl as string);
-				if (!response.ok) throw new Error("Failed to fetch DQ data");
+				if (!response.ok) throw new Error(`Server returned ${response.status}`);
 				const data = await response.json();
 
 				// Structure validation: must be an object (map of category to DqCode[])
@@ -99,5 +103,6 @@ export const loadDataFromUrl = async () => {
 		}
 	}
 
-	return { loaded, dqData, syncUrl };
-};
+	return { loaded, dqData, syncUrl, errorMessage };
+	};
+

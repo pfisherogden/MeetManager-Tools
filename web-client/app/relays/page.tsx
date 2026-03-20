@@ -12,6 +12,7 @@ interface ServerRelay {
 	eventName?: string;
 	teamId: number;
 	teamName: string;
+	teamColor?: string;
 	leg1Name: string;
 	leg2Name: string;
 	leg3Name: string;
@@ -42,6 +43,7 @@ export default async function RelaysPage({
 				eventName: r.eventName || `Event ${r.eventId}`,
 				teamId: r.teamId.toString(),
 				teamName: r.teamName,
+				teamColor: r.teamColor,
 				leg1: r.leg1Name,
 				leg2: r.leg2Name,
 				leg3: r.leg3Name,

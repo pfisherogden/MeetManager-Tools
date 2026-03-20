@@ -57,6 +57,7 @@ export interface Entry {
 	athleteName: string;
 	teamId: string; // Added
 	teamName: string;
+	teamColor?: string; // Added
 	seedTime: string;
 	finalTime: string | null;
 	place: number | null;
@@ -71,6 +72,7 @@ export interface Relay {
 	eventId: string;
 	teamId: string;
 	teamName: string;
+	teamColor?: string; // Added
 	leg1: string;
 	leg2: string;
 	leg3: string;

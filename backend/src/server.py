@@ -257,10 +257,28 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             print(f"DEBUG: Meet item keys: {list(item.keys())}", flush=True)
             # Prefer lowercase keys from MmToJsonConverter
             # MDB column 'Meet_name1' should be 'meet_name1'
-            name = item.get("meet_name1") or item.get("meet_name") or item.get("mname") or "Unknown Meet"
-            loc = item.get("location") or item.get("meet_location") or ""
-            start = self._format_date(item.get("start") or item.get("start_date") or "")
-            end = self._format_date(item.get("end") or item.get("end_date") or "")
+            name = (
+                item.get("meet_name1")
+                or item.get("meet_name")
+                or item.get("mname")
+                or item.get("Meet_name1")
+                or "Unknown Meet"
+            )
+            loc = item.get("location") or item.get("meet_location") or item.get("Meet_location") or ""
+            start = self._format_date(
+                item.get("start")
+                or item.get("start_date")
+                or item.get("meet_start")
+                or item.get("Meet_start")
+                or ""
+            )
+            end = self._format_date(
+                item.get("end")
+                or item.get("end_date")
+                or item.get("meet_end")
+                or item.get("Meet_end")
+                or ""
+            )
 
             meets.append(
                 pb2.Meet(
@@ -668,6 +686,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     relay_letter=str(item.get("team_ltr") or ""),
                     heat=self._safe_int(item.get("fin_heat")),
                     lane=self._safe_int(item.get("fin_lane")),
+                    team_color=self._get_team_color(t_id),
                 )
             )
         return pb2.GetRelaysResponse(relays=result)
@@ -792,6 +811,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     heat=self._safe_int(item.get("fin_heat") or item.get("pre_heat") or 0),
                     lane=self._safe_int(item.get("fin_lane") or item.get("pre_lane") or 0),
                     points=self._safe_float(item.get("ev_score", 0.0)),
+                    team_color=self._get_team_color(t_id),
                 )
             )
         return pb2.GetEntriesResponse(entries=result)
@@ -1445,6 +1465,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             # Generate URLs
             program_url = self.storage.get_url(user_pub_path)
+            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+            
+            # Append token to program_url
+            if "?" in program_url:
+                program_url = f"{program_url}&token={token}"
+            else:
+                program_url = f"{program_url}?token={token}"
 
             # Sync URL points to the frontend API which proxies to gRPC SyncDQs
             # Use environment variables to avoid port collisions on shared machines

@@ -13,6 +13,7 @@ interface ServerEntry {
 	athleteName: string;
 	teamId: number;
 	teamName: string;
+	teamColor?: string;
 	seedTime: string;
 	finalTime: string;
 	place: number;
@@ -47,6 +48,7 @@ export default async function EntriesPage({
 				athleteName: e.athleteName,
 				teamId: e.teamId ? e.teamId.toString() : "",
 				teamName: e.teamName,
+				teamColor: e.teamColor,
 				seedTime: e.seedTime,
 				finalTime: e.finalTime || null,
 				place: e.place || null,

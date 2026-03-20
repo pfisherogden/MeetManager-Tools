@@ -102,10 +102,17 @@ class MmToJsonConverter:
                 self.tables[logical] = pd.DataFrame()
 
     def _get_val(self, row, key, default=""):
-        """Safely retrieve value from a row, handling pandas NaN/None."""
+        """Safely retrieve value from a row, handling pandas NaN/None and ambiguous Series."""
         val = row.get(key)
-        if pd.isna(val):
-            return default
+        try:
+            if pd.isna(val):
+                return default
+        except ValueError:
+            if isinstance(val, pd.Series) and not val.empty:
+                val = val.iloc[0]
+                if pd.isna(val): return default
+            else:
+                return default
         return str(val).strip()
 
     def _load_from_db(self):
@@ -626,7 +633,7 @@ class MmToJsonConverter:
             for _, row in entries.iterrows():
                 entry_info = self.get_heat_lane_time(event.round_ltr, event.stroke, row)
                 if entry_info["heat"] != 0 and entry_info["lane"] != 0:
-                    ath_no = row.get("ath_no")
+                    ath_no = self._safe_int(row.get("ath_no"))
                     athlete = self.get_athlete_by_number(ath_no)
                     if athlete:
                         event.add_entry(
@@ -708,9 +715,9 @@ class MmToJsonConverter:
             for _, row in entries.iterrows():
                 entry_info = self.get_heat_lane_time(event.round_ltr, event.stroke, row)
                 if entry_info["heat"] != 0 and entry_info["lane"] != 0:
-                    team_no = row.get("team_no")
+                    team_no = self._safe_int(row.get("team_no"))
                     team_name = self.get_team_name(team_no)
-                    relay_ltr = row.get("team_ltr", "A")
+                    relay_ltr = str(row.get("team_ltr", "A")).strip()
 
                     # Get Relay Athletes
                     relay_athletes = self.get_relay_athletes(event.event_ptr, team_no, relay_ltr, event.round_ltr)
@@ -882,9 +889,10 @@ class MmToJsonConverter:
             self.cache_team_map = {}
             df = self.tables["team"]
             if not df.empty:
-                for _, row in df.iterrows():
+                for idx in range(len(df)):
+                    row = df.iloc[idx]
                     if self.schema_type == "B":
-                        tid = row.get("team")
+                        tid = self._safe_int(row.get("team"))
                         abbr = self._get_val(row, "tcode")
                         short = self._get_val(row, "short")
                         lsc = self._get_val(row, "lsc")
@@ -893,7 +901,7 @@ class MmToJsonConverter:
                         name = short if short else f"{abbr}-{lsc}".strip("-")
                         self.cache_team_map[tid] = name
                     else:
-                        tid = row.get("team_no")
+                        tid = self._safe_int(row.get("team_no"))
                         full_name = self._get_val(row, "team_name")
                         abbr = self._get_val(row, "team_abbr")
                         short = self._get_val(row, "team_short")
@@ -913,8 +921,9 @@ class MmToJsonConverter:
             self.cache_division_map = {}
             df = self.tables["divisions"]
             if not df.empty:
-                for _, row in df.iterrows():
-                    did = row.get("div_no")
+                for idx in range(len(df)):
+                    row = df.iloc[idx]
+                    did = self._safe_int(row.get("div_no"))
                     name = str(row.get("div_name", "")).strip()
                     if name:
                         self.cache_division_map[did] = name

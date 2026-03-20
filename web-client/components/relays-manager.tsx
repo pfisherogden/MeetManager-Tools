@@ -7,35 +7,24 @@ import { type Column, DataTable } from "@/components/data-table";
 import type { Relay } from "@/lib/swim-meet-types";
 import { cn } from "@/lib/utils";
 
-// ToDo: fetch teams from API
-const teams = [
-	{ id: "1", name: "Team A", color: "#FF0000" },
-	{ id: "2", name: "Team B", color: "#00FF00" },
-];
-
 const columns: Column<Relay>[] = [
 	{
 		key: "teamName",
 		label: "Team",
 		editable: true,
-		type: "select",
-		options: teams.map((t) => t.name),
 		width: "w-44",
 		filterVariant: "faceted",
-		render: (value) => {
-			const team = teams.find((t) => t.name === value);
-			return (
-				<div className="flex items-center gap-2">
-					{team && (
-						<span
-							className="w-3 h-3 rounded-full"
-							style={{ backgroundColor: team.color }}
-						/>
-					)}
-					<span className="font-medium">{value as string}</span>
-				</div>
-			);
-		},
+		render: (value, row) => (
+			<div className="flex items-center gap-2">
+				{row.teamColor && (
+					<span
+						className="w-2.5 h-2.5 rounded-full shrink-0"
+						style={{ backgroundColor: row.teamColor }}
+					/>
+				)}
+				<span className="font-medium">{value as string}</span>
+			</div>
+		),
 	},
 	{
 		key: "eventId",
@@ -139,8 +128,8 @@ export function RelaysManager({ initialRelays }: RelaysManagerProps) {
 		const newRelay: Relay = {
 			id: `r${Date.now()}`,
 			eventId: "",
-			teamId: teams[0]?.id || "",
-			teamName: teams[0]?.name || "",
+			teamId: "",
+			teamName: "New Team",
 			leg1: "",
 			leg2: "",
 			leg3: "",
@@ -161,17 +150,7 @@ export function RelaysManager({ initialRelays }: RelaysManagerProps) {
 		key: keyof Relay,
 		value: Relay[keyof Relay],
 	) => {
-		setData(
-			data.map((r) => {
-				if (r.id !== id) return r;
-				const updated = { ...r, [key]: value };
-				if (key === "teamName") {
-					const team = teams.find((t) => t.name === value);
-					if (team) updated.teamId = team.id;
-				}
-				return updated;
-			}),
-		);
+		setData(data.map((r) => (r.id === id ? { ...r, [key]: value } : r)));
 	};
 
 	return (

@@ -22,7 +22,7 @@ def champs_cache():
     # File is in backend/tests/test_report_validation.py
     # Project root is 2 levels up
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    fixture_path = os.path.join(root_dir, "tests/fixtures/anonymized_meets/sample_data_champs_2025-aftermeet.json")
+    fixture_path = os.path.join(root_dir, "tests/fixtures/anonymized_champs.json")
     with open(fixture_path) as f:
         cache_raw = json.load(f)
     cache_data = cache_raw.get("data", cache_raw)
