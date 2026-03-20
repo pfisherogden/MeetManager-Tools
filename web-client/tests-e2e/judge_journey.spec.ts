@@ -107,13 +107,9 @@ test.describe("Mobile Judge App Journey", () => {
 		// Verification
 		await expect(page.getByText("No pending DQs")).toBeVisible();
 
-		// Close modal (X icon)
-		await page
-			.locator("header")
-			.filter({ hasText: "Offline Queue" })
-			.getByRole("button")
-			.nth(1)
-			.click();
+		// Close modal (assuming top right X or similar button)
+		// We can target by looking for a button in the header area or just the second button in the modal
+		await page.getByRole("dialog").getByRole("button").first().click();
 
 		// Queue count should be 0
 		await expect(page.getByText(/Offline Queue: 0/)).toBeVisible();

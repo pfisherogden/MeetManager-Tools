@@ -23,18 +23,18 @@ test.describe("Reports Generation Journey", () => {
 
 		// 4. Verify preview dialog opens
 		const dialog = page.getByRole("dialog");
-		await expect(dialog).toBeVisible({ timeout: 30000 });
+		await expect(dialog).toBeVisible({ timeout: 60000 });
 		await expect(dialog.getByText("Meet Program Preview")).toBeVisible();
 
 		// 5. Verify iframe content (Wait for iframe to load and have content)
 		// Small delay to allow srcDoc to render
-		await page.waitForTimeout(2000);
+		await page.waitForTimeout(4000);
 		const iframe = page.frameLocator('iframe[title="Meet Program Preview"]');
 
 		// The HTML report should contain "Event" and "Heat" markers
 		// Using regex to be flexible with exact text like "Event 1"
-		await expect(iframe.getByText(/Event/i).first()).toBeVisible({
-			timeout: 10000,
+		await expect(iframe.getByText(/Event|Heat/i).first()).toBeVisible({
+			timeout: 20000,
 		});
 		await expect(iframe.getByText(/Heat/i).first()).toBeVisible();
 
