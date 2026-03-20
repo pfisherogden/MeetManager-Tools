@@ -41,7 +41,7 @@ services:
 
   judge-app:
     build:
-      context: .
-      dockerfile: mobile-judge-app/Dockerfile
+      context: mobile-judge-app
+      dockerfile: Dockerfile
     ports:
       - "${MOBILE_APP_PORT:-8080}:8080"
