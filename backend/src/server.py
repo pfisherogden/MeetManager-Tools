@@ -87,9 +87,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
         print(f"DEBUG: Saving user config to {config_path}: {config}")
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
             json.dump(config, tmp, indent=2)
             tmp_path = tmp.name
+            tmp.flush()
+            # Close it explicitly before uploading
+            tmp.close()
+
         try:
             self.storage.upload_file(tmp_path, config_path)
             print(f"DEBUG: User config saved to {config_path}")
