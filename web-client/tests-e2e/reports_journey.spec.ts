@@ -1,7 +1,31 @@
+import * as path from "node:path";
 import { expect, test } from "@playwright/test";
 
 test.describe("Reports Generation Journey", () => {
 	test.beforeEach(async ({ page }) => {
+		// 1. Go to Admin and upload the champs MDB
+		await page.goto("/admin");
+		await expect(
+			page.getByRole("heading", { name: "Dataset Management" }),
+		).toBeVisible();
+
+		const fileChooserPromise = page.waitForEvent("filechooser");
+		await page.getByRole("button", { name: "Upload Dataset" }).click();
+		const fileChooser = await fileChooserPromise;
+
+		// Path relative to the web-client directory where playwright runs
+		const mdbPath = path.join(
+			__dirname,
+			"../../../backend/data/sample_data_champs_2025-aftermeet.mdb",
+		);
+		await fileChooser.setFiles(mdbPath);
+
+		// Wait for upload success toast
+		await expect(page.getByText("Dataset uploaded successfully")).toBeVisible({
+			timeout: 60000,
+		});
+
+		// 2. Go to Reports
 		await page.goto("/reports");
 		await expect(
 			page.getByRole("heading", { name: "Reports", exact: true }),
@@ -36,8 +60,8 @@ test.describe("Reports Generation Journey", () => {
 		const bodyText = await iframe.locator("body").innerText();
 		console.log("HTML Report Preview Length:", bodyText.length);
 
-		// Verified fix: Report should have substantial content
-		expect(bodyText.length).toBeGreaterThan(500);
+		// Verified fix with Champs data: Report should have substantial content
+		expect(bodyText.length).toBeGreaterThan(1000);
 		expect(bodyText.toLowerCase()).toContain("event");
 		expect(bodyText.toLowerCase()).toContain("heat");
 	});
