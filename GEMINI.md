@@ -69,7 +69,7 @@ All agents MUST follow these workflow steps:
 2. **Branching & PRs**: **NEVER** commit or push directly to `main`. All work MUST be performed in a separate branch (`feat/*` or `fix/*`) and submitted via a Pull Request.
 3. **CI/CD Pass**: Merging into `main` is **ONLY** permitted after ALL GitHub Actions and CI checks have passed successfully.
 4. **Issue Closure**: Only close issues AFTER the corresponding PR is merged into `main` and CI/CD is passing on the main branch.
-5. **Communication**: Update the user in the `pfo-gemcli` Google Chat space at significant milestones (e.g., PR created, work completed).
+5. **Communication**: Provide **periodic** progress updates in the `pfo-gemcli` Google Chat space. Post a summary message at significant milestones (e.g., research complete, implementation started, PR created, work completed) or whenever a task involves more than a few turns without a major milestone.
 6. **Skills**: Rigorously follow the instructions in `.agent/skills/github-workflow/SKILL.md`.
 
 ## Reliability Standards

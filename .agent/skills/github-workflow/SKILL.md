@@ -13,8 +13,9 @@ description: Best practices for GitHub flows in MeetManager-Tools
 - **Closing**: Only close the issue AFTER the Pull Request has been merged into `main` and all CI/CD checks have passed.
 
 ### 2. Communication
-- **Google Chat**: For every significant milestone (e.g., finishing research, opening a PR, merging to main), update the user in the `pfo-gemcli` Google Chat space.
-- **Format**: Summarize accomplishments and link to relevant PRs or issues.
+- **Google Chat**: Provide **periodic and frequent** progress updates in the `pfo-gemcli` Google Chat space.
+- **Frequency**: Post a summary message at every significant milestone (e.g., finishing research, opening a PR, merging to main) or approximately every 15-20 minutes during long-running implementation or debugging phases.
+- **Format**: Summarize current status, any blockers encountered, and planned next steps. Link to relevant PRs or issues.
 
 ## Mandatory Quality Checks
 **NEVER** push code without running the following checks locally:
