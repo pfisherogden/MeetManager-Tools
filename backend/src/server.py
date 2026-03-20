@@ -324,8 +324,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetTeams(self, request, context):
         request = request or pb2.GetTeamsRequest()
+        uid = self._check_auth(context)
         cache, _ = self._load_user_data(context)
         data = cache.get("team", [])
+        print(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams in cache['team']")
+        if len(data) > 0:
+            print(f"DEBUG: First team in cache: {data[0].get('team_name')}")
+        
         athletes = cache.get("athlete", [])
 
         # Count athletes per team
