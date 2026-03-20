@@ -93,10 +93,10 @@ test.describe("Champs Dataset Journey", () => {
 			expect(className).toMatch(/bg-muted/);
 		}
 
-		// Verify 3-decimal rounding
+		// Verify 3-decimal rounding (handle both SS.sss and MM:SS.sss)
 		const entryCells = page.locator("table tbody td");
 		const cellTexts = await entryCells.allInnerTexts();
-		const times = cellTexts.filter((t) => t.match(/\d+\.\d{3}([ \t\n]|$)/));
+		const times = cellTexts.filter((t) => t.match(/(\d+:)?\d+\.\d{3}([ \t\n]|$)/));
 		expect(times.length).toBeGreaterThan(0);
 
 		// 6. Scores Page: Bug 4 (Meet Name)
