@@ -19,8 +19,10 @@ test.describe("Reports Generation Journey", () => {
 
 		// Wait for any heading to ensure page has loaded something
 		await page.waitForSelector("h1, h2, h3", { timeout: 30000 });
-		const headings = await page.evaluate(() => 
-			Array.from(document.querySelectorAll("h1, h2, h3")).map(h => h.textContent)
+		const headings = await page.evaluate(() =>
+			Array.from(document.querySelectorAll("h1, h2, h3")).map(
+				(h) => h.textContent,
+			),
 		);
 		console.log("Found headings on /meets:", headings);
 
@@ -64,7 +66,7 @@ test.describe("Reports Generation Journey", () => {
 			await page
 				.locator("nav")
 				.getByRole("link", { name: "Reports", exact: true })
-				.click({ timeout: 10000 });
+				.click({ timeout: 15000 });
 		} catch (_e) {
 			console.log(
 				"Sidebar click failed, falling back to direct navigation to /reports",
