@@ -17,7 +17,7 @@ class ReportDataExtractor:
         df_team = self.converter.tables.get("team")
         if df_team is None or df_team.empty:
             return {}
-        
+
         color_map = {}
         for _, row in df_team.iterrows():
             t_id = self._safe_int(row.get("team_no"))
@@ -25,9 +25,18 @@ class ReportDataExtractor:
             if t_name:
                 # Use same logic as server.py
                 palette = [
-                    "#3b82f6", "#ef4444", "#10b981", "#f59e0b",
-                    "#8b5cf6", "#ec4899", "#06b6d4", "#f97316",
-                    "#84cc16", "#6366f1", "#a855f7", "#14b8a6",
+                    "#3b82f6",
+                    "#ef4444",
+                    "#10b981",
+                    "#f59e0b",
+                    "#8b5cf6",
+                    "#ec4899",
+                    "#06b6d4",
+                    "#f97316",
+                    "#84cc16",
+                    "#6366f1",
+                    "#a855f7",
+                    "#14b8a6",
                 ]
                 color = palette[t_id % len(palette)]
                 color_map[t_name] = color

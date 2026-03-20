@@ -266,18 +266,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             )
             loc = item.get("location") or item.get("meet_location") or item.get("Meet_location") or ""
             start = self._format_date(
-                item.get("start")
-                or item.get("start_date")
-                or item.get("meet_start")
-                or item.get("Meet_start")
-                or ""
+                item.get("start") or item.get("start_date") or item.get("meet_start") or item.get("Meet_start") or ""
             )
             end = self._format_date(
-                item.get("end")
-                or item.get("end_date")
-                or item.get("meet_end")
-                or item.get("Meet_end")
-                or ""
+                item.get("end") or item.get("end_date") or item.get("meet_end") or item.get("Meet_end") or ""
             )
 
             meets.append(
@@ -1466,7 +1458,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Generate URLs
             program_url = self.storage.get_url(user_pub_path)
             token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
-            
+
             # Append token to program_url
             if "?" in program_url:
                 program_url = f"{program_url}&token={token}"

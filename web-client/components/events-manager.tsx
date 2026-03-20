@@ -70,7 +70,8 @@ export function EventsManager({ initialEvents, sessions }: EventsManagerProps) {
 				const colors: Record<string, string> = {
 					Freestyle: "bg-pool-blue/20 text-pool-blue border-pool-blue/30",
 					Free: "bg-pool-blue/20 text-pool-blue border-pool-blue/30",
-					Backstroke: "bg-sunshine/20 text-sunshine-foreground border-sunshine/30",
+					Backstroke:
+						"bg-sunshine/20 text-sunshine-foreground border-sunshine/30",
 					Back: "bg-sunshine/20 text-sunshine-foreground border-sunshine/30",
 					Breaststroke: "bg-lane-red/20 text-lane-red border-lane-red/30",
 					Breast: "bg-lane-red/20 text-lane-red border-lane-red/30",
@@ -81,13 +82,15 @@ export function EventsManager({ initialEvents, sessions }: EventsManagerProps) {
 					"Medley Relay": "bg-emerald-100 text-emerald-700 border-emerald-200",
 					"Free Relay": "bg-emerald-100 text-emerald-700 border-emerald-200",
 				};
-				
+
 				// Standardize search
-				const matchedKey = Object.keys(colors).find(k => 
-					stroke.toLowerCase().includes(k.toLowerCase())
+				const matchedKey = Object.keys(colors).find((k) =>
+					stroke.toLowerCase().includes(k.toLowerCase()),
 				);
-				
-				const colorClass = matchedKey ? colors[matchedKey] : "bg-muted text-muted-foreground border-border";
+
+				const colorClass = matchedKey
+					? colors[matchedKey]
+					: "bg-muted text-muted-foreground border-border";
 
 				return (
 					<span
