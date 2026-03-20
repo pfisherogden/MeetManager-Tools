@@ -1,6 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Mobile Judge App Journey", () => {
+	test.beforeEach(async ({ page }, testInfo) => {
+		// Set a unique user ID for this test to avoid collisions in the backend
+		const userId = `e2e-judge-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		await page.setExtraHTTPHeaders({
+			"x-user-id": userId,
+		});
+		console.log(`Using isolated User ID: ${userId}`);
+	});
+
 	// Set baseURL to the mobile app port (8080 by default in Docker)
 	test.use({ baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080" });
 
