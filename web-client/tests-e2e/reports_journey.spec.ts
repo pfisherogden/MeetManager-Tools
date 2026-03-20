@@ -35,7 +35,7 @@ test.describe("Reports Generation Journey", () => {
 		// Use a more robust check by looking at the full text content
 		const bodyText = await iframe.locator("body").innerText();
 		console.log("HTML Report Preview Length:", bodyText.length);
-		
+
 		expect(bodyText.toLowerCase()).toContain("event");
 		expect(bodyText.toLowerCase()).toContain("heat");
 

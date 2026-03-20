@@ -109,9 +109,12 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// Close modal (Press Escape as a fallback or click the X button)
 		await page.keyboard.press("Escape");
-		
+
 		// If still visible, try clicking the button with the X icon (close)
-		const closeButton = page.getByRole("button").filter({ has: page.locator("svg") }).first();
+		const closeButton = page
+			.getByRole("button")
+			.filter({ has: page.locator("svg") })
+			.first();
 		if (await closeButton.isVisible()) {
 			await closeButton.click();
 		}
