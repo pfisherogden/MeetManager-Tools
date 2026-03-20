@@ -95,7 +95,7 @@ class MmToJsonConverter:
                     for col in ["event_ptr", "team_no", "ath_no", "sess_ptr", "mtevent", "mtev", "athlete"]:
                         if col in df.columns:
                             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
-                self.tables[logical] = df
+                self.tables[logical.lower()] = df
                 logger.debug(f"DEBUG: Loaded table {logical} from data")
             else:
                 logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
@@ -162,7 +162,7 @@ class MmToJsonConverter:
                 if not df.empty:
                     df.columns = df.columns.astype(str).str.lower()
 
-                self.tables[logical] = df
+                self.tables[logical.lower()] = df
                 logger.info(f"Loaded {logical} from {found_name} ({len(df)} rows)")
             else:
                 # If Schema B, Sessitem might be missing, which is fine
