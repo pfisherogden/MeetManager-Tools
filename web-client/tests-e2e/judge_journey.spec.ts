@@ -110,7 +110,6 @@ test.describe("Mobile Judge App Journey", () => {
 		// Close modal
 		await page.keyboard.press("Escape");
 		await page.waitForTimeout(1000);
-		
 		// If still visible, try accessibility label or click outside
 		if (await page.getByText("Offline Queue").first().isVisible()) {
 			const closeButton = page.getByLabel("Close offline queue");
