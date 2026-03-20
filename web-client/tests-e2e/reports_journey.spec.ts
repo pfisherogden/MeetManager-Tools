@@ -14,7 +14,9 @@ test.describe("Reports Generation Journey", () => {
 		await htmlCard.click();
 
 		// 2. Verify configuration summary updates
-		await expect(page.locator("div").filter({ hasText: /^Summary/ })).toContainText("Meet Program (HTML)");
+		await expect(
+			page.locator("div").filter({ hasText: /^Summary/ }),
+		).toContainText("Meet Program (HTML)");
 
 		// 3. Click "View HTML" button
 		await page.getByRole("button", { name: "View HTML" }).click();
@@ -26,17 +28,19 @@ test.describe("Reports Generation Journey", () => {
 
 		// 5. Verify iframe content (Wait for iframe to load and have content)
 		const iframe = page.frameLocator('iframe[title="Meet Program Preview"]');
-		
+
 		// The HTML report should contain "Event" and "Heat" markers
 		// Using regex to be flexible with exact text like "Event 1"
-		await expect(iframe.getByText(/Event/i).first()).toBeVisible({ timeout: 10000 });
+		await expect(iframe.getByText(/Event/i).first()).toBeVisible({
+			timeout: 10000,
+		});
 		await expect(iframe.getByText(/Heat/i).first()).toBeVisible();
-		
+
 		// Verify some data exists - shouldn't just be a header
 		// In the sample data, we expect multiple events
-		const eventText = await iframe.locator('body').innerText();
+		const eventText = await iframe.locator("body").innerText();
 		const eventMatches = eventText.match(/Event \d+/g);
-		expect(eventMatches && eventMatches.length).toBeGreaterThan(0);
+		expect(eventMatches?.length).toBeGreaterThan(0);
 	});
 
 	test("should generate PDF Entries report", async ({ page }) => {
@@ -50,7 +54,9 @@ test.describe("Reports Generation Journey", () => {
 		await page.getByRole("button", { name: "Download PDF" }).click();
 
 		// 3. Verify success toast
-		await expect(page.getByText("Report generated successfully")).toBeVisible({ timeout: 30000 });
+		await expect(page.getByText("Report generated successfully")).toBeVisible({
+			timeout: 30000,
+		});
 	});
 
 	test("should verify other report types are selectable", async ({ page }) => {
@@ -59,13 +65,15 @@ test.describe("Reports Generation Journey", () => {
 			"Meet Entries",
 			"Lineup Sheets",
 			"Meet Results",
-			"Entries (HY-TEK Style)"
+			"Entries (HY-TEK Style)",
 		];
 
 		for (const type of types) {
 			const testId = `report-card-${type.toLowerCase().replace(/\s+/g, "-")}`;
 			await page.getByTestId(testId).click();
-			await expect(page.locator("div").filter({ hasText: /^Summary/ })).toContainText(type);
+			await expect(
+				page.locator("div").filter({ hasText: /^Summary/ }),
+			).toContainText(type);
 		}
 	});
 });
