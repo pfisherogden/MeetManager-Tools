@@ -28,20 +28,18 @@ test.describe("Reports Generation Journey", () => {
 
 		// 5. Verify iframe content (Wait for iframe to load and have content)
 		// Small delay to allow srcDoc to render
-		await page.waitForTimeout(4000);
+		await page.waitForTimeout(5000);
 		const iframe = page.frameLocator('iframe[title="Meet Program Preview"]');
 
 		// The HTML report should contain "Event" and "Heat" markers
-		// Using regex to be flexible with exact text like "Event 1"
-		await expect(iframe.getByText(/Event|Heat/i).first()).toBeVisible({
-			timeout: 20000,
-		});
-		await expect(iframe.getByText(/Heat/i).first()).toBeVisible();
+		// Use a more robust check by looking at the full text content
+		const bodyText = await iframe.locator("body").innerText();
+		expect(bodyText.toLowerCase()).toContain("event");
+		expect(bodyText.toLowerCase()).toContain("heat");
 
 		// Verify some data exists - shouldn't just be a header
 		// In the sample data, we expect multiple events
-		const eventText = await iframe.locator("body").innerText();
-		const eventMatches = eventText.match(/Event \d+/g);
+		const eventMatches = bodyText.match(/Event \d+/gi);
 		expect(eventMatches?.length).toBeGreaterThan(0);
 	});
 

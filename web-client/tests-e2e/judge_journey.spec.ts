@@ -11,7 +11,7 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
 
 		// 2. Tap an individual event (e.g., Event 1)
-		// Assuming seed data has Event 1. 
+		// Assuming seed data has Event 1.
 		// Use a more robust selector that works for both "Event 1" and "#1"
 		await page
 			.getByText(/#1 |Event 1/i)
@@ -107,9 +107,12 @@ test.describe("Mobile Judge App Journey", () => {
 		// Verification
 		await expect(page.getByText("No pending DQs")).toBeVisible();
 
-		// Close modal (assuming top right X or similar button)
-		// We can target by looking for a button in the header area or just the second button in the modal
-		await page.getByRole("dialog").getByRole("button").first().click();
+		// Close modal (Press Escape as a fallback or click the first button which is usually X)
+		await page.keyboard.press("Escape");
+		// If still visible, try clicking the first button in the dialog
+		if (await page.getByRole("dialog").isVisible()) {
+			await page.getByRole("dialog").getByRole("button").first().click();
+		}
 
 		// Queue count should be 0
 		await expect(page.getByText(/Offline Queue: 0/)).toBeVisible();
