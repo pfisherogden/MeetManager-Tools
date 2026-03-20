@@ -110,7 +110,7 @@ test.describe("Champs Dataset Journey", () => {
 
 		// 6. Reports Page: Generate custom pack
 		await page.goto("/reports");
-		
+
 		// Select a report type first
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
 		await clubCard.click();
