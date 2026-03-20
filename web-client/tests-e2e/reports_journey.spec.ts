@@ -27,6 +27,8 @@ test.describe("Reports Generation Journey", () => {
 		await expect(dialog.getByText("Meet Program Preview")).toBeVisible();
 
 		// 5. Verify iframe content (Wait for iframe to load and have content)
+		// Small delay to allow srcDoc to render
+		await page.waitForTimeout(2000);
 		const iframe = page.frameLocator('iframe[title="Meet Program Preview"]');
 
 		// The HTML report should contain "Event" and "Heat" markers
