@@ -22,6 +22,8 @@ except ImportError:
 
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
+from collections import OrderedDict
+
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from auth_interceptor import FirebaseAuthInterceptor
@@ -34,6 +36,7 @@ from storage_provider import GCSStorageProvider, LocalStorageProvider, StoragePr
 DATA_DIR = "../data"
 SOURCE_FILE = "Sample_Data.json"
 CONFIG_FILE = "config.json"
+MAX_CACHE_SIZE = 3  # Keep only the last 3 users' data in memory
 
 
 class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
@@ -48,7 +51,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             self.storage = LocalStorageProvider(base_storage_dir)
 
         # Cache structure: {uid: {'filename': str, 'mtime': float, 'data': dict}}
-        self._user_cache: dict[str, dict[str, Any]] = {}
+        # Using OrderedDict for simple LRU eviction
+        self._user_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.current_file = SOURCE_FILE
         # Note: We don't load data in __init__ anymore because it's per-user
         # self._load_data()
@@ -152,6 +156,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # Check cache
         if uid in self._user_cache:
             entry = self._user_cache[uid]
+            # Move to end (most recent)
+            self._user_cache.move_to_end(uid)
+
             if entry["filename"] == filename:
                 # Check if modified
                 try:
@@ -200,6 +207,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             try:
                 mtime = self.storage.get_last_modified(user_path)
                 self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+                self._user_cache.move_to_end(uid)
+
+                # Evict oldest if limit exceeded
+                if len(self._user_cache) > MAX_CACHE_SIZE:
+                    oldest_uid, _ = self._user_cache.popitem(last=False)
+                    print(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
+
                 print(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
             except Exception as e:
                 print(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
@@ -1251,18 +1265,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             print(f"Error generating report: {e}")
             return pb2.GenerateReportResponse(success=False, message=str(e))
 
-    def _generate_single_report_task(self, idx, report_req, cache_data, rtype_map):
+    def _generate_single_report_task(self, idx, report_req, extractor, rtype_map):
         rtype_val = report_req.type
         rtype = rtype_map.get(rtype_val, "psych")
         title = report_req.title
         team_filter = report_req.team_filter
         gender_filter = report_req.gender_filter
         age_group_filter = report_req.age_group_filter
-
-        # Fresh converter/extractor for this thread to ensure thread-safety
-        converter = MmToJsonConverter(table_data=cache_data)
-        extractor = ReportDataExtractor(converter)
-        _ = extractor._get_full_data()
 
         # New variation fields
         columns_on_page = 2
@@ -1283,6 +1292,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             renderer = WeasyRenderer(temp_path)
+            print(f"DEBUG: Bundle Task {idx}: rtype={rtype}, title={title}")
+
             if rtype == "psych":
                 report_data = extractor.extract_psych_sheet_data(
                     team_filter=team_filter,
@@ -1290,6 +1301,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "psych_sheet.j2")
             elif rtype == "entries":
@@ -1299,6 +1311,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_hytek.j2")
             elif rtype == "lineups":
@@ -1308,8 +1321,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "lineups.j2")
+                renderer.render_entries(report_data, "lineup_sheets.j2")
             elif rtype == "results":
                 report_data = extractor.extract_results_data(
                     team_filter=team_filter,
@@ -1317,8 +1331,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "results.j2")
+                renderer.render_entries(report_data, "meet_results.j2")
             elif rtype == "program":
                 program_data = extractor.extract_meet_program_data(
                     team_filter=team_filter,
@@ -1328,6 +1343,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page=columns_on_page,
                     show_relay_swimmers=show_relay_swimmers,
                 )
+                print(f"DEBUG: Bundle Task {idx}: Extracted {len(program_data.get('groups', []))} groups")
                 program_data["zebra_striping"] = zebra_striping
                 renderer.render_meet_program(program_data)
             elif rtype == "program_html":
@@ -1339,6 +1355,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page=columns_on_page,
                     show_relay_swimmers=show_relay_swimmers,
                 )
+                print(f"DEBUG: Bundle Task {idx}: Extracted {len(program_data.get('groups', []))} groups")
                 program_data["zebra_striping"] = zebra_striping
                 html_content = renderer.render_to_html(program_data)
                 with open(temp_path, "w") as f:
@@ -1350,6 +1367,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_hytek.j2")
             elif rtype == "entries_club":
@@ -1359,6 +1377,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
+                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_club.j2")
 
@@ -1389,6 +1408,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             cache, _ = self._load_user_data(context)
 
+            # Shared extractor for all tasks to avoid redundant conversion and memory duplication
+            from mm_to_json.mm_to_json import MmToJsonConverter
+            from mm_to_json.reporting.extractor import ReportDataExtractor
+
+            converter = MmToJsonConverter(table_data=cache)
+            extractor = ReportDataExtractor(converter)
+
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
                 pb2.REPORT_TYPE_ENTRIES: "entries",
@@ -1400,11 +1426,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
             }
 
-            # Generate reports in parallel with ISOLATED extractors
+            # Generate reports in parallel with SHARED extractor
             tasks = []
-            with ThreadPoolExecutor(max_workers=4) as executor:
+            # Limit to 3 workers to prevent memory spike from WeasyPrint
+            with ThreadPoolExecutor(max_workers=3) as executor:
                 for idx, report_req in enumerate(request.reports):
-                    tasks.append(executor.submit(self._generate_single_report_task, idx, report_req, cache, rtype_map))
+                    tasks.append(
+                        executor.submit(self._generate_single_report_task, idx, report_req, extractor, rtype_map)
+                    )
 
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
