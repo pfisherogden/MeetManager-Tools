@@ -78,6 +78,7 @@ def _process_single_report_process(
     # Suppress verbose third-party loggers in the subprocess
     if log_level_str != "DEBUG":
         logging.getLogger("fontTools").setLevel(logging.WARNING)
+        logging.getLogger("fontTools.subset").setLevel(logging.WARNING)
         logging.getLogger("weasyprint").setLevel(logging.WARNING)
         logging.getLogger("jpype").setLevel(logging.WARNING)
 
