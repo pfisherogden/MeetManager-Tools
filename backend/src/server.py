@@ -11,6 +11,22 @@ from typing import Any
 
 import grpc
 
+# Configure logging at the very top before other modules initialize their own loggers
+log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_str, logging.INFO)
+
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    force=True
+)
+
+# Suppress verbose third-party loggers unless explicitly requested
+if log_level_str != "DEBUG":
+    logging.getLogger("fontTools").setLevel(logging.WARNING)
+    logging.getLogger("weasyprint").setLevel(logging.WARNING)
+    logging.getLogger("jpype").setLevel(logging.WARNING)
+
 # Import generated classes
 try:
     from meetmanager.v1 import meet_manager_pb2 as pb2
@@ -1400,7 +1416,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GenerateReportBundle(self, request, context):
         import zipfile
-        from concurrent.futures import ThreadPoolExecutor
 
         if request is None:
             return pb2.GenerateReportBundleResponse(success=False, message="Missing request")
@@ -1436,7 +1451,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for res in results:
-
                     if res["success"]:
                         zip_file.writestr(res["filename"], res["content"])
                     else:

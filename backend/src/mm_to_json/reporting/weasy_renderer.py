@@ -2,9 +2,9 @@ import copy
 import datetime
 import os
 import sys
+import threading
 from typing import Any
 
-import threading
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
@@ -12,6 +12,7 @@ from weasyprint.text.fonts import FontConfiguration
 # Global font configuration to speed up rendering across multiple reports
 _font_config = None
 _render_lock = threading.Lock()
+
 
 def get_font_config():
     global _font_config
@@ -56,7 +57,11 @@ class WeasyRenderer:
 
         # Convert to PDF
         with _render_lock:
-            HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
+            HTML(string=html_out).write_pdf(
+                self.output_path, 
+                font_config=get_font_config(),
+                optimize_size=()  # Disable font subsetting for massive speedup
+            )
 
         return html_out
 
@@ -76,9 +81,12 @@ class WeasyRenderer:
 
         html_out = template.render(**render_data)
         with _render_lock:
-            HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
+            HTML(string=html_out).write_pdf(
+                self.output_path, 
+                font_config=get_font_config(),
+                optimize_size=()  # Disable font subsetting for massive speedup
+            )
         return html_out
-
 
     def render_to_html(self, data: dict[str, Any], template_name: str = "meet_program.j2") -> str:
         """Returns the raw HTML for Web UI integration."""
