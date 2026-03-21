@@ -31,7 +31,10 @@ description: Mandatory practices for GitHub workflows and session continuity in 
 ## Session Continuity & Resilience
 To ensure continuity across crashes or session timeouts:
 1. **GitHub Issue Updates**: Post a comment with **"Current Progress"** and **"Planned Next Steps"** every 3-5 turns or at major milestones.
-2. **Chat Communication**: Post a summary to the `pfo-gemcli` Google Chat space every 15-20 minutes or at major milestones.
+2. **Chat Communication**: Post progress updates to the `pfo-gemcli` Google Chat space.
+   - **Work Started**: Notify when beginning a task or major phase.
+   - **Work Completed**: **Mandatory** - Notify when work is finished, merged, or deployed. **Start a new thread for completions** to ensure unread notifications for the user.
+   - **Frequency**: Every 15-20 minutes or at major milestones.
 3. **Context Precedence**: `GEMINI.md` and this skill take absolute precedence over general defaults.
 
 ## Surgical Read & Edit Rules

@@ -82,7 +82,10 @@ All agents MUST follow these workflow phases:
 ### Phase 4: Verification & Closure
 - **Local Verification**: 100% pass on linting, type-checking, and tests before pushing.
 - **CI/CD Pass**: PR merging is ONLY permitted after all GitHub Actions are green.
-- **Communication**: Update the `pfo-gemcli` Google Chat space every 15-20 minutes or at major milestones.
+- **Communication**: Provide **periodic** progress updates in the `pfo-gemcli` Google Chat space.
+  - **Work Started**: Post a message when beginning a task or after a major design phase.
+  - **Work Completed**: **Mandatory** - Post a summary message when a task is finished, PR is merged, or a deployment is verified. **Always start a new thread for completions** to ensure they appear as new/unread notifications.
+  - **Frequency**: Update the chat every 15-20 minutes or at major milestones.
 - **Persistence**: Periodically update the GitHub issue with **Next Steps** to ensure session continuity.
 
 ## Recent Learnings & Persistent Decisions
