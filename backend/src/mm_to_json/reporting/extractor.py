@@ -12,6 +12,34 @@ class ReportDataExtractor:
         self.full_data = self.converter.convert()
         self.team_color_map = self._build_team_color_map()
 
+        # Performance: Pre-calculate lookup maps for common lookups
+        self._athlete_map = {}
+        athlete_df = self.converter.tables.get("athlete")
+        if athlete_df is not None and not athlete_df.empty:
+            for _, row in athlete_df.iterrows():
+                ath_id = row.get("ath_no")
+                if ath_id:
+                    self._athlete_map[str(ath_id)] = row.to_dict()
+
+        self._team_map = {}
+        team_df = self.converter.tables.get("team")
+        if team_df is not None and not team_df.empty:
+            for _, row in team_df.iterrows():
+                t_id = row.get("team_no")
+                if t_id:
+                    self._team_map[str(t_id)] = row.to_dict()
+
+        # Performance: Pre-calculate name-to-gender map for fallbacks
+        self._name_gender_map = {}
+        if athlete_df is not None and not athlete_df.empty:
+            for _, row in athlete_df.iterrows():
+                last = str(row.get("last_name", "")).strip().lower()
+                first = str(row.get("first_name", "")).strip().lower()
+                sex = str(row.get("sex", "")).upper()
+                gender = "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
+                self._name_gender_map[f"{last}, {first}"] = gender
+                self._name_gender_map[f"{first} {last}"] = gender
+
     def _build_team_color_map(self) -> dict[str, str]:
         """Map team names to their assigned colors for UI consistency."""
         df_team = self.converter.tables.get("team")
@@ -48,23 +76,28 @@ class ReportDataExtractor:
             self.full_data = self.converter.convert()
         return self.full_data
 
-    def _get_event_sort_key(self, evt: dict[str, Any]) -> int:
-        """Robustly extract event number for sorting."""
-        num_str = str(evt.get("eventNum") or evt.get("evt_num") or "0")
-        if m := re.search(r"\d+", num_str):
-            return int(m.group())
-        return 0
+    def _get_event_sort_key(self, evt: dict[str, Any]) -> tuple[int, str]:
+        """Generate a sort key that handles alpha suffixes correctly (e.g., 101A, 101B)."""
+        evt_num_str = str(evt.get("eventNum") or evt.get("evt_num") or "0")
+        match = re.match(r"(\d+)([A-Za-z]*)", evt_num_str)
+        if match:
+            num = int(match.group(1))
+            suffix = match.group(2).upper()
+            return (num, suffix)
+        return (0, "")
 
     def _matches_team_filter(self, entry_team: str, filter_team: str | None) -> bool:
-        """Robustly match team name against filter, allowing bidirectional substring matches."""
+        """Robust whole-word matching for team filtering."""
         if not filter_team:
             return True
         e_t = str(entry_team).strip().lower()
         f_t = str(filter_team).strip().lower()
         if not e_t or not f_t:
             return True
-        # Match if either is a substring of the other to handle short vs long names
-        return f_t in e_t or e_t in f_t
+
+        # Use regex for whole-word matching
+        pattern = r"\b" + re.escape(f_t) + r"\b"
+        return bool(re.search(pattern, e_t))
 
     def _normalize_gender(self, gender: str | None) -> str:
         """Normalize gender string to M, F, or X. Return 'X' if no filtering is desired."""
@@ -78,27 +111,18 @@ class ReportDataExtractor:
         return "X"
 
     def _get_athlete_gender(self, entry: dict[str, Any]) -> str:
-        """Helper to look up athlete gender using explicit data elements."""
+        """Helper to look up athlete gender using explicit data elements or pre-calculated maps."""
         if entry.get("athleteSex"):
             sex = self._normalize_gender(entry.get("athleteSex"))
             return "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
 
-        # Fallback to name-based lookup if athleteSex is missing
+        # Performance: Use O(1) map lookup instead of O(N) loop
         name = entry.get("name", "").strip().lower()
-        df_ath = self.converter.tables.get("athlete")
-        if df_ath is None or df_ath.empty:
+        if not name:
             return "Unknown"
 
-        for _, row in df_ath.iterrows():
-            last = str(row.get("last_name", "")).strip().lower()
-            first = str(row.get("first_name", "")).strip().lower()
-            sex = self._normalize_gender(row.get("sex", ""))
-            fmt_lf = f"{last}, {first}"
-            fmt_fl = f"{first} {last}"
-            if name.startswith(fmt_lf) or name.startswith(fmt_fl):
-                return "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
-
-        return "Unknown"
+        # Check for both common formats
+        return self._name_gender_map.get(name, "Unknown")
 
     def _format_age(self, min_age: int, max_age: int) -> str:
         if min_age == 0 and max_age >= 109:
@@ -208,24 +232,16 @@ class ReportDataExtractor:
                         entry_data["relayAthletes"] = entry.get("relayAthletes", [])
                     flat_entries.append(entry_data)
 
-        name_gender_map = {}
+        # Performance: Use pre-calculated name-gender map and team-code map
         team_code_map = {}
-        for _, row in df_ath.iterrows():
-            try:
-                fn = str(row.get("first_name", "")).strip()
-                ln = str(row.get("last_name", "")).strip()
-                s = str(row.get("sex", "")).strip()
-                normalized_s = self._normalize_gender(s)
-                full_fl = f"{fn} {ln}"
-                full_lf = f"{ln}, {fn}"
-                g = "Female" if normalized_s == "F" else "Male" if normalized_s == "M" else s
-                name_gender_map[full_fl] = g
-                name_gender_map[full_lf] = g
-                tid = row.get("team_no")
-                if tid in team_map:
-                    team_code_map[team_map[tid]["name"]] = team_map[tid]["code"]
-            except Exception:
-                pass
+        df_team = self.converter.tables.get("team", None)
+        if df_team is not None:
+            for _, row in df_team.iterrows():
+                t_name = str(row.get("team_name", "")).strip()
+                t_code = str(row.get("team_abbr", "")).strip()
+                t_lsc = str(row.get("team_lsc", "")).strip()
+                full_code = f"{t_code}-{t_lsc}" if t_lsc else t_code
+                team_code_map[t_name] = full_code
 
         grouped: dict[str, Any] = {}
         ind_entries = [e for e in flat_entries if not e["is_relay"]]
@@ -308,7 +324,7 @@ class ReportDataExtractor:
             sorted_athletes = sorted(real_athletes, key=lambda x: x["name"])
             seq = 1
             for ath in sorted_athletes:
-                gender = name_gender_map.get(ath["name"], "")
+                gender = self._name_gender_map.get(ath["name"], "")
                 t_code = team_code_map.get(t_name, t_name)
                 parts = ath["name"].split(" ")
                 display_name = f"{parts[-1]}, " + " ".join(parts[:-1]) if len(parts) >= 2 else ath["name"]
