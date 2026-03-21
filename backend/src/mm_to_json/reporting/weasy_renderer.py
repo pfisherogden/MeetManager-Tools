@@ -6,6 +6,16 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
+from weasyprint.text.fonts import FontConfiguration
+
+# Global font configuration to speed up rendering across multiple reports
+_font_config = None
+
+def get_font_config():
+    global _font_config
+    if _font_config is None:
+        _font_config = FontConfiguration()
+    return _font_config
 
 
 class WeasyRenderer:
@@ -43,7 +53,7 @@ class WeasyRenderer:
         html_out = template.render(**render_data)
 
         # Convert to PDF
-        HTML(string=html_out).write_pdf(self.output_path)
+        HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
 
         return html_out
 
@@ -62,7 +72,7 @@ class WeasyRenderer:
         render_data["generation_time"] = datetime.datetime.now(tz).strftime("%I:%M %p %Y/%m/%d")
 
         html_out = template.render(**render_data)
-        HTML(string=html_out).write_pdf(self.output_path)
+        HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
         return html_out
 
     def render_to_html(self, data: dict[str, Any], template_name: str = "meet_program.j2") -> str:

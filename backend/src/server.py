@@ -70,7 +70,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 metadata = dict(context.invocation_metadata())
                 if "x-user-id" in metadata:
                     uid = metadata["x-user-id"]
-                    print(f"DEBUG: Auth using x-user-id metadata: {uid}")
+                    logging.debug(f"DEBUG: Auth using x-user-id metadata: {uid}")
                     return uid
             except (AttributeError, TypeError):
                 # Context might be a mock or None-like without invocation_metadata
@@ -78,7 +78,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Allow disabling auth for local dev/testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true":
-            # print("DEBUG: Auth disabled, using dev-user")
+            # logging.debug("DEBUG: Auth disabled, using dev-user")
             return "dev-user"
 
         if context is None:
@@ -95,9 +95,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # For LocalStorageProvider, print absolute path for debugging
         if hasattr(self.storage, "base_dir"):
             abs_path = os.path.abspath(os.path.join(self.storage.base_dir, config_path))
-            print(f"DEBUG: Checking for config at {config_path} (abs: {abs_path}, uid: {uid})")
+            logging.debug(f"DEBUG: Checking for config at {config_path} (abs: {abs_path}, uid: {uid})")
         else:
-            print(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
+            logging.debug(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
 
         if self.storage.exists(config_path):
             # ... rest of the method unchanged ...
@@ -109,21 +109,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 self.storage.download_file(config_path, tmp_path)
                 with open(tmp_path) as f:
                     config = json.load(f)
-                    print(f"DEBUG: Loaded user config for {uid}: {config}")
+                    logging.debug(f"DEBUG: Loaded user config for {uid}: {config}")
                     return config
             except Exception as e:
-                print(f"DEBUG: Failed to load user config for {uid}: {e}")
+                logging.debug(f"DEBUG: Failed to load user config for {uid}: {e}")
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
-        print(f"DEBUG: No user config found at {config_path} for {uid}, using defaults")
+        logging.debug(f"DEBUG: No user config found at {config_path} for {uid}, using defaults")
         return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
 
     def _save_user_config(self, context, config):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
-        print(f"DEBUG: Saving user config to {config_path}: {config}")
+        logging.debug(f"DEBUG: Saving user config to {config_path}: {config}")
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
             json.dump(config, tmp, indent=2)
             tmp_path = tmp.name
@@ -133,7 +133,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             self.storage.upload_file(tmp_path, config_path)
-            print(f"DEBUG: User config saved to {config_path}")
+            logging.debug(f"DEBUG: User config saved to {config_path}")
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -147,11 +147,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # For LocalStorageProvider, print absolute path for debugging
         if hasattr(self.storage, "base_dir"):
             abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
-            print(
+            logging.debug(
                 f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path} (abs: {abs_user_path})"
             )
         else:
-            print(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
+            logging.debug(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
 
         # Check cache
         if uid in self._user_cache:
@@ -164,28 +164,28 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 try:
                     mtime = self.storage.get_last_modified(user_path)
                     if mtime == entry["mtime"]:
-                        print(f"DEBUG: Returning cached data for {uid}/{filename}")
+                        logging.debug(f"DEBUG: Returning cached data for {uid}/{filename}")
                         return entry["data"], config
                     else:
-                        print(f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})")
+                        logging.debug(f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})")
                 except Exception as e:
-                    print(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
+                    logging.debug(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
                     pass  # Force reload on error
 
         if not self.storage.exists(user_path):
-            print(f"DEBUG: User file {user_path} NOT FOUND in storage.")
+            logging.debug(f"DEBUG: User file {user_path} NOT FOUND in storage.")
             # Fallback for prototype: check global Sample_Data.json
             if self.storage.exists(SOURCE_FILE):
-                print(f"DEBUG: Falling back to global {SOURCE_FILE}")
+                logging.debug(f"DEBUG: Falling back to global {SOURCE_FILE}")
                 user_path = SOURCE_FILE
                 filename = SOURCE_FILE
             else:
-                print(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
+                logging.debug(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
                 return {}, config
         else:
-            print(f"DEBUG: Found user file at {user_path}")
+            logging.debug(f"DEBUG: Found user file at {user_path}")
 
-        print(f"DEBUG: Loading data from {user_path}...")
+        logging.debug(f"DEBUG: Loading data from {user_path}...")
         with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
             tmp_path = tmp.name
             tmp.close()  # Close to avoid locking
@@ -212,15 +212,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 # Evict oldest if limit exceeded
                 if len(self._user_cache) > MAX_CACHE_SIZE:
                     oldest_uid, _ = self._user_cache.popitem(last=False)
-                    print(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
+                    logging.debug(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
 
-                print(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
+                logging.debug(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
             except Exception as e:
-                print(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
+                logging.debug(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
 
             return cache, config
         except Exception as e:
-            print(f"DEBUG: Error loading data from {user_path}: {e}")
+            logging.debug(f"DEBUG: Error loading data from {user_path}: {e}")
             return {}, config
         finally:
             if os.path.exists(tmp_path):
@@ -253,14 +253,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             return cache
         except Exception as e:
-            print(f"Error loading MDB: {e}")
+            logging.error(f"Error loading MDB: {e}")
             return {}
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
     def UploadDataset(self, request_iterator, context):
-        print("DEBUG: UploadDataset called", flush=True)
+        logging.debug("DEBUG: UploadDataset called")
         uid = self._check_auth(context)
         filename = "uploaded.mdb"
 
@@ -283,16 +283,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     file_content.write(request.chunk)
                     total_bytes += chunk_len
 
-            print(f"DEBUG: UploadDataset received total {total_bytes} bytes for {filename}")
+            logging.debug(f"DEBUG: UploadDataset received total {total_bytes} bytes for {filename}")
 
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
             # For LocalStorageProvider, print absolute path for debugging
             if hasattr(self.storage, "base_dir"):
                 abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
-                print(f"DEBUG: UploadDataset saving to {user_path} (abs: {abs_user_path}) for {uid}")
+                logging.debug(f"DEBUG: UploadDataset saving to {user_path} (abs: {abs_user_path}) for {uid}")
             else:
-                print(f"DEBUG: UploadDataset saving to {user_path} for {uid}")
+                logging.debug(f"DEBUG: UploadDataset saving to {user_path} for {uid}")
 
             suffix = os.path.splitext(filename)[1]
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -308,7 +308,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
-            print(f"Saved uploaded file to {user_path}")
+            logging.info(f"Saved uploaded file to {user_path}")
 
             # Update active dataset in config
             config = self._load_user_config(context)
@@ -321,7 +321,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             return pb2.UploadDatasetResponse(success=True, message=f"Saved {filename}")
         except Exception as e:
-            print(f"Upload failed: {e}")
+            logging.error(f"Upload failed: {e}")
             return pb2.UploadDatasetResponse(success=False, message=str(e))
 
     def GetDashboardStats(self, request, context):
@@ -358,11 +358,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetMeets(self, request, context):
         request = request or pb2.GetMeetsRequest()
         cache, _ = self._load_user_data(context)
-        print(f"DEBUG: Cache tables: {list(cache.keys())}", flush=True)
+        logging.debug(f"DEBUG: Cache tables: {list(cache.keys())}")
         data = cache.get("meet", [])
         meets = []
         for item in data:
-            print(f"DEBUG: Meet item keys: {list(item.keys())}", flush=True)
+            logging.debug(f"DEBUG: Meet item keys: {list(item.keys())}")
             # Prefer lowercase keys from MmToJsonConverter
             # MDB column 'Meet_name1' should be 'meet_name1'
             name = (
@@ -397,9 +397,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
         cache, _ = self._load_user_data(context)
         data = cache.get("team", [])
-        print(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams in cache['team']")
+        logging.debug(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams in cache['team']")
         if len(data) > 0:
-            print(f"DEBUG: First team in cache: {data[0].get('team_name')}")
+            logging.debug(f"DEBUG: First team in cache: {data[0].get('team_name')}")
 
         athletes = cache.get("athlete", [])
 
@@ -621,7 +621,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 )
 
         except Exception as e:
-            print(f"Error listing datasets: {e}")
+            logging.error(f"Error listing datasets: {e}")
 
         return pb2.ListDatasetsResponse(datasets=datasets)
 
@@ -641,7 +641,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             context.set_details(f"File {filename} not found.")
             return pb2.SetActiveDatasetResponse()
 
-        print(f"Switching user {uid} dataset to {filename}...")
+        logging.info(f"Switching user {uid} dataset to {filename}...")
         # Update config
         config = self._load_user_config(context)
         config["active_dataset"] = filename
@@ -676,7 +676,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 self._save_user_config(context, config)
 
         except Exception as e:
-            print(f"Error deleting dataset {filename}: {e}")
+            logging.error(f"Error deleting dataset {filename}: {e}")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Failed to delete file: {str(e)}")
 
@@ -700,7 +700,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             self._save_user_config(context, config)
 
         except Exception as e:
-            print(f"Error clearing datasets: {e}")
+            logging.error(f"Error clearing datasets: {e}")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Failed to clear datasets: {str(e)}")
 
@@ -1100,10 +1100,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
         try:
             cache, config = self._load_user_data(context)
-            print(f"DEBUG: GenerateReport for user {uid}, cache keys: {list(cache.keys())}")
+            logging.debug(f"DEBUG: GenerateReport for user {uid}, cache keys: {list(cache.keys())}")
             for tname, rows in cache.items():
                 if isinstance(rows, list):
-                    print(f"DEBUG: Cache table '{tname}' has {len(rows)} rows")
+                    logging.debug(f"DEBUG: Cache table '{tname}' has {len(rows)} rows")
 
             converter = MmToJsonConverter(table_data=cache)
 
@@ -1150,12 +1150,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             extractor = ReportDataExtractor(converter)
             renderer = WeasyRenderer(temp_path)
 
-            print(f"DEBUG: GenerateReport: rtype={rtype}, title={title}, team_filter={team_filter}")
+            logging.debug(f"DEBUG: GenerateReport: rtype={rtype}, title={title}, team_filter={team_filter}")
             # Ensure convert() is called to populate tables/sessions for logging
             conv_data = converter.convert()
-            print(f"DEBUG: Sessions in converter: {len(conv_data.get('sessions', []))}")
+            logging.debug(f"DEBUG: Sessions in converter: {len(conv_data.get('sessions', []))}")
             total_evts = sum(len(s.get("events", [])) for s in conv_data.get("sessions", []))
-            print(f"DEBUG: Total events across all sessions: {total_evts}")
+            logging.debug(f"DEBUG: Total events across all sessions: {total_evts}")
 
             if rtype == "psych":
                 report_data = extractor.extract_psych_sheet_data(
@@ -1164,7 +1164,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Extracted psych data: {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Extracted psych data: {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "psych_sheet.j2")
             elif rtype == "entries":
@@ -1174,7 +1174,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Extracted entries data: {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Extracted entries data: {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_hytek.j2")
             elif rtype == "lineups":
@@ -1184,7 +1184,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Extracted lineups data: {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Extracted lineups data: {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "lineup_sheets.j2")
             elif rtype == "results":
@@ -1194,7 +1194,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Extracted results data: {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Extracted results data: {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "meet_results.j2")
             elif rtype == "program":
@@ -1206,7 +1206,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page=columns_on_page,
                     show_relay_swimmers=show_relay_swimmers,
                 )
-                print(f"DEBUG: Extracted program data: {len(program_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Extracted program data: {len(program_data.get('groups', []))} groups")
                 program_data["zebra_striping"] = zebra_striping
                 renderer.render_meet_program(program_data)
             elif rtype == "program_html":
@@ -1218,7 +1218,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page=columns_on_page,
                     show_relay_swimmers=show_relay_swimmers,
                 )
-                print(f"DEBUG: Extracted program_html data: {len(program_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Extracted program_html data: {len(program_data.get('groups', []))} groups")
                 program_data["zebra_striping"] = zebra_striping
                 html_content = renderer.render_to_html(program_data)
                 with open(temp_path, "wb") as f:
@@ -1230,7 +1230,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Extracted entries_hytek data: {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Extracted entries_hytek data: {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_hytek.j2")
             elif rtype == "entries_club":
@@ -1240,7 +1240,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Extracted entries_club data: {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Extracted entries_club data: {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_club.j2")
 
@@ -1262,7 +1262,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             )
 
         except Exception as e:
-            print(f"Error generating report: {e}")
+            logging.error(f"Error generating report: {e}")
             return pb2.GenerateReportResponse(success=False, message=str(e))
 
     def _generate_single_report_task(self, idx, report_req, extractor, rtype_map):
@@ -1292,7 +1292,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             renderer = WeasyRenderer(temp_path)
-            print(f"DEBUG: Bundle Task {idx}: rtype={rtype}, title={title}")
+            logging.debug(f"DEBUG: Bundle Task {idx}: rtype={rtype}, title={title}")
 
             if rtype == "psych":
                 report_data = extractor.extract_psych_sheet_data(
@@ -1301,7 +1301,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "psych_sheet.j2")
             elif rtype == "entries":
@@ -1311,7 +1311,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_hytek.j2")
             elif rtype == "lineups":
@@ -1321,7 +1321,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "lineup_sheets.j2")
             elif rtype == "results":
@@ -1331,7 +1331,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "meet_results.j2")
             elif rtype == "program":
@@ -1343,7 +1343,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page=columns_on_page,
                     show_relay_swimmers=show_relay_swimmers,
                 )
-                print(f"DEBUG: Bundle Task {idx}: Extracted {len(program_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(program_data.get('groups', []))} groups")
                 program_data["zebra_striping"] = zebra_striping
                 renderer.render_meet_program(program_data)
             elif rtype == "program_html":
@@ -1355,7 +1355,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     columns_on_page=columns_on_page,
                     show_relay_swimmers=show_relay_swimmers,
                 )
-                print(f"DEBUG: Bundle Task {idx}: Extracted {len(program_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(program_data.get('groups', []))} groups")
                 program_data["zebra_striping"] = zebra_striping
                 html_content = renderer.render_to_html(program_data)
                 with open(temp_path, "w") as f:
@@ -1367,7 +1367,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_hytek.j2")
             elif rtype == "entries_club":
@@ -1377,7 +1377,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender_filter=gender_filter,
                     age_group_filter=age_group_filter,
                 )
-                print(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
+                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
                 report_data["zebra_striping"] = zebra_striping
                 renderer.render_entries(report_data, "entries_club.j2")
 
@@ -1462,7 +1462,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             )
 
         except Exception as e:
-            print(f"Error generating report bundle: {e}")
+            logging.error(f"Error generating report bundle: {e}")
             return pb2.GenerateReportBundleResponse(success=False, message=str(e))
 
     def GetSessions(self, request, context):
@@ -1633,7 +1633,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:
-            print(f"Publish failed: {e}")
+            logging.error(f"Publish failed: {e}")
             return pb2.PublishMeetDataResponse(success=False, message=str(e))
 
     def SyncDQs(self, request, context):
@@ -1658,10 +1658,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
-            print(f"Synced {len(dqs)} DQs for user {uid}")
+            logging.info(f"Synced {len(dqs)} DQs for user {uid}")
             return pb2.SyncDQsResponse(success=True, message=f"Synced {len(dqs)} items")
         except Exception as e:
-            print(f"Sync failed: {e}")
+            logging.error(f"Sync failed: {e}")
             return pb2.SyncDQsResponse(success=False, message=str(e))
 
     def GetFile(self, request, context):
@@ -1691,7 +1691,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             return pb2.GetFileResponse(content=content, mime_type=mime_type)
         except Exception as e:
-            print(f"GetFile failed: {e}")
+            logging.error(f"GetFile failed: {e}")
             context.abort(grpc.StatusCode.INTERNAL, str(e))
         finally:
             if os.path.exists(tmp_path):
@@ -1750,12 +1750,23 @@ def serve():
     pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
 
     server.add_insecure_port(f"0.0.0.0:{port}")
-    print(f"Server starting on port {port} with AuthInterceptor and Health check...")
+    logging.info(f"Server starting on port {port} with AuthInterceptor and Health check...")
     server.start()
     server.wait_for_termination()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    # Configure logging
+    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_level = getattr(logging, log_level_str, logging.INFO)
+
+    logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+    # Suppress verbose third-party loggers unless explicitly requested
+    if log_level_str != "DEBUG":
+        logging.getLogger("fontTools").setLevel(logging.WARNING)
+        logging.getLogger("weasyprint").setLevel(logging.WARNING)
+        logging.getLogger("jpype").setLevel(logging.WARNING)
+
     serve()
 # Triggering fresh CI run with clean lint state

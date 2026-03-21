@@ -222,11 +222,11 @@ class MmToJsonConverter:
     def convert(self) -> dict[str, Any]:
         # Print table counts for CI debugging
         for tname, df in self.tables.items():
-            print(f"DEBUG: Table '{tname}' has {len(df)} rows")
+            logger.debug(f"DEBUG: Table '{tname}' has {len(df)} rows")
 
         meet = self.get_meet_info()
         sessions: list[Session] = self.get_session_info()
-        print(f"DEBUG: Initial sessions found: {len(sessions)}")
+        logger.debug(f"DEBUG: Initial sessions found: {len(sessions)}")
 
         if not sessions:
             if self.schema_type == "B":
@@ -236,7 +236,7 @@ class MmToJsonConverter:
 
         # If we still have no sessions but have events, create default
         if not sessions and not self.tables["event"].empty:
-            print("DEBUG: No sessions found, creating default session")
+            logger.debug("DEBUG: No sessions found, creating default session")
             sessions.append(self.create_default_session())
 
         meet_sessions_data = []
@@ -244,7 +244,7 @@ class MmToJsonConverter:
         for session in sessions:
             events = self.get_events_by_session(session)
             session_events_data = []
-            print(f"DEBUG: Processing session {session.number}, found {len(events)} events")
+            logger.debug(f"DEBUG: Processing session {session.number}, found {len(events)} events")
 
             for event in events:
                 event.create_description(meet["meetType"])
@@ -253,7 +253,7 @@ class MmToJsonConverter:
 
             # Fallback for data missing sessitem (like some JSON exports)
             if not session_events_data and session.is_default:
-                print(
+                logger.debug(
                     f"DEBUG: Default session {session.number} has no linked events via sessitem, falling back to all events"
                 )
                 events = self.get_all_events()
@@ -270,7 +270,7 @@ class MmToJsonConverter:
         # create a default catch-all session so reports aren't empty.
         has_any_linked_events = any(len(s.get("events", [])) > 0 for s in meet_sessions_data)
         if not has_any_linked_events and not self.tables["event"].empty:
-            print("DEBUG: No events linked to any session, creating catch-all default session for reports")
+            logger.debug("DEBUG: No events linked to any session, creating catch-all default session for reports")
             default_session = self.create_default_session()
             events = self.get_all_events()
             session_events_data = []

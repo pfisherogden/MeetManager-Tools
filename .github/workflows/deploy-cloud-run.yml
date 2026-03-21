@@ -74,6 +74,7 @@ jobs:
           flags: '--allow-unauthenticated --memory 2Gi'
           env_vars: |
             GCS_BUCKET_NAME=mmtools-data-mmtools-488404
+            LOG_LEVEL=INFO
 
       # Deploy Frontend to Cloud Run
       - name: Deploy Frontend
