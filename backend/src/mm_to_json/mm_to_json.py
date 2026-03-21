@@ -787,7 +787,8 @@ class MmToJsonConverter:
                         initial = a["first"][0] if a["first"] else ""
                         swimmers_list.append(f"{initial}. {a['last']}")
 
-                    names_str = ", ".join(swimmers_list)
+                    # Format names for the main entry name: "Team RelayLetter" (e.g. "Blue Dolphins A")
+                    names_str = f"{team_name} {relay_ltr}"
 
                     event.add_entry(
                         {

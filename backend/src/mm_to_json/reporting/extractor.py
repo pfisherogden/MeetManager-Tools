@@ -460,6 +460,7 @@ class ReportDataExtractor:
                         sub_items.append(
                             {
                                 "lane": str(lane),
+                                "name": f"{entry.get('team', '')} {entry.get('relay_ltr', entry.get('relayLtr', ''))}",
                                 "team": entry.get("team", ""),
                                 "team_color": self.team_color_map.get(entry.get("team", ""), ""),
                                 "relay_ltr": entry.get("relay_ltr", entry.get("relayLtr", "")),
