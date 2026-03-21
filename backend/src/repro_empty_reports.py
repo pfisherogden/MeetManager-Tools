@@ -102,17 +102,18 @@ def repro_empty_reports():
     # Wrap in try-except to catch WeasyPrint errors if libraries missing
     try:
         from mm_to_json.reporting.weasy_renderer import WeasyRenderer
-
         print("Using WeasyRenderer (HTML-based)...")
-        renderer = WeasyRenderer(prog_path, MEET_PROGRAM_CONFIG)
-        renderer.render(program_data)
+        renderer = WeasyRenderer(prog_path)
+        renderer.render_meet_program(program_data)
         print(f"  Saved to {prog_path} ({os.path.getsize(prog_path) / 1024:.1f} KB)")
     except Exception as e:
         print(f"WeasyRenderer failed: {e}")
         print("Falling back to legacy PDFRenderer...")
-        renderer = PDFRenderer(prog_path, MEET_PROGRAM_CONFIG)
-        renderer.render(program_data)
+        from mm_to_json.reporting.renderer import PDFRenderer
+        legacy_renderer = PDFRenderer(prog_path, MEET_PROGRAM_CONFIG)
+        legacy_renderer.render(program_data)
         print(f"  Saved to {prog_path} ({os.path.getsize(prog_path) / 1024:.1f} KB)")
+
 
     # Psych Sheet
     print("Generating Psych Sheet...")
