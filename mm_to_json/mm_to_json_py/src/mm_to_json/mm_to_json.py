@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import json
+import logging
 import os
 
 # from access_parser import AccessParser DEPRECATED

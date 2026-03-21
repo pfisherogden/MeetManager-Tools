@@ -75,6 +75,7 @@ jobs:
           env_vars: |
             GCS_BUCKET_NAME=mmtools-data-mmtools-488404
             LOG_LEVEL=INFO
+            PYTHONUNBUFFERED=1
 
       # Deploy Frontend to Cloud Run
       - name: Deploy Frontend
