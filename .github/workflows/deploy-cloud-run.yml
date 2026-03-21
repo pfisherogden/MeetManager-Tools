@@ -10,7 +10,7 @@ on:
       - '.github/workflows/deploy-cloud-run.yml'
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   PROJECT_ID: mmtools-488404
   REGION: us-west1
   REPOSITORY: mmtools
