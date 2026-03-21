@@ -1,6 +1,6 @@
+import json
 import os
 import sys
-import json
 
 sys.path.append(os.path.dirname(__file__))
 from mm_to_json.mm_to_json import MmToJsonConverter

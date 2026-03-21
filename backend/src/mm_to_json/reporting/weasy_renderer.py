@@ -11,6 +11,7 @@ from weasyprint.text.fonts import FontConfiguration
 # Global font configuration to speed up rendering across multiple reports
 _font_config = None
 
+
 def get_font_config():
     global _font_config
     if _font_config is None:
