@@ -58,9 +58,9 @@ class WeasyRenderer:
         # Convert to PDF
         with _render_lock:
             HTML(string=html_out).write_pdf(
-                self.output_path, 
+                self.output_path,
                 font_config=get_font_config(),
-                optimize_size=()  # Disable font subsetting for massive speedup
+                optimize_size=(),  # Disable font subsetting for massive speedup
             )
 
         return html_out
@@ -82,9 +82,9 @@ class WeasyRenderer:
         html_out = template.render(**render_data)
         with _render_lock:
             HTML(string=html_out).write_pdf(
-                self.output_path, 
+                self.output_path,
                 font_config=get_font_config(),
-                optimize_size=()  # Disable font subsetting for massive speedup
+                optimize_size=(),  # Disable font subsetting for massive speedup
             )
         return html_out
 

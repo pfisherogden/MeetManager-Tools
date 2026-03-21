@@ -6,26 +6,11 @@ import json
 import logging
 import os
 import tempfile
+from collections import OrderedDict
 from concurrent import futures
 from typing import Any
 
 import grpc
-
-# Configure logging at the very top before other modules initialize their own loggers
-log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
-log_level = getattr(logging, log_level_str, logging.INFO)
-
-logging.basicConfig(
-    level=log_level,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    force=True
-)
-
-# Suppress verbose third-party loggers unless explicitly requested
-if log_level_str != "DEBUG":
-    logging.getLogger("fontTools").setLevel(logging.WARNING)
-    logging.getLogger("weasyprint").setLevel(logging.WARNING)
-    logging.getLogger("jpype").setLevel(logging.WARNING)
 
 # Import generated classes
 try:
@@ -38,7 +23,6 @@ except ImportError:
 
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
-from collections import OrderedDict
 
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
@@ -47,6 +31,18 @@ from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
+
+# Configure logging
+log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_str, logging.INFO)
+
+logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+
+# Suppress verbose third-party loggers unless explicitly requested
+if log_level_str != "DEBUG":
+    logging.getLogger("fontTools").setLevel(logging.WARNING)
+    logging.getLogger("weasyprint").setLevel(logging.WARNING)
+    logging.getLogger("jpype").setLevel(logging.WARNING)
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"
