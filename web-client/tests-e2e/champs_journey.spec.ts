@@ -119,7 +119,9 @@ test.describe("Champs Dataset Journey", () => {
 		// Add 10 reports to the pack to test performance and memory limits
 		for (let i = 0; i < 10; i++) {
 			await page.getByRole("button", { name: /Add to Pack/i }).click();
-			await expect(page.getByText(/Added to custom pack/i).first()).toBeVisible();
+			await expect(
+				page.getByText(/Added to custom pack/i).first(),
+			).toBeVisible();
 			// Close the toast or let it fade, click again
 			// In radix UI, sometimes toasts stack. We just wait for visibility.
 			await page.waitForTimeout(500); // small buffer to avoid click issues
