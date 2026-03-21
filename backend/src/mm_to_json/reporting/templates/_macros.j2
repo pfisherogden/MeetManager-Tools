@@ -28,24 +28,16 @@
     <tr class="relay-swimmers-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-row{% endif %}">
         <td></td>
         <td colspan="{{ colspan }}" class="swimmers-list">
-            {% if show_dq_lines %}
-                <div class="relay-grid">
-                    <div class="relay-col">
-                        <div class="relay-swimmer">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }} DQ: ______</div>
-                        <div class="relay-swimmer">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }} DQ: ______</div>
-                    </div>
-                    <div class="relay-col">
-                        <div class="relay-swimmer">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }} DQ: ______</div>
-                        <div class="relay-swimmer">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }} DQ: ______</div>
-                    </div>
+            <div class="relay-grid">
+                <div class="relay-col">
+                    <div class="relay-swimmer">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}{% if show_dq_lines %} DQ: _______{% endif %}</div>
+                    <div class="relay-swimmer">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}{% if show_dq_lines %} DQ: _______{% endif %}</div>
                 </div>
-            {% else %}
-                <div class="sleek-swimmers">
-                    {% for swimmer in entry.swimmers %}
-                    <span>{{ loop.index }}) {{ swimmer }}</span>{% if not loop.last %} &nbsp; {% endif %}
-                    {% endfor %}
+                <div class="relay-col">
+                    <div class="relay-swimmer">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}{% if show_dq_lines %} DQ: _______{% endif %}</div>
+                    <div class="relay-swimmer">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}{% if show_dq_lines %} DQ: _______{% endif %}</div>
                 </div>
-            {% endif %}
+            </div>
         </td>
     </tr>
     {% endif %}

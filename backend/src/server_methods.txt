@@ -1,0 +1,115 @@
+    def GenerateReport(self, request, context):
+        request = request or pb2.GenerateReportRequest()
+        try:
+            cache, _ = self._load_user_data(context)
+
+            rtype_map = {
+                pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
+                pb2.REPORT_TYPE_ENTRIES: "entries",
+                pb2.REPORT_TYPE_LINEUPS: "lineups",
+                pb2.REPORT_TYPE_RESULTS: "results",
+                pb2.REPORT_TYPE_MEET_PROGRAM: "program",
+                pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
+                pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
+                pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
+            }
+
+            res = _process_single_report_process(
+                0,
+                request.type,
+                request.title,
+                request.team_filter,
+                request.gender_filter,
+                request.age_group_filter,
+                request.columns_on_page if request.HasField("columns_on_page") else 2,
+                request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
+                request.zebra_striping if request.HasField("zebra_striping") else False,
+                cache,
+                rtype_map,
+            )
+
+            if not res["success"]:
+                return pb2.GenerateReportResponse(success=False, message=res["error"])
+
+            return pb2.GenerateReportResponse(
+                success=True,
+                message="Report generated successfully",
+                pdf_content=res["content"] if res["filename"].endswith(".pdf") else b"",
+                filename=res["filename"],
+                html_content=res["content"].decode("utf-8") if res["filename"].endswith(".html") else "",
+            )
+
+        except Exception as e:
+            logging.error(f"Error generating report: {e}")
+            return pb2.GenerateReportResponse(success=False, message=str(e))
+
+    def GenerateReportBundle(self, request, context):
+        import zipfile
+        from concurrent.futures import ProcessPoolExecutor
+
+        if request is None:
+            return pb2.GenerateReportBundleResponse(success=False, message="Missing request")
+
+        try:
+            cache, _ = self._load_user_data(context)
+
+            rtype_map = {
+                pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
+                pb2.REPORT_TYPE_ENTRIES: "entries",
+                pb2.REPORT_TYPE_LINEUPS: "lineups",
+                pb2.REPORT_TYPE_RESULTS: "results",
+                pb2.REPORT_TYPE_MEET_PROGRAM: "program",
+                pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
+                pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
+                pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
+            }
+
+            import multiprocessing
+
+            tasks = []
+            ctx = multiprocessing.get_context("spawn")
+            with ProcessPoolExecutor(max_workers=3, mp_context=ctx) as executor:
+                for idx, report_req in enumerate(request.reports):
+                    tasks.append(
+                        executor.submit(
+                            _process_single_report_process,
+                            idx,
+                            report_req.type,
+                            report_req.title,
+                            report_req.team_filter,
+                            report_req.gender_filter,
+                            report_req.age_group_filter,
+                            report_req.columns_on_page if report_req.HasField("columns_on_page") else 2,
+                            report_req.show_relay_swimmers if report_req.HasField("show_relay_swimmers") else True,
+                            report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
+                            cache,
+                            rtype_map,
+                        )
+                    )
+
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for future in tasks:
+                    res = future.result()
+                    if res.get("success"):
+                        zip_file.writestr(res["filename"], res["content"])
+                    else:
+                        raise Exception(f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}")
+
+            num_reports = len(request.reports)
+            bundle_name = (
+                request.bundle_name or f"meet_bundle_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{num_reports}_items.zip"
+            )
+            if not bundle_name.endswith(".zip"):
+                bundle_name += ".zip"
+
+            return pb2.GenerateReportBundleResponse(
+                success=True,
+                message="Bundle generated successfully",
+                zip_content=zip_buffer.getvalue(),
+                filename=bundle_name,
+            )
+
+        except Exception as e:
+            logging.error(f"Error generating report bundle: {e}")
+            return pb2.GenerateReportBundleResponse(success=False, message=str(e))
