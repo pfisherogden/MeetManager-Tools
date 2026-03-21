@@ -71,7 +71,7 @@ jobs:
           service: '${{ env.BACKEND_SERVICE }}'
           image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}'
           region: '${{ env.REGION }}'
-          flags: '--allow-unauthenticated'
+          flags: '--allow-unauthenticated --memory 2Gi'
           env_vars: |
             GCS_BUCKET_NAME=mmtools-data-mmtools-488404
 
