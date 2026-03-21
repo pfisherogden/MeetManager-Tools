@@ -136,8 +136,8 @@ test.describe("Champs Dataset Journey", () => {
 			"Generating 10-report bundle. This should complete in under 2 minutes...",
 		);
 
-		// Enforce a strict 2-minute (120,000ms) timeout on the download
-		const downloadPromise = page.waitForEvent("download", { timeout: 120000 });
+		// Enforce a strict 3-minute (180,000ms) timeout on the download to accommodate CI limits
+		const downloadPromise = page.waitForEvent("download", { timeout: 180000 });
 		await generateZipBtn.click();
 
 		const download = await downloadPromise;

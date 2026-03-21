@@ -65,15 +65,26 @@ def _process_single_report_process(
     rtype_map,
 ):
     # This runs in a separate process, avoiding the GIL
+    import logging
     import os
     import tempfile
+    import traceback
+
+    # Re-initialize logging configuration in the subprocess to ensure logs are captured
+    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_level = getattr(logging, log_level_str, logging.INFO)
+    logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+
+    # Suppress verbose third-party loggers in the subprocess
+    if log_level_str != "DEBUG":
+        logging.getLogger("fontTools").setLevel(logging.WARNING)
+        logging.getLogger("weasyprint").setLevel(logging.WARNING)
+        logging.getLogger("jpype").setLevel(logging.WARNING)
 
     from mm_to_json.mm_to_json import MmToJsonConverter
     from mm_to_json.reporting.extractor import ReportDataExtractor
     from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
-    # Needs to be a mock object or dict to match _generate_single_report_task signature if we used it,
-    # but let's just do it directly here
     rtype = rtype_map.get(report_req_type, "psych")
     title = report_req_title
 
@@ -177,6 +188,7 @@ def _process_single_report_process(
 
         return {"success": False, "error": "Temp file not found"}
     except Exception as e:
+        logging.error(f"Process failed: {traceback.format_exc()}")
         if os.path.exists(temp_path):
             os.remove(temp_path)
         return {"success": False, "error": str(e), "rtype": rtype, "idx": idx}
@@ -220,8 +232,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pass
 
         # Allow disabling auth for local dev/testing
-        if os.getenv("GRPC_AUTH_DISABLED") == "true":
-            # logging.debug("DEBUG: Auth disabled, using dev-user")
+        if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
+            # logging.debug("DEBUG: Auth disabled or not in production, using dev-user")
             return "dev-user"
 
         if context is None:
@@ -1550,13 +1562,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             cache, _ = self._load_user_data(context)
 
-            # Shared extractor for all tasks to avoid redundant conversion and memory duplication
-            from mm_to_json.mm_to_json import MmToJsonConverter
-            from mm_to_json.reporting.extractor import ReportDataExtractor
-
-            converter = MmToJsonConverter(table_data=cache)
-            extractor = ReportDataExtractor(converter)
-
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
                 pb2.REPORT_TYPE_ENTRIES: "entries",
@@ -1568,17 +1573,40 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
             }
 
-            # Generate reports sequentially to avoid thread-safety issues with WeasyPrint/Pango/Fontconfig
-            # while still benefiting from the shared MmToJsonConverter and FontConfiguration caching.
-            results = []
-            for idx, report_req in enumerate(request.reports):
-                res = self._generate_single_report_task(idx, report_req, extractor, rtype_map)
-                results.append(res)
+            # Generate reports in parallel with ProcessPoolExecutor to bypass Python GIL
+            # We pass the raw cache data (dict) which is easily picklable.
+            # Must use 'spawn' context because forking a gRPC process causes deadlocks!
+            import multiprocessing
+            import zipfile
+            from concurrent.futures import ProcessPoolExecutor
+
+            tasks = []
+            # Cloud Run backend has 2 CPUs (or more), 3 workers maximizes CPU usage without massive memory spikes
+            ctx = multiprocessing.get_context("spawn")
+            with ProcessPoolExecutor(max_workers=3, mp_context=ctx) as executor:
+                for idx, report_req in enumerate(request.reports):
+                    tasks.append(
+                        executor.submit(
+                            _process_single_report_process,
+                            idx,
+                            report_req.type,
+                            report_req.title,
+                            report_req.team_filter,
+                            report_req.gender_filter,
+                            report_req.age_group_filter,
+                            report_req.columns_on_page if getattr(report_req, "columns_on_page", None) else 2,
+                            report_req.show_relay_swimmers if report_req.HasField("show_relay_swimmers") else True,
+                            report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
+                            cache,
+                            rtype_map,
+                        )
+                    )
 
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for res in results:
-                    if res["success"]:
+                for future in tasks:
+                    res = future.result()
+                    if res.get("success"):
                         zip_file.writestr(res["filename"], res["content"])
                     else:
                         raise Exception(
