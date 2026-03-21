@@ -81,6 +81,8 @@ def _process_single_report_process(
         logging.getLogger("fontTools.subset").setLevel(logging.WARNING)
         logging.getLogger("weasyprint").setLevel(logging.WARNING)
         logging.getLogger("jpype").setLevel(logging.WARNING)
+        # Also disable global logging for anything below INFO to catch stray loggers
+        logging.disable(logging.DEBUG)
 
     from mm_to_json.mm_to_json import MmToJsonConverter
     from mm_to_json.reporting.extractor import ReportDataExtractor
