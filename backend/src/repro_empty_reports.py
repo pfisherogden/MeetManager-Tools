@@ -8,7 +8,6 @@ sys.path.append(os.path.dirname(__file__))  # Add backend/src
 # Correct imports
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
-from mm_to_json.reporting.renderer import PDFRenderer
 
 
 def inspect_data_step_by_step(table_data):
@@ -69,7 +68,7 @@ def repro_empty_reports():
             return
 
     print(f"Loading JSON from {json_path}...")
-    with open(json_path, "r") as f:
+    with open(json_path) as f:
         table_data = json.load(f)
 
     # 2. Inspect intermediate steps
@@ -86,10 +85,11 @@ def repro_empty_reports():
     def render_and_save(data, config, filename, title):
         print(f"Generating {title}...")
         path = os.path.join(output_dir, filename)
-        
+
         # Try WeasyRenderer first (this is what Cloud Run uses)
         try:
             from mm_to_json.reporting.weasy_renderer import WeasyRenderer
+
             print(f"  Attempting WeasyRenderer for {filename}...")
             renderer = WeasyRenderer(path)
             if "Program" in title:
@@ -101,6 +101,7 @@ def repro_empty_reports():
             print(f"  WeasyRenderer failed: {e}")
             print(f"  Falling back to legacy PDFRenderer for {filename}...")
             from mm_to_json.reporting.renderer import PDFRenderer
+
             legacy_renderer = PDFRenderer(path, config)
             legacy_renderer.render(data)
             print(f"  SUCCESS (Legacy): Saved to {path} ({os.path.getsize(path) / 1024:.1f} KB)")
