@@ -64,24 +64,17 @@ test.describe("Reports Generation Journey", () => {
 			page.locator("div").filter({ hasText: /^Summary/ }),
 		).toContainText("Meet Program (HTML)");
 
-		// 3. Click "View HTML" button
+		// 3. Click "View HTML" button and expect a new tab
+		const pagePromise = page.context().waitForEvent("page");
 		await page.getByRole("button", { name: "View HTML" }).click();
+		const newPage = await pagePromise;
+		await newPage.waitForLoadState();
 
-		// 4. Verify preview dialog opens
-		const dialog = page.getByRole("dialog");
-		await expect(dialog).toBeVisible({ timeout: 60000 });
-		await expect(dialog.getByText("Meet Program Preview")).toBeVisible();
-
-		// 5. Verify iframe content (Wait for iframe to load and have content)
-		// Delay to allow srcDoc to render
-		await page.waitForTimeout(10000);
-		const iframe = page.frameLocator('iframe[title="Meet Program Preview"]');
-
+		// 4. Verify new tab content
 		// The HTML report should contain "Event" and "Heat" markers
-		// Use a more robust check by looking at the full text content
-		const bodyText = await iframe.locator("body").innerText();
-		console.log("HTML Report Preview Content:", bodyText);
-		console.log("HTML Report Preview Length:", bodyText.length);
+		const bodyText = await newPage.locator("body").innerText();
+		console.log("HTML Report Tab Content:", bodyText);
+		console.log("HTML Report Tab Length:", bodyText.length);
 
 		// Verified fix: Report should have substantial content
 		expect(bodyText.length).toBeGreaterThan(500);

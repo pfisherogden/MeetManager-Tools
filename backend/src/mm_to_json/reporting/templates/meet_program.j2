@@ -8,47 +8,49 @@
             {{ group.header }}
         </div>
 
-        {% for item in group.heats %}
-        <div class="heat-block">
-            <div class="heat-header">{{ item.header }}</div>
-
-            <table class="entries-table">
-                <thead>
-                    {% if item.sub_items and item.sub_items[0].is_relay %}
-                    <tr>
-                        <th class="col-lane">Lane</th>
-                        <th class="col-team">Team</th>
-                        <th class="col-relay">Relay</th>
-                        <th class="col-time">Seed Time</th>
-                        {% if show_dq_lines %}<th class="col-dq dq-centered">DQ</th>{% endif %}
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <th class="col-lane">Lane</th>
-                        <th class="col-name">Name</th>
-                        <th class="col-age">Age</th>
-                        <th class="col-team">Team</th>
-                        <th class="col-time">Seed Time</th>
-                        {% if show_dq_lines %}<th class="col-dq dq-centered">DQ</th>{% endif %}
-                    </tr>
-                    {% endif %}
-                </thead>
-                <tbody>
-                    {% for entry in item.sub_items %}
-                        {% set is_zebra = zebra_striping and loop.index is even %}
-                        
-                        {{ macros.render_standard_entry_row(entry, is_zebra, show_dq_lines=show_dq_lines) }}
-                        
-                        {# Colspan: indiv=5, relay=4. Add 1 if show_dq_lines. #}
-                        {% set base_colspan = 3 if entry.is_relay else 4 %}
-                        {% set final_colspan = base_colspan + (1 if show_dq_lines else 0) %}
-                        {{ macros.render_relay_swimmers_row(entry, is_zebra, colspan=final_colspan, show_dq_lines=show_dq_lines) }}
-                        
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% endfor %}
+        {# Only include table header once per event block to save space #}
+        <table class="entries-table">
+            <thead>
+                {% if group.heats and group.heats[0].sub_items and group.heats[0].sub_items[0].is_relay %}
+                <tr>
+                    <th class="col-lane">Lane</th>
+                    <th class="col-team">Team</th>
+                    <th class="col-relay">Relay</th>
+                    <th class="col-time">Seed Time</th>
+                    {% if show_dq_lines %}<th class="col-dq dq-centered">DQ</th>{% endif %}
+                </tr>
+                {% else %}
+                <tr>
+                    <th class="col-lane">Lane</th>
+                    <th class="col-name">Name</th>
+                    <th class="col-age">Age</th>
+                    <th class="col-team">Team</th>
+                    <th class="col-time">Seed Time</th>
+                    {% if show_dq_lines %}<th class="col-dq dq-centered">DQ</th>{% endif %}
+                </tr>
+                {% endif %}
+            </thead>
+            <tbody>
+                {% for heat in group.heats %}
+                <tr class="heat-row-header">
+                    <td colspan="{% if show_dq_lines %}6{% else %}5{% endif %}" class="heat-header">
+                        {{ heat.header }}
+                    </td>
+                </tr>
+                {% for entry in heat.sub_items %}
+                    {% set is_zebra = zebra_striping and loop.index is even %}
+                    
+                    {{ macros.render_standard_entry_row(entry, is_zebra, show_dq_lines=show_dq_lines) }}
+                    
+                    {# Colspan calculation for relay swimmers #}
+                    {% set base_colspan = 3 if entry.is_relay else 4 %}
+                    {% set final_colspan = base_colspan + (1 if show_dq_lines else 0) %}
+                    {{ macros.render_relay_swimmers_row(entry, is_zebra, colspan=final_colspan, show_dq_lines=show_dq_lines) }}
+                    
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
     {% endfor %}
 {% endblock %}
