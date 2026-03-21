@@ -48,6 +48,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { handleActionError } from "@/lib/error-handler";
 import type { Team as UITeam } from "@/lib/swim-meet-types";
 import { cn } from "@/lib/utils";
 
@@ -186,9 +187,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 				throw new Error(result.message || "Failed to generate bundle");
 			}
 		} catch (error: unknown) {
-			console.error("Failed to generate custom pack", error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Custom pack generation failed: ${msg}`);
+			handleActionError(error, "Custom pack generation failed");
 		} finally {
 			setIsBundling(false);
 		}
@@ -362,9 +361,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 				throw new Error(result.message || "Failed to generate report");
 			}
 		} catch (error: unknown) {
-			console.error("Failed to generate report", error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Generation failed: ${msg}`);
+			handleActionError(error, "Generation failed");
 		} finally {
 			setIsGenerating(false);
 		}

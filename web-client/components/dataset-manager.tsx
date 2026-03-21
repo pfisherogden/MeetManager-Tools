@@ -46,6 +46,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { handleActionError } from "@/lib/error-handler";
 
 interface Dataset {
 	filename: string;
@@ -69,8 +70,7 @@ export function DatasetManager() {
 				setDatasets(res.datasets);
 			}
 		} catch (error) {
-			console.error(error);
-			toast.error("Failed to load datasets");
+			handleActionError(error, "Failed to load datasets");
 		} finally {
 			setLoading(false);
 		}
@@ -86,8 +86,7 @@ export function DatasetManager() {
 			toast.success(`Active dataset changed to ${filename}`);
 			fetchDatasets();
 		} catch (error) {
-			console.error(error);
-			toast.error("Failed to set active dataset");
+			handleActionError(error, "Failed to set active dataset");
 		}
 	};
 
@@ -100,9 +99,7 @@ export function DatasetManager() {
 				toast.success("Meet data published for Judge App");
 			}
 		} catch (error: unknown) {
-			console.error(error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Failed to publish: ${msg}`);
+			handleActionError(error, "Failed to publish");
 		} finally {
 			setPublishing(false);
 		}
@@ -128,9 +125,7 @@ export function DatasetManager() {
 			if (fileInputRef.current) fileInputRef.current.value = "";
 			fetchDatasets();
 		} catch (error: unknown) {
-			console.error(error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Upload failed: ${msg}`);
+			handleActionError(error, "Upload failed");
 		} finally {
 			setUploading(false);
 		}
@@ -143,9 +138,7 @@ export function DatasetManager() {
 			toast.success(`Deleted ${filename}`);
 			fetchDatasets();
 		} catch (error: unknown) {
-			console.error(error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Failed to delete dataset: ${msg}`);
+			handleActionError(error, "Failed to delete dataset");
 		}
 	};
 
@@ -161,9 +154,7 @@ export function DatasetManager() {
 			toast.success("All datasets deleted");
 			fetchDatasets();
 		} catch (error: unknown) {
-			console.error(error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Failed to clear datasets: ${msg}`);
+			handleActionError(error, "Failed to clear datasets");
 		}
 	};
 
