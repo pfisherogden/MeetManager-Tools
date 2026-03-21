@@ -23,12 +23,14 @@
 <body>
     <div id="header" class="header-container">
         <div class="header-top">
-            <span class="left">{{ meet_name|default('Tri-Valley Swim League') }}</span>
-            <span class="right">MM-Tools - {{ generation_time }}</span>
-        </div>
-        <div class="header-main">
-            <h1 class="report-title">{{ meet_name }}</h1>
-            <h2 class="meet-info">{{ sub_title }}</h2>
+            <div class="header-left">
+                <span class="header-meet-name">{{ meet_name|default('Tri-Valley Swim League') }}</span> - 
+                <span class="header-sub-title">{{ sub_title }}</span>
+            </div>
+            <div class="header-right">
+                <span class="header-timestamp">MM-Tools - {{ generation_time }}</span>
+                <span class="header-page-num">Page <span class="page-counter"></span></span>
+            </div>
         </div>
     </div>
 

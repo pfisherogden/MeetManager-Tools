@@ -84,7 +84,7 @@ def test_meet_program_dom_validation(fixture_path, tmp_path):
     soup = BeautifulSoup(html_content, "html.parser")
 
     # Assert headers
-    assert soup.find("h1").text == program_data["meet_name"]
+    assert soup.find(class_="header-meet-name").text == program_data["meet_name"]
     assert "MM-Tools" in soup.find(class_="header-top").text
 
     # Assert event blocks
@@ -158,8 +158,8 @@ def test_report_filtering_and_title(tmp_path):
     html_content = renderer.render_to_html(program_data)
 
     soup = BeautifulSoup(html_content, "html.parser")
-    assert custom_title in soup.find("h2").text
-    assert f"Team: {team_filter}" in soup.find("h2").text
+    assert custom_title in soup.find(class_="header-sub-title").text
+    assert f"Team: {team_filter}" in soup.find(class_="header-sub-title").text
 
     # Assert all entries in the HTML are for the filtered team
     # Note: in meet program, team is in .col-team
