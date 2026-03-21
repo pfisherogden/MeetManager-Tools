@@ -55,13 +55,15 @@ class WeasyRenderer:
         # Render HTML
         html_out = template.render(**render_data)
 
+        # Aggressively silence noisy loggers right before rendering
+        import logging
+
+        logging.getLogger("fontTools").setLevel(logging.ERROR)
+        logging.getLogger("weasyprint").setLevel(logging.ERROR)
+
         # Convert to PDF
         with _render_lock:
-            HTML(string=html_out).write_pdf(
-                self.output_path,
-                font_config=get_font_config(),
-                optimize_size=(),  # Disable font subsetting for massive speedup
-            )
+            HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
 
         return html_out
 
@@ -80,12 +82,15 @@ class WeasyRenderer:
         render_data["generation_time"] = datetime.datetime.now(tz).strftime("%I:%M %p %Y/%m/%d")
 
         html_out = template.render(**render_data)
+
+        # Aggressively silence noisy loggers right before rendering
+        import logging
+
+        logging.getLogger("fontTools").setLevel(logging.ERROR)
+        logging.getLogger("weasyprint").setLevel(logging.ERROR)
+
         with _render_lock:
-            HTML(string=html_out).write_pdf(
-                self.output_path,
-                font_config=get_font_config(),
-                optimize_size=(),  # Disable font subsetting for massive speedup
-            )
+            HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
         return html_out
 
     def render_to_html(self, data: dict[str, Any], template_name: str = "meet_program.j2") -> str:
