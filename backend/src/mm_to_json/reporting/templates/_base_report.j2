@@ -11,7 +11,7 @@
         {% if columns_on_page and columns_on_page > 1 %}
         .content-container {
             column-count: {{ columns_on_page }};
-            column-gap: 25pt;
+            column-gap: 20pt;
         }
         {% endif %}
         
@@ -21,8 +21,8 @@
 <body>
     <div id="header" class="header-container">
         <div class="header-top">
-            <span class="left">{{ meet_name|default('Tri-Valley Swim League') }}</span>
-            <span class="right">MM-Tools - {{ generation_time }}</span>
+            <span class="left">MM-Tools Report</span>
+            <span class="right">Generated: {{ generation_time }}</span>
         </div>
         <div class="header-main">
             <h1 class="report-title">{{ meet_name }}</h1>
