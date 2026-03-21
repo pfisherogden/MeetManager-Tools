@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
 
@@ -115,18 +116,45 @@ test.describe("Champs Dataset Journey", () => {
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
 		await clubCard.click();
 
-		// Add to pack to enable the generate button
-		await page.getByRole("button", { name: /Add to Pack/i }).click();
-		await expect(page.getByText(/Added to custom pack/i)).toBeVisible();
+		// Add 10 reports to the pack to test performance and memory limits
+		for (let i = 0; i < 10; i++) {
+			await page.getByRole("button", { name: /Add to Pack/i }).click();
+			await expect(page.getByText(/Added to custom pack/i)).toBeVisible();
+			// Close the toast or let it fade, click again
+			// In radix UI, sometimes toasts stack. We just wait for visibility.
+			await page.waitForTimeout(500); // small buffer to avoid click issues
+		}
 
 		const generateZipBtn = page.getByRole("button", {
 			name: /Generate Bundle ZIP/i,
 		});
 		await expect(generateZipBtn).toBeEnabled();
+
+		console.log(
+			"Generating 10-report bundle. This should complete in under 2 minutes...",
+		);
+
+		// Enforce a strict 2-minute (120,000ms) timeout on the download
+		const downloadPromise = page.waitForEvent("download", { timeout: 120000 });
 		await generateZipBtn.click();
+
+		const download = await downloadPromise;
+
+		// Wait for download to complete
+		const downloadPath = await download.path();
+		expect(downloadPath).toBeTruthy();
+
+		if (downloadPath) {
+			// Validate size is substantial (not just empty headers)
+			const stats = fs.statSync(downloadPath);
+			console.log(`Downloaded bundle size: ${stats.size} bytes`);
+
+			// 10 entries reports should be well over 50KB. If it's 2KB, it's just headers.
+			expect(stats.size).toBeGreaterThan(50 * 1024);
+		}
 
 		await expect(
 			page.getByText("Custom pack generated successfully", { exact: false }),
-		).toBeVisible({ timeout: 180000 });
+		).toBeVisible();
 	});
 });
