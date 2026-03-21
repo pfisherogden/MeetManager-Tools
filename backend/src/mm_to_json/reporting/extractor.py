@@ -477,7 +477,7 @@ class ReportDataExtractor:
                             {
                                 "lane": str(lane),
                                 "name": f"{entry.get('team', '')} {entry.get('relay_ltr', entry.get('relayLtr', ''))}",
-                                "team": entry.get("team", ""),
+                                "team": entry.get("teamCode") or entry.get("team", ""),
                                 "team_color": self.team_color_map.get(entry.get("team", ""), ""),
                                 "relay_ltr": entry.get("relay_ltr", entry.get("relayLtr", "")),
                                 "time": seed_time,
@@ -495,7 +495,7 @@ class ReportDataExtractor:
                                 "lane": str(lane),
                                 "name": name,
                                 "age": str(self._safe_int(entry.get("age", 0))),
-                                "team": entry.get("team", ""),
+                                "team": entry.get("teamCode") or entry.get("team", ""),
                                 "team_color": self.team_color_map.get(entry.get("team", ""), ""),
                                 "time": seed_time,
                                 "is_relay": False,
@@ -700,7 +700,7 @@ class ReportDataExtractor:
                         continue
                     item_data = {
                         "lane": str(entry.get("lane", "")),
-                        "team": entry.get("team", ""),
+                        "team": entry.get("teamCode") or entry.get("team", ""),
                         "time": entry.get("seedTime", "NT"),
                         "is_relay": is_relay,
                     }
