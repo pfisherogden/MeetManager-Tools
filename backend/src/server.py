@@ -28,8 +28,6 @@ from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from auth_interceptor import FirebaseAuthInterceptor
 from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.reporting.extractor import ReportDataExtractor
-from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
 
 # Configure logging
@@ -1253,42 +1251,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetEventScoresResponse(event_scores=resp_list)
 
     def GenerateReport(self, request, context):
-        if request is None:
-            return pb2.GenerateReportResponse(success=False, message="Missing request")
-        uid = self._check_auth(context)
+        request = request or pb2.GenerateReportRequest()
         try:
-            cache, config = self._load_user_data(context)
-            logging.debug(f"DEBUG: GenerateReport for user {uid}, cache keys: {list(cache.keys())}")
-            for tname, rows in cache.items():
-                if isinstance(rows, list):
-                    logging.debug(f"DEBUG: Cache table '{tname}' has {len(rows)} rows")
-
-            converter = MmToJsonConverter(table_data=cache)
-
-            rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
-            team_filter = None
-            title = None
-            gender_filter = None
-            age_group_filter = None
-            columns_on_page = 2
-            show_relay_swimmers = True
-            zebra_striping = False
-
-            if request:
-                rtype_val = request.type
-                team_filter = request.team_filter
-                title = request.title
-                gender_filter = request.gender_filter
-                age_group_filter = request.age_group_filter
-                if request.columns_on_page:
-                    columns_on_page = request.columns_on_page
-                if request.HasField("show_relay_swimmers"):
-                    show_relay_swimmers = request.show_relay_swimmers
-                if request.HasField("zebra_striping"):
-                    zebra_striping = request.zebra_striping
-
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-                temp_path = tmp.name
+            cache, _ = self._load_user_data(context)
 
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
@@ -1301,260 +1266,34 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
             }
 
-            rtype = rtype_map.get(rtype_val, "psych")
-            pdf_content = b""
-            html_content = None
+            res = _process_single_report_process(
+                0,
+                request.type,
+                request.title,
+                request.team_filter,
+                request.gender_filter,
+                request.age_group_filter,
+                request.columns_on_page if request.HasField("columns_on_page") else 2,
+                request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
+                request.zebra_striping if request.HasField("zebra_striping") else False,
+                cache,
+                rtype_map,
+            )
 
-            extractor = ReportDataExtractor(converter)
-            renderer = WeasyRenderer(temp_path)
-
-            logging.debug(f"DEBUG: GenerateReport: rtype={rtype}, title={title}, team_filter={team_filter}")
-            # Ensure convert() is called to populate tables/sessions for logging
-            conv_data = converter.convert()
-            logging.debug(f"DEBUG: Sessions in converter: {len(conv_data.get('sessions', []))}")
-            total_evts = sum(len(s.get("events", [])) for s in conv_data.get("sessions", []))
-            logging.debug(f"DEBUG: Total events across all sessions: {total_evts}")
-
-            if rtype == "psych":
-                report_data = extractor.extract_psych_sheet_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Extracted psych data: {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "psych_sheet.j2")
-            elif rtype == "entries":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Extracted entries data: {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_hytek.j2")
-            elif rtype == "lineups":
-                report_data = extractor.extract_timer_sheets_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Extracted lineups data: {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "lineup_sheets.j2")
-            elif rtype == "results":
-                report_data = extractor.extract_results_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Extracted results data: {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "meet_results.j2")
-            elif rtype == "program":
-                program_data = extractor.extract_meet_program_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                    columns_on_page=columns_on_page,
-                    show_relay_swimmers=show_relay_swimmers,
-                )
-                logging.debug(f"DEBUG: Extracted program data: {len(program_data.get('groups', []))} groups")
-                program_data["zebra_striping"] = zebra_striping
-                renderer.render_meet_program(program_data)
-            elif rtype == "program_html":
-                program_data = extractor.extract_meet_program_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                    columns_on_page=columns_on_page,
-                    show_relay_swimmers=show_relay_swimmers,
-                )
-                logging.debug(f"DEBUG: Extracted program_html data: {len(program_data.get('groups', []))} groups")
-                program_data["zebra_striping"] = zebra_striping
-                html_content = renderer.render_to_html(program_data)
-                with open(temp_path, "wb") as f:
-                    f.write(b"")
-            elif rtype == "entries_hytek":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Extracted entries_hytek data: {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_hytek.j2")
-            elif rtype == "entries_club":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Extracted entries_club data: {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_club.j2")
-
-            if os.path.exists(temp_path):
-                with open(temp_path, "rb") as f:
-                    pdf_content = f.read()
-                os.remove(temp_path)
-
-            filename = f"report_{rtype}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            if rtype == "program_html":
-                filename = filename.replace(".pdf", ".html")
+            if not res["success"]:
+                return pb2.GenerateReportResponse(success=False, message=res["error"])
 
             return pb2.GenerateReportResponse(
                 success=True,
                 message="Report generated successfully",
-                pdf_content=pdf_content,
-                filename=filename,
-                html_content=html_content,
+                pdf_content=res["content"] if res["filename"].endswith(".pdf") else b"",
+                filename=res["filename"],
+                html_content=res["content"].decode("utf-8") if res["filename"].endswith(".html") else "",
             )
 
         except Exception as e:
             logging.error(f"Error generating report: {e}")
             return pb2.GenerateReportResponse(success=False, message=str(e))
-
-    def _generate_single_report_task(self, idx, report_req, extractor, rtype_map):
-        rtype_val = report_req.type
-        rtype = rtype_map.get(rtype_val, "psych")
-        title = report_req.title
-        team_filter = report_req.team_filter
-        gender_filter = report_req.gender_filter
-        age_group_filter = report_req.age_group_filter
-
-        # New variation fields
-        columns_on_page = 2
-        if report_req.columns_on_page:
-            columns_on_page = report_req.columns_on_page
-
-        show_relay_swimmers = True
-        if report_req.HasField("show_relay_swimmers"):
-            show_relay_swimmers = report_req.show_relay_swimmers
-
-        zebra_striping = False
-        if report_req.HasField("zebra_striping"):
-            zebra_striping = report_req.zebra_striping
-
-        # Create unique temp path for this thread
-        with tempfile.NamedTemporaryFile(suffix=".pdf" if rtype != "program_html" else ".html", delete=False) as tmp:
-            temp_path = tmp.name
-
-        try:
-            renderer = WeasyRenderer(temp_path)
-            logging.debug(f"DEBUG: Bundle Task {idx}: rtype={rtype}, title={title}")
-
-            if rtype == "psych":
-                report_data = extractor.extract_psych_sheet_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "psych_sheet.j2")
-            elif rtype == "entries":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_hytek.j2")
-            elif rtype == "lineups":
-                report_data = extractor.extract_timer_sheets_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "lineup_sheets.j2")
-            elif rtype == "results":
-                report_data = extractor.extract_results_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "meet_results.j2")
-            elif rtype == "program":
-                program_data = extractor.extract_meet_program_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                    columns_on_page=columns_on_page,
-                    show_relay_swimmers=show_relay_swimmers,
-                )
-                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(program_data.get('groups', []))} groups")
-                program_data["zebra_striping"] = zebra_striping
-                renderer.render_meet_program(program_data)
-            elif rtype == "program_html":
-                program_data = extractor.extract_meet_program_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                    columns_on_page=columns_on_page,
-                    show_relay_swimmers=show_relay_swimmers,
-                )
-                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(program_data.get('groups', []))} groups")
-                program_data["zebra_striping"] = zebra_striping
-                html_content = renderer.render_to_html(program_data)
-                with open(temp_path, "w") as f:
-                    f.write(html_content)
-            elif rtype == "entries_hytek":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_hytek.j2")
-            elif rtype == "entries_club":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                logging.debug(f"DEBUG: Bundle Task {idx}: Extracted {len(report_data.get('groups', []))} groups")
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_club.j2")
-
-            if os.path.exists(temp_path):
-                with open(temp_path, "rb") as f:
-                    content = f.read()
-                os.remove(temp_path)
-
-                # Clean title for filename
-                safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-                ext = ".html" if rtype == "program_html" else ".pdf"
-                file_name = f"{idx + 1}_{safe_title}{ext}"
-                return {"success": True, "filename": file_name, "content": content}
-
-            return {"success": False, "error": "Temp file not found"}
-        except Exception as e:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-            return {"success": False, "error": str(e), "rtype": rtype, "idx": idx}
 
     def GenerateReportBundle(self, request, context):
         import zipfile

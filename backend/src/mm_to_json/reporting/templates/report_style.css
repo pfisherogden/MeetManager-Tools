@@ -53,7 +53,9 @@ body {
 /* Event Blocks */
 .event-block {
     margin-top: 15pt;
-    break-inside: avoid;
+    break-inside: avoid-column;
+    page-break-inside: avoid;
+    width: 100%;
 }
 
 .event-header {
@@ -64,14 +66,18 @@ body {
     font-size: 11pt;
     break-after: avoid;
     page-break-after: avoid;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Heat Blocks - Prevent splitting across pages/columns */
 .heat-block {
     margin-bottom: 10pt;
-    break-inside: avoid;
+    break-inside: avoid-column;
     page-break-inside: avoid;
+    width: 100%;
 }
+
 
 .heat-header {
     font-weight: bold;
@@ -175,8 +181,9 @@ td {
 /* 2-Column Layout */
 .columns-2 {
     column-count: 2;
-    column-gap: 20pt;
+    column-gap: 30pt;
     column-rule: 0.5pt solid #eee;
+    width: 100%;
 }
 
 .team-dot {
