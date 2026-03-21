@@ -7,11 +7,13 @@
         /* Base injection for mm-tools styles */
         {{ css_content }}
 
-        /* Optional column configuration applied globally if specified */
+        /* Centralized column configuration */
         {% if columns_on_page and columns_on_page > 1 %}
         .content-container {
             column-count: {{ columns_on_page }};
-            column-gap: 20pt;
+            column-gap: 30pt;
+            column-rule: 0.5pt solid #eee;
+            column-fill: auto;
         }
         {% endif %}
         

@@ -1,81 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ meet_name }} - {{ sub_title }}</title>
-    <style>
-        {{ css_content }}
-        .group-block {
-            break-inside: avoid;
-            margin-bottom: 15pt;
-        }
-        .group-header {
-            background-color: #f0f0f0;
-            font-weight: bold;
-            font-size: 10pt;
-            padding: 2pt 5pt;
-            border: 0.5pt solid #ccc;
-            margin-bottom: 5pt;
-        }
-        .entries-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 8pt;
-        }
-        .entries-table th {
-            text-align: left;
-            border-bottom: 0.5pt solid #ddd;
-        }
-        .col-place { width: 25pt; font-weight: bold; }
-        .col-name { width: auto; }
-        .col-team { width: 50pt; }
-        .col-age { width: 25pt; }
-        .col-time { width: 45pt; text-align: right; }
-        .col-points { width: 35pt; text-align: right; }
-    </style>
-</head>
-<body>
-    <div id="header">
-        <div class="header-top">
-            <span class="left">Tri-Valley Swim Lg. C</span>
-            <span class="right">MM-Tools - {{ generation_time }}</span>
-        </div>
-        <div class="header-main">
-            <h1>{{ meet_name }}</h1>
-            <h2>{{ sub_title }}</h2>
-        </div>
-    </div>
+{% extends "_base_report.j2" %}
 
-    <div class="content-container">
-        {% for group in groups %}
-        <div class="group-block">
-            <div class="group-header">{{ group.header }}</div>
-            <table class="entries-table">
-                <thead>
-                    <tr>
-                        <th class="col-place">Pl</th>
-                        <th class="col-name">Name</th>
-                        <th class="col-age">Age</th>
-                        <th class="col-team">Team</th>
-                        <th class="col-time">Time</th>
-                        <th class="col-points">Pts</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for athlete in group.sections[0].sub_items %}
-                    <tr class="entry-row {% if zebra_striping and loop.index is even %}zebra-row{% endif %}">
-                        <td class="col-place">{{ athlete.place }}</td>
-                        <td>{{ athlete.name }}</td>
-                        <td>{{ athlete.age }}</td>
-                        <td>{{ athlete.team }}</td>
-                        <td class="col-time">{{ athlete.time }}</td>
-                        <td class="col-points">{{ athlete.points }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% endfor %}
+{% block extra_css %}
+    .group-block {
+        break-inside: avoid;
+        margin-bottom: 15pt;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10pt;
+    }
+    .group-header {
+        font-weight: bold;
+        font-size: 11pt;
+        margin-bottom: 5pt;
+        background-color: #f9f9f9;
+        padding: 3pt 6pt;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+    }
+    th {
+        text-align: left;
+        border-bottom: 1px solid #333;
+        padding: 2pt;
+        font-size: 8pt;
+    }
+    td {
+        padding: 3pt 2pt;
+    }
+    .col-place { width: 30pt; text-align: center; }
+    .col-name { width: auto; }
+    .col-age { width: 30pt; text-align: center; }
+    .col-team { width: 80pt; }
+    .col-time { width: 60pt; text-align: right; font-weight: bold; }
+    .col-pts { width: 40pt; text-align: right; }
+{% endblock %}
+
+{% block content %}
+    {% for group in groups %}
+    <div class="group-block">
+        <div class="group-header">{{ group.header }}</div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-place">Pl</th>
+                    <th class="col-name">Name</th>
+                    <th class="col-age">Age</th>
+                    <th class="col-team">Team</th>
+                    <th class="col-time">Time</th>
+                    <th class="col-pts">Pts</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in group.sub_items %}
+                <tr class="{% if zebra_striping and loop.index is even %}zebra-row{% endif %}">
+                    <td class="col-place">{{ item.place }}</td>
+                    <td class="col-name">{{ item.name }}</td>
+                    <td class="col-age">{{ item.age }}</td>
+                    <td class="col-team">{{ item.team }}</td>
+                    <td class="col-time">{{ item.time }}</td>
+                    <td class="col-pts">{{ item.points }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-</body>
-</html>
+    {% endfor %}
+{% endblock %}

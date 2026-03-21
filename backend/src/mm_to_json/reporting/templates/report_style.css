@@ -178,14 +178,6 @@ td {
     margin-left: 4pt;
 }
 
-/* 2-Column Layout */
-.columns-2 {
-    column-count: 2;
-    column-gap: 30pt;
-    column-rule: 0.5pt solid #eee;
-    width: 100%;
-}
-
 .team-dot {
     display: inline-block;
     width: 6pt;
