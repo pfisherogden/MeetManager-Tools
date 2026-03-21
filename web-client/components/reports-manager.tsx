@@ -32,12 +32,6 @@ import {
 	CommandItem,
 	CommandList,
 } from "@/components/ui/command";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -119,8 +113,6 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 	const [title, setTitle] = useState("");
 	const [teamFilter, setTeamFilter] = useState("");
 	const [isGenerating, setIsGenerating] = useState(false);
-	const [htmlContent, setHtmlContent] = useState<string | null>(null);
-	const [showHtmlDialog, setShowHtmlDialog] = useState(false);
 	const [isBundling, setIsBundling] = useState(false);
 	const [customPack, setCustomPack] = useState<CustomPackItem[]>([]);
 	const [zebraStriping, setZebraStriping] = useState(false);
@@ -341,8 +333,15 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 
 			if (result.success) {
 				if (selectedType === 5 && result.htmlContent) {
-					setHtmlContent(result.htmlContent);
-					setShowHtmlDialog(true);
+					// Open HTML content in a new tab
+					const newTab = window.open("", "_blank");
+					if (newTab) {
+						newTab.document.write(result.htmlContent);
+						newTab.document.close();
+						toast.success("HTML Program opened in new tab");
+					} else {
+						toast.error("Pop-up blocked. Please allow pop-ups for this site.");
+					}
 				} else if (result.pdfContent) {
 					const blob = new Blob([new Uint8Array(result.pdfContent)], {
 						type: "application/pdf",
@@ -934,23 +933,6 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 					</ScrollArea>
 				</CardContent>
 			</Card>
-
-			<Dialog open={showHtmlDialog} onOpenChange={setShowHtmlDialog}>
-				<DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
-					<DialogHeader className="p-4 border-b">
-						<DialogTitle>Meet Program Preview</DialogTitle>
-					</DialogHeader>
-					<div className="flex-1 w-full overflow-hidden">
-						{htmlContent && (
-							<iframe
-								srcDoc={htmlContent}
-								title="Meet Program Preview"
-								className="w-full h-full border-none"
-							/>
-						)}
-					</div>
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }

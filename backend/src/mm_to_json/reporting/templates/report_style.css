@@ -1,8 +1,11 @@
 @page {
     size: letter;
     margin: 0.5in;
-    margin-top: 1.2in;
-    /* Make room for fixed header in PDF */
+    margin-top: 1.1in;
+    /* Repeating header configuration for WeasyPrint */
+    @top-center {
+        content: element(header);
+    }
 
     @bottom-right {
         content: "Page " counter(page);

@@ -156,8 +156,8 @@ def _process_single_report_process(
             )
             program_data["zebra_striping"] = zebra_striping
             html_content = renderer.render_to_html(program_data)
-            with open(temp_path, "w") as f:
-                f.write(html_content)
+            with open(temp_path, "wb") as f:
+                f.write(html_content.encode("utf-8"))
         elif rtype == "entries_hytek":
             report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
