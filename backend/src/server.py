@@ -22,6 +22,8 @@ except ImportError:
 
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
+from collections import OrderedDict
+
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from auth_interceptor import FirebaseAuthInterceptor
@@ -29,8 +31,6 @@ from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
-
-from collections import OrderedDict
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"
@@ -158,7 +158,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             entry = self._user_cache[uid]
             # Move to end (most recent)
             self._user_cache.move_to_end(uid)
-            
+
             if entry["filename"] == filename:
                 # Check if modified
                 try:
@@ -208,12 +208,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 mtime = self.storage.get_last_modified(user_path)
                 self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
                 self._user_cache.move_to_end(uid)
-                
+
                 # Evict oldest if limit exceeded
                 if len(self._user_cache) > MAX_CACHE_SIZE:
                     oldest_uid, _ = self._user_cache.popitem(last=False)
                     print(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
-                
+
                 print(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
             except Exception as e:
                 print(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
@@ -1293,7 +1293,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             renderer = WeasyRenderer(temp_path)
             print(f"DEBUG: Bundle Task {idx}: rtype={rtype}, title={title}")
-            
+
             if rtype == "psych":
                 report_data = extractor.extract_psych_sheet_data(
                     team_filter=team_filter,
@@ -1407,10 +1407,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             cache, _ = self._load_user_data(context)
-            
+
             # Shared extractor for all tasks to avoid redundant conversion and memory duplication
             from mm_to_json.mm_to_json import MmToJsonConverter
             from mm_to_json.reporting.extractor import ReportDataExtractor
+
             converter = MmToJsonConverter(table_data=cache)
             extractor = ReportDataExtractor(converter)
 
@@ -1430,7 +1431,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Limit to 3 workers to prevent memory spike from WeasyPrint
             with ThreadPoolExecutor(max_workers=3) as executor:
                 for idx, report_req in enumerate(request.reports):
-                    tasks.append(executor.submit(self._generate_single_report_task, idx, report_req, extractor, rtype_map))
+                    tasks.append(
+                        executor.submit(self._generate_single_report_task, idx, report_req, extractor, rtype_map)
+                    )
 
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -1756,4 +1759,3 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     serve()
 # Triggering fresh CI run with clean lint state
- 
