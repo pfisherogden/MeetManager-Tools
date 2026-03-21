@@ -1426,19 +1426,17 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
             }
 
-            # Generate reports in parallel with SHARED extractor
-            tasks = []
-            # Limit to 3 workers to prevent memory spike from WeasyPrint
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                for idx, report_req in enumerate(request.reports):
-                    tasks.append(
-                        executor.submit(self._generate_single_report_task, idx, report_req, extractor, rtype_map)
-                    )
+            # Generate reports sequentially to avoid thread-safety issues with WeasyPrint/Pango/Fontconfig
+            # while still benefiting from the shared MmToJsonConverter and FontConfiguration caching.
+            results = []
+            for idx, report_req in enumerate(request.reports):
+                res = self._generate_single_report_task(idx, report_req, extractor, rtype_map)
+                results.append(res)
 
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for future in tasks:
-                    res = future.result()
+                for res in results:
+
                     if res["success"]:
                         zip_file.writestr(res["filename"], res["content"])
                     else:
