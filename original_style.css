@@ -62,8 +62,6 @@ body {
     font-weight: bold;
     border: 1px solid #ccc;
     font-size: 11pt;
-    break-after: avoid;
-    page-break-after: avoid;
 }
 
 /* Heat Blocks - Prevent splitting across pages/columns */

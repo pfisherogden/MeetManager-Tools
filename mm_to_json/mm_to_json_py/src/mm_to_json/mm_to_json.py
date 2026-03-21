@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import json
+import logging
 import os
 
 # from access_parser import AccessParser DEPRECATED
@@ -119,18 +120,18 @@ class MmToJsonConverter:
                     break
 
             if found_name:
-                print(f"DEBUG: Parsing table {found_name}...")
+                logging.debug(f"Parsing table {found_name}...")
                 rows = None
                 try:
                     # Detect Schema Type based on Event table name
                     if logical == "Event" and found_name == "MTEVENT":
                         self.schema_type = "B"
-                        print("Detected Schema Type B (MTEVENT structure)")
+                        logging.debug("Detected Schema Type B (MTEVENT structure)")
 
                     rows = self._read_table_jackcess(found_name)
                 except Exception as e:
-                    print(f"ERROR: Failed to parse table {found_name}: {e}")
-                    print("SKIPPING TABLE due to parse error.")
+                    logging.error(f"Failed to parse table {found_name}: {e}")
+                    logging.error("SKIPPING TABLE due to parse error.")
                     rows = None
 
                 df = pd.DataFrame()
@@ -166,11 +167,11 @@ class MmToJsonConverter:
                     df.columns = df.columns.astype(str)
 
                 self.tables[logical] = df
-                print(f"Loaded {logical} from {found_name} ({len(df)} rows)")
+                logging.debug(f"Loaded {logical} from {found_name} ({len(df)} rows)")
             else:
                 # If Schema B, Sessitem might be missing, which is fine
                 if logical not in ["Sessitem", "RelayNames", "Divisions"]:
-                    print(
+                    logging.warning(
                         f"Warning: Logical table {logical} not found "
                         f"(checked {physical_candidates})."
                     )

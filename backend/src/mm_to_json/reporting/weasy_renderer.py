@@ -1,11 +1,24 @@
 import copy
 import datetime
+import logging
 import os
 import sys
+import threading
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
+from weasyprint.text.fonts import FontConfiguration
+
+# Thread-local storage for FontConfiguration to prevent GLib/Pango thread-safety crashes
+# while avoiding the overhead of rebuilding the font cache for every single report.
+_thread_local = threading.local()
+
+
+def get_font_config():
+    if not hasattr(_thread_local, "font_config"):
+        _thread_local.font_config = FontConfiguration()
+    return _thread_local.font_config
 
 
 class WeasyRenderer:
@@ -31,7 +44,7 @@ class WeasyRenderer:
         with open(css_path) as f:
             css_content = f.read()
 
-        # Add metadata (do not overwrite if already present, but WeasyRenderer usually generates it)
+        # Add metadata
         render_data = copy.copy(data)
         render_data["css_content"] = css_content
         import pytz
@@ -42,8 +55,12 @@ class WeasyRenderer:
         # Render HTML
         html_out = template.render(**render_data)
 
-        # Convert to PDF
-        HTML(string=html_out).write_pdf(self.output_path)
+        # Aggressively silence noisy loggers right before rendering
+        logging.getLogger("fontTools").setLevel(logging.ERROR)
+        logging.getLogger("weasyprint").setLevel(logging.ERROR)
+
+        # Convert to PDF using thread-local font config
+        HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
 
         return html_out
 
@@ -62,7 +79,12 @@ class WeasyRenderer:
         render_data["generation_time"] = datetime.datetime.now(tz).strftime("%I:%M %p %Y/%m/%d")
 
         html_out = template.render(**render_data)
-        HTML(string=html_out).write_pdf(self.output_path)
+
+        # Aggressively silence noisy loggers right before rendering
+        logging.getLogger("fontTools").setLevel(logging.ERROR)
+        logging.getLogger("weasyprint").setLevel(logging.ERROR)
+
+        HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
         return html_out
 
     def render_to_html(self, data: dict[str, Any], template_name: str = "meet_program.j2") -> str:
