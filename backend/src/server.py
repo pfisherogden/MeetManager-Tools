@@ -123,7 +123,7 @@ def _process_single_report_process(
                 age_group_filter=report_req_age_group_filter,
             )
             report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "lineup_sheets.j2")
+            renderer.render_entries(report_data, "timer_sheets.j2")
         elif rtype == "results":
             report_data = extractor.extract_results_data(
                 team_filter=report_req_team_filter,
@@ -132,7 +132,7 @@ def _process_single_report_process(
                 age_group_filter=report_req_age_group_filter,
             )
             report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "meet_results.j2")
+            renderer.render_entries(report_data, "results.j2")
         elif rtype == "program":
             program_data = extractor.extract_meet_program_data(
                 team_filter=report_req_team_filter,
