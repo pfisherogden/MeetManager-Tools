@@ -21,6 +21,7 @@ dependencies = [
     "firebase-admin>=7.1.0",
     "google-cloud-storage>=3.9.0",
     "grpcio-health-checking>=1.78.0",
+    "msgpack>=1.0.0",
 ]
 
 [tool.ruff]
