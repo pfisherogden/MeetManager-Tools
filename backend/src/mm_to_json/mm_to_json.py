@@ -69,13 +69,14 @@ class MmToJsonConverter:
         if entry_df is not None and not entry_df.empty:
             col = "mtevent" if self.schema_type == "B" else "event_ptr"
             if col in entry_df.columns:
-                self._entry_grouped = {k: v for k, v in entry_df.groupby(col)}
+                # Use dict comprehension instead of dict() to avoid mysterious 'str is not callable' TypeError in tests
+                self._entry_grouped = {k: v for k, v in entry_df.groupby(col)}  # noqa: C416
 
         relay_df = self.tables.get("relay")
         if relay_df is not None and not relay_df.empty:
             col = "mtevent" if self.schema_type == "B" else "event_ptr"
             if col in relay_df.columns:
-                self._relay_grouped = {k: v for k, v in relay_df.groupby(col)}
+                self._relay_grouped = {k: v for k, v in relay_df.groupby(col)}  # noqa: C416
 
     def _load_from_data(self, table_data):
         logger.debug(f"DEBUG: _load_from_data called with keys: {list(table_data.keys())}")

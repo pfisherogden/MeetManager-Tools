@@ -76,6 +76,7 @@ def _process_single_report_process(
     import os
     import tempfile
     import traceback
+
     import msgpack
 
     # Re-initialize logging configuration in the subprocess to ensure logs are captured
@@ -102,7 +103,7 @@ def _process_single_report_process(
     # Load from msgpack
     with open(msgpack_path, "rb") as f:
         packed_data = msgpack.unpack(f, raw=False)
-    
+
     cache_data = packed_data["cache"]
     full_data = packed_data["full_data"]
 
@@ -1362,8 +1363,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Must use 'spawn' context because forking a gRPC process causes deadlocks!
             import multiprocessing
             import zipfile
-            import msgpack
             from concurrent.futures import ProcessPoolExecutor
+
+            import msgpack
 
             # Convert data once in main process
             converter = MmToJsonConverter(table_data=cache)

@@ -23,19 +23,22 @@ def champs_cache():
     # Try multiple possible locations for the fixture
     search_paths = [
         # Relative to project root (local)
-        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tests/fixtures/anonymized_champs.json"),
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "tests/fixtures/anonymized_champs.json",
+        ),
         # Inside Docker data dir
         "/app/data/fixtures_root/anonymized_champs.json",
         # Fallback to backend/tests/fixtures if it was moved there
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/anonymized_champs.json"),
     ]
-    
+
     fixture_path = None
     for path in search_paths:
         if os.path.exists(path):
             fixture_path = path
             break
-            
+
     if not fixture_path:
         raise FileNotFoundError(f"Could not find anonymized_champs.json in any of: {search_paths}")
 

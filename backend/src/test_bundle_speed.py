@@ -1,14 +1,29 @@
+import datetime
 import json
 import os
 import sys
+import tempfile
 import time
+
+import msgpack
 
 sys.path.append(os.path.dirname(__file__))
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
-fixture_path = os.path.join(os.path.dirname(__file__), "..", "tests", "fixtures", "anonymized_meets", "sample_data_champs_2025-aftermeet.json")
+
+def msgpack_encode(obj):
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    if hasattr(obj, "isoformat"):
+        return obj.isoformat()
+    return obj
+
+
+fixture_path = os.path.join(
+    os.path.dirname(__file__), "..", "tests", "fixtures", "anonymized_meets", "sample_data_champs_2025-aftermeet.json"
+)
 with open(fixture_path) as f:
     table_data_raw = json.load(f)
     if "data" in table_data_raw:
@@ -24,16 +39,6 @@ full_data = converter.convert()
 print(f"Conversion took {time.time() - t_conv0:.2f}s")
 print(f"Full data size: {len(json.dumps(full_data)) / 1024 / 1024:.2f} MB")
 
-import msgpack
-import tempfile
-
-def msgpack_encode(obj):
-    if isinstance(obj, (datetime.datetime, datetime.date)):
-        return obj.isoformat()
-    if hasattr(obj, "isoformat"):
-        return obj.isoformat()
-    return obj
-
 print("Testing msgpack serialization...")
 t_pack0 = time.time()
 with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as tmp:
@@ -42,8 +47,8 @@ with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as tmp:
 print(f"Msgpack serialization took {time.time() - t_pack0:.4f}s")
 
 t_unpack0 = time.time()
-with open(tmp_path, "rb") as f:
-    unpacked = msgpack.unpack(f, raw=False)
+with open(tmp_path, "rb") as fb:
+    unpacked = msgpack.unpack(fb, raw=False)
 print(f"Msgpack deserialization took {time.time() - t_unpack0:.4f}s")
 os.remove(tmp_path)
 
