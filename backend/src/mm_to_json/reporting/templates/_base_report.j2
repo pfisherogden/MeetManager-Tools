@@ -21,17 +21,19 @@
     </style>
 </head>
 <body>
-    <div id="header" class="header-container">
-        <div class="header-top">
-            <div class="header-left">
-                <div class="header-meet-name">{{ meet_name|default('Tri-Valley Swim League') }}</div>
-                <div class="header-sub-title">{{ sub_title }}</div>
-            </div>
-            <div class="header-right">
-                <div class="header-timestamp">MM-Tools - {{ generation_time }}</div>
-                <div class="header-page-num">Page <span class="page-counter"></span></div>
-            </div>
-        </div>
+    <div id="header">
+        <table class="header-table">
+            <tr>
+                <td class="header-left-col">
+                    <div class="header-meet-name">{{ meet_name|default('Tri-Valley Swim League') }}</div>
+                    <div class="header-sub-title">{{ sub_title }}</div>
+                </td>
+                <td class="header-right-col">
+                    <div class="header-timestamp">MM-Tools - {{ generation_time }}</div>
+                    <div class="header-page-num">Page <span class="page-counter"></span></div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <!-- Main Report Content -->

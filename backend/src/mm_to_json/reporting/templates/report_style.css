@@ -19,22 +19,45 @@ body {
 #header {
     position: running(header);
     width: 100%;
-    border-bottom: 1pt solid #000; /* Increased from 0.5pt */
+    border-bottom: 1pt solid #000;
     padding-bottom: 3pt;
     margin-bottom: 10pt;
 }
 
-.header-top {
+.header-table {
     width: 100%;
-    position: relative;
-    height: 26pt; /* Increased for two lines */
+    border-collapse: collapse;
+    height: 30pt; /* Fixed height for positioning context */
 }
 
-.header-left {
+.header-table td {
+    width: 50%;
+    position: relative; /* Anchor for absolute positioning of children */
+    padding: 0;
+}
+
+.header-left-col .header-meet-name {
     position: absolute;
+    top: 0;
     left: 0;
+}
+
+.header-left-col .header-sub-title {
+    position: absolute;
     bottom: 0;
-    text-align: left;
+    left: 0;
+}
+
+.header-right-col .header-timestamp {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.header-right-col .header-page-num {
+    position: absolute;
+    bottom: 0;
+    right: 0;
 }
 
 .header-meet-name {
@@ -49,24 +72,9 @@ body {
     color: #000;
 }
 
-.header-right {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    text-align: right;
-}
-
 .header-timestamp, .header-page-num {
     font-size: 8pt;
     color: #666;
-}
-
-.header-timestamp {
-    margin-right: 15pt;
-}
-
-.header-page-num {
-    white-space: nowrap;
 }
 
 .page-counter::after {
