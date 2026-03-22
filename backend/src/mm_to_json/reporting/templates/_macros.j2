@@ -30,12 +30,24 @@
         <td colspan="{{ colspan }}" class="swimmers-list">
             <div class="relay-grid">
                 <div class="relay-col">
-                    <div class="relay-swimmer">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}{% if show_dq_lines %} DQ: _______{% endif %}</div>
-                    <div class="relay-swimmer">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}{% if show_dq_lines %} DQ: _______{% endif %}</div>
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
                 </div>
                 <div class="relay-col">
-                    <div class="relay-swimmer">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}{% if show_dq_lines %} DQ: _______{% endif %}</div>
-                    <div class="relay-swimmer">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}{% if show_dq_lines %} DQ: _______{% endif %}</div>
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
                 </div>
             </div>
         </td>

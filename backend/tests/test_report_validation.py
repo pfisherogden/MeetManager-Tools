@@ -49,8 +49,13 @@ def test_meet_program_has_data(champs_cache):
     print(f"Meet Program: Found {len(entry_rows)} entries")
     assert len(entry_rows) > 1000  # Champs has many entries
 
-    # Check for a specific team
-    assert "Dolphins" in html or "FAST" in html
+    # Check for team entries (which now use abbreviations)
+    # The anonymized data usually has team codes like "TEAM1", "TEAM2" or "DP-TV"
+    assert len(entry_rows) > 1000
+
+    # Just verify some team info is present in the table
+    teams = [row.find("td", class_="col-team").get_text(strip=True) for row in entry_rows]
+    assert any(len(t) > 0 for t in teams)
 
 
 @pytest.mark.skipif(not WEASY_AVAILABLE, reason="WeasyRenderer not available")
@@ -58,8 +63,22 @@ def test_lineups_has_data(champs_cache):
     converter = MmToJsonConverter(table_data=champs_cache)
     extractor = ReportDataExtractor(converter)
 
-    # Test a specific team lineup (Item 4 in user request mentions lineup sheet)
-    report_data = extractor.extract_timer_sheets_data(team_filter="Dolphins")
+    # In anonymized data, we don't know the exact team name easily,
+    # so we'll pick the first team that has entries.
+    full_data = extractor.extract_meet_program_data()
+    first_team = ""
+    for g in full_data["groups"]:
+        for h in g["heats"]:
+            if h["sub_items"]:
+                first_team = h["sub_items"][0]["team"]
+                break
+        if first_team:
+            break
+
+    assert first_team, "Should find at least one team in the meet"
+
+    # Test a specific team lineup using the discovered team code
+    report_data = extractor.extract_timer_sheets_data(team_filter=first_team)
     assert len(report_data["groups"]) > 0
 
     renderer = WeasyRenderer("dummy.pdf")
@@ -67,9 +86,9 @@ def test_lineups_has_data(champs_cache):
 
     soup = BeautifulSoup(html, "html.parser")
     entry_rows = soup.find_all("tr", class_="entry-row")
-    print(f"Lineups (Dolphins): Found {len(entry_rows)} entries")
+    print(f"Lineups ({first_team}): Found {len(entry_rows)} entries")
     assert len(entry_rows) > 0
-    assert "Dolphins" in html
+    assert first_team in html
 
 
 def test_legacy_pdf_renderer_has_data(champs_cache):

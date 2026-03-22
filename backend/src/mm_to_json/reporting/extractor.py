@@ -86,18 +86,21 @@ class ReportDataExtractor:
             return (num, suffix)
         return (0, "")
 
-    def _matches_team_filter(self, entry_team: str, filter_team: str | None) -> bool:
-        """Robust whole-word matching for team filtering."""
+    def _matches_team_filter(self, entry: dict[str, Any], filter_team: str | None) -> bool:
+        """Robust whole-word matching for team filtering, supporting both name and code."""
         if not filter_team:
             return True
-        e_t = str(entry_team).strip().lower()
+
+        # Check both full name and abbreviation
+        candidates = [str(entry.get("team", "")).strip().lower(), str(entry.get("teamCode", "")).strip().lower()]
+
         f_t = str(filter_team).strip().lower()
-        if not e_t or not f_t:
+        if not f_t:
             return True
 
         # Use regex for whole-word matching
         pattern = r"\b" + re.escape(f_t) + r"\b"
-        return bool(re.search(pattern, e_t))
+        return any(bool(re.search(pattern, c)) for c in candidates if c)
 
     def _normalize_gender(self, gender: str | None) -> str:
         """Normalize gender string to M, F, or X. Return 'X' if no filtering is desired."""
@@ -249,7 +252,7 @@ class ReportDataExtractor:
 
         for item in ind_entries:
             t_name = item["team"]
-            if not self._matches_team_filter(t_name, team_filter):
+            if not self._matches_team_filter({"team": t_name}, team_filter):
                 continue
             key = item["key"]
             if t_name not in grouped:
@@ -278,7 +281,7 @@ class ReportDataExtractor:
 
         for item in relay_entries:
             t_name = item["team"]
-            if not self._matches_team_filter(t_name, team_filter):
+            if not self._matches_team_filter({"team": t_name}, team_filter):
                 continue
             if t_name not in grouped:
                 grouped[t_name] = {}
@@ -429,7 +432,7 @@ class ReportDataExtractor:
                     continue
 
             if team_filter:
-                entries = [e for e in entries if e and self._matches_team_filter(e.get("team", ""), team_filter)]
+                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
             if gender_filter:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
@@ -555,7 +558,7 @@ class ReportDataExtractor:
                     continue
 
             if team_filter:
-                entries = [e for e in entries if e and self._matches_team_filter(e.get("team", ""), team_filter)]
+                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
             if gender_filter:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
@@ -653,7 +656,7 @@ class ReportDataExtractor:
                     if not entry:
                         continue
                     # Apply entry-level filters (Team)
-                    if team_filter and not self._matches_team_filter(entry.get("team", ""), team_filter):
+                    if team_filter and not self._matches_team_filter(entry, team_filter):
                         continue
 
                     # Attach event context to entry for sorting and display
@@ -762,7 +765,7 @@ class ReportDataExtractor:
                     continue
 
             if team_filter:
-                entries = [e for e in entries if e and self._matches_team_filter(e.get("team", ""), team_filter)]
+                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
             if gender_filter:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
@@ -870,7 +873,7 @@ class ReportDataExtractor:
                     continue
 
             if team_filter:
-                entries = [e for e in entries if e and self._matches_team_filter(e.get("team", ""), team_filter)]
+                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
             if gender_filter:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
