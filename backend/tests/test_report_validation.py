@@ -52,7 +52,7 @@ def test_meet_program_has_data(champs_cache):
     # Check for team entries (which now use abbreviations)
     # The anonymized data usually has team codes like "TEAM1", "TEAM2" or "DP-TV"
     assert len(entry_rows) > 1000
-    
+
     # Just verify some team info is present in the table
     teams = [row.find("td", class_="col-team").get_text(strip=True) for row in entry_rows]
     assert any(len(t) > 0 for t in teams)
@@ -63,7 +63,7 @@ def test_lineups_has_data(champs_cache):
     converter = MmToJsonConverter(table_data=champs_cache)
     extractor = ReportDataExtractor(converter)
 
-    # In anonymized data, we don't know the exact team name easily, 
+    # In anonymized data, we don't know the exact team name easily,
     # so we'll pick the first team that has entries.
     full_data = extractor.extract_meet_program_data()
     first_team = ""
@@ -72,8 +72,9 @@ def test_lineups_has_data(champs_cache):
             if h["sub_items"]:
                 first_team = h["sub_items"][0]["team"]
                 break
-        if first_team: break
-    
+        if first_team:
+            break
+
     assert first_team, "Should find at least one team in the meet"
 
     # Test a specific team lineup using the discovered team code

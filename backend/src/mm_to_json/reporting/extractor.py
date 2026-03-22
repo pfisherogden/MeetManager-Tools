@@ -90,13 +90,10 @@ class ReportDataExtractor:
         """Robust whole-word matching for team filtering, supporting both name and code."""
         if not filter_team:
             return True
-        
+
         # Check both full name and abbreviation
-        candidates = [
-            str(entry.get("team", "")).strip().lower(),
-            str(entry.get("teamCode", "")).strip().lower()
-        ]
-        
+        candidates = [str(entry.get("team", "")).strip().lower(), str(entry.get("teamCode", "")).strip().lower()]
+
         f_t = str(filter_team).strip().lower()
         if not f_t:
             return True
