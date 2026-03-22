@@ -1,11 +1,15 @@
 @page {
     size: letter;
-    margin: 0.4in;
+    margin: 0.5in;
     margin-top: 0.6in;
     /* Repeating header configuration for WeasyPrint */
     @top-center {
         content: element(header);
     }
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
@@ -81,21 +85,14 @@ body {
     content: counter(page);
 }
 
-.content-container {
-    column-count: 2;
-    column-gap: 20pt;
-    column-rule: 1pt solid #ddd; /* Increased from 0.5pt */
-    column-fill: auto;
-}
-
 .timer-sheet-content {
     column-count: 1 !important;
 }
 
 .event-block {
-    /* break-inside: avoid; REMOVED to allow breaking across columns */
     margin-bottom: 12pt;
     width: 100%;
+    overflow: hidden; /* Ensure content doesn't bleed */
 }
 
 .event-header {
@@ -103,10 +100,11 @@ body {
     font-weight: bold;
     font-size: 9pt;
     padding: 2pt 4pt;
-    border: 1pt solid #999; /* Increased from 0.5pt */
+    border: 1pt solid #999;
     margin-bottom: 4pt;
     text-transform: uppercase;
-    break-after: avoid; /* Keep with first heat */
+    break-after: avoid;
+    width: 100%; /* Explicitly set to 100% with border-box */
 }
 
 .heat-block {
@@ -125,6 +123,8 @@ body {
 .entries-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed; /* Force constraint within column */
+    overflow: hidden;
 }
 
 .entries-table th {
@@ -163,6 +163,7 @@ body {
 .entries-table td {
     padding: 1pt 2pt;
     vertical-align: bottom; /* Allow space above the line for handwriting if multiline */
+    height: 24pt; /* Roughly 2 lines of 12pt each */
 }
 
 .entry-row td {
