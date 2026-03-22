@@ -90,16 +90,25 @@ body {
     overflow: hidden; /* Ensure content doesn't bleed */
 }
 
-.event-header {
+.event-title-row th.event-header {
     background-color: #f0f0f0;
     font-weight: bold;
     font-size: 9pt;
     padding: 2pt 4pt;
     border: 1pt solid #999;
-    margin-bottom: 4pt;
     text-transform: uppercase;
+    text-align: left;
+    width: 100%;
+}
+
+.entries-table thead {
+    display: table-header-group;
     break-after: avoid;
-    width: 100%; /* Explicitly set to 100% with border-box */
+}
+
+.entries-table tr {
+    orphans: 3;
+    widows: 3;
 }
 
 .heat-block {
