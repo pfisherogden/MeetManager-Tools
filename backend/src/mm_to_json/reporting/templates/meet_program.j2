@@ -4,13 +4,14 @@
 {% block content %}
     {% for group in groups %}
     <div class="event-block">
-        <div class="event-header">
-            {{ group.header }}
-        </div>
-
-        {# Only include table header once per event block to save space #}
         <table class="entries-table">
             <thead>
+                {# Integration: Event title as a full-width row inside the table #}
+                <tr class="event-title-row">
+                    <th colspan="{% if show_dq_lines %}6{% else %}5{% endif %}" class="event-header">
+                        {{ group.header }}
+                    </th>
+                </tr>
                 {% if group.heats and group.heats[0].sub_items and group.heats[0].sub_items[0].is_relay %}
                 <tr>
                     <th class="col-lane">Lane</th>
@@ -30,8 +31,8 @@
                 </tr>
                 {% endif %}
             </thead>
+            {% for heat in group.heats %}
             <tbody>
-                {% for heat in group.heats %}
                 <tr class="heat-row-header">
                     <td colspan="{% if show_dq_lines %}6{% else %}5{% endif %}" class="heat-header">
                         {{ heat.header }}
@@ -47,8 +48,8 @@
                     {{ macros.render_relay_swimmers_row(entry, is_zebra, colspan=final_colspan, show_dq_lines=show_dq_lines) }}
                     
                 {% endfor %}
-                {% endfor %}
             </tbody>
+            {% endfor %}
         </table>
     </div>
     {% endfor %}
