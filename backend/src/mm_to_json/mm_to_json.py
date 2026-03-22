@@ -53,17 +53,23 @@ class MmToJsonConverter:
 
     def _load_from_data(self, table_data):
         logger.debug(f"DEBUG: _load_from_data called with keys: {list(table_data.keys())}")
+
+        # Handle cases where data is wrapped in a 'data' key (from full JSON fixtures)
+        if "data" in table_data and isinstance(table_data["data"], dict):
+            logger.debug("DEBUG: Unwrapping 'data' key from table_data")
+            table_data = table_data["data"]
+
         self.table_aliases = {
-            "meet": ["Meet", "MEET"],
-            "session": ["Session", "SESSIONS"],
-            "sessitem": ["Sessitem", "SESSITEM"],
-            "event": ["Event", "MTEVENT"],
-            "entry": ["Entry", "ENTRY"],
-            "relay": ["Relay", "RELAY"],
-            "relaynames": ["RelayNames", "RELAYNAMES"],
+            "meet": ["Meet", "MEET", "meet"],
+            "session": ["Session", "SESSIONS", "session"],
+            "sessitem": ["Sessitem", "SESSITEM", "sessitem"],
+            "event": ["Event", "MTEVENT", "event"],
+            "entry": ["Entry", "ENTRY", "entry"],
+            "relay": ["Relay", "RELAY", "relay"],
+            "relaynames": ["RelayNames", "RELAYNAMES", "relaynames"],
             "athlete": ["athlete", "ATHLETE", "Athlete"],
-            "team": ["Team", "TEAM"],
-            "divisions": ["Divisions", "DIVISIONS"],
+            "team": ["Team", "TEAM", "team"],
+            "divisions": ["Divisions", "DIVISIONS", "divisions"],
         }
 
         # Determine schema type
@@ -105,7 +111,8 @@ class MmToJsonConverter:
                 self.tables[logical.lower()] = df
                 logger.debug(f"DEBUG: Loaded table {logical} from data")
             else:
-                logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
+                if logical not in ["sessitem", "relaynames", "divisions"]:
+                    logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
                 self.tables[logical] = pd.DataFrame()
 
     def _get_val(self, row, key, default=""):
@@ -397,10 +404,10 @@ class MmToJsonConverter:
                 df = df.sort_values("sess_no")
             for _, row in df.iterrows():
                 sess = Session(
-                    sess_id=row.get("sess_ptr"),
-                    number=row.get("sess_no"),
+                    sess_id=self._safe_int(row.get("sess_ptr")),
+                    number=self._safe_int(row.get("sess_no")),
                     name=self._get_val(row, "sess_name"),
-                    day=row.get("sess_day", 1),
+                    day=self._safe_int(row.get("sess_day"), 1),
                     start_time=row.get("sess_starttime", 32400),
                 )
                 sessions.append(sess)

@@ -35,7 +35,7 @@
     .timer-table td {
         border: 1pt solid #333;
         padding: 4pt;
-        height: 52pt; /* Targeted height to fit exactly 10 rows on one page */
+        height: 44pt; /* Targeted height to fit exactly 12 rows on one page */
         vertical-align: middle;
     }
     .col-ev-ht { width: 45pt; text-align: center; font-weight: bold; font-size: 10pt; }
@@ -114,7 +114,7 @@
                                     </div>
                                 </div>
                             {% else %}
-                                <div class="swimmer-name">{{ entry.name }} ({{ entry.age }})</div>
+                                <div class="swimmer-name">{{ entry.name }}{% if entry.age %} ({{ entry.age }}){% endif %}</div>
                                 <div class="team-name">{{ entry.team }}</div>
                             {% endif %}
                         </div>
