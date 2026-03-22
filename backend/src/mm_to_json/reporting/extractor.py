@@ -369,7 +369,8 @@ class ReportDataExtractor:
                     line1_desc = f"{t_name}{ltr_str}        #{r['evt_num']} {r['evt_desc']}"
                     hl_text = f"{r['heat']}/{r['lane']}" if r.get("heat") else ""
                     names_parts = [
-                        f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}" for a in r.get("relayAthletes", [])
+                        f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
+                        for a in r.get("relayAthletes", [])
                     ]
 
                     if not names_parts:
@@ -483,7 +484,6 @@ class ReportDataExtractor:
                             if "relayAthletes" in entry:
                                 names = [
                                     f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
-
                                     for a in entry["relayAthletes"]
                                 ]
                             else:
@@ -754,7 +754,8 @@ class ReportDataExtractor:
                 }
                 if is_relay and "relayAthletes" in entry:
                     item["swimmers"] = [
-                        f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}" for a in entry["relayAthletes"]
+                        f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
+                        for a in entry["relayAthletes"]
                     ]
 
                 elif is_relay:
@@ -862,7 +863,6 @@ class ReportDataExtractor:
                         item_data["relayLtr"] = entry.get("relayLtr", "A")
                         names = [
                             f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
-
                             for a in entry.get("relayAthletes", [])
                         ]
                         if not names:
