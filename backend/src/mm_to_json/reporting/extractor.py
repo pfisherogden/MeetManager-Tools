@@ -618,6 +618,105 @@ class ReportDataExtractor:
             "groups": report_groups,
         }
 
+    def extract_lane_timer_sheets_data(
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
+    ) -> dict[str, Any]:
+        """Extract data grouped by physical Lane (1, 2, 3, etc.) for timer sheets."""
+        full_data = self._get_full_data()
+
+        # 1. Collect all valid entries across all sessions/events
+        all_entries = []
+        for sess in full_data.get("sessions", []):
+            if not sess:
+                continue
+            for evt in sess.get("events", []):
+                if not evt:
+                    continue
+
+                # Apply event-level filters (Gender, Age)
+                evt_gender = evt.get("gender", "")
+                if gender_filter:
+                    target_g = self._normalize_gender(gender_filter)
+                    if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                        continue
+
+                if age_group_filter and age_group_filter.lower() != "open":
+                    evt_age_str = self._format_age(self._safe_int(evt.get("minAge")), self._safe_int(evt.get("maxAge")))
+                    if evt_age_str.lower() != age_group_filter.lower():
+                        continue
+
+                for entry in evt.get("entries", []):
+                    if not entry:
+                        continue
+                    # Apply entry-level filters (Team)
+                    if team_filter and not self._matches_team_filter(entry.get("team", ""), team_filter):
+                        continue
+
+                    # Attach event context to entry for sorting and display
+                    e_copy = entry.copy()
+                    e_copy["_event_num"] = evt.get("eventNum") or evt.get("evt_num")
+                    e_copy["_event_desc"] = evt.get("eventDesc")
+                    e_copy["_is_relay"] = evt.get("isRelay", False)
+                    all_entries.append(e_copy)
+
+        # 2. Group by Lane (typically 1-8)
+        lanes: dict[int, list[Any]] = {}
+        for entry in all_entries:
+            lane = self._safe_int(entry.get("lane", 0))
+            if lane == 0:
+                continue
+            if lane not in lanes:
+                lanes[lane] = []
+            lanes[lane].append(entry)
+
+        # 3. Sort each lane by Event # then Heat #
+        report_groups = []
+        sorted_lane_nums = sorted(lanes.keys())
+
+        for lane_num in sorted_lane_nums:
+            lane_entries = sorted(
+                lanes[lane_num], key=lambda x: (self._safe_int(x["_event_num"]), self._safe_int(x.get("heat", 0)))
+            )
+
+            # 4. Chunk into groups of 10 entries per page
+            for i in range(0, len(lane_entries), 10):
+                chunk = lane_entries[i : i + 10]
+                sub_items = []
+                for entry in chunk:
+                    is_relay = entry.get("_is_relay", False)
+                    item = {
+                        "event_num": str(entry["_event_num"]),
+                        "event_desc": entry["_event_desc"],
+                        "heat": str(self._safe_int(entry.get("heat", 0))),
+                        "lane": str(lane_num),
+                        "name": entry.get("name", "Unknown"),
+                        "team": entry.get("teamCode") or entry.get("team", ""),
+                        "time": entry.get("seedTime", "NT"),
+                        "is_relay": is_relay,
+                    }
+                    if is_relay and "relayAthletes" in entry:
+                        item["swimmers"] = [
+                            f"{a.get('last', '').strip()}, {a.get('first', '').strip()}" for a in entry["relayAthletes"]
+                        ]
+                    elif is_relay:
+                        item["swimmers"] = [n.strip() for n in entry.get("name", "").split(",")]
+
+                    sub_items.append(item)
+
+                report_groups.append(
+                    {"header": f"Lane {lane_num} (Page {(i // 10) + 1})", "lane": lane_num, "sub_items": sub_items}
+                )
+
+        return {
+            "meet_name": full_data.get("name", ""),
+            "sub_title": report_title or "Lane Timer Sheets",
+            "groups": report_groups,
+        }
+
     def extract_timer_sheets_data(
         self,
         team_filter: str | None = None,

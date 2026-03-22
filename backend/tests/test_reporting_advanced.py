@@ -155,9 +155,9 @@ def test_timer_sheets_label_logic_html(sample_extractor):
     html_output = template.render(**render_params)
 
     # Check for new labels
-    assert "Time 1" in html_output
-    assert "Time 2" in html_output
-    assert "Time 1" in html_output
+    assert "Timer 1" in html_output
+    assert "Timer 2" in html_output
+    assert "Stopwatch" in html_output
 
     # Ensure manual-line class is used
 

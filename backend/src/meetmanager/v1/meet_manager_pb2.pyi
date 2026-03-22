@@ -17,6 +17,8 @@ class ReportType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REPORT_TYPE_MEET_PROGRAM_HTML: _ClassVar[ReportType]
     REPORT_TYPE_ENTRIES_HYTEK: _ClassVar[ReportType]
     REPORT_TYPE_ENTRIES_CLUB: _ClassVar[ReportType]
+    REPORT_TYPE_LANE_TIMER_SHEETS: _ClassVar[ReportType]
+    REPORT_TYPE_JUDGE_SHEETS: _ClassVar[ReportType]
 REPORT_TYPE_PSYCH_UNSPECIFIED: ReportType
 REPORT_TYPE_ENTRIES: ReportType
 REPORT_TYPE_LINEUPS: ReportType
@@ -25,6 +27,8 @@ REPORT_TYPE_MEET_PROGRAM: ReportType
 REPORT_TYPE_MEET_PROGRAM_HTML: ReportType
 REPORT_TYPE_ENTRIES_HYTEK: ReportType
 REPORT_TYPE_ENTRIES_CLUB: ReportType
+REPORT_TYPE_LANE_TIMER_SHEETS: ReportType
+REPORT_TYPE_JUDGE_SHEETS: ReportType
 
 class GetFileRequest(_message.Message):
     __slots__ = ("path",)
