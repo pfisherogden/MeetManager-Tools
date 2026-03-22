@@ -20,9 +20,28 @@ from bs4 import BeautifulSoup
 @pytest.fixture
 def champs_cache():
     # File is in backend/tests/test_report_validation.py
-    # Project root is 2 levels up
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    fixture_path = os.path.join(root_dir, "tests/fixtures/anonymized_champs.json")
+    # Try multiple possible locations for the fixture
+    search_paths = [
+        # Relative to project root (local)
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "tests/fixtures/anonymized_champs.json",
+        ),
+        # Inside Docker data dir
+        "/app/data/fixtures_root/anonymized_champs.json",
+        # Fallback to backend/tests/fixtures if it was moved there
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/anonymized_champs.json"),
+    ]
+
+    fixture_path = None
+    for path in search_paths:
+        if os.path.exists(path):
+            fixture_path = path
+            break
+
+    if not fixture_path:
+        raise FileNotFoundError(f"Could not find anonymized_champs.json in any of: {search_paths}")
+
     with open(fixture_path) as f:
         cache_raw = json.load(f)
     cache_data = cache_raw.get("data", cache_raw)

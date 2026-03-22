@@ -11,6 +11,7 @@ from concurrent import futures
 from typing import Any
 
 import grpc
+import msgpack
 
 # Import generated classes
 try:
@@ -49,6 +50,15 @@ CONFIG_FILE = "config.json"
 MAX_CACHE_SIZE = 3  # Keep only the last 3 users' data in memory
 
 
+def msgpack_encode(obj):
+    """Custom encoder for msgpack to handle datetimes and other types."""
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    if hasattr(obj, "isoformat"):
+        return obj.isoformat()
+    return obj
+
+
 def _process_single_report_process(
     idx,
     report_req_type,
@@ -59,7 +69,7 @@ def _process_single_report_process(
     columns_on_page,
     show_relay_swimmers,
     zebra_striping,
-    cache_data,
+    msgpack_path,  # Use msgpack file instead of large dict
     rtype_map,
 ):
     # This runs in a separate process, avoiding the GIL
@@ -89,8 +99,15 @@ def _process_single_report_process(
     rtype = rtype_map.get(report_req_type, "psych")
     title = report_req_title
 
+    # Load from msgpack
+    with open(msgpack_path, "rb") as f:
+        packed_data = msgpack.unpack(f, raw=False)
+
+    cache_data = packed_data["cache"]
+    full_data = packed_data["full_data"]
+
     converter = MmToJsonConverter(table_data=cache_data)
-    extractor = ReportDataExtractor(converter)
+    extractor = ReportDataExtractor(converter, full_data=full_data)
 
     with tempfile.NamedTemporaryFile(suffix=".pdf" if rtype != "program_html" else ".html", delete=False) as tmp:
         temp_path = tmp.name
@@ -1290,19 +1307,35 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
             }
 
-            res = _process_single_report_process(
-                0,
-                request.type,
-                request.title,
-                request.team_filter,
-                request.gender_filter,
-                request.age_group_filter,
-                request.columns_on_page if request.HasField("columns_on_page") else 2,
-                request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
-                request.zebra_striping if request.HasField("zebra_striping") else False,
-                cache,
-                rtype_map,
-            )
+            from mm_to_json.mm_to_json import MmToJsonConverter
+
+            # Convert data once
+            converter = MmToJsonConverter(table_data=cache)
+            full_data = converter.convert()
+
+            # Serialize to msgpack for worker access
+            with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
+                msgpack_path = msgpack_tmp.name
+                msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
+
+            try:
+                res = _process_single_report_process(
+                    0,
+                    request.type,
+                    request.title,
+                    request.team_filter,
+                    request.gender_filter,
+                    request.age_group_filter,
+                    request.columns_on_page if request.HasField("columns_on_page") else 2,
+                    request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
+                    request.zebra_striping if request.HasField("zebra_striping") else False,
+                    msgpack_path,
+                    rtype_map,
+                )
+            finally:
+                # Cleanup msgpack file
+                if os.path.exists(msgpack_path):
+                    os.remove(msgpack_path)
 
             if not res["success"]:
                 return pb2.GenerateReportResponse(success=False, message=res["error"])
@@ -1342,44 +1375,57 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             }
 
             # Generate reports in parallel with ProcessPoolExecutor to bypass Python GIL
-            # We pass the raw cache data (dict) which is easily picklable.
             # Must use 'spawn' context because forking a gRPC process causes deadlocks!
             import multiprocessing
             import zipfile
             from concurrent.futures import ProcessPoolExecutor
 
+            # Convert data once in main process
+            converter = MmToJsonConverter(table_data=cache)
+            full_data = converter.convert()
+
+            # Serialize to msgpack for fast worker access
+            with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
+                msgpack_path = msgpack_tmp.name
+                msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
+
             tasks = []
             # Cloud Run backend has 2 CPUs (or more), 3 workers maximizes CPU usage without massive memory spikes
             ctx = multiprocessing.get_context("spawn")
-            with ProcessPoolExecutor(max_workers=3, mp_context=ctx) as executor:
-                for idx, report_req in enumerate(request.reports):
-                    tasks.append(
-                        executor.submit(
-                            _process_single_report_process,
-                            idx,
-                            report_req.type,
-                            report_req.title,
-                            report_req.team_filter,
-                            report_req.gender_filter,
-                            report_req.age_group_filter,
-                            report_req.columns_on_page if getattr(report_req, "columns_on_page", None) else 2,
-                            report_req.show_relay_swimmers if report_req.HasField("show_relay_swimmers") else True,
-                            report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
-                            cache,
-                            rtype_map,
+            try:
+                with ProcessPoolExecutor(max_workers=3, mp_context=ctx) as executor:
+                    for idx, report_req in enumerate(request.reports):
+                        tasks.append(
+                            executor.submit(
+                                _process_single_report_process,
+                                idx,
+                                report_req.type,
+                                report_req.title,
+                                report_req.team_filter,
+                                report_req.gender_filter,
+                                report_req.age_group_filter,
+                                report_req.columns_on_page if getattr(report_req, "columns_on_page", None) else 2,
+                                report_req.show_relay_swimmers if report_req.HasField("show_relay_swimmers") else True,
+                                report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
+                                msgpack_path,
+                                rtype_map,
+                            )
                         )
-                    )
 
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for future in tasks:
-                    res = future.result()
-                    if res.get("success"):
-                        zip_file.writestr(res["filename"], res["content"])
-                    else:
-                        raise Exception(
-                            f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
-                        )
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    for future in tasks:
+                        res = future.result()
+                        if res.get("success"):
+                            zip_file.writestr(res["filename"], res["content"])
+                        else:
+                            raise Exception(
+                                f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
+                            )
+            finally:
+                # Cleanup msgpack file
+                if os.path.exists(msgpack_path):
+                    os.remove(msgpack_path)
 
             num_reports = len(request.reports)
             bundle_name = (
