@@ -55,7 +55,7 @@ class MmToJsonConverter:
             "Meet": ["Meet", "MEET"],
             "Session": ["Session", "SESSIONS"],
             "Sessitem": ["Sessitem", "SESSITEM"],
-            "Event": ["Event", "MTEVENT"],
+            "Event": ["Event", "MTEVENT", "Mtevent"],
             "Entry": ["Entry", "ENTRY"],
             "Relay": ["Relay", "RELAY"],
             "RelayNames": ["RelayNames", "RELAYNAMES"],
@@ -66,8 +66,8 @@ class MmToJsonConverter:
 
         # Determine schema type
         self.schema_type = "A"
-        for candidate in ["MTEVENT", "mtevent"]:
-            if candidate in table_data:
+        for k in table_data.keys():
+            if str(k).upper() == "MTEVENT":
                 self.schema_type = "B"
                 break
 
@@ -99,7 +99,7 @@ class MmToJsonConverter:
             "Meet": ["Meet", "MEET"],
             "Session": ["Session", "SESSIONS"],
             "Sessitem": ["Sessitem", "SESSITEM"],
-            "Event": ["Event", "MTEVENT"],
+            "Event": ["Event", "MTEVENT", "Mtevent"],
             "Entry": ["Entry", "ENTRY"],
             "Relay": ["Relay", "RELAY"],
             "RelayNames": ["RelayNames", "RELAYNAMES"],
@@ -583,8 +583,8 @@ class MmToJsonConverter:
                                 "schoolYear": athlete["schoolYear"],
                                 "team": athlete["team"],
                                 "teamCode": athlete["teamCode"],
-                                "heat": self._safe_int(row.get("HEAT")),
-                                "lane": self._safe_int(row.get("LANE")),
+                                "heat": self._safe_int(row.get("HEAT") or row.get("heat")),
+                                "lane": self._safe_int(row.get("LANE") or row.get("lane")),
                                 # Using Score as seed/time (unknown distinction in this schema)
                                 "seedTime": time_str,
                                 "psTime": "NT",
@@ -652,8 +652,8 @@ class MmToJsonConverter:
                     team_info = self.get_team_info(team_no)
 
                     # Heat/Lane
-                    heat = self._safe_int(row.get("HEAT"))
-                    lane = self._safe_int(row.get("LANE"))
+                    heat = self._safe_int(row.get("HEAT") or row.get("heat"))
+                    lane = self._safe_int(row.get("LANE") or row.get("lane"))
 
                     event.add_entry(
                         {
@@ -810,30 +810,54 @@ class MmToJsonConverter:
             df = self.tables["Athlete"]
             if not df.empty:
                 for _, row in df.iterrows():
-                    if self.schema_type == "B":
-                        aid = row.get("Athlete")
-                        team_no = row.get("Team1")
-                        team_info = self.get_team_info(team_no)
-                        self.cache_athlete_map[aid] = {
-                            "first": str(row.get("First", "")).strip(),
-                            "last": str(row.get("Last", "")).strip(),
-                            "age": self._safe_int(row.get("Age")),
-                            "schoolYear": str(row.get("Class", "")).strip(),
-                            "team": team_info["name"],
-                            "teamCode": team_info["abbr"],
-                        }
-                    else:
-                        aid = row.get("Ath_no")
-                        team_no = row.get("Team_no")
-                        team_info = self.get_team_info(team_no)
-                        self.cache_athlete_map[aid] = {
-                            "first": str(row.get("First_name", "")).strip(),
-                            "last": str(row.get("Last_name", "")).strip(),
-                            "age": self._safe_int(row.get("Ath_age")),
-                            "schoolYear": str(row.get("Schl_yr", "")).strip(),
-                            "team": team_info["name"],
-                            "teamCode": team_info["abbr"],
-                        }
+                    # Robust candidates for ID, Names, Age, and Team
+                    aid = (
+                        row.get("Athlete")
+                        or row.get("Ath_no")
+                        or row.get("athlete")
+                        or row.get("ath_no")
+                    )
+                    team_no = (
+                        row.get("Team1")
+                        or row.get("Team_no")
+                        or row.get("team1")
+                        or row.get("team_no")
+                    )
+
+                    first = str(
+                        row.get("First")
+                        or row.get("First_name")
+                        or row.get("first")
+                        or row.get("first_name")
+                        or ""
+                    ).strip()
+                    last = str(
+                        row.get("Last")
+                        or row.get("Last_name")
+                        or row.get("last")
+                        or row.get("last_name")
+                        or ""
+                    ).strip()
+                    age = self._safe_int(
+                        row.get("Age") or row.get("Ath_age") or row.get("age") or row.get("ath_age")
+                    )
+                    class_yr = str(
+                        row.get("Class")
+                        or row.get("Schl_yr")
+                        or row.get("class")
+                        or row.get("schl_yr")
+                        or ""
+                    ).strip()
+
+                    team_info = self.get_team_info(team_no)
+                    self.cache_athlete_map[aid] = {
+                        "first": first,
+                        "last": last,
+                        "age": age,
+                        "schoolYear": class_yr,
+                        "team": team_info["name"],
+                        "teamCode": team_info["abbr"],
+                    }
         return self.cache_athlete_map.get(ath_no)
 
     def get_team_info(self, team_no):
@@ -842,26 +866,27 @@ class MmToJsonConverter:
             df = self.tables["Team"]
             if not df.empty:
                 for _, row in df.iterrows():
-                    if self.schema_type == "B":
-                        tid = row.get("Team")
-                        abbr = str(row.get("TCode", "") or "").strip()
-                        short = str(row.get("Short", "") or "").strip()
-                        lsc = str(row.get("LSC", "") or "").strip()
-                        name = short if short else f"{abbr}-{lsc}".strip("-")
-                        self.cache_team_map[tid] = {
-                            "name": name.strip(),
-                            "abbr": abbr if abbr else name.strip(),
-                        }
-                    else:
-                        tid = row.get("Team_no")
-                        abbr = str(row.get("Team_abbr", "") or "").strip()
-                        short = str(row.get("Team_short", "") or "").strip()
-                        lsc = str(row.get("Team_lsc", "") or "").strip()
-                        name = short if short else f"{abbr}-{lsc}".strip("-")
-                        self.cache_team_map[tid] = {
-                            "name": name.strip(),
-                            "abbr": abbr if abbr else name.strip(),
-                        }
+                    # Columns were lowercased in _load_from_data
+                    # Robust candidates for ID, Abbr, and Name
+                    # Use a list of candidate keys for each to handle any case variation
+                    r_keys = {k.lower(): k for k in row.keys()}
+
+                    def get_val(candidates):
+                        for c in candidates:
+                            if c.lower() in r_keys:
+                                return row.get(r_keys[c.lower()])
+                        return None
+
+                    tid = get_val(["team", "team_no", "team_ptr"])
+                    abbr = str(get_val(["tcode", "team_abbr", "abbr"]) or "").strip()
+                    short = str(get_val(["short", "team_short", "short_name"]) or "").strip()
+                    lsc = str(get_val(["lsc", "team_lsc"]) or "").strip()
+
+                    name = short if short else f"{abbr}-{lsc}".strip("-")
+                    self.cache_team_map[tid] = {
+                        "name": name.strip(),
+                        "abbr": abbr if abbr else name.strip(),
+                    }
         return self.cache_team_map.get(team_no, {"name": "", "abbr": ""})
 
     def get_team_name(self, team_no):

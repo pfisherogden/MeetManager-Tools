@@ -93,6 +93,16 @@ const reportTypes = [
 		name: "Entries (Club Style)",
 		description: "Single-column format optimized for team distribution.",
 	},
+	{
+		id: 8,
+		name: "Lane Timer Sheets",
+		description: "Timer sheets grouped by physical lane (10 entries per page).",
+	},
+	{
+		id: 9,
+		name: "S&T Judge Sheets",
+		description: "Meet Program format with dedicated lines for DQ codes.",
+	},
 ];
 
 type CustomPackItem = {
@@ -198,7 +208,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 			id: "default_pack",
 			name: "Default Meet Pack",
 			description:
-				"Complete set: Lineups, Coaches, Posting & Computer programs.",
+				"Coaches, S&T Judges, Lane Timers, and Posting/Computer programs.",
 			reports: [
 				{
 					type: 4,
@@ -207,33 +217,22 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 					showRelaySwimmers: true,
 				},
 				{
-					type: 4,
-					title: "Posting Program - Girls",
-					genderFilter: "Girls",
+					type: 9,
+					title: "S&T Judge Program",
 					columnsOnPage: 2,
 					showRelaySwimmers: true,
+					zebraStriping: true,
+				},
+				{
+					type: 8,
+					title: "Lane Timer Sheets",
 				},
 				{
 					type: 4,
-					title: "Posting Program - Boys",
-					genderFilter: "Boys",
+					title: "Computer/Posting Program",
 					columnsOnPage: 2,
-					showRelaySwimmers: true,
+					showRelaySwimmers: false,
 				},
-				{
-					type: 4,
-					title: "Computer Team Program",
-					columnsOnPage: 1,
-					showRelaySwimmers: true,
-				},
-				...["Girls", "Boys"].flatMap((gender) =>
-					["6 & under", "7-8", "9-10"].map((age) => ({
-						type: 2,
-						title: `Line Up - ${gender} ${age}`,
-						genderFilter: gender,
-						ageGroupFilter: age,
-					})),
-				),
 			],
 		},
 		{

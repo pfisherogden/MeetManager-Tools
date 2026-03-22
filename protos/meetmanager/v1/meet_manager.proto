@@ -541,6 +541,10 @@ enum ReportType {
   REPORT_TYPE_ENTRIES_HYTEK = 6;
   // REPORT_TYPE_ENTRIES_CLUB is a meet entries report in club-specific format.
   REPORT_TYPE_ENTRIES_CLUB = 7;
+  // REPORT_TYPE_LANE_TIMER_SHEETS is a report of timer sheets grouped by lane.
+  REPORT_TYPE_LANE_TIMER_SHEETS = 8;
+  // REPORT_TYPE_JUDGE_SHEETS is a meet program with DQ lines for S&T judges.
+  REPORT_TYPE_JUDGE_SHEETS = 9;
 }
 
 // GenerateReportRequest specifies the parameters for report generation.

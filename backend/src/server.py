@@ -176,6 +176,28 @@ def _process_single_report_process(
             )
             report_data["zebra_striping"] = zebra_striping
             renderer.render_entries(report_data, "entries_club.j2")
+        elif rtype == "lane_timer_sheets":
+            report_data = extractor.extract_lane_timer_sheets_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+            )
+            # Timer sheets always use specific template
+            renderer.render_entries(report_data, "timer_sheets.j2")
+        elif rtype == "judge_sheets":
+            # Judge sheets are meet program with DQ lines
+            program_data = extractor.extract_meet_program_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+                columns_on_page=columns_on_page,
+                show_relay_swimmers=show_relay_swimmers,
+                show_dq_lines=True,
+            )
+            program_data["zebra_striping"] = zebra_striping
+            renderer.render_meet_program(program_data)
 
         if os.path.exists(temp_path):
             with open(temp_path, "rb") as f:
@@ -1264,6 +1286,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
                 pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
+                pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
+                pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
             }
 
             res = _process_single_report_process(
@@ -1313,6 +1337,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
                 pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
+                pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
+                pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
             }
 
             # Generate reports in parallel with ProcessPoolExecutor to bypass Python GIL
