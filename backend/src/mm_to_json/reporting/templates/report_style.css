@@ -31,37 +31,41 @@ body {
 .header-table {
     width: 100%;
     border-collapse: collapse;
-    height: 30pt; /* Fixed height for positioning context */
+    height: 24pt; /* Exactly two lines of approx 12pt */
+    table-layout: fixed;
 }
 
 .header-table td {
     width: 50%;
     position: relative; /* Anchor for absolute positioning of children */
     padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .header-left-col .header-meet-name {
     position: absolute;
     top: 0;
     left: 0;
+    max-width: 90%;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .header-left-col .header-sub-title {
     position: absolute;
     bottom: 0;
     left: 0;
+    max-width: 90%;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .header-right-col .header-timestamp {
     position: absolute;
     top: 0;
     right: 0;
-}
-
-.header-right-col .header-page-num {
-    position: absolute;
-    bottom: 0;
-    right: 0;
+    text-align: right;
 }
 
 .header-meet-name {

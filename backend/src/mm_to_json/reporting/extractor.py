@@ -1,6 +1,9 @@
 import copy
 import re
+import logging
 from typing import TYPE_CHECKING, Any
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..mm_to_json import MmToJsonConverter
@@ -74,6 +77,13 @@ class ReportDataExtractor:
         """Ensure full_data is populated, refreshing from converter if needed."""
         if not self.full_data or not self.full_data.get("sessions"):
             self.full_data = self.converter.convert()
+        
+        # Debugging empty data issues
+        sessions = self.full_data.get("sessions", [])
+        num_sessions = len(sessions)
+        num_events = sum(len(s.get("events", [])) for s in sessions)
+        logger.debug(f"DEBUG: _get_full_data: {num_sessions} sessions, {num_events} total events")
+        
         return self.full_data
 
     def _get_event_sort_key(self, evt: dict[str, Any]) -> tuple[int, str]:
@@ -753,7 +763,7 @@ class ReportDataExtractor:
             current_page_entries, page_num = finish_page(lane_num, current_page_entries, page_num)
 
         return {
-            "meet_name": full_data.get("name", ""),
+            "meet_name": full_data.get("meetName", ""),
             "sub_title": report_title or "Lane Timer Sheets",
             "groups": report_groups,
         }
