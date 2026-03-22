@@ -697,7 +697,7 @@ class ReportDataExtractor:
 
             # 4. Group by event type and chunk into 12 entries per page
             # We want to break the page whenever the stroke/type changes OR we hit 12 entries.
-            current_page_entries = []
+            current_page_entries: list[dict[str, Any]] = []
             current_stroke_type = None
             page_num = 1
 
