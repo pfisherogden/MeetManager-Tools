@@ -105,7 +105,8 @@ class MmToJsonConverter:
                 self.tables[logical.lower()] = df
                 logger.debug(f"DEBUG: Loaded table {logical} from data")
             else:
-                logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
+                if logical not in ["sessitem", "relaynames", "divisions"]:
+                    logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
                 self.tables[logical] = pd.DataFrame()
 
     def _get_val(self, row, key, default=""):

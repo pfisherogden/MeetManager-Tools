@@ -691,38 +691,42 @@ class ReportDataExtractor:
             current_stroke_type = None
             page_num = 1
 
-            def finish_page():
-                nonlocal current_page_entries, page_num
-                if current_page_entries:
-                    report_groups.append({
-                        "header": f"Lane {lane_num} (Page {page_num})",
-                        "lane": lane_num,
-                        "sub_items": current_page_entries.copy()
-                    })
-                    current_page_entries = []
-                    page_num += 1
+            def finish_page(l_num, p_entries, p_num):
+                if p_entries:
+                    report_groups.append(
+                        {"header": f"Lane {l_num} (Page {p_num})", "lane": l_num, "sub_items": p_entries.copy()}
+                    )
+                    return [], p_num + 1
+                return p_entries, p_num
 
             for entry in lane_entries:
                 is_relay = entry.get("_is_relay", False)
                 event_desc = entry["_event_desc"] or ""
-                
+
                 # Determine stroke type for grouping
                 stroke_type = "Other"
                 desc_lower = event_desc.lower()
-                if "freestyle" in desc_lower and "relay" not in desc_lower: stroke_type = "Freestyle"
-                elif "backstroke" in desc_lower: stroke_type = "Backstroke"
-                elif "breaststroke" in desc_lower: stroke_type = "Breaststroke"
-                elif "butterfly" in desc_lower: stroke_type = "Butterfly"
-                elif "medley" in desc_lower and "relay" not in desc_lower: stroke_type = "IM"
-                elif "freestyle" in desc_lower and "relay" in desc_lower: stroke_type = "Free Relay"
-                elif "medley" in desc_lower and "relay" in desc_lower: stroke_type = "Medley Relay"
+                if "freestyle" in desc_lower and "relay" not in desc_lower:
+                    stroke_type = "Freestyle"
+                elif "backstroke" in desc_lower:
+                    stroke_type = "Backstroke"
+                elif "breaststroke" in desc_lower:
+                    stroke_type = "Breaststroke"
+                elif "butterfly" in desc_lower:
+                    stroke_type = "Butterfly"
+                elif "medley" in desc_lower and "relay" not in desc_lower:
+                    stroke_type = "IM"
+                elif "freestyle" in desc_lower and "relay" in desc_lower:
+                    stroke_type = "Free Relay"
+                elif "medley" in desc_lower and "relay" in desc_lower:
+                    stroke_type = "Medley Relay"
 
                 # Check if we should break the page
                 # Break if type changed (and we have entries) OR if we hit 12 entries
-                type_changed = (current_stroke_type is not None and stroke_type != current_stroke_type)
+                type_changed = current_stroke_type is not None and stroke_type != current_stroke_type
                 if type_changed or len(current_page_entries) >= 12:
-                    finish_page()
-                
+                    current_page_entries, page_num = finish_page(lane_num, current_page_entries, page_num)
+
                 current_stroke_type = stroke_type
 
                 item = {
@@ -731,7 +735,7 @@ class ReportDataExtractor:
                     "heat": str(self._safe_int(entry.get("heat", 0))),
                     "lane": str(lane_num),
                     "name": entry.get("name", "Unknown"),
-                    "age": str(self._safe_int(entry.get("age", 0))) if entry.get("age") else "",
+                    "age": str(self._safe_int(entry.get("age", 0))),
                     "team": entry.get("teamCode") or entry.get("team", ""),
                     "time": entry.get("seedTime", "NT"),
                     "is_relay": is_relay,
@@ -746,7 +750,7 @@ class ReportDataExtractor:
                 current_page_entries.append(item)
 
             # Final page for this lane
-            finish_page()
+            current_page_entries, page_num = finish_page(lane_num, current_page_entries, page_num)
 
         return {
             "meet_name": full_data.get("name", ""),
@@ -838,6 +842,7 @@ class ReportDataExtractor:
                         "lane": str(entry.get("lane", "")),
                         "team": entry.get("teamCode") or entry.get("team", ""),
                         "time": entry.get("seedTime", "NT"),
+                        "age": str(self._safe_int(entry.get("age", 0))),
                         "is_relay": is_relay,
                     }
                     if is_relay:
