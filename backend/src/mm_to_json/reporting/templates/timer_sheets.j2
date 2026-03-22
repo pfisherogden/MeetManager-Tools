@@ -11,25 +11,34 @@
         page-break-after: always;
         break-after: page;
     }
+    .lane-header {
+        font-size: 14pt;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 5pt;
+        background-color: #f0f0f0;
+        padding: 4pt;
+        border: 1pt solid #000;
+    }
     .timer-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 10pt;
+        margin-top: 5pt;
     }
     .timer-table th {
-        border: 1px solid #333;
-        padding: 4pt;
-        font-size: 9pt;
+        border: 1pt solid #333;
+        padding: 3pt;
+        font-size: 8.5pt;
         background-color: #eee;
         text-align: center;
     }
     .timer-table td {
-        border: 1px solid #333;
-        padding: 6pt 4pt;
-        height: 60pt; /* Large height for writing */
+        border: 1pt solid #333;
+        padding: 4pt;
+        height: 52pt; /* Targeted height to fit exactly 10 rows on one page */
         vertical-align: middle;
     }
-    .col-ev-ht { width: 40pt; text-align: center; }
+    .col-ev-ht { width: 45pt; text-align: center; font-weight: bold; font-size: 10pt; }
     .col-name-team { width: auto; }
     .col-seed { 
         width: 60pt; 
@@ -38,18 +47,35 @@
         font-weight: bold;
         font-size: 11pt;
     }
-    .col-timer { width: 70pt; }
+    .col-timer { width: 75pt; }
     
+    .swimmer-info-block {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100%;
+    }
     .swimmer-name {
         font-weight: bold;
-        font-size: 11pt;
-        display: block;
+        font-size: 10pt;
+        line-height: 1.1;
     }
     .team-name {
         font-size: 9pt;
-        color: #555;
-        display: block;
+        color: #333;
+        line-height: 1.1;
+    }
+    
+    .relay-swimmers-grid {
+        display: flex;
+        width: 100%;
         margin-top: 2pt;
+        font-size: 8pt;
+        line-height: 1.0;
+        color: #444;
+    }
+    .relay-col {
+        flex: 1;
     }
 {% endblock %}
 
@@ -61,7 +87,7 @@
         <table class="timer-table">
             <thead>
                 <tr>
-                    <th class="col-ev-ht">Ev/Ht</th>
+                    <th class="col-ev-ht">Ev / Ht</th>
                     <th class="col-name-team">Swimmer / Team</th>
                     <th class="col-seed">Seed Time</th>
                     <th class="col-timer">Timer 1</th>
@@ -74,14 +100,24 @@
                 <tr class="timer-row">
                     <td class="col-ev-ht">{{ entry.event_num }} / {{ entry.heat }}</td>
                     <td class="col-name-team">
-                        <span class="swimmer-name">{{ entry.name }}</span>
-                        <span class="team-name">{{ entry.team }}</span>
-                        
-                        {% if entry.is_relay %}
-                        <div class="relay-swimmers" style="margin-top: 4pt;">
-                            {{ macros.render_relay_swimmers_row(entry, is_zebra=false, colspan=5) }}
+                        <div class="swimmer-info-block">
+                            {% if entry.is_relay %}
+                                <div class="swimmer-name">{{ entry.team }} - {{ entry.relay_ltr }}</div>
+                                <div class="relay-swimmers-grid">
+                                    <div class="relay-col">
+                                        <div>1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
+                                        <div>3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                                    </div>
+                                    <div class="relay-col">
+                                        <div>2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
+                                        <div>4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="swimmer-name">{{ entry.name }} ({{ entry.age }})</div>
+                                <div class="team-name">{{ entry.team }}</div>
+                            {% endif %}
                         </div>
-                        {% endif %}
                     </td>
                     <td class="col-seed">{{ entry.time }}</td>
                     <td class="col-timer"></td>
