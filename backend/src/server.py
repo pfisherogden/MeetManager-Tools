@@ -1308,19 +1308,35 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
             }
 
-            res = _process_single_report_process(
-                0,
-                request.type,
-                request.title,
-                request.team_filter,
-                request.gender_filter,
-                request.age_group_filter,
-                request.columns_on_page if request.HasField("columns_on_page") else 2,
-                request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
-                request.zebra_striping if request.HasField("zebra_striping") else False,
-                cache,
-                rtype_map,
-            )
+            from mm_to_json.mm_to_json import MmToJsonConverter
+
+            # Convert data once
+            converter = MmToJsonConverter(table_data=cache)
+            full_data = converter.convert()
+
+            # Serialize to msgpack for worker access
+            with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
+                msgpack_path = msgpack_tmp.name
+                msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
+
+            try:
+                res = _process_single_report_process(
+                    0,
+                    request.type,
+                    request.title,
+                    request.team_filter,
+                    request.gender_filter,
+                    request.age_group_filter,
+                    request.columns_on_page if request.HasField("columns_on_page") else 2,
+                    request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
+                    request.zebra_striping if request.HasField("zebra_striping") else False,
+                    msgpack_path,
+                    rtype_map,
+                )
+            finally:
+                # Cleanup msgpack file
+                if os.path.exists(msgpack_path):
+                    os.remove(msgpack_path)
 
             if not res["success"]:
                 return pb2.GenerateReportResponse(success=False, message=res["error"])
