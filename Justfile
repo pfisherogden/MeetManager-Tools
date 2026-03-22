@@ -81,13 +81,13 @@ fix-backend:
 
 lint-mm-to-json:
     @echo "Linting mm_to_json..."
-    cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff check .
-    cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff format --check .
+    cd backend && uv run ruff check src/mm_to_json
+    cd backend && uv run ruff format --check src/mm_to_json
 
 fix-mm-to-json:
     @echo "Fixing mm_to_json linting and formatting..."
-    cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff check --fix .
-    cd mm_to_json/mm_to_json_py && ../../.venv/bin/ruff format .
+    cd backend && uv run ruff check --fix src/mm_to_json
+    cd backend && uv run ruff format src/mm_to_json
 
 lint-frontend:
     @echo "Linting frontend..."
