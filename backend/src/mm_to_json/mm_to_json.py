@@ -172,7 +172,7 @@ class MmToJsonConverter:
                     df = df.loc[:, ~df.columns.duplicated()]
 
                 self.tables[logical.lower()] = df
-                logger.info(f"Loaded {logical} from {found_name} ({len(df)} rows)")
+                logger.debug(f"Loaded {logical} from {found_name} ({len(df)} rows)")
             else:
                 # If Schema B, Sessitem might be missing, which is fine
                 if logical not in ["sessitem", "relaynames", "divisions"]:

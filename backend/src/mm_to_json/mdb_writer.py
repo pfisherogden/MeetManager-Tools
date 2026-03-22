@@ -57,8 +57,14 @@ def ensure_jvm_started():
 
     # -Djava.class.path must be set at startup
     # Increase max heap to 512MB for large MDB files
-    jpype.startJVM(jvm_path, "-Djava.class.path=" + classpath, "-Xmx512m")
-    logger.debug("JVM started successfully with -Xmx512m.")
+    try:
+        jpype.startJVM(jvm_path, "-Djava.class.path=" + classpath, "-Xmx512m")
+        logger.debug("JVM started successfully with -Xmx512m.")
+    except RuntimeError as e:
+        if "JVM is already started" in str(e):
+            logger.debug("JVM already started, continuing...")
+        else:
+            raise
 
 
 def open_db(mdb_path):

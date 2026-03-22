@@ -48,6 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				secure: false, // Local dev usually not https
 				sameSite: "strict",
 			});
+			Cookies.set("x-user-id", mockUser.uid, {
+				expires: 1 / 24,
+				secure: false,
+				sameSite: "strict",
+			});
 			setLoading(false);
 			return;
 		}
@@ -61,8 +66,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					secure: true,
 					sameSite: "strict",
 				});
+				Cookies.set("x-user-id", user.uid, {
+					expires: 1 / 24,
+					secure: true,
+					sameSite: "strict",
+				});
 			} else {
 				Cookies.remove("idToken");
+				Cookies.remove("x-user-id");
 			}
 			setLoading(false);
 		});
@@ -76,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const logout = async () => {
 		Cookies.remove("idToken");
+		Cookies.remove("x-user-id");
 		if (isAuthDisabled) {
 			setUser(null);
 			return;
