@@ -53,7 +53,7 @@ class MmToJsonConverter:
 
     def _load_from_data(self, table_data):
         logger.debug(f"DEBUG: _load_from_data called with keys: {list(table_data.keys())}")
-        
+
         # Handle cases where data is wrapped in a 'data' key (from full JSON fixtures)
         if "data" in table_data and isinstance(table_data["data"], dict):
             logger.debug("DEBUG: Unwrapping 'data' key from table_data")

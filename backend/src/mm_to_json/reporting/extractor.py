@@ -1,6 +1,6 @@
 import copy
-import re
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 logger = logging.getLogger(__name__)
@@ -77,13 +77,13 @@ class ReportDataExtractor:
         """Ensure full_data is populated, refreshing from converter if needed."""
         if not self.full_data or not self.full_data.get("sessions"):
             self.full_data = self.converter.convert()
-        
+
         # Debugging empty data issues
         sessions = self.full_data.get("sessions", [])
         num_sessions = len(sessions)
         num_events = sum(len(s.get("events", [])) for s in sessions)
         logger.debug(f"DEBUG: _get_full_data: {num_sessions} sessions, {num_events} total events")
-        
+
         return self.full_data
 
     def _get_event_sort_key(self, evt: dict[str, Any]) -> tuple[int, str]:
