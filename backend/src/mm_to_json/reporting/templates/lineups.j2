@@ -36,18 +36,18 @@
 <body>
     <div id="header">
         <table class="header-table">
-            <tr>
+            <tr class="header-top">
                 <td class="header-left-col">
                     <div class="header-meet-name">{{ meet_name|default('Tri-Valley Swim League') }}</div>
                     <div class="header-sub-title">{{ sub_title }}</div>
                 </td>
                 <td class="header-right-col">
-                    <div class="header-timestamp">MM-Tools - {{ generation_time }}</div>
-                    <div class="header-page-num">Page <span class="page-counter"></span></div>
+                    <div class="header-timestamp">MM-Tools - {{ generation_time }} Page <span class="page-counter"></span></div>
                 </td>
             </tr>
         </table>
     </div>
+
 
     <div class="content-container">
         {% for group in groups %}

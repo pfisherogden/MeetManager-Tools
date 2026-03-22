@@ -1,6 +1,9 @@
 import copy
+import logging
 import re
 from typing import TYPE_CHECKING, Any
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..mm_to_json import MmToJsonConverter
@@ -74,6 +77,13 @@ class ReportDataExtractor:
         """Ensure full_data is populated, refreshing from converter if needed."""
         if not self.full_data or not self.full_data.get("sessions"):
             self.full_data = self.converter.convert()
+
+        # Debugging empty data issues
+        sessions = self.full_data.get("sessions", [])
+        num_sessions = len(sessions)
+        num_events = sum(len(s.get("events", [])) for s in sessions)
+        logger.debug(f"DEBUG: _get_full_data: {num_sessions} sessions, {num_events} total events")
+
         return self.full_data
 
     def _get_event_sort_key(self, evt: dict[str, Any]) -> tuple[int, str]:
@@ -685,37 +695,75 @@ class ReportDataExtractor:
                 lanes[lane_num], key=lambda x: (self._safe_int(x["_event_num"]), self._safe_int(x.get("heat", 0)))
             )
 
-            # 4. Chunk into groups of 10 entries per page
-            for i in range(0, len(lane_entries), 10):
-                chunk = lane_entries[i : i + 10]
-                sub_items = []
-                for entry in chunk:
-                    is_relay = entry.get("_is_relay", False)
-                    item = {
-                        "event_num": str(entry["_event_num"]),
-                        "event_desc": entry["_event_desc"],
-                        "heat": str(self._safe_int(entry.get("heat", 0))),
-                        "lane": str(lane_num),
-                        "name": entry.get("name", "Unknown"),
-                        "team": entry.get("teamCode") or entry.get("team", ""),
-                        "time": entry.get("seedTime", "NT"),
-                        "is_relay": is_relay,
-                    }
-                    if is_relay and "relayAthletes" in entry:
-                        item["swimmers"] = [
-                            f"{a.get('last', '').strip()}, {a.get('first', '').strip()}" for a in entry["relayAthletes"]
-                        ]
-                    elif is_relay:
-                        item["swimmers"] = [n.strip() for n in entry.get("name", "").split(",")]
+            # 4. Group by event type and chunk into 12 entries per page
+            # We want to break the page whenever the stroke/type changes OR we hit 12 entries.
+            current_page_entries: list[dict[str, Any]] = []
+            current_stroke_type = None
+            page_num = 1
 
-                    sub_items.append(item)
+            def finish_page(l_num, p_entries, p_num):
+                if p_entries:
+                    report_groups.append(
+                        {"header": f"Lane {l_num} (Page {p_num})", "lane": l_num, "sub_items": p_entries.copy()}
+                    )
+                    return [], p_num + 1
+                return p_entries, p_num
 
-                report_groups.append(
-                    {"header": f"Lane {lane_num} (Page {(i // 10) + 1})", "lane": lane_num, "sub_items": sub_items}
-                )
+            for entry in lane_entries:
+                is_relay = entry.get("_is_relay", False)
+                event_desc = entry["_event_desc"] or ""
+
+                # Determine stroke type for grouping
+                stroke_type = "Other"
+                desc_lower = event_desc.lower()
+                if "freestyle" in desc_lower and "relay" not in desc_lower:
+                    stroke_type = "Freestyle"
+                elif "backstroke" in desc_lower:
+                    stroke_type = "Backstroke"
+                elif "breaststroke" in desc_lower:
+                    stroke_type = "Breaststroke"
+                elif "butterfly" in desc_lower:
+                    stroke_type = "Butterfly"
+                elif "medley" in desc_lower and "relay" not in desc_lower:
+                    stroke_type = "IM"
+                elif "freestyle" in desc_lower and "relay" in desc_lower:
+                    stroke_type = "Free Relay"
+                elif "medley" in desc_lower and "relay" in desc_lower:
+                    stroke_type = "Medley Relay"
+
+                # Check if we should break the page
+                # Break if type changed (and we have entries) OR if we hit 12 entries
+                type_changed = current_stroke_type is not None and stroke_type != current_stroke_type
+                if type_changed or len(current_page_entries) >= 12:
+                    current_page_entries, page_num = finish_page(lane_num, current_page_entries, page_num)
+
+                current_stroke_type = stroke_type
+
+                item = {
+                    "event_num": str(entry["_event_num"]),
+                    "event_desc": event_desc,
+                    "heat": str(self._safe_int(entry.get("heat", 0))),
+                    "lane": str(lane_num),
+                    "name": entry.get("name", "Unknown"),
+                    "age": str(self._safe_int(entry.get("age", 0))),
+                    "team": entry.get("teamCode") or entry.get("team", ""),
+                    "time": entry.get("seedTime", "NT"),
+                    "is_relay": is_relay,
+                }
+                if is_relay and "relayAthletes" in entry:
+                    item["swimmers"] = [
+                        f"{a.get('last', '').strip()}, {a.get('first', '').strip()}" for a in entry["relayAthletes"]
+                    ]
+                elif is_relay:
+                    item["swimmers"] = [n.strip() for n in entry.get("name", "").split(",")]
+
+                current_page_entries.append(item)
+
+            # Final page for this lane
+            current_page_entries, page_num = finish_page(lane_num, current_page_entries, page_num)
 
         return {
-            "meet_name": full_data.get("name", ""),
+            "meet_name": full_data.get("meetName", ""),
             "sub_title": report_title or "Lane Timer Sheets",
             "groups": report_groups,
         }
@@ -804,6 +852,7 @@ class ReportDataExtractor:
                         "lane": str(entry.get("lane", "")),
                         "team": entry.get("teamCode") or entry.get("team", ""),
                         "time": entry.get("seedTime", "NT"),
+                        "age": str(self._safe_int(entry.get("age", 0))),
                         "is_relay": is_relay,
                     }
                     if is_relay:

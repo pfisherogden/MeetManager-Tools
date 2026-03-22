@@ -223,7 +223,7 @@ export function DatasetManager() {
 						) : (
 							<>
 								<Upload className="mr-2 h-4 w-4" />
-								Upload
+								Upload Dataset
 							</>
 						)}
 					</Button>
