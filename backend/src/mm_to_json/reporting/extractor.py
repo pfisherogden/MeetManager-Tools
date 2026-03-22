@@ -369,8 +369,10 @@ class ReportDataExtractor:
                     line1_desc = f"{t_name}{ltr_str}        #{r['evt_num']} {r['evt_desc']}"
                     hl_text = f"{r['heat']}/{r['lane']}" if r.get("heat") else ""
                     names_parts = [
-                        f"{a.get('last', '').strip()}, {a.get('first', '').strip()}" for a in r.get("relayAthletes", [])
+                        f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
+                        for a in r.get("relayAthletes", [])
                     ]
+
                     if not names_parts:
                         names_parts = [n.strip() for n in r.get("name", "").split(",")]
                     full_names_str = "; ".join(names_parts)
@@ -481,7 +483,7 @@ class ReportDataExtractor:
                         if show_relay_swimmers:
                             if "relayAthletes" in entry:
                                 names = [
-                                    f"{a.get('last', '').strip()}, {a.get('first', '').strip()}"
+                                    f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
                                     for a in entry["relayAthletes"]
                                 ]
                             else:
@@ -489,10 +491,10 @@ class ReportDataExtractor:
                         sub_items.append(
                             {
                                 "lane": str(lane),
-                                "name": f"{entry.get('team', '')} {entry.get('relay_ltr', entry.get('relayLtr', ''))}",
+                                "name": f"{entry.get('team', '')} {entry.get('relayLtr', '')}",
                                 "team": entry.get("teamCode") or entry.get("team", ""),
                                 "team_color": self.team_color_map.get(entry.get("team", ""), ""),
-                                "relay_ltr": entry.get("relay_ltr", entry.get("relayLtr", "")),
+                                "relayLtr": entry.get("relayLtr", ""),
                                 "time": seed_time,
                                 "swimmers": names,
                                 "is_relay": True,
@@ -752,8 +754,10 @@ class ReportDataExtractor:
                 }
                 if is_relay and "relayAthletes" in entry:
                     item["swimmers"] = [
-                        f"{a.get('last', '').strip()}, {a.get('first', '').strip()}" for a in entry["relayAthletes"]
+                        f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
+                        for a in entry["relayAthletes"]
                     ]
+
                 elif is_relay:
                     item["swimmers"] = [n.strip() for n in entry.get("name", "").split(",")]
 
@@ -856,9 +860,9 @@ class ReportDataExtractor:
                         "is_relay": is_relay,
                     }
                     if is_relay:
-                        item_data["relay_ltr"] = entry.get("relay_ltr", entry.get("relayLtr", "A"))
+                        item_data["relayLtr"] = entry.get("relayLtr", "A")
                         names = [
-                            f"{a.get('last', '').strip()}, {a.get('first', '').strip()}"
+                            f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
                             for a in entry.get("relayAthletes", [])
                         ]
                         if not names:

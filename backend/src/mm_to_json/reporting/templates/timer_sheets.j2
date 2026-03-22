@@ -102,7 +102,7 @@
                     <td class="col-name-team">
                         <div class="swimmer-info-block">
                             {% if entry.is_relay %}
-                                <div class="swimmer-name">{{ entry.team }} - {{ entry.relay_ltr }}</div>
+                                <div class="swimmer-name">{{ entry.team }} - {{ entry.relayLtr }}</div>
                                 <div class="relay-swimmers-grid">
                                     <div class="relay-col">
                                         <div>1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>

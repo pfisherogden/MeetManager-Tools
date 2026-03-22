@@ -708,12 +708,12 @@ class MmToJsonConverter:
                 if athlete:
                     event.add_entry(
                         {
-                            "name": f"{athlete['first']} {athlete['last']}",
+                            "name": athlete["name"],
                             "age": athlete["age"],
-                            "athleteSex": athlete.get("sex", ""),
+                            "athleteSex": athlete["athleteSex"],
                             "schoolYear": athlete["schoolYear"],
-                            "team": athlete["team"],
-                            "teamCode": athlete.get("teamCode", ""),
+                            "team": athlete["teamName"],
+                            "teamCode": athlete["teamCode"],
                             "heat": self._safe_int(row.get("heat")),
                             "lane": self._safe_int(row.get("lane")),
                             # Using Score as seed/time (unknown distinction in this schema)
@@ -721,7 +721,7 @@ class MmToJsonConverter:
                             "psTime": "NT",
                             "isRelay": False,
                             "athleteId": ath_no,
-                            "teamId": athlete.get("teamId"),
+                            "teamId": athlete["teamId"],
                         }
                     )
         else:
@@ -736,12 +736,12 @@ class MmToJsonConverter:
                     if athlete:
                         event.add_entry(
                             {
-                                "name": f"{athlete['first']} {athlete['last']}",
+                                "name": athlete["name"],
                                 "age": athlete["age"],
-                                "athleteSex": athlete.get("sex", ""),
+                                "athleteSex": athlete["athleteSex"],
                                 "schoolYear": athlete["schoolYear"],
-                                "team": athlete["team"],
-                                "teamCode": athlete.get("teamCode", ""),
+                                "team": athlete["teamName"],
+                                "teamCode": athlete["teamCode"],
                                 "heat": entry_info["heat"],
                                 "lane": entry_info["lane"],
                                 "seedTime": entry_info["seed"],
@@ -750,7 +750,7 @@ class MmToJsonConverter:
                                 "place": entry_info["place"],
                                 "isRelay": False,
                                 "athleteId": ath_no,
-                                "teamId": athlete.get("teamId"),
+                                "teamId": athlete["teamId"],
                             }
                         )
 
@@ -821,8 +821,8 @@ class MmToJsonConverter:
                     # Format names: "F. Last"
                     swimmers_list = []
                     for a in relay_athletes:
-                        initial = a["first"][0] if a["first"] else ""
-                        swimmers_list.append(f"{initial}. {a['last']}")
+                        initial = a["firstName"][0] if a["firstName"] else ""
+                        swimmers_list.append(f"{initial}. {a['lastName']}")
 
                     # Format names for the main entry name: "Team RelayLetter" (e.g. "Blue Dolphins A")
                     names_str = f"{team_info['name']} {relay_ltr}"
@@ -843,6 +843,7 @@ class MmToJsonConverter:
                             "relayLtr": relay_ltr,
                             "relaySwimmers": swimmers_list,
                             "relayAthletes": relay_athletes,  # Full objects for extractor
+                            "teamId": team_no,
                         }
                     )
 
@@ -963,13 +964,16 @@ class MmToJsonConverter:
 
                     team_info = self.get_team_info(team_no)
                     self.cache_athlete_map[aid] = {
-                        "first": self._get_val(row, "first_name") or self._get_val(row, "first"),
-                        "last": self._get_val(row, "last_name") or self._get_val(row, "last"),
+                        "athleteId": aid,
+                        "firstName": self._get_val(row, "first_name") or self._get_val(row, "first"),
+                        "lastName": self._get_val(row, "last_name") or self._get_val(row, "last"),
+                        "name": f"{self._get_val(row, 'first_name') or self._get_val(row, 'first')} {self._get_val(row, 'last_name') or self._get_val(row, 'last')}",
                         "age": self._safe_int(row.get("ath_age") or row.get("age")),
-                        "sex": self._get_val(row, "sex"),
+                        "athleteSex": self._get_val(row, "sex"),
                         "schoolYear": self._get_val(row, "schl_yr") or self._get_val(row, "class"),
-                        "team": team_info["name"],
+                        "teamName": team_info["name"],
                         "teamCode": team_info["abbr"],
+                        "teamId": team_no,
                     }
         return self.cache_athlete_map.get(ath_no)
 
