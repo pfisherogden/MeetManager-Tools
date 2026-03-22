@@ -14,9 +14,27 @@ vi.mock("@/app/actions", () => ({
 	),
 	setActiveDataset: vi.fn(),
 	uploadDataset: vi.fn(),
+	uploadDatasetFromDrive: vi.fn(),
 	clearDataset: vi.fn(),
 	clearAllDatasets: vi.fn(),
 	publishMeetData: vi.fn(),
+}));
+
+// Mock useAuth
+vi.mock("@/hooks/use-auth", () => ({
+	useAuth: vi.fn(() => ({
+		user: { uid: "test-user" },
+		googleAccessToken: "test-token",
+		loading: false,
+	})),
+}));
+
+// Mock useGooglePicker
+vi.mock("@/hooks/use-google-picker", () => ({
+	useGooglePicker: vi.fn(() => ({
+		openPicker: vi.fn(),
+		isLoaded: true,
+	})),
 }));
 
 describe("DatasetManager", () => {
@@ -34,5 +52,6 @@ describe("DatasetManager", () => {
 
 		expect(screen.getByText("Active")).toBeDefined();
 		expect(screen.getByText("Set Active")).toBeDefined();
+		expect(screen.getByText("Import from Drive")).toBeDefined();
 	});
 });
