@@ -12,7 +12,8 @@ export function handleActionError(error: unknown, fallbackMessage: string) {
 	if (
 		message.includes("Failed to find Server Action") ||
 		message.includes("was not found on the server") ||
-		message.includes("Token expired")
+		message.includes("Token expired") ||
+		message.includes("Authentication required")
 	) {
 		toast.error("New version available", {
 			description:

@@ -15,10 +15,11 @@ async function getAuthMetadata() {
 		userId = cookieStore.get("x-user-id")?.value;
 	}
 
-	if (userId) {
-		return { "x-user-id": userId };
+	if (!userId) {
+		throw new Error("Authentication required. Please refresh or log in again.");
 	}
-	return {};
+
+	return { "x-user-id": userId };
 }
 
 export async function listDatasets() {

@@ -25,26 +25,23 @@ body {
 }
 
 .header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
     width: 100%;
+    position: relative;
+    height: 14pt;
 }
 
 .header-left {
+    position: absolute;
+    left: 0;
+    bottom: 0;
     font-size: 10pt;
     font-weight: bold;
 }
 
-.header-meet-name {
-    color: #333;
-}
-
-.header-sub-title {
-    color: #000;
-}
-
 .header-right {
+    position: absolute;
+    right: 0;
+    bottom: 0;
     text-align: right;
     font-size: 8pt;
     color: #666;
@@ -118,41 +115,13 @@ body {
     text-align: right;
 }
 
+.entries-table th.col-dq {
+    text-align: center;
+}
+
 .entries-table td {
     padding: 1pt 2pt;
-    vertical-align: top;
-}
-
-.entry-row td {
-    font-size: 8pt;
-}
-
-.zebra-row {
-    background-color: #f9f9f9;
-}
-
-.col-lane { width: 20pt; }
-.col-name { width: auto; }
-.col-age { width: 20pt; text-align: center; }
-.col-team { width: 40pt; }
-.col-relay { width: 20pt; text-align: center; }
-.col-time { width: 45pt; text-align: right; }
-.col-dq { width: 70pt; text-align: center; }
-
-.dotted-row td {
-    border-bottom: 0.5pt dotted #999 !important;
-}
-
-.relay-swimmers-row td {
-    font-size: 7.5pt;
-    padding-top: 0;
-    padding-bottom: 2pt;
-    color: #333;
-    font-style: italic;
-}
-
-.swimmers-list {
-    padding-left: 8pt;
+    vertical-align: bottom; /* Allow space above the line for handwriting if multiline */
 }
 
 /* Relay Grid Layout (2x2) */
@@ -166,11 +135,27 @@ body {
     flex: 1;
 }
 
+.relay-swimmer-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-right: 5pt;
+    margin-bottom: 1pt;
+}
+
 .relay-swimmer {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.2;
+    flex: 1;
+}
+
+.relay-dq-line {
+    width: 30pt;
+    border-bottom: 0.5pt solid #000;
+    margin-left: 4pt;
+    height: 1pt;
 }
 
 .team-dot {
