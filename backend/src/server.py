@@ -11,6 +11,7 @@ from concurrent import futures
 from typing import Any
 
 import grpc
+import msgpack
 
 # Import generated classes
 try:
@@ -76,8 +77,6 @@ def _process_single_report_process(
     import os
     import tempfile
     import traceback
-
-    import msgpack
 
     # Re-initialize logging configuration in the subprocess to ensure logs are captured
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -1380,8 +1379,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             import multiprocessing
             import zipfile
             from concurrent.futures import ProcessPoolExecutor
-
-            import msgpack
 
             # Convert data once in main process
             converter = MmToJsonConverter(table_data=cache)
