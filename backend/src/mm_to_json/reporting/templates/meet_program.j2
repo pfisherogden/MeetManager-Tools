@@ -42,9 +42,8 @@
                     
                     {{ macros.render_standard_entry_row(entry, is_zebra, show_dq_lines=show_dq_lines) }}
                     
-                    {# Colspan calculation for relay swimmers #}
-                    {% set base_colspan = 3 if entry.is_relay else 4 %}
-                    {% set final_colspan = base_colspan + (1 if show_dq_lines else 0) %}
+                    {# Colspan calculation for relay swimmers - use full width #}
+                    {% set final_colspan = 5 if show_dq_lines else 4 %}
                     {{ macros.render_relay_swimmers_row(entry, is_zebra, colspan=final_colspan, show_dq_lines=show_dq_lines) }}
                     
                 {% endfor %}

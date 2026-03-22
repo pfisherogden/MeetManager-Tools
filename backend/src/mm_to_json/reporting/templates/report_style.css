@@ -10,7 +10,7 @@
 
 body {
     font-family: "Helvetica", sans-serif;
-    font-size: 9pt;
+    font-size: 10pt; /* Increased from 9pt */
     line-height: 1.1;
     margin: 0;
     padding: 0;
@@ -19,7 +19,7 @@ body {
 #header {
     position: running(header);
     width: 100%;
-    border-bottom: 0.5pt solid #000;
+    border-bottom: 1pt solid #000; /* Increased from 0.5pt */
     padding-bottom: 3pt;
     margin-bottom: 10pt;
 }
@@ -27,15 +27,26 @@ body {
 .header-top {
     width: 100%;
     position: relative;
-    height: 14pt;
+    height: 26pt; /* Increased for two lines */
 }
 
 .header-left {
     position: absolute;
     left: 0;
     bottom: 0;
+    text-align: left;
+}
+
+.header-meet-name {
     font-size: 10pt;
     font-weight: bold;
+    color: #333;
+}
+
+.header-sub-title {
+    font-size: 9pt;
+    font-weight: bold;
+    color: #000;
 }
 
 .header-right {
@@ -43,6 +54,9 @@ body {
     right: 0;
     bottom: 0;
     text-align: right;
+}
+
+.header-timestamp, .header-page-num {
     font-size: 8pt;
     color: #666;
 }
@@ -62,7 +76,7 @@ body {
 .content-container {
     column-count: 2;
     column-gap: 20pt;
-    column-rule: 0.5pt solid #eee;
+    column-rule: 1pt solid #ddd; /* Increased from 0.5pt */
     column-fill: auto;
 }
 
@@ -71,7 +85,7 @@ body {
 }
 
 .event-block {
-    break-inside: avoid;
+    /* break-inside: avoid; REMOVED to allow breaking across columns */
     margin-bottom: 12pt;
     width: 100%;
 }
@@ -81,9 +95,10 @@ body {
     font-weight: bold;
     font-size: 9pt;
     padding: 2pt 4pt;
-    border: 0.5pt solid #ccc;
+    border: 1pt solid #999; /* Increased from 0.5pt */
     margin-bottom: 4pt;
     text-transform: uppercase;
+    break-after: avoid; /* Keep with first heat */
 }
 
 .heat-block {
@@ -93,9 +108,10 @@ body {
 
 .heat-header {
     font-weight: bold;
-    font-size: 8pt;
+    font-size: 8.5pt; /* Increased from 8pt */
     margin-bottom: 2pt;
-    border-bottom: 0.5pt solid #eee;
+    border-bottom: 1pt solid #ccc; /* Increased from 0.5pt */
+    break-after: avoid;
 }
 
 .entries-table {
@@ -105,7 +121,7 @@ body {
 
 .entries-table th {
     text-align: left;
-    font-size: 7pt;
+    font-size: 7.5pt; /* Increased from 7pt */
     color: #666;
     border-bottom: 0.5pt solid #ddd;
     padding: 1pt 2pt;
@@ -119,9 +135,58 @@ body {
     text-align: center;
 }
 
+.entries-table thead {
+    break-after: avoid;
+}
+
+.heat-row-header {
+    break-inside: avoid;
+    break-after: avoid; /* Keep with entries of the heat */
+}
+
+.entry-row {
+    break-inside: avoid;
+}
+
+.relay-swimmers-row {
+    break-inside: avoid;
+}
+
 .entries-table td {
     padding: 1pt 2pt;
     vertical-align: bottom; /* Allow space above the line for handwriting if multiline */
+}
+
+.entry-row td {
+    font-size: 9pt; /* Increased from 8pt */
+}
+
+.zebra-row {
+    background-color: #f9f9f9;
+}
+
+.col-lane { width: 20pt; }
+.col-name { width: auto; }
+.col-age { width: 20pt; text-align: center; }
+.col-team { width: 50pt; } /* Increased from 40pt */
+.col-relay { width: 20pt; text-align: center; }
+.col-time { width: 50pt; text-align: right; }
+.col-dq { width: 70pt; text-align: center; }
+
+.dotted-row td {
+    border-bottom: 0.5pt dotted #999 !important;
+}
+
+.relay-swimmers-row td {
+    font-size: 8.5pt; /* Increased from 7.5pt/8pt */
+    padding-top: 0;
+    padding-bottom: 2pt;
+    color: #333;
+    font-style: italic;
+}
+
+.swimmers-list {
+    padding-left: 8pt;
 }
 
 /* Relay Grid Layout (2x2) */
