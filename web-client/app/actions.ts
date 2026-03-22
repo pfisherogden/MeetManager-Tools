@@ -79,6 +79,66 @@ export async function clearAllDatasets() {
 	}
 }
 
+export async function uploadDatasetFromDrive(fileId: string, filename: string) {
+	console.log(`SERVER ACTION: uploadDatasetFromDrive called for ${filename}`);
+
+	const { cookies: nextCookies } = await import("next/headers");
+	const cookieStore = await nextCookies();
+	const googleAccessToken = cookieStore.get("googleAccessToken")?.value;
+
+	if (!googleAccessToken) {
+		throw new Error("Google access token not found. Please log in again.");
+	}
+
+	async function* driveUploadGenerator() {
+		yield { filename };
+
+		const response = await fetch(
+			`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+			{
+				headers: {
+					Authorization: `Bearer ${googleAccessToken}`,
+				},
+			},
+		);
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Failed to fetch from Google Drive: ${errorText}`);
+		}
+
+		if (!response.body) {
+			throw new Error("Google Drive response body is empty");
+		}
+
+		const reader = response.body.getReader();
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				yield { chunk: value };
+			}
+		} finally {
+			reader.releaseLock();
+		}
+	}
+
+	try {
+		const metadata = await getAuthMetadata();
+		const response = await client.uploadDataset(driveUploadGenerator(), {
+			metadata,
+		});
+		revalidatePath("/", "layout");
+		return response;
+	} catch (err: unknown) {
+		console.error("SERVER ACTION: Drive Upload Error:", err);
+		if (err instanceof Error) {
+			throw new Error(err.message);
+		}
+		throw new Error("An unknown error occurred");
+	}
+}
+
 export async function uploadDataset(formData: FormData) {
 	console.log("SERVER ACTION: uploadDataset called");
 	const file = formData.get("file") as File;

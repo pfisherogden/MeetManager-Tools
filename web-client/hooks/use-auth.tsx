@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	GoogleAuthProvider,
 	getIdToken,
 	onAuthStateChanged,
 	signInWithPopup,
@@ -20,6 +21,7 @@ import { auth, googleProvider } from "@/lib/firebase";
 
 interface AuthContextType {
 	user: User | null;
+	googleAccessToken: string | null;
 	loading: boolean;
 	login: () => Promise<UserCredential>;
 	logout: () => Promise<void>;
@@ -30,11 +32,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<User | null>(null);
+	const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(
+		null,
+	);
 	const [loading, setLoading] = useState(true);
 
 	const isAuthDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
 
 	useEffect(() => {
+		const token = Cookies.get("googleAccessToken");
+		if (token) setGoogleAccessToken(token);
+
 		if (isAuthDisabled) {
 			// Mock local user
 			const mockUser = {
@@ -74,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			} else {
 				Cookies.remove("idToken");
 				Cookies.remove("x-user-id");
+				Cookies.remove("googleAccessToken");
+				setGoogleAccessToken(null);
 			}
 			setLoading(false);
 		});
@@ -82,12 +92,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const login = async () => {
 		if (isAuthDisabled) return {} as UserCredential;
-		return signInWithPopup(auth, googleProvider);
+		const result = await signInWithPopup(auth, googleProvider);
+		const credential = GoogleAuthProvider.credentialFromResult(result);
+		if (credential?.accessToken) {
+			setGoogleAccessToken(credential.accessToken);
+			Cookies.set("googleAccessToken", credential.accessToken, {
+				expires: 1 / 24,
+				secure: true,
+				sameSite: "strict",
+			});
+		}
+		return result;
 	};
 
 	const logout = async () => {
 		Cookies.remove("idToken");
 		Cookies.remove("x-user-id");
+		Cookies.remove("googleAccessToken");
+		setGoogleAccessToken(null);
 		if (isAuthDisabled) {
 			setUser(null);
 			return;
@@ -102,7 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	};
 
 	return (
-		<AuthContext.Provider value={{ user, loading, login, logout, getToken }}>
+		<AuthContext.Provider
+			value={{ user, googleAccessToken, loading, login, logout, getToken }}
+		>
 			{children}
 		</AuthContext.Provider>
 	);

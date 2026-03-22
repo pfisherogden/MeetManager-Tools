@@ -5,6 +5,7 @@ import {
 	Check,
 	Database,
 	ExternalLink,
+	HardDrive,
 	Loader2,
 	QrCode,
 	Trash2,
@@ -20,6 +21,7 @@ import {
 	publishMeetData,
 	setActiveDataset,
 	uploadDataset,
+	uploadDatasetFromDrive,
 } from "@/app/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,11 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/hooks/use-auth";
+import {
+	type GoogleDriveFile,
+	useGooglePicker,
+} from "@/hooks/use-google-picker";
 import { handleActionError } from "@/lib/error-handler";
 
 interface Dataset {
@@ -62,6 +69,8 @@ export function DatasetManager() {
 	const [judgeAppUrl, setJudgeAppUrl] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	const { googleAccessToken } = useAuth();
+
 	const fetchDatasets = useCallback(async () => {
 		try {
 			setLoading(true);
@@ -75,6 +84,33 @@ export function DatasetManager() {
 			setLoading(false);
 		}
 	}, []);
+
+	const onDriveFileSelect = useCallback(
+		async (file: GoogleDriveFile) => {
+			const ext = file.name.split(".").pop()?.toLowerCase();
+			if (ext !== "mdb" && ext !== "json") {
+				toast.error("Invalid file type. Please select an .mdb or .json file.");
+				return;
+			}
+
+			setUploading(true);
+			try {
+				await uploadDatasetFromDrive(file.id, file.name);
+				toast.success(`Successfully imported ${file.name} from Drive`);
+				fetchDatasets();
+			} catch (error: unknown) {
+				handleActionError(error, "Drive import failed");
+			} finally {
+				setUploading(false);
+			}
+		},
+		[fetchDatasets],
+	);
+
+	const { openPicker, isLoaded: isDriveLoaded } = useGooglePicker({
+		onFileSelect: onDriveFileSelect,
+		accessToken: googleAccessToken,
+	});
 
 	useEffect(() => {
 		fetchDatasets();
@@ -167,7 +203,7 @@ export function DatasetManager() {
 						Upload and manage MDB database files
 					</CardDescription>
 				</div>
-				<div>
+				<div className="flex items-center gap-2">
 					<Input
 						type="file"
 						accept=".mdb,.json"
@@ -179,7 +215,7 @@ export function DatasetManager() {
 						disabled={uploading}
 						onClick={() => fileInputRef.current?.click()}
 					>
-						{uploading ? (
+						{uploading && !isDriveLoaded ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								Uploading...
@@ -187,13 +223,29 @@ export function DatasetManager() {
 						) : (
 							<>
 								<Upload className="mr-2 h-4 w-4" />
-								Upload Dataset
+								Upload
+							</>
+						)}
+					</Button>
+					<Button
+						variant="outline"
+						onClick={openPicker}
+						disabled={uploading || !isDriveLoaded}
+					>
+						{uploading && isDriveLoaded ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Importing...
+							</>
+						) : (
+							<>
+								<HardDrive className="mr-2 h-4 w-4" />
+								Import from Drive
 							</>
 						)}
 					</Button>
 					<Button
 						variant="destructive"
-						className="ml-2"
 						onClick={handleClearAll}
 						disabled={loading || datasets.length === 0}
 					>
