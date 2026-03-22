@@ -81,6 +81,7 @@ All agents MUST follow these workflow phases:
 
 ### Phase 4: Verification & Closure
 - **Local Verification**: 100% pass on linting, type-checking, and tests before pushing.
+- **CI/CD Monitoring**: **Mandatory** - After submitting a PR, you MUST monitor the GitHub Action checks using `gh pr checks`. Do not consider the task finished or close the issue until all checks are green and the PR is successfully merged.
 - **CI/CD Pass**: PR merging is ONLY permitted after all GitHub Actions are green.
 - **Communication**: Provide **periodic** progress updates in the `pfo-gemcli` Google Chat space.
   - **Work Started**: Post a message when beginning a task or after a major design phase.
