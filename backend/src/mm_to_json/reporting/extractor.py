@@ -7,9 +7,9 @@ if TYPE_CHECKING:
 
 
 class ReportDataExtractor:
-    def __init__(self, converter: "MmToJsonConverter"):
+    def __init__(self, converter: "MmToJsonConverter", full_data: dict[str, Any] | None = None):
         self.converter = converter
-        self.full_data = self.converter.convert()
+        self.full_data = full_data if full_data is not None else self.converter.convert()
         self.team_color_map = self._build_team_color_map()
 
         # Performance: Pre-calculate lookup maps for common lookups
