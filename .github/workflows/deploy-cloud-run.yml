@@ -66,7 +66,7 @@ jobs:
       # Deploy Backend to Cloud Run
       - name: Deploy Backend
         id: deploy-backend
-        uses: 'google-github-actions/deploy-cloudrun@v2'
+        uses: 'google-github-actions/deploy-cloudrun@v3'
         with:
           service: '${{ env.BACKEND_SERVICE }}'
           image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}'
@@ -79,7 +79,7 @@ jobs:
 
       # Deploy Frontend to Cloud Run
       - name: Deploy Frontend
-        uses: 'google-github-actions/deploy-cloudrun@v2'
+        uses: 'google-github-actions/deploy-cloudrun@v3'
         with:
           service: '${{ env.FRONTEND_SERVICE }}'
           image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}'
