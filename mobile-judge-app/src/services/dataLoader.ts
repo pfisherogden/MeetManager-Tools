@@ -11,12 +11,10 @@ const ALLOWED_HOSTS = [
 const validateUrl = (url: string): boolean => {
 	try {
 		// Use regex to extract hostname safely
-		const match = url.match(
-			/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:/\n?]+)/im,
-		);
+		const match = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/im);
 		const hostname = match ? match[1] : "";
 		return ALLOWED_HOSTS.includes(hostname.toLowerCase());
-	} catch (_e) {
+	} catch (e) {
 		console.warn(`Invalid URL format: ${url}`);
 		return false;
 	}
@@ -106,4 +104,4 @@ export const loadDataFromUrl = async () => {
 	}
 
 	return { loaded, dqData, syncUrl, errorMessage };
-};
+	};
