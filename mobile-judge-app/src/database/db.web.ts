@@ -260,6 +260,14 @@ export const getSwimmersByHeat = (heatId: number): Swimmer[] => {
 	return result;
 };
 
+export const getEventById = (id: number): Event | null => {
+	return mockEvents.find((e) => e.id === id) || null;
+};
+
+export const getHeatById = (id: number): Heat | null => {
+	return mockHeats.find((h) => h.id === id) || null;
+};
+
 export const getSwimmerById = (id: number | string): Swimmer | null => {
 	const s = mockSwimmers.find((sw) => sw.id === id);
 	if (s) {

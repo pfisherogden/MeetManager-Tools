@@ -213,6 +213,19 @@ export const getSwimmersByHeat = (heatId: number): Swimmer[] => {
 	});
 };
 
+export const getEventById = (id: number): Event | null => {
+	if (Platform.OS === "web") return null;
+	const r = getDb().getFirstSync("SELECT * FROM events WHERE id = ?", id);
+	if (!r) return null;
+	return { ...r, isRelay: !!r.isRelay };
+};
+
+export const getHeatById = (id: number): Heat | null => {
+	if (Platform.OS === "web") return null;
+	const r = getDb().getFirstSync("SELECT * FROM heats WHERE id = ?", id);
+	return r || null;
+};
+
 export const getSwimmerById = (id: number | string): Swimmer | null => {
 	if (Platform.OS === "web") return null;
 	const r = getDb().getFirstSync("SELECT * FROM swimmers WHERE id = ?", id);
