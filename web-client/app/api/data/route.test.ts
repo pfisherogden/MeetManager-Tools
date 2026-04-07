@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET } from "./route";
 import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import client from "@/lib/mm-client";
+import { GET } from "./route";
 
 vi.mock("@/lib/mm-client", () => ({
 	default: {
@@ -96,7 +96,9 @@ describe("GET /api/data", () => {
 				mimeType: "application/json",
 			});
 
-			const req = new NextRequest("http://localhost/api/data?path=test.json&token=random");
+			const req = new NextRequest(
+				"http://localhost/api/data?path=test.json&token=random",
+			);
 			const res = await GET(req);
 			expect(res.status).toBe(200);
 			expect(client.getFile).toHaveBeenCalledWith({ path: "test.json" });

@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
 
 	// Basic security check: allow if token matches environment secret or if it's a public path
 	const configuredToken = process.env.DATA_ACCESS_TOKEN;
-	const isTokenConfigured = configuredToken !== undefined && configuredToken !== "";
+	const isTokenConfigured =
+		configuredToken !== undefined && configuredToken !== "";
 
 	// Allow if no token is configured (fallback mode), OR if the configured token matches
 	const isAuthorized = !isTokenConfigured || token === configuredToken;

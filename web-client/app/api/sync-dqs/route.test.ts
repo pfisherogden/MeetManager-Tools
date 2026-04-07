@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
-import { POST } from "./route";
 import { NextRequest } from "next/server";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import client from "@/lib/mm-client";
+import { POST } from "./route";
 
 vi.mock("@/lib/mm-client", () => ({
 	default: {
@@ -37,13 +37,10 @@ describe("POST /api/sync-dqs", () => {
 		});
 
 		it("returns 403 if token is incorrect", async () => {
-			const req = new NextRequest(
-				"http://localhost/api/sync-dqs?token=wrong",
-				{
-					method: "POST",
-					body: JSON.stringify([{ id: 1 }]),
-				},
-			);
+			const req = new NextRequest("http://localhost/api/sync-dqs?token=wrong", {
+				method: "POST",
+				body: JSON.stringify([{ id: 1 }]),
+			});
 			const res = await POST(req);
 			expect(res.status).toBe(403);
 		});

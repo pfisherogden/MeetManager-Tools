@@ -7,7 +7,8 @@ export async function POST(request: NextRequest) {
 
 	// Basic security check
 	const configuredToken = process.env.DATA_ACCESS_TOKEN;
-	const isTokenConfigured = configuredToken !== undefined && configuredToken !== "";
+	const isTokenConfigured =
+		configuredToken !== undefined && configuredToken !== "";
 	const isAuthorized = !isTokenConfigured || token === configuredToken;
 
 	if (!isAuthorized) {
