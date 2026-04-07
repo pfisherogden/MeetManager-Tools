@@ -198,7 +198,7 @@ jobs:
 
       - name: Get Playwright version
         id: playwright-version
-        run: echo "version=$(npm list @playwright/test | grep @playwright/test | sed 's/.*@//' | head -n 1)" >> $GITHUB_OUTPUT
+        run: echo "version=$(jq -r '.devDependencies["@playwright/test"]' package.json | tr -d '^~')" >> $GITHUB_OUTPUT
         working-directory: web-client
 
       - name: Cache Playwright Browsers
@@ -222,7 +222,6 @@ jobs:
           npm ci
 
       - name: Install Playwright Browsers
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
         run: |
           cd web-client
           npx playwright install --with-deps
