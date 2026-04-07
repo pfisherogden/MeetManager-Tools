@@ -1,7 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
-import { POST } from "./route";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as dqDb from "@/lib/dq-db";
+import { POST } from "./route";
 
 vi.mock("@/lib/dq-db", () => ({
 	checkDqExists: vi.fn(),
@@ -19,20 +19,26 @@ describe("POST /api/submit-dq", () => {
 	it("returns 500 when DATA_ACCESS_TOKEN is not set", async () => {
 		delete process.env.DATA_ACCESS_TOKEN;
 
-		const req = new NextRequest("http://localhost/api/submit-dq?token=invalid", {
-			method: "POST",
-			body: JSON.stringify({}),
-		});
+		const req = new NextRequest(
+			"http://localhost/api/submit-dq?token=invalid",
+			{
+				method: "POST",
+				body: JSON.stringify({}),
+			},
+		);
 
 		const res = await POST(req);
 		expect(res.status).toBe(500);
 	});
 
 	it("returns 403 on invalid token", async () => {
-		const req = new NextRequest("http://localhost/api/submit-dq?token=invalid", {
-			method: "POST",
-			body: JSON.stringify({}),
-		});
+		const req = new NextRequest(
+			"http://localhost/api/submit-dq?token=invalid",
+			{
+				method: "POST",
+				body: JSON.stringify({}),
+			},
+		);
 
 		const res = await POST(req);
 		expect(res.status).toBe(403);
@@ -42,10 +48,19 @@ describe("POST /api/submit-dq", () => {
 	});
 
 	it("returns 400 on malformed payload (missing clientDqId)", async () => {
-		const req = new NextRequest(`http://localhost/api/submit-dq?token=${validToken}`, {
-			method: "POST",
-			body: JSON.stringify({ event: 1, heat: 1, lane: 1, swimmer: 1, infraction_code: "1A" }),
-		});
+		const req = new NextRequest(
+			`http://localhost/api/submit-dq?token=${validToken}`,
+			{
+				method: "POST",
+				body: JSON.stringify({
+					event: 1,
+					heat: 1,
+					lane: 1,
+					swimmer: 1,
+					infraction_code: "1A",
+				}),
+			},
+		);
 
 		const res = await POST(req);
 		expect(res.status).toBe(400);
@@ -55,10 +70,13 @@ describe("POST /api/submit-dq", () => {
 	});
 
 	it("returns 400 on malformed payload (missing required fields)", async () => {
-		const req = new NextRequest(`http://localhost/api/submit-dq?token=${validToken}`, {
-			method: "POST",
-			body: JSON.stringify({ clientDqId: "123" }), // Missing event, heat, swimmer, infraction_code
-		});
+		const req = new NextRequest(
+			`http://localhost/api/submit-dq?token=${validToken}`,
+			{
+				method: "POST",
+				body: JSON.stringify({ clientDqId: "123" }), // Missing event, heat, swimmer, infraction_code
+			},
+		);
 
 		const res = await POST(req);
 		expect(res.status).toBe(400);
@@ -70,17 +88,20 @@ describe("POST /api/submit-dq", () => {
 	it("returns 200 OK and skips creation when clientDqId exists (idempotency)", async () => {
 		vi.mocked(dqDb.checkDqExists).mockResolvedValueOnce(true);
 
-		const req = new NextRequest(`http://localhost/api/submit-dq?token=${validToken}`, {
-			method: "POST",
-			body: JSON.stringify({
-				clientDqId: "dq-123",
-				event: 1,
-				heat: 1,
-				lane: 1,
-				swimmer: 1,
-				infraction_code: "1A",
-			}),
-		});
+		const req = new NextRequest(
+			`http://localhost/api/submit-dq?token=${validToken}`,
+			{
+				method: "POST",
+				body: JSON.stringify({
+					clientDqId: "dq-123",
+					event: 1,
+					heat: 1,
+					lane: 1,
+					swimmer: 1,
+					infraction_code: "1A",
+				}),
+			},
+		);
 
 		const res = await POST(req);
 		expect(res.status).toBe(200);
@@ -104,10 +125,13 @@ describe("POST /api/submit-dq", () => {
 			infraction_code: "1A",
 		};
 
-		const req = new NextRequest(`http://localhost/api/submit-dq?token=${validToken}`, {
-			method: "POST",
-			body: JSON.stringify(payload),
-		});
+		const req = new NextRequest(
+			`http://localhost/api/submit-dq?token=${validToken}`,
+			{
+				method: "POST",
+				body: JSON.stringify(payload),
+			},
+		);
 
 		const res = await POST(req);
 		expect(res.status).toBe(200);
@@ -127,19 +151,24 @@ describe("POST /api/submit-dq", () => {
 	});
 
 	it("returns 500 on database error", async () => {
-		vi.mocked(dqDb.checkDqExists).mockRejectedValueOnce(new Error("DB Connection Error"));
+		vi.mocked(dqDb.checkDqExists).mockRejectedValueOnce(
+			new Error("DB Connection Error"),
+		);
 
-		const req = new NextRequest(`http://localhost/api/submit-dq?token=${validToken}`, {
-			method: "POST",
-			body: JSON.stringify({
-				clientDqId: "dq-125",
-				event: 1,
-				heat: 1,
-				lane: 1,
-				swimmer: 1,
-				infraction_code: "1A",
-			}),
-		});
+		const req = new NextRequest(
+			`http://localhost/api/submit-dq?token=${validToken}`,
+			{
+				method: "POST",
+				body: JSON.stringify({
+					clientDqId: "dq-125",
+					event: 1,
+					heat: 1,
+					lane: 1,
+					swimmer: 1,
+					infraction_code: "1A",
+				}),
+			},
+		);
 
 		const res = await POST(req);
 		expect(res.status).toBe(500);

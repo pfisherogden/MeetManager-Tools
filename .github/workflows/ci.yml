@@ -222,7 +222,6 @@ jobs:
           npm ci
 
       - name: Install Playwright Browsers
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
         run: |
           cd web-client
           npx playwright install --with-deps

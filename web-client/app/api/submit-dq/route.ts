@@ -9,8 +9,13 @@ export async function POST(request: NextRequest) {
 	const secretToken = process.env.DATA_ACCESS_TOKEN;
 
 	if (!secretToken) {
-		console.error("CRITICAL: DATA_ACCESS_TOKEN environment variable is missing.");
-		return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+		console.error(
+			"CRITICAL: DATA_ACCESS_TOKEN environment variable is missing.",
+		);
+		return NextResponse.json(
+			{ error: "Internal server error" },
+			{ status: 500 },
+		);
 	}
 
 	if (token !== secretToken) {
@@ -57,7 +62,10 @@ export async function POST(request: NextRequest) {
 			infraction_code,
 		});
 
-		return NextResponse.json({ success: true, message: "DQ submitted successfully" });
+		return NextResponse.json({
+			success: true,
+			message: "DQ submitted successfully",
+		});
 	} catch (error: any) {
 		console.error("API Error (submit-dq):", error);
 		return NextResponse.json(

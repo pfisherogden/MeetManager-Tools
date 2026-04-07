@@ -3,7 +3,8 @@ import * as admin from "firebase-admin";
 const initAdmin = () => {
 	if (admin.apps.length === 0) {
 		admin.initializeApp({
-			projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mmtools-488404",
+			projectId:
+				process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mmtools-488404",
 		});
 	}
 	return admin.firestore();
@@ -19,7 +20,10 @@ export async function checkDqExists(clientDqId: string): Promise<boolean> {
 	return dqSnap.exists;
 }
 
-export async function saveDq(clientDqId: string, dqDetails: any): Promise<void> {
+export async function saveDq(
+	clientDqId: string,
+	dqDetails: any,
+): Promise<void> {
 	if (!clientDqId) throw new Error("clientDqId is required");
 
 	const db = initAdmin();
