@@ -123,16 +123,6 @@ const getOrderedDQCategories = (
 		defaultOrdered.push("miscellaneous");
 	}
 	return defaultOrdered;
-
-	// Default order: Breast/Back/Fly usually prioritized for Medley,
-	// but let's just make sure Miscellaneous is at the end.
-	const ordered = [...categories];
-	const miscIdx = ordered.indexOf("miscellaneous");
-	if (miscIdx > -1) {
-		ordered.splice(miscIdx, 1);
-		ordered.push("miscellaneous");
-	}
-	return ordered;
 };
 
 const BUILD_TIME = "03/13/2026, 11:21:13 PM PT"; // Fixed build time
@@ -308,7 +298,7 @@ export default function App() {
 	};
 
 	const loadDQState = (swimmer: Swimmer, leg: number | undefined) => {
-		let dqObj;
+		let dqObj: any;
 		if (leg === undefined) {
 			dqObj = swimmer.dq_code
 				? { dq_code: swimmer.dq_code, notes: swimmer.notes }
@@ -1032,8 +1022,11 @@ export default function App() {
 							{getPendingDQs().length === 0 ? (
 								<Text style={styles.emptyText}>No pending DQs</Text>
 							) : (
-								getPendingDQs().map((dq, idx) => (
-									<View key={idx} style={styles.pendingCard}>
+								getPendingDQs().map((dq) => (
+									<View
+										key={`${dq.event_id}-${dq.swimmer_id}-${dq.leg}`}
+										style={styles.pendingCard}
+									>
 										<TouchableOpacity
 											onPress={() => handleDeleteDQ(dq.swimmer_id, dq.leg)}
 											style={styles.deletePendingButton}
