@@ -6,9 +6,11 @@ export async function POST(request: NextRequest) {
 	const token = searchParams.get("token");
 
 	// Basic security check
-	const secretToken =
-		process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
-	if (token !== secretToken) {
+	const configuredToken = process.env.DATA_ACCESS_TOKEN;
+	const isTokenConfigured = configuredToken !== undefined && configuredToken !== "";
+	const isAuthorized = !isTokenConfigured || token === configuredToken;
+
+	if (!isAuthorized) {
 		return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
 	}
 

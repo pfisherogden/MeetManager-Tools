@@ -7,9 +7,11 @@ export async function GET(request: NextRequest) {
 	const token = searchParams.get("token");
 
 	// Basic security check: allow if token matches environment secret or if it's a public path
-	const secretToken =
-		process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
-	const isAuthorized = token === secretToken;
+	const configuredToken = process.env.DATA_ACCESS_TOKEN;
+	const isTokenConfigured = configuredToken !== undefined && configuredToken !== "";
+
+	// Allow if no token is configured (fallback mode), OR if the configured token matches
+	const isAuthorized = !isTokenConfigured || token === configuredToken;
 
 	if (!path) {
 		return NextResponse.json({ error: "Path is required" }, { status: 400 });
