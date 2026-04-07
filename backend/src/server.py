@@ -1625,7 +1625,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Parse to validate
             dqs = json.loads(dqs_json)
 
-            # Save to user's dataset directory
+            # Save to user's dataset directory (as backup/log)
             filename = "synced_dqs.json"
             user_path = os.path.join("users", uid, filename)
 
@@ -1638,6 +1638,82 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
+
+            # Update the master database if it's an MDB
+            config = self._load_user_config(context)
+            active_filename = config.get("active_dataset")
+            if active_filename and active_filename.lower().endswith(".mdb"):
+                dataset_path = os.path.join("users", uid, active_filename)
+                if self.storage.exists(dataset_path):
+                    logging.info(f"Syncing DQs to MDB: {dataset_path} for user {uid}")
+
+                    # Download MDB to local temp for writing
+                    with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp_mdb:
+                        tmp_mdb_path = tmp_mdb.name
+                        tmp_mdb.close()
+
+                    try:
+                        self.storage.download_file(dataset_path, tmp_mdb_path)
+
+                        # Resolve event pointers and relay status from human-readable numbers
+                        cache, _ = self._load_user_data(context)
+                        event_table = cache.get("event", [])
+                        # Map eventNum (human #) to {ptr, is_relay}
+                        event_info_map = {}
+                        for e in event_table:
+                            # event_no is human #, event_ptr is MDB PK
+                            # mtevent is PK in Schema B
+                            h_num = self._safe_int(e.get("event_no") or e.get("mtevent"))
+                            e_ptr = e.get("event_ptr") or e.get("mtevent")
+                            # Ind_rel is 'R' for relays in Schema A, 'i_r' in Schema B?
+                            is_relay = str(e.get("Ind_rel", e.get("i_r", ""))).upper() == "R"
+
+                            if h_num and e_ptr:
+                                event_info_map[h_num] = {"ptr": e_ptr, "is_relay": is_relay}
+
+                        from mm_to_json import mdb_writer
+
+                        db = mdb_writer.open_db(tmp_mdb_path)
+                        try:
+                            updated_count = 0
+                            for dq in dqs:
+                                # Mobile app sends id, swimmer_id, event_id, dq_code, notes, heat, lane
+                                event_id = dq.get("event_id")
+                                athlete_id = dq.get("swimmer_id")
+                                dq_code = dq.get("dq_code", "")
+                                heat = self._safe_int(dq.get("heat", 0))
+                                lane = self._safe_int(dq.get("lane", 0))
+
+                                info = event_info_map.get(self._safe_int(event_id))
+                                if info and athlete_id:
+                                    if mdb_writer.update_entry_status(
+                                        db,
+                                        info["ptr"],
+                                        athlete_id,
+                                        heat,
+                                        lane,
+                                        status="DQ",
+                                        dq_code=dq_code,
+                                        is_relay=info["is_relay"],
+                                    ):
+                                        updated_count += 1
+
+                            db.close()
+                            # Upload updated MDB back to storage
+                            self.storage.upload_file(tmp_mdb_path, dataset_path)
+
+                            # Force cache invalidation so Next.js/Web-Client sees the DQ
+                            if uid in self._user_cache:
+                                del self._user_cache[uid]
+                            logging.info(f"Successfully updated {updated_count} entries in MDB for {uid}")
+                        finally:
+                            try:
+                                db.close()
+                            except Exception:
+                                pass
+                    finally:
+                        if os.path.exists(tmp_mdb_path):
+                            os.remove(tmp_mdb_path)
 
             logging.info(f"Synced {len(dqs)} DQs for user {uid}")
             return pb2.SyncDQsResponse(success=True, message=f"Synced {len(dqs)} items")
