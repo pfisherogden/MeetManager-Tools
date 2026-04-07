@@ -268,7 +268,7 @@ export const saveDQ = (
 		});
 		return { changes: 1 };
 	}
-	
+
 	const db = getDb();
 	// Remove existing DQ first to handle leg=NULL unique constraint issues in SQLite
 	db.runSync(

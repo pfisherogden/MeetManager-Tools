@@ -6,17 +6,16 @@ const appTsxPath = path.join(__dirname, "App.tsx");
 let content = fs.readFileSync(appTsxPath, "utf8");
 
 const now = new Date();
-const formattedTime =
-	`${now.toLocaleString("en-US", {
-		timeZone: "America/Los_Angeles",
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-		hour12: true,
-	})} PT`;
+const formattedTime = `${now.toLocaleString("en-US", {
+	timeZone: "America/Los_Angeles",
+	year: "numeric",
+	month: "2-digit",
+	day: "2-digit",
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit",
+	hour12: true,
+})} PT`;
 
 // Regex to find and replace the BUILD_TIME constant declaration
 const regex = /const BUILD_TIME = ".*";/g;

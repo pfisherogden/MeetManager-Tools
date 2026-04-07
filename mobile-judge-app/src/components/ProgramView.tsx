@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import type React from "react";
 import { useRef } from "react";
 import {
@@ -7,7 +8,6 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { getHeatsByEvent, getSwimmersByHeat } from "../database/db";
 import type { DQ, Event, Heat, Swimmer } from "../types";
 
@@ -61,9 +61,20 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 		if (isRelay) {
 			if (swimmer.empty && !showEmptyLanes) return null; // Respect toggle for relays
 			return (
-				<View key={swimmer.id} style={[styles.swimmerRow, styles.relayRow, swimmer.empty && styles.emptyRow]}>
-					<View style={[styles.laneContainer, swimmer.empty && styles.emptyLane]}>
-						<Text style={styles.laneText}>{swimmer.empty ? `(${swimmer.lane})` : `L${swimmer.lane}`}</Text>
+				<View
+					key={swimmer.id}
+					style={[
+						styles.swimmerRow,
+						styles.relayRow,
+						swimmer.empty && styles.emptyRow,
+					]}
+				>
+					<View
+						style={[styles.laneContainer, swimmer.empty && styles.emptyLane]}
+					>
+						<Text style={styles.laneText}>
+							{swimmer.empty ? `(${swimmer.lane})` : `L${swimmer.lane}`}
+						</Text>
 					</View>
 					<View style={styles.swimmerDetails}>
 						<Text style={styles.teamName}>Team {swimmer.team}</Text>
@@ -108,7 +119,9 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 				onPress={() => onSelectSwimmer(swimmer, event, heat)}
 			>
 				<View style={[styles.laneContainer, swimmer.empty && styles.emptyLane]}>
-					<Text style={styles.laneText}>{swimmer.empty ? `(${swimmer.lane})` : `L${swimmer.lane}`}</Text>
+					<Text style={styles.laneText}>
+						{swimmer.empty ? `(${swimmer.lane})` : `L${swimmer.lane}`}
+					</Text>
 				</View>
 				<View style={styles.swimmerDetails}>
 					<Text style={[styles.swimmerName, swimmer.empty && styles.emptyText]}>
@@ -156,7 +169,11 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 							disabled={index === 0}
 							style={[styles.iconButton, index === 0 && styles.disabledIcon]}
 						>
-							<Ionicons name="chevron-up-circle" size={24} color={COLORS.icon} />
+							<Ionicons
+								name="chevron-up-circle"
+								size={24}
+								color={COLORS.icon}
+							/>
 						</TouchableOpacity>
 						<TouchableOpacity
 							onPress={() => scrollToEvent(index + 1)}
@@ -166,7 +183,11 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 								index === events.length - 1 && styles.disabledIcon,
 							]}
 						>
-							<Ionicons name="chevron-down-circle" size={24} color={COLORS.icon} />
+							<Ionicons
+								name="chevron-down-circle"
+								size={24}
+								color={COLORS.icon}
+							/>
 						</TouchableOpacity>
 					</View>
 				</View>

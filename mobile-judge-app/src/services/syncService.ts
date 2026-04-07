@@ -1,10 +1,10 @@
 import NetInfo from "@react-native-community/netinfo";
 import {
-	getPendingDQs,
-	markAsSynced,
-	getSwimmerById,
 	getEventById,
 	getHeatById,
+	getPendingDQs,
+	getSwimmerById,
+	markAsSynced,
 } from "../database/db";
 
 let SYNC_ENDPOINT = "";

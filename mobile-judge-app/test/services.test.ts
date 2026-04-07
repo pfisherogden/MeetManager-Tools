@@ -16,8 +16,24 @@ global.fetch = jest.fn();
 // Mock DB
 jest.mock("../src/database/db", () => ({
 	loadFromJSON: jest.fn(),
-	getPendingDQs: jest.fn(() => [{ id: 1, dq_code: "1A" }]),
+	getPendingDQs: jest.fn(() => [
+		{
+			id: 1,
+			event_id: 1,
+			swimmer_id: 1,
+			dq_code: "1A",
+			timestamp: "2023-01-01T00:00:00Z",
+		},
+	]),
 	markAsSynced: jest.fn(),
+	getSwimmerById: jest.fn(() => ({
+		id: 1,
+		heat_id: 1,
+		lane: 1,
+		name: "Test Swimmer",
+	})),
+	getEventById: jest.fn(() => ({ id: 1, number: 1 })),
+	getHeatById: jest.fn(() => ({ id: 1, number: 1 })),
 }));
 
 describe("Data Loader Service", () => {
@@ -109,7 +125,14 @@ describe("Sync Service", () => {
 			"http://example.com/sync",
 			expect.objectContaining({
 				method: "POST",
-				body: JSON.stringify([{ id: 1, dq_code: "1A" }]),
+				body: JSON.stringify({
+					clientDqId: `dq-1-${new Date("2023-01-01T00:00:00Z").getTime()}`,
+					event: 1,
+					heat: 1,
+					lane: 1,
+					swimmer: "Test Swimmer",
+					infraction_code: "1A",
+				}),
 			}),
 		);
 		expect(db.markAsSynced).toHaveBeenCalledWith(1);

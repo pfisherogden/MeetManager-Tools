@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
-import type { DQ, Event, Heat, Swimmer } from "../types";
 import sampleData from "../../assets/sample_program.json";
+import type { DQ, Event, Heat, Swimmer } from "../types";
 
 // Web Mock State
 let mockEvents: Event[] = [];
@@ -10,7 +10,7 @@ let mockDQs: DQ[] = [];
 
 export const getDb = () => {
 	return {
-		execSync: () => { },
+		execSync: () => {},
 		runSync: () => ({ lastInsertRowId: 1, changes: 1 }),
 		getAllSync: (_query: string) => [],
 		getFirstSync: () => ({ count: 0 }),
@@ -55,13 +55,15 @@ export const seedData = () => {
 	if (Platform.OS === "web") {
 		if (mockEvents.length > 0) return; // Already seeded or loaded
 
-		if (sampleData && sampleData.events) {
+		if (sampleData?.events) {
 			mockEvents = [...(sampleData.events as unknown as Event[])];
 			mockHeats = [...(sampleData.heats as unknown as Heat[])];
 			mockSwimmers = [...(sampleData.swimmers as unknown as Swimmer[])];
 
 			// Add a custom Boys relay event for variety (if not already present)
-			const hasBoysRelay = mockEvents.some((e) => e.name.includes("Boys") && e.isRelay);
+			const hasBoysRelay = mockEvents.some(
+				(e) => e.name.includes("Boys") && e.isRelay,
+			);
 			if (!hasBoysRelay) {
 				const nextEventId = Math.max(0, ...mockEvents.map((e) => e.id)) + 1;
 				const nextHeatId = Math.max(0, ...mockHeats.map((h) => h.id)) + 1;
@@ -103,11 +105,14 @@ export const seedData = () => {
 				if (idx % 3 === 1) s.lane = 6;
 			});
 
-			console.log("Web Mock DB Seeded from comprehensive JSON with enhancements:", {
-				events: mockEvents.length,
-				heats: mockHeats.length,
-				swimmers: mockSwimmers.length,
-			});
+			console.log(
+				"Web Mock DB Seeded from comprehensive JSON with enhancements:",
+				{
+					events: mockEvents.length,
+					heats: mockHeats.length,
+					swimmers: mockSwimmers.length,
+				},
+			);
 			return;
 		}
 
@@ -297,15 +302,25 @@ export const saveDQ = (
 	notes?: string,
 ) => {
 	const sid = parseSwimmerId(swimmerId);
-	console.log("Web Mock DQ Saved:", { eventId, swimmerId, sid, dqCode, leg, notes });
+	console.log("Web Mock DQ Saved:", {
+		eventId,
+		swimmerId,
+		sid,
+		dqCode,
+		leg,
+		notes,
+	});
 
 	// Remove existing DQ for the same context
 	if (leg) {
 		mockDQs = mockDQs.filter(
-			(dq) => !(dq.swimmer_id === sid && dq.leg === leg && dq.event_id === eventId),
+			(dq) =>
+				!(dq.swimmer_id === sid && dq.leg === leg && dq.event_id === eventId),
 		);
 	} else {
-		mockDQs = mockDQs.filter((dq) => !(dq.swimmer_id === sid && !dq.leg && dq.event_id === eventId));
+		mockDQs = mockDQs.filter(
+			(dq) => !(dq.swimmer_id === sid && !dq.leg && dq.event_id === eventId),
+		);
 	}
 
 	const newDQ: DQ = {
