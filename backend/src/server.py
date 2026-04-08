@@ -1611,11 +1611,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             program_url = self.storage.get_url(user_pub_path)
             token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
 
-            # Append token to program_url
-            if "?" in program_url:
-                program_url = f"{program_url}&token={token}"
-            else:
-                program_url = f"{program_url}?token={token}"
+            # Append token to program_url ONLY if it's not already a signed GCS URL
+            # Signed GCS URLs contain 'X-Goog-Algorithm'
+            if "X-Goog-Algorithm" not in program_url:
+                if "?" in program_url:
+                    program_url = f"{program_url}&token={token}"
+                else:
+                    program_url = f"{program_url}?token={token}"
 
             # Sync URL points to the frontend API which proxies to gRPC SyncDQs
             # Use frontend_url from request if provided, otherwise environment variables
