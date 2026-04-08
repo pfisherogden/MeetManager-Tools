@@ -100,6 +100,8 @@ def _process_single_report_process(
     title = report_req_title
 
     # Load from msgpack
+    import msgpack
+
     with open(msgpack_path, "rb") as f:
         packed_data = msgpack.unpack(f, raw=False)
 
@@ -1388,12 +1390,19 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
                 msgpack_path = msgpack_tmp.name
                 msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
+                msgpack_tmp.flush()
+                msgpack_tmp.close()
 
             tasks = []
-            # Cloud Run backend has 2 CPUs (or more), 3 workers maximizes CPU usage without massive memory spikes
+            # Cloud Run backend has 2 CPUs now, match workers to CPU count to avoid thrashing
+            cpu_count = os.cpu_count() or 1
+            max_workers = min(cpu_count, 3)
+            logging.info(f"Generating report bundle with {len(request.reports)} reports using {max_workers} workers")
+
+            start_time = datetime.datetime.now()
             ctx = multiprocessing.get_context("spawn")
             try:
-                with ProcessPoolExecutor(max_workers=3, mp_context=ctx) as executor:
+                with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
                     for idx, report_req in enumerate(request.reports):
                         tasks.append(
                             executor.submit(
@@ -1418,6 +1427,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         res = future.result()
                         if res.get("success"):
                             zip_file.writestr(res["filename"], res["content"])
+                            logging.info(f"Report {res.get('idx')} ({res.get('rtype')}) added to bundle")
                         else:
                             raise Exception(
                                 f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
@@ -1426,6 +1436,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 # Cleanup msgpack file
                 if os.path.exists(msgpack_path):
                     os.remove(msgpack_path)
+
+            end_time = datetime.datetime.now()
+            duration = (end_time - start_time).total_seconds()
+            logging.info(f"Bundle generation complete. Duration: {duration:.2f}s")
 
             num_reports = len(request.reports)
             bundle_name = (
