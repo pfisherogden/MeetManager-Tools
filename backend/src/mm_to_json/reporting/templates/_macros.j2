@@ -1,3 +1,60 @@
+{# Macro to render entry row using DIVs instead of TR/TD for better stability in columns #}
+{% macro render_div_entry_row(entry, is_zebra, show_dq_lines=false) %}
+    <div class="div-entry-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-bottom{% endif %}">
+        {% if entry.is_relay %}
+            <div class="div-col col-lane">{{ entry.lane }}</div>
+            <div class="div-col col-team">{{ entry.team }}</div>
+            <div class="div-col col-relay">{{ entry.relayLtr }}</div>
+            <div class="div-col col-time">{{ entry.time }}</div>
+            {% if show_dq_lines %}
+                <div class="div-col col-dq">________________</div>
+            {% endif %}
+        {% else %}
+            <div class="div-col col-lane">{{ entry.lane }}</div>
+            <div class="div-col col-name">{{ entry.name }}</div>
+            <div class="div-col col-age">{{ entry.age }}</div>
+            <div class="div-col col-team">{{ entry.team }}</div>
+            <div class="div-col col-time">{{ entry.time }}</div>
+            {% if show_dq_lines %}
+                <div class="div-col col-dq">________________</div>
+            {% endif %}
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{# Macro to render relay swimmers using DIVs #}
+{% macro render_div_relay_swimmers_row(entry, is_zebra, show_dq_lines=false) %}
+    {% if entry.is_relay and entry.swimmers %}
+    <div class="div-relay-swimmers-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-bottom{% endif %}">
+        <div class="div-col col-lane"></div> {# Spacer #}
+        <div class="div-col div-swimmers-container">
+            <div class="relay-grid">
+                <div class="relay-col">
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
+                </div>
+                <div class="relay-col">
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endmacro %}
+
 {# Macro to render standard entries loop layout. #}
 {% macro render_standard_entry_row(entry, is_zebra, show_dq_lines=false) %}
     <tr class="entry-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-row{% endif %}">

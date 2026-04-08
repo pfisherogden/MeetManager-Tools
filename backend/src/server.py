@@ -1628,11 +1628,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 frontend_port = os.getenv("FRONTEND_PORT", "3000")
                 frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
 
-            sync_url = f"{frontend_base}/api/sync-dqs?token={token}"
+            sync_url = f"{frontend_base}/api/sync-dqs?token={token}&uid={uid}"
 
             # Properly URL-encode nested parameters
+            # Use urllib.parse.quote to ensure the nested URLs are safe as query params.
+            # We must be careful NOT to double-encode if the StorageProvider already encoded it.
+            # GCS Signed URLs ARE already encoded.
             import urllib.parse
 
+            # Nested URLs must be fully encoded to be valid as a query parameter value.
+            # We use safe="" to ensure EVERYTHING including / and : is encoded.
             encoded_program = urllib.parse.quote(program_url, safe="")
             encoded_sync = urllib.parse.quote(sync_url, safe="")
 

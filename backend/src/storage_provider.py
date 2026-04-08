@@ -132,14 +132,15 @@ class GCSStorageProvider(StorageProvider):
 
     def get_url(self, remote_path: str) -> str:
         # Generate a public URL or Signed URL
-        # For simplicity in this project, we'll use public URL if bucket is public,
-        # but better to use Signed URL for 1 hour.
         blob = self.bucket.blob(remote_path)
         try:
-            # Try to generate signed URL (requires credentials with service account)
-            # Use service_account_email if provided via credentials
-            url = blob.generate_signed_url(expiration=3600, method="GET", version="v4")
-            logger.info(f"Generated signed URL for {remote_path}")
+            # Try to generate signed URL (requires iam.serviceAccounts.signBlob permission)
+            # v4 signing is the modern standard
+            service_account_email = getattr(self.client.credentials, "service_account_email", None)
+            url = blob.generate_signed_url(
+                expiration=3600, method="GET", version="v4", service_account_email=service_account_email
+            )
+            logger.info(f"Generated signed URL for {remote_path} (SA: {service_account_email})")
             return url
         except Exception as e:
             # Fallback to public URL
