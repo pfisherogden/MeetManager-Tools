@@ -27,7 +27,7 @@ describe("POST /api/submit-dq", () => {
 		delete process.env.DATA_ACCESS_TOKEN;
 
 		const req = new NextRequest(
-			"http://localhost/api/submit-dq?token=invalid",
+			"http://localhost/api/submit-dq?token=invalid&uid=test-uid",
 			{
 				method: "POST",
 				body: JSON.stringify({}),
@@ -45,7 +45,7 @@ describe("POST /api/submit-dq", () => {
 		vi.mocked(dqDb.saveDq).mockResolvedValueOnce();
 
 		const req = new NextRequest(
-			"http://localhost/api/submit-dq?token=invalid",
+			"http://localhost/api/submit-dq?token=invalid&uid=test-uid",
 			{
 				method: "POST",
 				body: JSON.stringify({
@@ -121,7 +121,7 @@ describe("POST /api/submit-dq", () => {
 		vi.mocked(dqDb.checkDqExists).mockResolvedValueOnce(true);
 
 		const req = new NextRequest(
-			`http://localhost/api/submit-dq?token=${validToken}`,
+			`http://localhost/api/submit-dq?token=${validToken}&uid=test-uid`,
 			{
 				method: "POST",
 				body: JSON.stringify({
@@ -158,7 +158,7 @@ describe("POST /api/submit-dq", () => {
 		};
 
 		const req = new NextRequest(
-			`http://localhost/api/submit-dq?token=${validToken}`,
+			`http://localhost/api/submit-dq?token=${validToken}&uid=test-uid`,
 			{
 				method: "POST",
 				body: JSON.stringify(payload),
@@ -187,6 +187,8 @@ describe("POST /api/submit-dq", () => {
 		expect(syncDqs).toHaveLength(1);
 		expect(syncDqs[0].event_id).toBe(1);
 		expect(syncDqs[0].dq_code).toBe("1A");
+		expect(syncCall.uid).toBe("test-uid");
+		expect(syncCall.accessToken).toBe(validToken);
 	});
 
 	it("returns 500 on database error", async () => {

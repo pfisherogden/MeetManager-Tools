@@ -52,7 +52,7 @@ describe("POST /api/sync-dqs", () => {
 			});
 
 			const req = new NextRequest(
-				"http://localhost/api/sync-dqs?token=my-secret-token",
+				"http://localhost/api/sync-dqs?token=my-secret-token&uid=test-uid",
 				{
 					method: "POST",
 					body: JSON.stringify([{ id: 1 }]),
@@ -62,7 +62,11 @@ describe("POST /api/sync-dqs", () => {
 			expect(res.status).toBe(200);
 			const json = await res.json();
 			expect(json.success).toBe(true);
-			expect(client.syncDQs).toHaveBeenCalledWith({ dqsJson: '[{"id":1}]' });
+			expect(client.syncDQs).toHaveBeenCalledWith({
+				dqsJson: '[{"id":1}]',
+				uid: "test-uid",
+				accessToken: "my-secret-token",
+			});
 		});
 	});
 
@@ -80,7 +84,11 @@ describe("POST /api/sync-dqs", () => {
 			});
 			const res = await POST(req);
 			expect(res.status).toBe(200);
-			expect(client.syncDQs).toHaveBeenCalledWith({ dqsJson: '[{"id":1}]' });
+			expect(client.syncDQs).toHaveBeenCalledWith({
+				dqsJson: '[{"id":1}]',
+				uid: "",
+				accessToken: "",
+			});
 		});
 
 		it("allows access with an empty token environment variable", async () => {
@@ -96,7 +104,11 @@ describe("POST /api/sync-dqs", () => {
 			});
 			const res = await POST(req);
 			expect(res.status).toBe(200);
-			expect(client.syncDQs).toHaveBeenCalledWith({ dqsJson: '[{"id":1}]' });
+			expect(client.syncDQs).toHaveBeenCalledWith({
+				dqsJson: '[{"id":1}]',
+				uid: "",
+				accessToken: "",
+			});
 		});
 	});
 });

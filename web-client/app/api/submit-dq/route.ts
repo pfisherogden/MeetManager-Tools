@@ -5,6 +5,7 @@ import client from "@/lib/mm-client";
 export async function POST(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
 	const token = searchParams.get("token");
+	const uid = searchParams.get("uid");
 
 	// Basic security check
 	const configuredToken = process.env.DATA_ACCESS_TOKEN;
@@ -70,7 +71,11 @@ export async function POST(request: NextRequest) {
 					timestamp: new Date().toISOString(),
 				},
 			];
-			await client.syncDQs({ dqsJson: JSON.stringify(syncPayload) });
+			await client.syncDQs({
+				dqsJson: JSON.stringify(syncPayload),
+				uid: uid || "",
+				accessToken: configuredToken || "",
+			});
 		} catch (syncError) {
 			console.error("Failed to trigger backend sync for DQ:", syncError);
 			// We still return 200 because it's saved in Firestore and can be synced later
