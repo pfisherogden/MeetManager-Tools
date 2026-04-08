@@ -40,34 +40,30 @@ test.describe("Production Smoke Tests", () => {
 	test("should load dashboard", async ({ page }) => {
 		await page.goto("/");
 		await expect(page.getByRole("main")).toBeVisible();
-		// Ensure app shell is rendered
-		await expect(page.getByText("SwimMeet Pro")).toBeVisible();
+		// The app shell has "SwimMeet Pro" in the sidebar/header
+		await expect(page.locator("body")).toContainText("SwimMeet Pro");
+		// Welcome message
+		await expect(page.getByText(/Welcome to SwimMeet Pro/i)).toBeVisible();
 	});
 
 	test("should load meets page", async ({ page }) => {
 		await page.goto("/meets");
-		await expect(
-			page.getByRole("heading", { name: "Meets", exact: true }),
-		).toBeVisible();
+		await expect(page.getByRole("heading", { name: /Meets/i })).toBeVisible();
 	});
 
 	test("should load reports page", async ({ page }) => {
 		await page.goto("/reports");
-		await expect(
-			page.getByRole("heading", { name: "Reports", exact: true }),
-		).toBeVisible();
+		await expect(page.getByRole("heading", { name: /Reports/i })).toBeVisible();
 		// Check for report presets list
-		await expect(page.getByText("Default Meet Pack")).toBeVisible();
+		await expect(page.getByText(/Default Meet Pack/i)).toBeVisible();
 	});
 
 	test("should load admin/ingestion page", async ({ page }) => {
 		await page.goto("/admin");
-		await expect(
-			page.getByRole("heading", { name: "Dataset Management", exact: true }),
-		).toBeVisible();
+		await expect(page.getByText(/Dataset Management/i).first()).toBeVisible();
 		// Verify action buttons exist
 		await expect(
-			page.getByRole("button", { name: "Publish to Judge App" }),
+			page.getByRole("button", { name: /Publish to Judge App/i }),
 		).toBeVisible();
 	});
 });

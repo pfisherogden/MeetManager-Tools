@@ -16,7 +16,9 @@ from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 # Locally: ../../tests/fixtures/anonymized_meets
 # Docker: /app/data/fixtures_root/anonymized_meets
 FIXTURES_DIR_LOCAL_1 = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/anonymized_meets"))
-FIXTURES_DIR_LOCAL_2 = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../tests/fixtures/anonymized_meets"))
+FIXTURES_DIR_LOCAL_2 = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../../tests/fixtures/anonymized_meets")
+)
 FIXTURES_DIR_DOCKER = "/app/data/fixtures_root/anonymized_meets"
 
 if os.path.exists(FIXTURES_DIR_DOCKER):
@@ -278,12 +280,12 @@ def test_team_filtering_robustness():
     raw_teams = converter.tables.get("team")
     if raw_teams.empty:
         pytest.skip("No teams found in fixture")
-    
+
     # In anonymized data, it might be team_name or name
     first_row = raw_teams.iloc[0]
     team_name = str(first_row.get("team_name") or first_row.get("name") or "")
     team_code = str(first_row.get("team_abbr") or first_row.get("abbr") or "")
-    
+
     # Test cases: (filter_string, should_match)
     test_cases = [
         (team_name, True),  # Exact match name
@@ -295,5 +297,5 @@ def test_team_filtering_robustness():
     for filter_str, expected in test_cases:
         program_data = extractor.extract_meet_program_data(team_filter=filter_str)
         matched = len(program_data["groups"]) > 0
-        if filter_str != "tri-valley": # Only assert True for known good matches
+        if filter_str != "tri-valley":  # Only assert True for known good matches
             assert matched == expected, f"Failed matching team filter '{filter_str}' (expected {expected})"
