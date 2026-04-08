@@ -443,10 +443,13 @@ export async function generateReportBundle(
 	}
 }
 
-export async function publishMeetData() {
+export async function publishMeetData(frontendUrl?: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.publishMeetData({}, { metadata });
+		const response = await client.publishMeetData(
+			{ frontendUrl: frontendUrl || "" },
+			{ metadata },
+		);
 		if (!response.success) {
 			throw new Error(response.message);
 		}

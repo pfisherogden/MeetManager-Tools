@@ -106,7 +106,10 @@ message SyncDQsResponse {
 }
 
 // PublishMeetDataRequest is the request for PublishMeetData.
-message PublishMeetDataRequest {}
+message PublishMeetDataRequest {
+  // frontend_url is the base URL of the frontend calling the service.
+  string frontend_url = 1;
+}
 
 // PublishMeetDataResponse contains the URL for the judge app.
 message PublishMeetDataResponse {

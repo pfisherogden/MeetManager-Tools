@@ -59,8 +59,10 @@ class SyncDQsResponse(_message.Message):
     def __init__(self, success: bool = ..., message: _Optional[str] = ...) -> None: ...
 
 class PublishMeetDataRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("frontend_url",)
+    FRONTEND_URL_FIELD_NUMBER: _ClassVar[int]
+    frontend_url: str
+    def __init__(self, frontend_url: _Optional[str] = ...) -> None: ...
 
 class PublishMeetDataResponse(_message.Message):
     __slots__ = ("success", "message", "judge_app_url")
