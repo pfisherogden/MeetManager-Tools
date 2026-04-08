@@ -15,13 +15,16 @@ from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 # Correct path for fixtures that works both locally and in Docker
 # Locally: ../../tests/fixtures/anonymized_meets
 # Docker: /app/data/fixtures_root/anonymized_meets
-FIXTURES_DIR_LOCAL = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/anonymized_meets"))
+FIXTURES_DIR_LOCAL_1 = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/anonymized_meets"))
+FIXTURES_DIR_LOCAL_2 = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../tests/fixtures/anonymized_meets"))
 FIXTURES_DIR_DOCKER = "/app/data/fixtures_root/anonymized_meets"
 
 if os.path.exists(FIXTURES_DIR_DOCKER):
     FIXTURES_DIR = FIXTURES_DIR_DOCKER
+elif os.path.exists(FIXTURES_DIR_LOCAL_1):
+    FIXTURES_DIR = FIXTURES_DIR_LOCAL_1
 else:
-    FIXTURES_DIR = FIXTURES_DIR_LOCAL
+    FIXTURES_DIR = FIXTURES_DIR_LOCAL_2
 
 
 def get_anonymized_fixtures():
@@ -94,12 +97,12 @@ def test_meet_program_dom_validation(fixture_path, tmp_path):
         # Just ensure we have some content
         assert len(event_blocks) > 0
 
-    # Assert no lane > 8 (common standard)
+    # Assert no lane > 10 (common standards)
     lanes = soup.find_all(class_="col-lane")
     for lane in lanes:
         lane_text = lane.text.strip()
-        if lane_text.isdigit():
-            assert int(lane_text) <= 10  # Some meets have 10 lanes
+        if lane_text.isdigit() and lane_text != "Lane":
+            assert int(lane_text) <= 10
 
 
 def test_weasyprint_log_check(tmp_path):
@@ -136,7 +139,10 @@ def test_entries_report_generation(fixture_path, tmp_path):
 
 def test_report_filtering_and_title(tmp_path):
     # Use one of the fixtures
-    fixture_path = get_anonymized_fixtures()[0]
+    fixture_list = get_anonymized_fixtures()
+    if not fixture_list:
+        pytest.skip("No fixtures found")
+    fixture_path = fixture_list[0]
     with open(fixture_path) as f:
         fixture_wrapper = json.load(f)
 
@@ -170,7 +176,10 @@ def test_report_filtering_and_title(tmp_path):
 
 def test_report_gender_age_filtering(tmp_path):
     # Use one of the fixtures
-    fixture_path = get_anonymized_fixtures()[0]
+    fixture_list = get_anonymized_fixtures()
+    if not fixture_list:
+        pytest.skip("No fixtures found")
+    fixture_path = fixture_list[0]
     with open(fixture_path) as f:
         fixture_wrapper = json.load(f)
 
@@ -190,7 +199,7 @@ def test_report_gender_age_filtering(tmp_path):
     soup = BeautifulSoup(html_content, "html.parser")
 
     # Assert headers contain "Girls" and "6 & under" (or matches events that do)
-    event_headers = soup.find_all(class_="event-header")
+    event_headers = soup.find_all(class_="event-header-box")
     for header in event_headers:
         text = header.text.lower()
         # It should be either the filtered gender OR "mixed"
@@ -200,7 +209,10 @@ def test_report_gender_age_filtering(tmp_path):
 
 def test_report_zebra_striping(tmp_path):
     # Use one of the fixtures
-    fixture_path = get_anonymized_fixtures()[0]
+    fixture_list = get_anonymized_fixtures()
+    if not fixture_list:
+        pytest.skip("No fixtures found")
+    fixture_path = fixture_list[0]
     with open(fixture_path) as f:
         fixture_wrapper = json.load(f)
 
@@ -219,12 +231,88 @@ def test_report_zebra_striping(tmp_path):
     soup = BeautifulSoup(html_content, "html.parser")
 
     # Assert that at least some rows have the zebra-row class
+    # Now using div-based rows
     zebra_rows = soup.find_all(class_="zebra-row")
     assert len(zebra_rows) > 0
 
-    # Verify alternating: first entry-row should not be zebra, second should be (if 2+ entries)
-    for table in soup.find_all(class_="entries-table"):
-        rows = table.find_all(class_="entry-row")
+    # Verify alternating: first div-entry-row should not be zebra, second should be (if 2+ entries)
+    # We look at entry-group which contains div-entry-row
+    for group in soup.find_all(class_="entries-container"):
+        rows = group.find_all(class_="div-entry-row")
         if len(rows) >= 2:
             assert "zebra-row" not in rows[0].get("class", [])
             assert "zebra-row" in rows[1].get("class", [])
+
+
+def test_weasy_multi_column_crash_regression(tmp_path):
+    """
+    Regression test for Issue #292: WeasyPrint crash in 2-column layout.
+    """
+    # Use any fixture
+    fixture_list = get_anonymized_fixtures()
+    if not fixture_list:
+        pytest.skip("No fixtures found")
+    fixture_path = fixture_list[0]
+    with open(fixture_path) as f:
+        fixture_wrapper = json.load(f)
+
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    extractor = ReportDataExtractor(converter)
+
+    # Force 2-column layout
+    program_data = extractor.extract_meet_program_data(columns_on_page=2)
+
+    output_pdf = str(tmp_path / "multicol_crash_test.pdf")
+    renderer = WeasyRenderer(output_pdf)
+
+    # This should NOT crash with AttributeError or 'children' error
+    renderer.render_meet_program(program_data)
+    assert os.path.exists(output_pdf)
+    assert os.path.getsize(output_pdf) > 0
+
+
+def test_team_filtering_robustness():
+    """
+    Regression test for Issue #292: Empty reports due to team name mismatches.
+    Ensures that various formats of team name/code are matched correctly using real data.
+    """
+    # Use a real fixture to ensure all internal structures (sessions, events) are correctly hydrated
+    fixture_list = get_anonymized_fixtures()
+    if not fixture_list:
+        pytest.skip("No fixtures found")
+    fixture_path = fixture_list[0]
+    with open(fixture_path) as f:
+        fixture_wrapper = json.load(f)
+
+    table_data = fixture_wrapper["data"]
+    converter = MmToJsonConverter(table_data=table_data)
+    # Perform full conversion to hydrate sessions/events/entries
+    full_data = converter.convert()
+    extractor = ReportDataExtractor(converter, full_data=full_data)
+
+    # Get a real team name from the data
+    raw_teams = converter.tables.get("team")
+    if raw_teams.empty:
+        pytest.skip("No teams found in fixture")
+
+    # In anonymized data, it might be team_name or name
+    first_row = raw_teams.iloc[0]
+    team_name = str(first_row.get("team_name") or first_row.get("name") or "")
+    team_code = str(first_row.get("team_abbr") or first_row.get("abbr") or "")
+
+    # Test cases: (filter_string, should_match)
+    test_cases = [
+        (team_name, True),  # Exact match name
+        (team_code, True),  # Exact match code
+        (team_name.split(" ")[0], True),  # Partial word match
+        ("non-existent-team-name-123", False),
+    ]
+
+    for filter_str, expected in test_cases:
+        program_data = extractor.extract_meet_program_data(team_filter=filter_str)
+        matched = len(program_data["groups"]) > 0
+        if filter_str != "non-existent-team-name-123":
+            assert matched == expected, f"Failed matching team filter '{filter_str}' (expected {expected})"
+        else:
+            assert matched is False
