@@ -6,19 +6,12 @@ export async function POST(request: NextRequest) {
 	const token = searchParams.get("token");
 
 	// Basic security check
-	const secretToken = process.env.DATA_ACCESS_TOKEN;
+	const configuredToken = process.env.DATA_ACCESS_TOKEN;
+	const isTokenConfigured =
+		configuredToken !== undefined && configuredToken !== "";
+	const isAuthorized = !isTokenConfigured || token === configuredToken;
 
-	if (!secretToken) {
-		console.error(
-			"CRITICAL: DATA_ACCESS_TOKEN environment variable is missing.",
-		);
-		return NextResponse.json(
-			{ error: "Internal server error" },
-			{ status: 500 },
-		);
-	}
-
-	if (token !== secretToken) {
+	if (!isAuthorized) {
 		return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
 	}
 

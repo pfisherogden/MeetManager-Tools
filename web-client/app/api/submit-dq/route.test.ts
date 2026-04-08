@@ -16,7 +16,7 @@ describe("POST /api/submit-dq", () => {
 		process.env.DATA_ACCESS_TOKEN = validToken;
 	});
 
-	it("returns 500 when DATA_ACCESS_TOKEN is not set", async () => {
+	it("returns 400 when DATA_ACCESS_TOKEN is not set (fallback mode allowed) but payload is malformed", async () => {
 		delete process.env.DATA_ACCESS_TOKEN;
 
 		const req = new NextRequest(
@@ -28,7 +28,32 @@ describe("POST /api/submit-dq", () => {
 		);
 
 		const res = await POST(req);
-		expect(res.status).toBe(500);
+		// Access is granted, so it falls through to payload validation which yields 400
+		expect(res.status).toBe(400);
+	});
+
+	it("returns 200 when DATA_ACCESS_TOKEN is not set (fallback mode allowed) and payload is valid", async () => {
+		delete process.env.DATA_ACCESS_TOKEN;
+		vi.mocked(dqDb.checkDqExists).mockResolvedValueOnce(false);
+		vi.mocked(dqDb.saveDq).mockResolvedValueOnce();
+
+		const req = new NextRequest(
+			"http://localhost/api/submit-dq?token=invalid",
+			{
+				method: "POST",
+				body: JSON.stringify({
+					clientDqId: "dq-124",
+					event: 1,
+					heat: 1,
+					lane: 1,
+					swimmer: 1,
+					infraction_code: "1A",
+				}),
+			},
+		);
+
+		const res = await POST(req);
+		expect(res.status).toBe(200);
 	});
 
 	it("returns 403 on invalid token", async () => {
