@@ -164,6 +164,11 @@ pre-commit: verify
 # Verification to run before any git push
 pre-push: codegen lint type-check-backend test-backend-fast test-frontend-fast
 
+# Run production validation tests against a specific URL
+test-prod url:
+    @echo "Running Production Validation Tests against {{url}}..."
+    cd web-client && PLAYWRIGHT_TEST_BASE_URL={{url}} npx playwright test tests-e2e/production.spec.ts --project="chromium" --config=playwright.config.ts
+
 # Local CI simulation
 verify-ci:
     @echo "Running verification in a clean CI-like container..."

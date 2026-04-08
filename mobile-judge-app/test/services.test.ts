@@ -73,6 +73,23 @@ describe("Data Loader Service", () => {
 		expect(result.loaded).toBe(false);
 	});
 
+	it("trusts Google Cloud Storage URLs", async () => {
+		Platform.OS = "ios";
+		(Linking.getInitialURL as jest.Mock).mockResolvedValue(
+			"meetmanager://app?program_url=https://storage.googleapis.com/bucket/program.json",
+		);
+
+		(global.fetch as jest.Mock).mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ events: [] }),
+		});
+
+		const result = await loadDataFromUrl();
+
+		expect(global.fetch).toHaveBeenCalled();
+		expect(result.loaded).toBe(true);
+	});
+
 	it("validates program data structure", async () => {
 		Platform.OS = "ios";
 		(Linking.getInitialURL as jest.Mock).mockResolvedValue(

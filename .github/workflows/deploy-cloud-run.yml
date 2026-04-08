@@ -79,6 +79,7 @@ jobs:
 
       # Deploy Frontend to Cloud Run
       - name: Deploy Frontend
+        id: deploy-frontend
         uses: 'google-github-actions/deploy-cloudrun@v3'
         with:
           service: '${{ env.FRONTEND_SERVICE }}'
@@ -96,3 +97,9 @@ jobs:
             NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }}
             NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.firebasestorage.app
             NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-KDE7ZPS0X5
+
+      # Automated Post-Deployment Validation
+      - name: Validate Production Deployment
+        run: |
+          npm install -g extra-packages-if-needed || true
+          just test-prod ${{ steps.deploy-frontend.outputs.url }}
