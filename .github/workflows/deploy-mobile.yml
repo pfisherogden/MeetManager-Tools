@@ -39,7 +39,7 @@ jobs:
         env:
           APP_BASE_URL: /MeetManager-Tools/judge
         run: |
-          ls -R
+          npm run prebuild-web
           npm run build-web
 
       - name: Install dependencies (Viewer App)

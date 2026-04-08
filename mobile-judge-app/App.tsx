@@ -704,7 +704,7 @@ export default function App() {
 	return (
 		<SafeAreaView style={styles.safeArea}>
 			<View style={styles.statusBar}>
-				<Text style={styles.versionText}>v1.0.4</Text>
+				<Text style={styles.versionText}>v1.0.4 ({BUILD_TIME})</Text>
 				<TouchableOpacity onPress={() => setOfflineModalVisible(true)}>
 					<Text style={styles.statusText}>Offline Queue: {pendingCount}</Text>
 				</TouchableOpacity>
@@ -1326,7 +1326,7 @@ const styles = StyleSheet.create({
 		left: 10,
 		top: 2,
 		fontSize: 8,
-		color: "#333333", // Subtle gray on black background
+		color: "#CCCCCC", // Lighter gray for visibility on blue
 	},
 	footer: {
 		padding: 5,
