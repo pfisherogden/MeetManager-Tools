@@ -95,6 +95,10 @@ message GetFileResponse {
 message SyncDQsRequest {
   // dqs_json is the JSON-encoded list of DQ objects from the judge app.
   string dqs_json = 1;
+  // uid is the user ID whose dataset should be updated (required for stateless sync).
+  string uid = 2;
+  // access_token is the shared secret for system-level sync.
+  string access_token = 3;
 }
 
 // SyncDQsResponse indicates the result of the sync operation.

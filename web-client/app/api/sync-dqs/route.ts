@@ -4,6 +4,7 @@ import client from "@/lib/mm-client";
 export async function POST(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
 	const token = searchParams.get("token");
+	const uid = searchParams.get("uid");
 
 	// Basic security check
 	const configuredToken = process.env.DATA_ACCESS_TOKEN;
@@ -19,7 +20,11 @@ export async function POST(request: NextRequest) {
 		const dqs = await request.json();
 		const dqsJson = JSON.stringify(dqs);
 
-		const response = await client.syncDQs({ dqsJson });
+		const response = await client.syncDQs({
+			dqsJson,
+			uid: uid || "",
+			accessToken: configuredToken || "",
+		});
 
 		if (response.success) {
 			return NextResponse.json({ success: true, message: response.message });
