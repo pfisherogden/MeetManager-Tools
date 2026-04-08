@@ -1398,7 +1398,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             cpu_count = os.cpu_count() or 1
             max_workers = min(cpu_count, 3)
             logging.info(f"Generating report bundle with {len(request.reports)} reports using {max_workers} workers")
-            
+
             start_time = datetime.datetime.now()
             ctx = multiprocessing.get_context("spawn")
             try:
