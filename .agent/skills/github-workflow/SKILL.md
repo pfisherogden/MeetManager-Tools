@@ -16,8 +16,13 @@ description: Mandatory practices for GitHub workflows and session continuity in 
   - **Security**: Secret/PII safety check.
   - **Testing**: How will we verify success?
 
-### Phase 2: Surgical Implementation
+### Phase 3: Surgical Implementation
+- **Local Verification (Mandatory Pre-Push)**: Before running `git push`, you MUST execute the following to catch whitespace, linting, and formatting errors:
+  - `just fix`: This will automatically resolve most formatting issues across the project.
+  - `just lint`: Verify that no manual fixes are required.
+  - `just test-backend-fast` and `cd web-client && npm test`: Ensure core logic is still passing.
 - **Separate Branches**: NEVER push to `main`. Use `feat/*` or `fix/*`.
+
 - **Code Preservation**: Preserve all existing comments, whitespace, and formatting in `old_string`. Do not refactor unrelated code.
 - **Documentation**: All new logic MUST include explicit type hints and Google-style docstrings.
 - **Dependency Management**: Use `uv` (Python) or `npm` (JS) and run lockfile updates immediately after any change.
