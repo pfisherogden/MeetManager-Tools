@@ -162,6 +162,7 @@ verify-local: codegen fix lint test-local
 pre-commit: verify
 
 # Verification to run before any git push
+# Note: pre-push is the preferred local verification method
 pre-push: codegen lint type-check-backend test-backend-fast test-frontend-fast
 
 # Run production validation tests against a specific URL
