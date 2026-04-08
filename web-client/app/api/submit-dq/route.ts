@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { checkDqExists, saveDq } from "@/lib/dq-db";
+import client from "@/lib/mm-client";
 
 export async function POST(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Save the new DQ
+		// Save the new DQ to Firestore (Stateless storage)
 		await saveDq(clientDqId, {
 			event,
 			heat,
@@ -54,6 +55,26 @@ export async function POST(request: NextRequest) {
 			swimmer,
 			infraction_code,
 		});
+
+		// Trigger backend sync to MDB (Stateful storage)
+		// We wrap it in a try-catch to avoid failing the whole request if backend is down,
+		// though idempotency allows the client to retry.
+		try {
+			const syncPayload = [
+				{
+					event_id: event,
+					swimmer_id: swimmer, // This might be name or ID depending on app version
+					dq_code: infraction_code,
+					heat: heat,
+					lane: lane,
+					timestamp: new Date().toISOString(),
+				},
+			];
+			await client.syncDQs({ dqsJson: JSON.stringify(syncPayload) });
+		} catch (syncError) {
+			console.error("Failed to trigger backend sync for DQ:", syncError);
+			// We still return 200 because it's saved in Firestore and can be synced later
+		}
 
 		return NextResponse.json({
 			success: true,
