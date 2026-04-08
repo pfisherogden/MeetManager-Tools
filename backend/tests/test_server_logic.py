@@ -84,20 +84,23 @@ def test_reload_on_upload():
 
 def test_sync_dqs_logic():
     from collections import OrderedDict
+
     service = MeetManagerService()
     # Mock cache with event mapping
-    service._user_cache = OrderedDict({
-        "dev-user": {
-            "filename": "test.mdb",
-            "mtime": 123456789,
-            "data": {
-                "event": [
-                    {"event_no": "10", "event_ptr": 100, "Ind_rel": "I"},
-                    {"event_no": "20", "event_ptr": 200, "Ind_rel": "R"},
-                ]
+    service._user_cache = OrderedDict(
+        {
+            "dev-user": {
+                "filename": "test.mdb",
+                "mtime": 123456789,
+                "data": {
+                    "event": [
+                        {"event_no": "10", "event_ptr": 100, "Ind_rel": "I"},
+                        {"event_no": "20", "event_ptr": 200, "Ind_rel": "R"},
+                    ]
+                },
             }
         }
-    })
+    )
 
     mock_config = {"active_dataset": "test.mdb"}
     mock_dqs = [
