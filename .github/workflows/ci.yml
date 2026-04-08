@@ -50,7 +50,7 @@ jobs:
         with:
           node-version: 24
           cache: 'npm'
-          cache-dependency-path: 'web-client/package-lock.json'
+          cache-dependency-path: 'mobile-judge-app/package-lock.json'
 
       - name: Install dependencies
         run: |

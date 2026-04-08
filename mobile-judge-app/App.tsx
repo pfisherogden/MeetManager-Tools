@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	FlatList,
-	Image,
 	Modal,
 	Platform,
 	SafeAreaView,
@@ -107,7 +106,9 @@ const getOrderedDQCategories = (
 	if (targetCategory) {
 		const ordered = [
 			targetCategory,
-			...categories.filter((c) => c !== targetCategory && c !== "miscellaneous"),
+			...categories.filter(
+				(c) => c !== targetCategory && c !== "miscellaneous",
+			),
 		];
 		// Ensure Miscellaneous is always at the end
 		if (categories.includes("miscellaneous")) {
@@ -122,16 +123,6 @@ const getOrderedDQCategories = (
 		defaultOrdered.push("miscellaneous");
 	}
 	return defaultOrdered;
-
-	// Default order: Breast/Back/Fly usually prioritized for Medley, 
-	// but let's just make sure Miscellaneous is at the end.
-	const ordered = [...categories];
-	const miscIdx = ordered.indexOf("miscellaneous");
-	if (miscIdx > -1) {
-		ordered.splice(miscIdx, 1);
-		ordered.push("miscellaneous");
-	}
-	return ordered;
 };
 
 const BUILD_TIME = "03/13/2026, 11:21:13 PM PT"; // Fixed build time
@@ -302,14 +293,16 @@ export default function App() {
 		refreshEvents(); // This will refresh swimmers and counter
 	};
 
-	const onCancel = () => {
+	const _onCancel = () => {
 		setDqModalVisible(false);
 	};
 
 	const loadDQState = (swimmer: Swimmer, leg: number | undefined) => {
-		let dqObj;
+		let dqObj: any;
 		if (leg === undefined) {
-			dqObj = swimmer.dq_code ? { dq_code: swimmer.dq_code, notes: swimmer.notes } : null;
+			dqObj = swimmer.dq_code
+				? { dq_code: swimmer.dq_code, notes: swimmer.notes }
+				: null;
 		} else {
 			dqObj = swimmer.relay_dqs?.find((d: DQ) => d.leg === leg);
 		}
@@ -318,14 +311,16 @@ export default function App() {
 	};
 
 	const navigateToPrevHeat = (autoSelectFirstSwimmer = false) => {
-		const currentHeatIndex = heats.findIndex(h => h.id === selectedHeat?.id);
+		const currentHeatIndex = heats.findIndex((h) => h.id === selectedHeat?.id);
 		let targetEvent = selectedEvent;
 		let targetHeat = null;
 
 		if (currentHeatIndex > 0) {
 			targetHeat = heats[currentHeatIndex - 1];
 		} else {
-			const currentEventIndex = events.findIndex(e => e.id === selectedEvent?.id);
+			const currentEventIndex = events.findIndex(
+				(e) => e.id === selectedEvent?.id,
+			);
 			if (currentEventIndex > 0) {
 				targetEvent = events[currentEventIndex - 1];
 				const prevEventHeats = getHeatsByEvent(targetEvent.id);
@@ -352,14 +347,16 @@ export default function App() {
 	};
 
 	const navigateToNextHeat = (autoSelectFirstSwimmer = false) => {
-		const currentHeatIndex = heats.findIndex(h => h.id === selectedHeat?.id);
+		const currentHeatIndex = heats.findIndex((h) => h.id === selectedHeat?.id);
 		let targetEvent = selectedEvent;
 		let targetHeat = null;
 
 		if (currentHeatIndex < heats.length - 1) {
 			targetHeat = heats[currentHeatIndex + 1];
 		} else {
-			const currentEventIndex = events.findIndex(e => e.id === selectedEvent?.id);
+			const currentEventIndex = events.findIndex(
+				(e) => e.id === selectedEvent?.id,
+			);
 			if (currentEventIndex < events.length - 1) {
 				targetEvent = events[currentEventIndex + 1];
 				const nextEventHeats = getHeatsByEvent(targetEvent.id);
@@ -401,7 +398,9 @@ export default function App() {
 		}
 
 		const currentSwimmers = getSwimmersByHeat(selectedHeat?.id || 0);
-		const swimmerIndex = currentSwimmers.findIndex(s => s.id === selectedSwimmer.id);
+		const swimmerIndex = currentSwimmers.findIndex(
+			(s) => s.id === selectedSwimmer.id,
+		);
 
 		if (swimmerIndex > 0) {
 			const prevSwimmer = currentSwimmers[swimmerIndex - 1];
@@ -432,7 +431,9 @@ export default function App() {
 		}
 
 		const currentSwimmers = getSwimmersByHeat(selectedHeat?.id || 0);
-		const swimmerIndex = currentSwimmers.findIndex(s => s.id === selectedSwimmer.id);
+		const swimmerIndex = currentSwimmers.findIndex(
+			(s) => s.id === selectedSwimmer.id,
+		);
 
 		if (swimmerIndex > -1 && swimmerIndex < currentSwimmers.length - 1) {
 			const nextSwimmer = currentSwimmers[swimmerIndex + 1];
@@ -468,7 +469,14 @@ export default function App() {
 				<TouchableOpacity onPress={() => setCurrentScreen("heats")}>
 					<Text style={styles.backButton}>BACK</Text>
 				</TouchableOpacity>
-				<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "center" }}>
+				<View
+					style={{
+						flexDirection: "row",
+						alignItems: "center",
+						flex: 1,
+						justifyContent: "center",
+					}}
+				>
 					<TouchableOpacity
 						onPress={() => navigateToPrevHeat(false)}
 						style={styles.heatNavButton}
@@ -482,7 +490,11 @@ export default function App() {
 						onPress={() => navigateToNextHeat(false)}
 						style={styles.heatNavButton}
 					>
-						<Ionicons name="play-skip-forward" size={24} color={COLORS.primary} />
+						<Ionicons
+							name="play-skip-forward"
+							size={24}
+							color={COLORS.primary}
+						/>
 					</TouchableOpacity>
 				</View>
 				<TouchableOpacity
@@ -528,7 +540,10 @@ export default function App() {
 										}}
 									>
 										<Text
-											style={[styles.swimmerName, item.empty && styles.emptyText]}
+											style={[
+												styles.swimmerName,
+												item.empty && styles.emptyText,
+											]}
 										>
 											{item.isRelay ? `Team ${item.team}` : item.name}
 										</Text>
@@ -589,7 +604,7 @@ export default function App() {
 									)}
 								</View>
 							</View>
-						)
+						);
 					}
 
 					// Render standard swimmer view
@@ -648,17 +663,34 @@ export default function App() {
 		return (
 			<View style={styles.loadingContainer}>
 				<Ionicons name="alert-circle" size={64} color={COLORS.danger} />
-				<Text style={[styles.loadingText, { color: COLORS.danger, marginTop: 20 }]}>
+				<Text
+					style={[styles.loadingText, { color: COLORS.danger, marginTop: 20 }]}
+				>
 					Failed to Load Meet Data
 				</Text>
-				<Text style={{ textAlign: 'center', marginHorizontal: 40, marginTop: 10, color: COLORS.secondary }}>
+				<Text
+					style={{
+						textAlign: "center",
+						marginHorizontal: 40,
+						marginTop: 10,
+						color: COLORS.secondary,
+					}}
+				>
 					{loadError}
 				</Text>
-				<TouchableOpacity 
-					onPress={() => Platform.OS === 'web' ? window.location.reload() : {}}
-					style={{ marginTop: 30, backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+				<TouchableOpacity
+					onPress={() =>
+						Platform.OS === "web" ? window.location.reload() : {}
+					}
+					style={{
+						marginTop: 30,
+						backgroundColor: COLORS.primary,
+						paddingHorizontal: 20,
+						paddingVertical: 10,
+						borderRadius: 8,
+					}}
 				>
-					<Text style={{ color: COLORS.white, fontWeight: 'bold' }}>RETRY</Text>
+					<Text style={{ color: COLORS.white, fontWeight: "bold" }}>RETRY</Text>
 				</TouchableOpacity>
 			</View>
 		);
@@ -761,7 +793,13 @@ export default function App() {
 						onPress={(e) => e.stopPropagation()}
 					>
 						<View style={[styles.modalHeader, { flexDirection: "column" }]}>
-							<View style={{ alignItems: "center", marginBottom: 15, width: "100%" }}>
+							<View
+								style={{
+									alignItems: "center",
+									marginBottom: 15,
+									width: "100%",
+								}}
+							>
 								<Text style={{ fontSize: 20, fontWeight: "bold" }}>
 									Lane {selectedSwimmer?.lane} • E{selectedEvent?.number} • H
 									{selectedHeat?.number}
@@ -800,7 +838,9 @@ export default function App() {
 										style={{ padding: 5, marginRight: 10 }}
 									>
 										<Ionicons
-											name={programMode ? "chevron-up-circle" : "play-skip-back"}
+											name={
+												programMode ? "chevron-up-circle" : "play-skip-back"
+											}
 											size={32}
 											color={COLORS.primary}
 										/>
@@ -859,7 +899,9 @@ export default function App() {
 									>
 										<Ionicons
 											name={
-												programMode ? "chevron-down-circle" : "play-skip-forward"
+												programMode
+													? "chevron-down-circle"
+													: "play-skip-forward"
 											}
 											size={32}
 											color={COLORS.primary}
@@ -980,8 +1022,11 @@ export default function App() {
 							{getPendingDQs().length === 0 ? (
 								<Text style={styles.emptyText}>No pending DQs</Text>
 							) : (
-								getPendingDQs().map((dq, idx) => (
-									<View key={idx} style={styles.pendingCard}>
+								getPendingDQs().map((dq) => (
+									<View
+										key={`${dq.event_id}-${dq.swimmer_id}-${dq.leg}`}
+										style={styles.pendingCard}
+									>
 										<TouchableOpacity
 											onPress={() => handleDeleteDQ(dq.swimmer_id, dq.leg)}
 											style={styles.deletePendingButton}

@@ -105,4 +105,3 @@ export const loadDataFromUrl = async () => {
 
 	return { loaded, dqData, syncUrl, errorMessage };
 	};
-
