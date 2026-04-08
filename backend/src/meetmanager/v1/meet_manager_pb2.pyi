@@ -45,10 +45,14 @@ class GetFileResponse(_message.Message):
     def __init__(self, content: _Optional[bytes] = ..., mime_type: _Optional[str] = ...) -> None: ...
 
 class SyncDQsRequest(_message.Message):
-    __slots__ = ("dqs_json",)
+    __slots__ = ("dqs_json", "uid", "access_token")
     DQS_JSON_FIELD_NUMBER: _ClassVar[int]
+    UID_FIELD_NUMBER: _ClassVar[int]
+    ACCESS_TOKEN_FIELD_NUMBER: _ClassVar[int]
     dqs_json: str
-    def __init__(self, dqs_json: _Optional[str] = ...) -> None: ...
+    uid: str
+    access_token: str
+    def __init__(self, dqs_json: _Optional[str] = ..., uid: _Optional[str] = ..., access_token: _Optional[str] = ...) -> None: ...
 
 class SyncDQsResponse(_message.Message):
     __slots__ = ("success", "message")

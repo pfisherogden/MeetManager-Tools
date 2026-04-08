@@ -119,8 +119,11 @@ def test_sync_dqs_logic():
                         mock_mdb_writer.open_db.return_value = mock_db
                         mock_mdb_writer.update_entry_status.return_value = True
 
-                        request = meet_manager_pb2.SyncDQsRequest(dqs_json=json.dumps(mock_dqs))
-                        response = service.SyncDQs(request, None)
+                        request = meet_manager_pb2.SyncDQsRequest(
+                            dqs_json=json.dumps(mock_dqs), uid="dev-user", access_token="system-token"
+                        )
+                        with patch.dict(os.environ, {"DATA_ACCESS_TOKEN": "system-token"}):
+                            response = service.SyncDQs(request, None)
 
                         assert response.success is True
                     # Verify event 10 (Individual)

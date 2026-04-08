@@ -1641,7 +1641,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.PublishMeetDataResponse(success=False, message=str(e))
 
     def SyncDQs(self, request, context):
-        uid = self._check_auth(context)
+        # System-level bypass for stateless sync from mobile apps (authenticated by web-client proxy)
+        token = os.getenv("DATA_ACCESS_TOKEN")
+        if token and request.access_token == token and request.uid:
+            uid = request.uid
+            logging.info(f"SyncDQs: Authenticated via system token for user {uid}")
+        else:
+            uid = self._check_auth(context)
+
         dqs_json = request.dqs_json
 
         try:
