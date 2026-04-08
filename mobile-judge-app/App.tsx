@@ -5,6 +5,7 @@ import {
 	FlatList,
 	Image,
 	Modal,
+	Platform,
 	SafeAreaView,
 	ScrollView,
 	StyleSheet,
@@ -133,7 +134,7 @@ const getOrderedDQCategories = (
 	return ordered;
 };
 
-const BUILD_TIME = "03/02/2026, 10:47:39 PM PT"; // Fixed build time
+const BUILD_TIME = "03/13/2026, 11:21:13 PM PT"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<
@@ -156,7 +157,10 @@ export default function App() {
 	);
 	const [offlineModalVisible, setOfflineModalVisible] = useState(false); // Issue #83
 	const [programMode, setProgramMode] = useState(false); // Toggle state
+	const [showEmptyLanes, setShowEmptyLanes] = useState(true); // Issue #140
 	const [refreshCounter, setRefreshCounter] = useState<number>(0);
+
+	const [loadError, setLoadError] = useState<string | null>(null);
 
 	const refreshEvents = useCallback(() => {
 		const evts = getEvents();
@@ -176,7 +180,7 @@ export default function App() {
 		const initializeApp = async () => {
 			initDatabase();
 
-			const { loaded, dqData, syncUrl } = await loadDataFromUrl();
+			const { loaded, dqData, syncUrl, errorMessage } = await loadDataFromUrl();
 
 			if (dqData) {
 				setDqCodes(dqData);
@@ -190,6 +194,12 @@ export default function App() {
 			initSyncService(updatePendingCount);
 
 			if (!loaded) {
+				// If error message exists, it means we TRIED to load but failed
+				if (errorMessage) {
+					setLoadError(errorMessage);
+					setIsLoading(false);
+					return;
+				}
 				seedData();
 			}
 
@@ -475,13 +485,24 @@ export default function App() {
 						<Ionicons name="play-skip-forward" size={24} color={COLORS.primary} />
 					</TouchableOpacity>
 				</View>
+				<TouchableOpacity
+					onPress={() => setShowEmptyLanes(!showEmptyLanes)}
+					style={styles.headerIconButton}
+				>
+					<Ionicons
+						name={showEmptyLanes ? "eye" : "eye-off"}
+						size={24}
+						color={COLORS.primary}
+					/>
+				</TouchableOpacity>
 			</View>
 			<FlatList
 				data={swimmers}
 				keyExtractor={(item) => item.id.toString()}
 				renderItem={({ item }) => {
+					if (item.empty && !showEmptyLanes) return null;
+
 					if (item.isRelay) {
-						if (item.empty) return null; // Issue #81: Hide empty lanes for relays
 						return (
 							<View
 								style={[
@@ -493,15 +514,35 @@ export default function App() {
 								<View
 									style={[styles.laneCircle, item.empty && styles.emptyLane]}
 								>
-									<Text style={styles.laneText}>{item.lane}</Text>
+									<Text style={styles.laneText}>
+										{item.empty ? `(${item.lane})` : item.lane}
+									</Text>
 								</View>
 								<View style={styles.swimmerInfo}>
-									<TouchableOpacity onPress={() => handleDQ(item)}>
+									<TouchableOpacity
+										onPress={() => handleDQ(item)}
+										style={{
+											flexDirection: "row",
+											alignItems: "center",
+											justifyContent: "space-between",
+										}}
+									>
 										<Text
 											style={[styles.swimmerName, item.empty && styles.emptyText]}
 										>
 											{item.isRelay ? `Team ${item.team}` : item.name}
 										</Text>
+										{item.isRelay && item.dq_code ? (
+											<Text
+												style={[
+													styles.dqTrigger,
+													styles.dqSetText,
+													{ marginRight: 10 },
+												]}
+											>
+												{item.dq_code}
+											</Text>
+										) : null}
 										{!item.isRelay && (
 											<Text style={styles.teamName}>{item.team}</Text>
 										)}
@@ -558,13 +599,15 @@ export default function App() {
 							onPress={() => handleDQ(item)}
 						>
 							<View style={[styles.laneCircle, item.empty && styles.emptyLane]}>
-								<Text style={styles.laneText}>{item.lane}</Text>
+								<Text style={styles.laneText}>
+									{item.empty ? `(${item.lane})` : item.lane}
+								</Text>
 							</View>
 							<View style={styles.swimmerInfo}>
 								<Text
 									style={[styles.swimmerName, item.empty && styles.emptyText]}
 								>
-									{item.name}
+									{item.empty ? "Empty Lane" : item.name}
 								</Text>
 								<Text style={styles.teamName}>{item.team}</Text>
 								{item.notes ? (
@@ -601,6 +644,26 @@ export default function App() {
 		);
 	}
 
+	if (loadError) {
+		return (
+			<View style={styles.loadingContainer}>
+				<Ionicons name="alert-circle" size={64} color={COLORS.danger} />
+				<Text style={[styles.loadingText, { color: COLORS.danger, marginTop: 20 }]}>
+					Failed to Load Meet Data
+				</Text>
+				<Text style={{ textAlign: 'center', marginHorizontal: 40, marginTop: 10, color: COLORS.secondary }}>
+					{loadError}
+				</Text>
+				<TouchableOpacity 
+					onPress={() => Platform.OS === 'web' ? window.location.reload() : {}}
+					style={{ marginTop: 30, backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+				>
+					<Text style={{ color: COLORS.white, fontWeight: 'bold' }}>RETRY</Text>
+				</TouchableOpacity>
+			</View>
+		);
+	}
+
 	const currentStroke = selectedEvent
 		? getStrokeForEvent(selectedEvent, selectedLeg)
 		: null;
@@ -613,11 +676,25 @@ export default function App() {
 				<TouchableOpacity onPress={() => setOfflineModalVisible(true)}>
 					<Text style={styles.statusText}>Offline Queue: {pendingCount}</Text>
 				</TouchableOpacity>
-				<TouchableOpacity onPress={toggleViewMode} style={styles.viewToggle}>
-					<Text style={styles.toggleText}>
-						{programMode ? "SWITCH TO EVENT VIEW" : "SWITCH TO PROGRAM VIEW"}
-					</Text>
-				</TouchableOpacity>
+				<View style={{ flexDirection: "row", alignItems: "center" }}>
+					{programMode && (
+						<TouchableOpacity
+							onPress={() => setShowEmptyLanes(!showEmptyLanes)}
+							style={{ marginRight: 15 }}
+						>
+							<Ionicons
+								name={showEmptyLanes ? "eye" : "eye-off"}
+								size={24}
+								color={COLORS.white}
+							/>
+						</TouchableOpacity>
+					)}
+					<TouchableOpacity onPress={toggleViewMode} style={styles.viewToggle}>
+						<Text style={styles.toggleText}>
+							{programMode ? "SWITCH TO EVENT VIEW" : "SWITCH TO PROGRAM VIEW"}
+						</Text>
+					</TouchableOpacity>
+				</View>
 			</View>
 
 			{/* Render Program View */}
@@ -626,10 +703,13 @@ export default function App() {
 					events={events}
 					onSelectSwimmer={(swimmer, event, heat, leg) => {
 						setSelectedEvent(event);
+						setHeats(getHeatsByEvent(event.id));
 						setSelectedHeat(heat);
+						setSwimmers(getSwimmersByHeat(heat.id));
 						handleDQ(swimmer, leg);
 					}}
 					refreshTrigger={refreshCounter}
+					showEmptyLanes={showEmptyLanes}
 				/>
 			)}
 
@@ -670,45 +750,122 @@ export default function App() {
 			{!programMode && currentScreen === "judge" && renderJudgeView()}
 
 			<Modal visible={dqModalVisible} animationType="slide" transparent={true}>
-				<View style={styles.modalOverlay}>
-					<View style={[styles.modalContainer, styles.modalPopup]}>
-						<View style={styles.modalHeader}>
-							<View style={{ flexDirection: "row", alignItems: "center", flex: 1, justifyContent: "center" }}>
-								<TouchableOpacity onPress={() => navigateToPrevHeat(true)} style={{ padding: 5 }}>
-									<Ionicons name={programMode ? "chevron-up-circle" : "play-skip-back"} size={28} color={COLORS.primary} />
-								</TouchableOpacity>
-								<TouchableOpacity onPress={handlePrevSwimmer} style={{ padding: 5 }}>
-									<Ionicons name="chevron-back" size={28} color={COLORS.primary} />
-								</TouchableOpacity>
-
-								<Text style={[styles.modalTitle, { flex: 1, textAlign: 'center', marginHorizontal: 5, fontSize: 16 }]}>
-									DQ: {selectedLeg !== undefined && selectedSwimmer?.members?.[selectedLeg - 1]
-										? selectedSwimmer.members[selectedLeg - 1]
-										: `${selectedSwimmer?.name || "Swimmer"}${selectedLeg ? ` - Leg ${selectedLeg}` : ""}`}
+				<TouchableOpacity
+					style={styles.modalOverlay}
+					activeOpacity={1}
+					onPress={() => setDqModalVisible(false)}
+				>
+					<TouchableOpacity
+						style={[styles.modalContainer, styles.modalPopup]}
+						activeOpacity={1}
+						onPress={(e) => e.stopPropagation()}
+					>
+						<View style={[styles.modalHeader, { flexDirection: "column" }]}>
+							<View style={{ alignItems: "center", marginBottom: 15, width: "100%" }}>
+								<Text style={{ fontSize: 20, fontWeight: "bold" }}>
+									Lane {selectedSwimmer?.lane} • E{selectedEvent?.number} • H
+									{selectedHeat?.number}
 								</Text>
-
-								<TouchableOpacity onPress={handleNextSwimmer} style={{ padding: 5 }}>
-									<Ionicons name="chevron-forward" size={28} color={COLORS.primary} />
-								</TouchableOpacity>
-								<TouchableOpacity onPress={() => navigateToNextHeat(true)} style={{ padding: 5 }}>
-									<Ionicons name={programMode ? "chevron-down-circle" : "play-skip-forward"} size={28} color={COLORS.primary} />
-								</TouchableOpacity>
+								<Text
+									style={[
+										styles.modalTitle,
+										{
+											textAlign: "center",
+											fontSize: 16,
+											fontWeight: "normal",
+											color: COLORS.secondary,
+										},
+									]}
+									numberOfLines={1}
+								>
+									{selectedLeg !== undefined &&
+									selectedSwimmer?.members?.[selectedLeg - 1]
+										? selectedSwimmer.members[selectedLeg - 1]
+										: selectedSwimmer?.name || "Swimmer"}
+									{selectedLeg ? ` (Leg ${selectedLeg})` : ""}
+								</Text>
 							</View>
-							<View style={styles.headerActions}>
-								<TouchableOpacity
-									onPress={onSave}
-									style={styles.headerIconButton}
-									accessibilityLabel="Save changes"
-								>
-									<Ionicons name="checkmark-circle" size={44} color={COLORS.success} />
-								</TouchableOpacity>
-								<TouchableOpacity
-									onPress={onDelete}
-									style={styles.headerIconButton}
-									accessibilityLabel="Close and delete DQ"
-								>
-									<Ionicons name="close-circle" size={44} color={COLORS.danger} />
-								</TouchableOpacity>
+
+							<View
+								style={{
+									flexDirection: "row",
+									alignItems: "center",
+									width: "100%",
+									justifyContent: "space-between",
+								}}
+							>
+								<View style={{ flexDirection: "row", alignItems: "center" }}>
+									<TouchableOpacity
+										onPress={() => navigateToPrevHeat(true)}
+										style={{ padding: 5, marginRight: 10 }}
+									>
+										<Ionicons
+											name={programMode ? "chevron-up-circle" : "play-skip-back"}
+											size={32}
+											color={COLORS.primary}
+										/>
+									</TouchableOpacity>
+									<TouchableOpacity
+										onPress={handlePrevSwimmer}
+										style={{ padding: 5 }}
+									>
+										<Ionicons
+											name="chevron-back"
+											size={32}
+											color={COLORS.primary}
+										/>
+									</TouchableOpacity>
+								</View>
+
+								<View style={styles.headerActions}>
+									<TouchableOpacity
+										onPress={onSave}
+										style={[styles.headerIconButton, { marginLeft: 0 }]}
+										accessibilityLabel="Save changes"
+									>
+										<Ionicons
+											name="checkmark-circle"
+											size={48}
+											color={COLORS.success}
+										/>
+									</TouchableOpacity>
+									<TouchableOpacity
+										onPress={onDelete}
+										style={styles.headerIconButton}
+										accessibilityLabel="Close and delete DQ"
+									>
+										<Ionicons
+											name="close-circle"
+											size={48}
+											color={COLORS.danger}
+										/>
+									</TouchableOpacity>
+								</View>
+
+								<View style={{ flexDirection: "row", alignItems: "center" }}>
+									<TouchableOpacity
+										onPress={handleNextSwimmer}
+										style={{ padding: 5, marginRight: 10 }}
+									>
+										<Ionicons
+											name="chevron-forward"
+											size={32}
+											color={COLORS.primary}
+										/>
+									</TouchableOpacity>
+									<TouchableOpacity
+										onPress={() => navigateToNextHeat(true)}
+										style={{ padding: 5 }}
+									>
+										<Ionicons
+											name={
+												programMode ? "chevron-down-circle" : "play-skip-forward"
+											}
+											size={32}
+											color={COLORS.primary}
+										/>
+									</TouchableOpacity>
+								</View>
 							</View>
 						</View>
 						<View style={styles.noteContainer}>
@@ -769,8 +926,8 @@ export default function App() {
 								</View>
 							))}
 						</ScrollView>
-					</View>
-				</View>
+					</TouchableOpacity>
+				</TouchableOpacity>
 			</Modal>
 			{/* Build Timestamp */}
 			<View style={styles.footer}>
@@ -812,7 +969,10 @@ export default function App() {
 									</TouchableOpacity>
 								)}
 							</View>
-							<TouchableOpacity onPress={() => setOfflineModalVisible(false)}>
+							<TouchableOpacity
+								onPress={() => setOfflineModalVisible(false)}
+								accessibilityLabel="Close offline queue"
+							>
 								<Ionicons name="close" size={24} color={COLORS.accent} />
 							</TouchableOpacity>
 						</View>
@@ -837,7 +997,9 @@ export default function App() {
 											onPress={() => handleEditDQ(dq)}
 										>
 											<Text style={styles.pendingText}>
-												Event {dq.event_id} - Swimmer {dq.swimmer_id}
+												Event {dq.event_id} -{" "}
+												{getSwimmerById(dq.swimmer_id)?.name ||
+													`Swimmer ${dq.swimmer_id}`}
 												{dq.leg ? ` (Leg ${dq.leg})` : ""}
 											</Text>
 											<Text style={styles.pendingCodes}>{dq.dq_code}</Text>
@@ -981,6 +1143,10 @@ const styles = StyleSheet.create({
 		color: COLORS.accent,
 		fontWeight: "900",
 		fontSize: 12,
+	},
+	dqSetText: {
+		color: COLORS.danger,
+		fontWeight: "bold",
 	},
 	notePreview: {
 		fontSize: 10,

@@ -25,12 +25,27 @@ class MockMeetManagerService(MeetManagerService):
         self.storage = MagicMock()
         self.config = {}
         self._data_cache = {}
-        for name in ["Relay", "RelayNames", "Entry", "Event", "Session", "Team", "Scoring", "Athlete"]:
+        fixtures = {
+            "relay": "Relay",
+            "relaynames": "RelayNames",
+            "entry": "Entry",
+            "event": "Event",
+            "session": "Session",
+            "team": "Team",
+            "scoring": "Scoring",
+            "athlete": "Athlete",
+        }
+        for logical_name, file_base in fixtures.items():
             try:
-                with open(os.path.join(FIXTURES_DIR, f"{name}.json")) as f:
-                    self._data_cache[name] = json.load(f)
+                with open(os.path.join(FIXTURES_DIR, f"{file_base}.json")) as f:
+                    raw_data = json.load(f)
+                    # Lowercase all keys in the records
+                    if isinstance(raw_data, list):
+                        self._data_cache[logical_name] = [{k.lower(): v for k, v in item.items()} for item in raw_data]
+                    else:
+                        self._data_cache[logical_name] = raw_data
             except FileNotFoundError:
-                self._data_cache[name] = []
+                self._data_cache[logical_name] = []
 
     def _load_user_data(self, context):
         return self._data_cache, self.config

@@ -1,0 +1,98 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ main, feat/phase-3-cloud-deployment ]
+    paths:
+      - 'backend/**'
+      - 'web-client/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy-cloud-run.yml'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PROJECT_ID: mmtools-488404
+  REGION: us-west1
+  REPOSITORY: mmtools
+  BACKEND_SERVICE: mmtools-backend
+  FRONTEND_SERVICE: mmtools-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Authentication with Google Cloud
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'Authorize Docker push'
+        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      # Build and Push Backend
+      - name: Build and Push Backend Image
+        run: |
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${BACKEND_SERVICE}:${{ github.sha }} -f backend/Dockerfile .
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${BACKEND_SERVICE}:${{ github.sha }}
+
+      # Build and Push Frontend
+      - name: Build and Push Frontend Image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ env.PROJECT_ID }}.firebaseapp.com \
+            --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.firebasestorage.app \
+            --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-KDE7ZPS0X5 \
+            --build-arg NEXT_PUBLIC_AUTH_DISABLED=false \
+            --build-arg NEXT_PUBLIC_BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+            -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${{ github.sha }} -f web-client/Dockerfile .
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${{ github.sha }}
+
+      # Deploy Backend to Cloud Run
+      - name: Deploy Backend
+        id: deploy-backend
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: '${{ env.BACKEND_SERVICE }}'
+          image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.BACKEND_SERVICE }}:${{ github.sha }}'
+          region: '${{ env.REGION }}'
+          flags: '--allow-unauthenticated --memory 2Gi'
+          env_vars: |
+            GCS_BUCKET_NAME=mmtools-data-mmtools-488404
+            LOG_LEVEL=INFO
+            PYTHONUNBUFFERED=1
+
+      # Deploy Frontend to Cloud Run
+      - name: Deploy Frontend
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: '${{ env.FRONTEND_SERVICE }}'
+          image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}'
+          region: '${{ env.REGION }}'
+          flags: '--allow-unauthenticated'
+          env_vars: |
+            BACKEND_INTERNAL_HOST=${{ steps.deploy-backend.outputs.url }}
+            BACKEND_USE_SSL=true
+            NEXT_PUBLIC_AUTH_DISABLED=false
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ env.PROJECT_ID }}.firebaseapp.com
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.firebasestorage.app
+            NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-KDE7ZPS0X5

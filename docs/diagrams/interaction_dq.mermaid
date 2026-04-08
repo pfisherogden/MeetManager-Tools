@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant Judge as Judge (Mobile App)
+    participant Backend as Backend (Cloud Run / Local)
+    participant Auth as Auth (Firebase / Mock)
+    participant Storage as Storage (GCS / Local)
+
+    Note over Judge: Offline Mode Supported
+    Judge->>Judge: Record DQ (Lane 4, Code 1A)
+    Judge->>Judge: Add to Offline Queue
+
+    Note over Judge, Backend: Network Available
+    Judge->>Auth: Get Identity Token
+    Auth-->>Judge: JWT Token
+    
+    Judge->>Backend: SyncDQ(DQEntry, Token)
+    
+    rect rgb(240, 240, 240)
+        Note right of Backend: gRPC Interceptor
+        Backend->>Auth: Verify Token
+        Auth-->>Backend: UserID (e.g., "org_123")
+    end
+    
+    Backend->>Storage: Save DQ to Dataset (org_123/meet_x/dqs.json)
+    Storage-->>Backend: Success
+    
+    Backend-->>Judge: SyncResponse (Success)
+    Judge->>Judge: Clear Entry from Queue

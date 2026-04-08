@@ -31,6 +31,10 @@ class StorageProvider(ABC):
     def get_last_modified(self, remote_path: str) -> float:
         pass
 
+    @abstractmethod
+    def get_url(self, remote_path: str) -> str:
+        pass
+
 
 class LocalStorageProvider(StorageProvider):
     def __init__(self, base_dir: str):
@@ -83,6 +87,14 @@ class LocalStorageProvider(StorageProvider):
             return os.path.getmtime(path)
         return 0.0
 
+    def get_url(self, remote_path: str) -> str:
+        # Local URLs point to the frontend's dynamic data endpoint
+        # Use environment variables to avoid collisions
+        host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
+        port = os.getenv("FRONTEND_PORT", "3000")
+        token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+        return f"http://{host}:{port}/api/data?path={remote_path}&token={token}"
+
 
 class GCSStorageProvider(StorageProvider):
     def __init__(self, bucket_name: str):
@@ -117,3 +129,15 @@ class GCSStorageProvider(StorageProvider):
         if blob and blob.updated:
             return blob.updated.timestamp()
         return 0.0
+
+    def get_url(self, remote_path: str) -> str:
+        # Generate a public URL or Signed URL
+        # For simplicity in this project, we'll use public URL if bucket is public,
+        # but better to use Signed URL for 1 hour.
+        blob = self.bucket.blob(remote_path)
+        try:
+            # Try to generate signed URL (requires credentials with service account)
+            return blob.generate_signed_url(expiration=3600, method="GET")
+        except Exception:
+            # Fallback to public URL
+            return blob.public_url

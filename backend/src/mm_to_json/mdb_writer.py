@@ -56,8 +56,15 @@ def ensure_jvm_started():
     logger.debug(f"JVM Path: {jvm_path}")
 
     # -Djava.class.path must be set at startup
-    jpype.startJVM(jvm_path, "-Djava.class.path=" + classpath)
-    logger.debug("JVM started successfully.")
+    # Increase max heap to 512MB for large MDB files
+    try:
+        jpype.startJVM(jvm_path, "-Djava.class.path=" + classpath, "-Xmx512m")
+        logger.debug("JVM started successfully with -Xmx512m.")
+    except RuntimeError as e:
+        if "JVM is already started" in str(e):
+            logger.debug("JVM already started, continuing...")
+        else:
+            raise
 
 
 def open_db(mdb_path):
@@ -318,3 +325,63 @@ def add_relay_team(db, relay_id, meet_id, team_id, letter, gender, age_range_cod
     if c.findFirstRow(criteria):
         return c.getCurrentRow().get("RELAY")
     return relay_id
+
+
+def update_entry_status(
+    db,
+    event_ptr,
+    athlete_id,
+    heat,
+    lane,
+    status="DQ",
+    dq_code="",
+    round_type="P",
+    is_relay=False,
+):
+    """
+    Updates the status and DQ code for a specific entry.
+    round_type: 'P' for Prelims, 'F' for Finals, 'S' for Semis.
+    is_relay: If True, updates RELAY table instead of ENTRY.
+    """
+    table_name = "RELAY" if is_relay else "ENTRY"
+    table = db.getTable(table_name)
+    if table is None:
+        raise ValueError(f"{table_name} table not found")
+
+    from java.util import HashMap
+
+    criteria = HashMap()
+    criteria.put("Event_ptr", event_ptr)
+    # In RELAY table it's Relay_no, in ENTRY it's Ath_no
+    id_col = "Relay_no" if is_relay else "Ath_no"
+    criteria.put(id_col, athlete_id)
+
+    # Often we want to match heat/lane too to be safe
+    if heat > 0:
+        col = "Pre_heat" if round_type == "P" else ("Fin_heat" if round_type == "F" else "Sem_heat")
+        criteria.put(col, heat)
+    if lane > 0:
+        col = "Pre_lane" if round_type == "P" else ("Fin_lane" if round_type == "F" else "Sem_lane")
+        criteria.put(col, lane)
+
+    c = table.getDefaultCursor()
+    if c.findFirstRow(criteria):
+        row = c.getCurrentRow()
+
+        # Update status
+        stat_col = "Pre_stat" if round_type == "P" else ("Fin_stat" if round_type == "F" else "Sem_stat")
+        row.put(stat_col, status)
+
+        # Update DQ code if provided
+        if dq_code:
+            code_col = "Pre_dqcode" if round_type == "P" else ("Fin_dqcode" if round_type == "F" else "Sem_dqcode")
+            row.put(code_col, dq_code)
+
+        table.updateRow(row)
+        logger.info(f"Updated DQ status for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr}")
+        return True
+
+    logger.warning(
+        f"Could not find entry for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr} (Heat {heat}, Lane {lane})"
+    )
+    return False

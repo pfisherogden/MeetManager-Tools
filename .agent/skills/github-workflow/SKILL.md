@@ -1,27 +1,43 @@
 ---
 name: github-workflow
-description: Best practices for GitHub flows in MeetManager-Tools
+description: Mandatory practices for GitHub workflows and session continuity in MeetManager-Tools
 ---
 
-# GitHub Workflow Guidelines
+# GitHub Workflow & Agent Resilience
 
-## Mandatory Quality Checks
-**NEVER** commit code without running the following checks locally:
-1. **Linting**: Run `just fix` (to auto-fix) and `just lint` (to verify zero remaining errors).
-2. **Type Checking**: Run `just lint-backend` which includes `mypy`. All new logic MUST have explicit type signatures.
-3. **Execution Verification**: Run `just pre-commit` to execute all linters, tests, AND production builds across the project. This is the **Source of Truth**.
-4. **Testing**: Use committed JSON fixtures (`tests/fixtures/anonymized_meets/`) for reporting tests to ensure CI stability.
+## Project Workflow (Mandatory Phases)
 
-> [!IMPORTANT]
-> **Zero Tolerance for CI Failures**: Merging code that breaks CI linting, type-checking, or tests is considered a failure. Always verify everything passes 100% locally before pushing.
+### Phase 1: Research & Strategy
+- **Issue Check**: Search for an existing GitHub issue. Create one if it doesn't exist.
+- **Strategy Proposal**: Before implementing, provide a strategy using this template:
+  - **Summary**: What are we doing?
+  - **Rationale**: Why this way?
+  - **Approach**: Step-by-step technical plan.
+  - **Security**: Secret/PII safety check.
+  - **Testing**: How will we verify success?
 
-## Reliability Standards (Mandatory)
-- **5-Cycle Verification**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend`) **5 times consecutively**. All 5 runs must pass 100% to consider the task complete.
+### Phase 2: Surgical Implementation
+- **Separate Branches**: NEVER push to `main`. Use `feat/*` or `fix/*`.
+- **Code Preservation**: Preserve all existing comments, whitespace, and formatting in `old_string`. Do not refactor unrelated code.
+- **Documentation**: All new logic MUST include explicit type hints and Google-style docstrings.
+- **Dependency Management**: Use `uv` (Python) or `npm` (JS) and run lockfile updates immediately after any change.
 
-## Branching
-- Base all new features on `main`.
-- Use descriptive branch names like `feat/feature-name` or `fix/bug-name`.
+### Phase 3: Verification & Closure
+- **Local Verification**: 100% pass on `just lint`, `just type-check-backend`, and `just test-backend-fast`.
+- **5-Cycle Rule**: For major refactors, run the relevant test suite **5 times consecutively** to catch flakiness.
+- **CI/CD Pass**: Merge ONLY after all GitHub Actions are green on the PR.
+- **Issue Closure**: Only close after the PR is merged and CI/CD passes on the `main` branch.
 
-## Issue Updates
-- **Add Comments**: When updating a GitHub issue with progress or new information, always add a **new comment**.
-- **Do Not Edit**: Do not rewrite or edit previous status updates unless correcting a factual error (e.g., a typo). This ensures the history of the work is preserved.
+## Session Continuity & Resilience
+To ensure continuity across crashes or session timeouts:
+1. **GitHub Issue Updates**: Post a comment with **"Current Progress"** and **"Planned Next Steps"** every 3-5 turns or at major milestones.
+2. **Chat Communication**: Post progress updates to the `pfo-gemcli` Google Chat space.
+   - **Work Started**: Notify when beginning a task or major phase.
+   - **Work Completed**: **Mandatory** - Notify when work is finished, merged, or deployed. **Start a new thread for completions** to ensure unread notifications for the user.
+   - **Frequency**: Every 15-20 minutes or at major milestones.
+3. **Context Precedence**: `GEMINI.md` and this skill take absolute precedence over general defaults.
+
+## Surgical Read & Edit Rules
+1. **No Bulk Reads**: NEVER read files >500 lines in full. Use `start_line` and `end_line`.
+2. **Contextual Grep**: Use `grep_search` with `context` to find logic before reading.
+3. **Precise Replace**: Provide enough context in `old_string` to ensure unambiguous targeting.

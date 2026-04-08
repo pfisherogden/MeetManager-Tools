@@ -71,6 +71,38 @@ service MeetManagerService {
   rpc GenerateReportBundle(GenerateReportBundleRequest) returns (GenerateReportBundleResponse);
   // PublishMeetData publishes the active meet data to a cloud location for the judge app.
   rpc PublishMeetData(PublishMeetDataRequest) returns (PublishMeetDataResponse);
+  // SyncDQs receives disqualifications from the judge app and stores them.
+  rpc SyncDQs(SyncDQsRequest) returns (SyncDQsResponse);
+  // GetFile retrieves the content of a file from storage.
+  rpc GetFile(GetFileRequest) returns (GetFileResponse);
+}
+
+// GetFileRequest specifies the path of the file to retrieve.
+message GetFileRequest {
+  // path is the relative path to the file in storage.
+  string path = 1;
+}
+
+// GetFileResponse contains the file content.
+message GetFileResponse {
+  // content is the raw bytes of the file.
+  bytes content = 1;
+  // mime_type is the detected MIME type of the file.
+  string mime_type = 2;
+}
+
+// SyncDQsRequest contains a list of disqualifications to sync.
+message SyncDQsRequest {
+  // dqs_json is the JSON-encoded list of DQ objects from the judge app.
+  string dqs_json = 1;
+}
+
+// SyncDQsResponse indicates the result of the sync operation.
+message SyncDQsResponse {
+  // success indicates if the sync was successful.
+  bool success = 1;
+  // message provides additional info or error details.
+  string message = 2;
 }
 
 // PublishMeetDataRequest is the request for PublishMeetData.
@@ -205,7 +237,10 @@ message ClearAllDatasetsRequest {}
 message ClearAllDatasetsResponse {}
 
 // GetRelaysRequest is the request for GetRelays.
-message GetRelaysRequest {}
+message GetRelaysRequest {
+  // event_id is an optional filter for a specific event's relays.
+  optional string event_id = 1;
+}
 // GetRelaysResponse contains the list of relay entries.
 message GetRelaysResponse {
   // relays is the list of relay entries.
@@ -318,6 +353,8 @@ message Relay {
   int32 heat = 14;
   // lane is the lane number.
   int32 lane = 15;
+  // team_color is the hex code assigned to the team.
+  string team_color = 16;
 }
 
 // Score represents team points and rank.
@@ -376,6 +413,8 @@ message Entry {
   int32 lane = 12;
   // points are the points earned by this entry.
   float points = 14;
+  // team_color is the hex code assigned to the team.
+  string team_color = 15;
 }
 
 // Session represents a time block of events in the meet.
@@ -432,6 +471,8 @@ message Team {
   string state = 6;
   // athlete_count is the number of athletes on the team.
   int32 athlete_count = 7;
+  // color is the hex code assigned to the team.
+  string color = 8;
 }
 
 // Athlete represents a swimmer in the meet.
@@ -500,6 +541,10 @@ enum ReportType {
   REPORT_TYPE_ENTRIES_HYTEK = 6;
   // REPORT_TYPE_ENTRIES_CLUB is a meet entries report in club-specific format.
   REPORT_TYPE_ENTRIES_CLUB = 7;
+  // REPORT_TYPE_LANE_TIMER_SHEETS is a report of timer sheets grouped by lane.
+  REPORT_TYPE_LANE_TIMER_SHEETS = 8;
+  // REPORT_TYPE_JUDGE_SHEETS is a meet program with DQ lines for S&T judges.
+  REPORT_TYPE_JUDGE_SHEETS = 9;
 }
 
 // GenerateReportRequest specifies the parameters for report generation.

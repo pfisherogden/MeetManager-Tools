@@ -1,6 +1,6 @@
-# MeetManager Tools
+# MMTools
+A suite of tools for processing and visualizing swim meet data.
 
-A suite of tools for processing and visualizing MeetManager `.mdb` data.
 
 ## Table of Contents
 
@@ -52,6 +52,23 @@ The system now supports multi-user environments with strict data isolation.
 
 For detailed setup instructions (including GCS configuration), see the [Backend README](./backend/README.md#cloud-storage--multi-user-setup).
 
+### Security & Access Control
+
+To protect meet data and prevent unauthorized DQ submissions, the system uses a `DATA_ACCESS_TOKEN`.
+
+#### Generating a Secret Token
+You can generate a secure random string using `openssl`:
+```bash
+openssl rand -base64 32
+```
+
+#### Configuration
+1.  **Local/Docker**: Set `DATA_ACCESS_TOKEN` in your `.env` file.
+2.  **GitHub Actions**: Add `DATA_ACCESS_TOKEN` as a repository secret.
+3.  **Google Cloud (Cloud Run)**: 
+    - Store the token in **Secret Manager**.
+    - Expose it as an environment variable `DATA_ACCESS_TOKEN` to both the `backend` and `frontend` services.
+
 ## CI/CD
 
 This repository uses GitHub Actions for Continuous Integration.
@@ -59,5 +76,6 @@ This repository uses GitHub Actions for Continuous Integration.
 - **Unified Verification**: Locally, always run `just pre-commit` to catch build-time errors before they reach CI.
 - **Backend**: Runs `ruff` (lint/format) and `pytest`.
 - **Frontend**: Runs `biome` (lint/format), `vitest`, and production builds (`next build`, `expo export`).
+- **End-to-End**: Runs browser-based journeys using Playwright (`just test-e2e`).
 - **Path Filtering**: Workflows run only when relevant files are changed.
 \n

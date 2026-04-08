@@ -6,10 +6,12 @@ import json
 import logging
 import os
 import tempfile
+from collections import OrderedDict
 from concurrent import futures
 from typing import Any
 
 import grpc
+import msgpack
 
 # Import generated classes
 try:
@@ -22,18 +24,214 @@ except ImportError:
 
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
+
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from auth_interceptor import FirebaseAuthInterceptor
 from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.reporting.extractor import ReportDataExtractor
-from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
+
+# Configure logging
+log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_str, logging.INFO)
+
+logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+
+# Suppress verbose third-party loggers unless explicitly requested
+if log_level_str != "DEBUG":
+    logging.getLogger("fontTools").setLevel(logging.WARNING)
+    logging.getLogger("weasyprint").setLevel(logging.WARNING)
+    logging.getLogger("jpype").setLevel(logging.WARNING)
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"
 SOURCE_FILE = "Sample_Data.json"
 CONFIG_FILE = "config.json"
+MAX_CACHE_SIZE = 3  # Keep only the last 3 users' data in memory
+
+
+def msgpack_encode(obj):
+    """Custom encoder for msgpack to handle datetimes and other types."""
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    if hasattr(obj, "isoformat"):
+        return obj.isoformat()
+    return obj
+
+
+def _process_single_report_process(
+    idx,
+    report_req_type,
+    report_req_title,
+    report_req_team_filter,
+    report_req_gender_filter,
+    report_req_age_group_filter,
+    columns_on_page,
+    show_relay_swimmers,
+    zebra_striping,
+    msgpack_path,  # Use msgpack file instead of large dict
+    rtype_map,
+):
+    # This runs in a separate process, avoiding the GIL
+    import logging
+    import os
+    import tempfile
+    import traceback
+
+    # Re-initialize logging configuration in the subprocess to ensure logs are captured
+    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_level = getattr(logging, log_level_str, logging.INFO)
+    logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+
+    # Suppress verbose third-party loggers in the subprocess
+    if log_level_str != "DEBUG":
+        logging.getLogger("fontTools").setLevel(logging.WARNING)
+        logging.getLogger("fontTools.subset").setLevel(logging.WARNING)
+        logging.getLogger("weasyprint").setLevel(logging.WARNING)
+        logging.getLogger("jpype").setLevel(logging.WARNING)
+        # Also disable global logging for anything below INFO to catch stray loggers
+        logging.disable(logging.DEBUG)
+
+    from mm_to_json.mm_to_json import MmToJsonConverter
+    from mm_to_json.reporting.extractor import ReportDataExtractor
+    from mm_to_json.reporting.weasy_renderer import WeasyRenderer
+
+    rtype = rtype_map.get(report_req_type, "psych")
+    title = report_req_title
+
+    # Load from msgpack
+    with open(msgpack_path, "rb") as f:
+        packed_data = msgpack.unpack(f, raw=False)
+
+    cache_data = packed_data["cache"]
+    full_data = packed_data["full_data"]
+
+    converter = MmToJsonConverter(table_data=cache_data)
+    extractor = ReportDataExtractor(converter, full_data=full_data)
+
+    with tempfile.NamedTemporaryFile(suffix=".pdf" if rtype != "program_html" else ".html", delete=False) as tmp:
+        temp_path = tmp.name
+
+    try:
+        renderer = WeasyRenderer(temp_path)
+
+        if rtype == "psych":
+            report_data = extractor.extract_psych_sheet_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+            )
+            report_data["zebra_striping"] = zebra_striping
+            renderer.render_entries(report_data, "psych_sheet.j2")
+        elif rtype == "entries":
+            report_data = extractor.extract_meet_entries_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+            )
+            report_data["zebra_striping"] = zebra_striping
+            renderer.render_entries(report_data, "entries_hytek.j2")
+        elif rtype == "lineups":
+            report_data = extractor.extract_timer_sheets_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+            )
+            report_data["zebra_striping"] = zebra_striping
+            renderer.render_entries(report_data, "timer_sheets.j2")
+        elif rtype == "results":
+            report_data = extractor.extract_results_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+            )
+            report_data["zebra_striping"] = zebra_striping
+            renderer.render_entries(report_data, "results.j2")
+        elif rtype == "program":
+            program_data = extractor.extract_meet_program_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+                columns_on_page=columns_on_page,
+                show_relay_swimmers=show_relay_swimmers,
+            )
+            program_data["zebra_striping"] = zebra_striping
+            renderer.render_meet_program(program_data)
+        elif rtype == "program_html":
+            program_data = extractor.extract_meet_program_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+                columns_on_page=columns_on_page,
+                show_relay_swimmers=show_relay_swimmers,
+            )
+            program_data["zebra_striping"] = zebra_striping
+            html_content = renderer.render_to_html(program_data)
+            with open(temp_path, "wb") as f:
+                f.write(html_content.encode("utf-8"))
+        elif rtype == "entries_hytek":
+            report_data = extractor.extract_meet_entries_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+            )
+            report_data["zebra_striping"] = zebra_striping
+            renderer.render_entries(report_data, "entries_hytek.j2")
+        elif rtype == "entries_club":
+            report_data = extractor.extract_meet_entries_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+            )
+            report_data["zebra_striping"] = zebra_striping
+            renderer.render_entries(report_data, "entries_club.j2")
+        elif rtype == "lane_timer_sheets":
+            report_data = extractor.extract_lane_timer_sheets_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+            )
+            # Timer sheets always use specific template
+            renderer.render_entries(report_data, "timer_sheets.j2")
+        elif rtype == "judge_sheets":
+            # Judge sheets are meet program with DQ lines
+            program_data = extractor.extract_meet_program_data(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+                columns_on_page=columns_on_page,
+                show_relay_swimmers=show_relay_swimmers,
+                show_dq_lines=True,
+            )
+            program_data["zebra_striping"] = zebra_striping
+            renderer.render_meet_program(program_data)
+
+        if os.path.exists(temp_path):
+            with open(temp_path, "rb") as f:
+                content = f.read()
+            os.remove(temp_path)
+
+            safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
+            ext = ".html" if rtype == "program_html" else ".pdf"
+            file_name = f"{idx + 1}_{safe_title}{ext}"
+            return {"success": True, "filename": file_name, "content": content}
+
+        return {"success": False, "error": "Temp file not found"}
+    except Exception as e:
+        logging.error(f"Process failed: {traceback.format_exc()}")
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        return {"success": False, "error": str(e), "rtype": rtype, "idx": idx}
 
 
 class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
@@ -48,7 +246,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             self.storage = LocalStorageProvider(base_storage_dir)
 
         # Cache structure: {uid: {'filename': str, 'mtime': float, 'data': dict}}
-        self._user_cache: dict[str, dict[str, Any]] = {}
+        # Using OrderedDict for simple LRU eviction
+        self._user_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.current_file = SOURCE_FILE
         # Note: We don't load data in __init__ anymore because it's per-user
         # self._load_data()
@@ -60,9 +259,25 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _check_auth(self, context):
         """Helper to ensure the request is authenticated."""
+        if context is not None:
+            try:
+                # Allow custom user ID via metadata for E2E test isolation
+                metadata = dict(context.invocation_metadata())
+                if "x-user-id" in metadata:
+                    uid = metadata["x-user-id"]
+                    logging.debug(f"DEBUG: Auth using x-user-id metadata: {uid}")
+                    return uid
+            except (AttributeError, TypeError):
+                # Context might be a mock or None-like without invocation_metadata
+                pass
+
         # Allow disabling auth for local dev/testing
-        if os.getenv("GRPC_AUTH_DISABLED") == "true":
+        if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
+            # logging.debug("DEBUG: Auth disabled or not in production, using dev-user")
             return "dev-user"
+
+        if context is None:
+            raise ValueError("Context is required for authentication")
 
         uid = getattr(context, "uid", None)
         if uid is None:
@@ -72,21 +287,48 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _load_user_config(self, context):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
+        # For LocalStorageProvider, print absolute path for debugging
+        if hasattr(self.storage, "base_dir"):
+            abs_path = os.path.abspath(os.path.join(self.storage.base_dir, config_path))
+            logging.debug(f"DEBUG: Checking for config at {config_path} (abs: {abs_path}, uid: {uid})")
+        else:
+            logging.debug(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
+
         if self.storage.exists(config_path):
-            with tempfile.NamedTemporaryFile() as tmp:
-                self.storage.download_file(config_path, tmp.name)
-                with open(tmp.name) as f:
-                    return json.load(f)
+            # ... rest of the method unchanged ...
+            with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+                tmp_path = tmp.name
+                tmp.close()
+
+            try:
+                self.storage.download_file(config_path, tmp_path)
+                with open(tmp_path) as f:
+                    config = json.load(f)
+                    logging.debug(f"DEBUG: Loaded user config for {uid}: {config}")
+                    return config
+            except Exception as e:
+                logging.debug(f"DEBUG: Failed to load user config for {uid}: {e}")
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+
+        logging.debug(f"DEBUG: No user config found at {config_path} for {uid}, using defaults")
         return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
 
     def _save_user_config(self, context, config):
         uid = self._check_auth(context)
         config_path = os.path.join("users", uid, CONFIG_FILE)
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
+        logging.debug(f"DEBUG: Saving user config to {config_path}: {config}")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
             json.dump(config, tmp, indent=2)
             tmp_path = tmp.name
+            tmp.flush()
+            # Close it explicitly before uploading
+            tmp.close()
+
         try:
             self.storage.upload_file(tmp_path, config_path)
+            logging.debug(f"DEBUG: User config saved to {config_path}")
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -97,45 +339,83 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
 
         user_path = os.path.join("users", uid, filename)
+        # For LocalStorageProvider, print absolute path for debugging
+        if hasattr(self.storage, "base_dir"):
+            abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
+            logging.debug(
+                f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path} (abs: {abs_user_path})"
+            )
+        else:
+            logging.debug(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
+
         # Check cache
         if uid in self._user_cache:
             entry = self._user_cache[uid]
+            # Move to end (most recent)
+            self._user_cache.move_to_end(uid)
+
             if entry["filename"] == filename:
                 # Check if modified
                 try:
                     mtime = self.storage.get_last_modified(user_path)
                     if mtime == entry["mtime"]:
+                        logging.debug(f"DEBUG: Returning cached data for {uid}/{filename}")
                         return entry["data"], config
-                except Exception:
+                    else:
+                        logging.debug(f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})")
+                except Exception as e:
+                    logging.debug(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
                     pass  # Force reload on error
 
         if not self.storage.exists(user_path):
+            logging.debug(f"DEBUG: User file {user_path} NOT FOUND in storage.")
             # Fallback for prototype: check global Sample_Data.json
             if self.storage.exists(SOURCE_FILE):
+                logging.debug(f"DEBUG: Falling back to global {SOURCE_FILE}")
                 user_path = SOURCE_FILE
+                filename = SOURCE_FILE
             else:
+                logging.debug(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
                 return {}, config
+        else:
+            logging.debug(f"DEBUG: Found user file at {user_path}")
 
+        logging.debug(f"DEBUG: Loading data from {user_path}...")
         with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
             tmp_path = tmp.name
+            tmp.close()  # Close to avoid locking
+
         try:
             self.storage.download_file(user_path, tmp_path)
             if filename.endswith(".mdb"):
                 cache = self._load_mdb(tmp_path)
             else:
                 with open(tmp_path) as f:
-                    cache = json.load(f)
+                    raw_data = json.load(f)
+                # Use converter to normalize keys/types even for JSON
+                from mm_to_json.mm_to_json import MmToJsonConverter
+
+                converter = MmToJsonConverter(table_data=raw_data)
+                cache = converter.export_raw()
 
             # Update cache
             try:
                 mtime = self.storage.get_last_modified(user_path)
                 self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+                self._user_cache.move_to_end(uid)
+
+                # Evict oldest if limit exceeded
+                if len(self._user_cache) > MAX_CACHE_SIZE:
+                    oldest_uid, _ = self._user_cache.popitem(last=False)
+                    logging.debug(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
+
+                logging.debug(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
             except Exception as e:
-                print(f"Failed to update cache: {e}")
+                logging.debug(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
 
             return cache, config
         except Exception as e:
-            print(f"Error loading user data: {e}")
+            logging.debug(f"DEBUG: Error loading data from {user_path}: {e}")
             return {}, config
         finally:
             if os.path.exists(tmp_path):
@@ -168,35 +448,54 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             return cache
         except Exception as e:
-            print(f"Error loading MDB: {e}")
+            logging.error(f"Error loading MDB: {e}")
             return {}
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
     def UploadDataset(self, request_iterator, context):
-        print("DEBUG: UploadDataset called", flush=True)
+        logging.debug("DEBUG: UploadDataset called")
         uid = self._check_auth(context)
         filename = "uploaded.mdb"
 
         # Temporary buffer to hold file content
         file_content = io.BytesIO()
+        total_bytes = 0
 
         try:
             for request in request_iterator:
                 if request.HasField("filename"):
                     filename = os.path.basename(request.filename)
-                    if not filename.lower().endswith(".mdb"):
-                        filename += ".mdb"
+                    ext = os.path.splitext(filename)[1].lower()
+                    if ext not in [".mdb", ".json"]:
+                        # If no valid extension, default to .mdb for backward compatibility
+                        if not filename.lower().endswith(".mdb"):
+                            filename += ".mdb"
 
                 if request.HasField("chunk"):
+                    chunk_len = len(request.chunk)
                     file_content.write(request.chunk)
+                    total_bytes += chunk_len
+
+            logging.debug(f"DEBUG: UploadDataset received total {total_bytes} bytes for {filename}")
 
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
-            with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
+            # For LocalStorageProvider, print absolute path for debugging
+            if hasattr(self.storage, "base_dir"):
+                abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
+                logging.debug(f"DEBUG: UploadDataset saving to {user_path} (abs: {abs_user_path}) for {uid}")
+            else:
+                logging.debug(f"DEBUG: UploadDataset saving to {user_path} for {uid}")
+
+            suffix = os.path.splitext(filename)[1]
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                file_content.seek(0)
                 tmp.write(file_content.getvalue())
                 tmp_path = tmp.name
+                tmp.flush()
+                tmp.close()
 
             try:
                 self.storage.upload_file(tmp_path, user_path)
@@ -204,72 +503,120 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
-            print(f"Saved uploaded file to {user_path}")
+            logging.info(f"Saved uploaded file to {user_path}")
 
             # Update active dataset in config
             config = self._load_user_config(context)
             config["active_dataset"] = filename
             self._save_user_config(context, config)
 
+            # Invalidate cache to force reload of the new dataset
+            if uid in self._user_cache:
+                del self._user_cache[uid]
+
             return pb2.UploadDatasetResponse(success=True, message=f"Saved {filename}")
         except Exception as e:
-            print(f"Upload failed: {e}")
+            logging.error(f"Upload failed: {e}")
             return pb2.UploadDatasetResponse(success=False, message=str(e))
 
     def GetDashboardStats(self, request, context):
         request = request or pb2.GetDashboardStatsRequest()
         cache, _ = self._load_user_data(context)
 
-        def _t(n):
-            return cache.get(n, [])
-
-        teams = _t("Team")
-        athletes = _t("Athlete")
-        events = _t("Event")
-        meets = _t("Meet")
+        teams = cache.get("team", [])
+        athletes = cache.get("athlete", [])
+        events = cache.get("event", [])
+        meets = cache.get("meet", [])
 
         return pb2.GetDashboardStatsResponse(
             meet_count=len(meets), team_count=len(teams), athlete_count=len(athletes), event_count=len(events)
         )
 
+    def _get_team_color(self, team_id: int) -> str:
+        """Assign a stable, pleasing color to a team based on its ID."""
+        palette = [
+            "#3b82f6",  # blue-500
+            "#ef4444",  # red-500
+            "#10b981",  # emerald-500
+            "#f59e0b",  # amber-500
+            "#8b5cf6",  # violet-500
+            "#ec4899",  # pink-500
+            "#06b6d4",  # cyan-500
+            "#f97316",  # orange-500
+            "#84cc16",  # lime-500
+            "#6366f1",  # indigo-500
+            "#a855f7",  # purple-500
+            "#14b8a6",  # teal-500
+        ]
+        return palette[team_id % len(palette)]
+
     def GetMeets(self, request, context):
         request = request or pb2.GetMeetsRequest()
         cache, _ = self._load_user_data(context)
-        data = cache.get("Meet", [])
+        logging.debug(f"DEBUG: Cache tables: {list(cache.keys())}")
+        data = cache.get("meet", [])
         meets = []
         for item in data:
-            name = item.get("Meet_name") or item.get("MName") or "Unknown Meet"
-            loc = item.get("Location") or item.get("Meet_location") or ""
-            start = self._format_date(item.get("Start") or item.get("Start_date") or "")
-            end = self._format_date(item.get("End") or item.get("End_date") or "")
+            logging.debug(f"DEBUG: Meet item keys: {list(item.keys())}")
+            # Prefer lowercase keys from MmToJsonConverter
+            # MDB column 'Meet_name1' should be 'meet_name1'
+            name = (
+                item.get("meet_name1")
+                or item.get("meet_name")
+                or item.get("mname")
+                or item.get("Meet_name1")
+                or "Unknown Meet"
+            )
+            loc = item.get("location") or item.get("meet_location") or item.get("Meet_location") or ""
+            start = self._format_date(
+                item.get("start") or item.get("start_date") or item.get("meet_start") or item.get("Meet_start") or ""
+            )
+            end = self._format_date(
+                item.get("end") or item.get("end_date") or item.get("meet_end") or item.get("Meet_end") or ""
+            )
 
-            meets.append(pb2.Meet(id="1", name=name, location=loc, start_date=start, end_date=end, status="active"))
+            meets.append(
+                pb2.Meet(
+                    id="1",
+                    name=str(name or "Unknown Meet"),
+                    location=str(loc or ""),
+                    start_date=str(start or ""),
+                    end_date=str(end or ""),
+                    status="active",
+                )
+            )
         return pb2.GetMeetsResponse(meets=meets)
 
     def GetTeams(self, request, context):
         request = request or pb2.GetTeamsRequest()
+        uid = self._check_auth(context)
         cache, _ = self._load_user_data(context)
-        data = cache.get("Team", [])
-        athletes = cache.get("Athlete", [])
+        data = cache.get("team", [])
+        logging.debug(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams in cache['team']")
+        if len(data) > 0:
+            logging.debug(f"DEBUG: First team in cache: {data[0].get('team_name')}")
+
+        athletes = cache.get("athlete", [])
 
         # Count athletes per team
         ath_counts: dict[int, int] = {}
         for ath in athletes:
-            t_id = int(ath.get("Team_no", 0))
+            t_id = self._safe_int(ath.get("team_no", 0))
             ath_counts[t_id] = ath_counts.get(t_id, 0) + 1
 
         teams = []
         for item in data:
-            t_id = int(item.get("Team_no", 0))
+            t_id = self._safe_int(item.get("team_no", 0))
             teams.append(
                 pb2.Team(
                     id=t_id,
-                    name=item.get("Team_name", "Unknown"),
-                    code=item.get("Team_abbr", ""),
-                    lsc=item.get("Team_lsc", ""),
-                    city=item.get("Team_city", ""),
-                    state=item.get("Team_statenew", ""),
+                    name=str(item.get("team_name", "Unknown") or "Unknown"),
+                    code=str(item.get("team_abbr", "") or ""),
+                    lsc=str(item.get("team_lsc", "") or ""),
+                    city=str(item.get("team_city", "") or ""),
+                    state=str(item.get("team_statenew", "") or ""),
                     athlete_count=ath_counts.get(t_id, 0),
+                    color=self._get_team_color(t_id),
                 )
             )
         return pb2.GetTeamsResponse(teams=teams)
@@ -278,25 +625,26 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetTeamRequest()
         team_id = request.id
         cache, _ = self._load_user_data(context)
-        data = cache.get("Team", [])
-        athlete_data = cache.get("Athlete", [])
+        data = cache.get("team", [])
+        athlete_data = cache.get("athlete", [])
         athlete_counts: dict[int, int] = {}
         for a in athlete_data:
-            t_no = self._safe_int(a.get("Team_no") or a.get("team_no"))
+            t_no = self._safe_int(a.get("team_no"))
             if t_no:
                 athlete_counts[t_no] = athlete_counts.get(t_no, 0) + 1
 
         for item in data:
-            if int(item.get("Team_no", 0)) == team_id:
+            if self._safe_int(item.get("team_no", 0)) == team_id:
                 return pb2.GetTeamResponse(
                     team=pb2.Team(
-                        id=int(item.get("Team_no", 0)),
-                        name=item.get("Team_name", "Unknown"),
-                        code=item.get("Team_abbr", ""),
-                        lsc=item.get("Team_lsc", ""),
-                        city=item.get("Team_city", ""),
-                        state=item.get("Team_statenew", ""),
+                        id=self._safe_int(item.get("team_no", 0)),
+                        name=str(item.get("team_name", "Unknown") or "Unknown"),
+                        code=str(item.get("team_abbr", "") or ""),
+                        lsc=str(item.get("team_lsc", "") or ""),
+                        city=str(item.get("team_city", "") or ""),
+                        state=str(item.get("team_statenew", "") or ""),
                         athlete_count=athlete_counts.get(team_id, 0),
+                        color=self._get_team_color(team_id),
                     )
                 )
 
@@ -307,30 +655,31 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetAthletes(self, request, context):
         request = request or pb2.GetAthletesRequest()
         cache, _ = self._load_user_data(context)
-        data = cache.get("Athlete", [])
-        teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in cache.get("Team", [])}
+        data = cache.get("athlete", [])
+        teams_map = {self._safe_int(t.get("team_no", 0)): t.get("team_name") for t in cache.get("team", [])}
 
         athletes = []
         for item in data:
-            t_id = int(item.get("Team_no", 0))
+            t_id = self._safe_int(item.get("team_no", 0))
             if request and request.team_id and str(t_id) != request.team_id:
                 continue
 
-            dob_raw = item.get("Ath_birthdate") or item.get("Birth_date") or ""
-            dob = dob_raw.split(" ")[0] if dob_raw else ""
+            dob_raw = item.get("ath_birthdate") or item.get("birth_date") or ""
+            # dob_raw could be a pandas Timestamp, cast to string
+            dob = str(dob_raw).split(" ")[0] if dob_raw else ""
 
             athletes.append(
                 pb2.Athlete(
-                    id=int(item.get("Ath_no", 0)),
-                    first_name=item.get("First_name", ""),
-                    last_name=item.get("Last_name", ""),
-                    gender=item.get("Ath_Sex", ""),
-                    age=int(item.get("Ath_age", 0)),
+                    id=self._safe_int(item.get("ath_no", 0)),
+                    first_name=str(item.get("first_name", "") or ""),
+                    last_name=str(item.get("last_name", "") or ""),
+                    gender=str(item.get("ath_sex", "") or ""),
+                    age=self._safe_int(item.get("ath_age", 0)),
                     team_id=t_id,
-                    team_name=teams_map.get(t_id, "Unknown"),
-                    school_year=item.get("School_yr", ""),
-                    reg_no=item.get("Reg_no", ""),
-                    date_of_birth=dob,
+                    team_name=str(teams_map.get(t_id, "Unknown") or "Unknown"),
+                    school_year=str(item.get("school_yr", "") or ""),
+                    reg_no=str(item.get("reg_no", "") or ""),
+                    date_of_birth=str(dob or ""),
                 )
             )
         return pb2.GetAthletesResponse(athletes=athletes)
@@ -339,23 +688,23 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetAthleteRequest()
         ath_id = request.id
         cache, _ = self._load_user_data(context)
-        data = cache.get("Athlete", [])
-        teams_map = {int(t.get("Team_no", 0)): t.get("Team_name") for t in cache.get("Team", [])}
+        data = cache.get("athlete", [])
+        teams_map = {self._safe_int(t.get("team_no", 0)): t.get("team_name") for t in cache.get("team", [])}
 
         for item in data:
-            if int(item.get("Ath_no", 0)) == ath_id:
-                t_id = int(item.get("Team_no", 0))
+            if self._safe_int(item.get("ath_no", 0)) == ath_id:
+                t_id = self._safe_int(item.get("team_no", 0))
                 return pb2.GetAthleteResponse(
                     athlete=pb2.Athlete(
-                        id=int(item.get("Ath_no", 0)),
-                        first_name=item.get("First_name", ""),
-                        last_name=item.get("Last_name", ""),
-                        gender=item.get("Ath_Sex", ""),
-                        age=int(item.get("Ath_age", 0)),
+                        id=self._safe_int(item.get("ath_no", 0)),
+                        first_name=str(item.get("first_name", "") or ""),
+                        last_name=str(item.get("last_name", "") or ""),
+                        gender=str(item.get("ath_sex", "") or ""),
+                        age=self._safe_int(item.get("ath_age", 0)),
                         team_id=t_id,
-                        team_name=teams_map.get(t_id, "Unknown"),
-                        school_year=item.get("School_yr", ""),
-                        reg_no=item.get("Reg_no", ""),
+                        team_name=str(teams_map.get(t_id, "Unknown") or "Unknown"),
+                        school_year=str(item.get("school_yr", "") or ""),
+                        reg_no=str(item.get("reg_no", "") or ""),
                     )
                 )
 
@@ -366,68 +715,68 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetEvents(self, request, context):
         request = request or pb2.GetEventsRequest()
         cache, _ = self._load_user_data(context)
-        data = cache.get("Event", [])
+        data = cache.get("event", [])
         events = []
         stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breaststroke", "D": "Butterfly", "E": "IM"}
-        gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "F": "Women", "W": "Women"}
+        gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
         entry_counts: dict[str, int] = {}
-        entries = cache.get("Entry", []) or cache.get("ENTRY", [])
+        entries = cache.get("entry", [])
         for e in entries:
-            evt_ptr = e.get("Event_ptr")
+            evt_ptr = e.get("event_ptr")
             if evt_ptr:
                 entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
 
-        relays = cache.get("Relay", []) or cache.get("RELAY", [])
+        relays = cache.get("relay", [])
         for r in relays:
-            evt_ptr = r.get("Event_ptr")
+            evt_ptr = r.get("event_ptr")
             if evt_ptr:
                 entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
 
         # Build session mapping from Sessitem (Linking Event_ptr to Session No)
         sess_map = {}
-        sessitem_table = cache.get("Sessitem", []) or cache.get("SESSITEM", [])
-        session_table = cache.get("Session", []) or cache.get("SESSIONS", [])
+        sessitem_table = cache.get("sessitem", [])
+        session_table = cache.get("session", [])
 
         # ptr_to_no: Sess_ptr -> Sess_no
-        ptr_to_no = {s.get("Sess_ptr"): self._safe_int(s.get("Sess_no", 1)) for s in session_table if s.get("Sess_ptr")}
+        ptr_to_no = {s.get("sess_ptr"): self._safe_int(s.get("sess_no", 1)) for s in session_table if s.get("sess_ptr")}
 
         for si in sessitem_table:
-            e_ptr = si.get("Event_ptr")
-            s_ptr = si.get("Sess_ptr")
+            e_ptr = si.get("event_ptr")
+            s_ptr = si.get("sess_ptr")
             if e_ptr and s_ptr:
                 sess_map[e_ptr] = ptr_to_no.get(s_ptr, 1)
 
         for item in data:
-            raw_stroke = item.get("Event_stroke", "").upper().strip()
+            raw_stroke = item.get("event_stroke", "").upper().strip()
             stroke_desc = stroke_map.get(raw_stroke, raw_stroke)
 
-            is_relay = item.get("Ind_rel", "").upper().strip() == "R"
+            is_relay = item.get("ind_rel", "").upper().strip() == "R"
             if raw_stroke == "E" and is_relay:
                 stroke_desc = "Medley Relay"
             elif is_relay and stroke_desc != raw_stroke:
                 stroke_desc += " Relay"
 
-            raw_gender = item.get("Event_sex", "").upper().strip()
+            raw_gender = item.get("event_sex", "").upper().strip()
             gender_desc = gender_map.get(raw_gender, raw_gender)
 
             # Map Session: Use Sessitem map if Event.Sess_no is missing
-            e_ptr = item.get("Event_ptr") or item.get("Event_no")
-            sess_no = self._safe_int(item.get("Sess_no"))
+            e_ptr = item.get("event_ptr") or item.get("event_no")
+            sess_no = self._safe_int(item.get("sess_no"))
             if not sess_no and e_ptr:
                 sess_no = sess_map.get(e_ptr, 1)
 
             events.append(
                 pb2.Event(
-                    id=int(item.get("Event_no", 0)),
-                    gender=gender_desc,
-                    distance=int(item.get("Event_dist", 0)),
-                    stroke=stroke_desc,
-                    low_age=int(item.get("Low_age", 0)),
-                    high_age=int(item.get("High_Age", 0)),
+                    id=self._safe_int(item.get("event_no", 0)),
+                    gender=str(gender_desc or ""),
+                    distance=self._safe_int(item.get("event_dist", 0)),
+                    stroke=str(stroke_desc or ""),
+                    low_age=self._safe_int(item.get("low_age", 0)),
+                    high_age=self._safe_int(item.get("high_age", 0)),
                     session=max(1, sess_no),
-                    entry_count=entry_counts.get(item.get("Event_no") or item.get("Event_ptr"), 0),
-                    age_group=self._format_age(item.get("Low_age"), item.get("High_Age")),
+                    entry_count=entry_counts.get(item.get("event_no") or item.get("event_ptr"), 0),
+                    age_group=str(self._format_age(item.get("low_age"), item.get("high_age")) or ""),
                 )
             )
         return pb2.GetEventsResponse(events=events)
@@ -449,7 +798,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             for rel_path in files:
                 filename = os.path.basename(rel_path)
-                if filename.endswith(".json") or filename.endswith(".mdb"):
+                # Only allow MDB files or specific data JSONs (not config.json)
+                if filename.lower().endswith(".mdb") or (
+                    filename.lower().endswith(".json") and filename != "config.json"
+                ):
                     # We don't easily get mod time from all storage providers without extra calls
                     # For local, it's easy. For GCS, we need blob.updated.
                     # For now, placeholder or 0
@@ -464,7 +816,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 )
 
         except Exception as e:
-            print(f"Error listing datasets: {e}")
+            logging.error(f"Error listing datasets: {e}")
 
         return pb2.ListDatasetsResponse(datasets=datasets)
 
@@ -484,10 +836,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             context.set_details(f"File {filename} not found.")
             return pb2.SetActiveDatasetResponse()
 
-        print(f"Switching user {uid} dataset to {filename}...")
+        logging.info(f"Switching user {uid} dataset to {filename}...")
+        # Update config
         config = self._load_user_config(context)
         config["active_dataset"] = filename
         self._save_user_config(context, config)
+
+        # Invalidate cache to force reload
+        if uid in self._user_cache:
+            del self._user_cache[uid]
+
         return pb2.SetActiveDatasetResponse()
 
     def ClearDataset(self, request, context):
@@ -513,7 +871,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 self._save_user_config(context, config)
 
         except Exception as e:
-            print(f"Error deleting dataset {filename}: {e}")
+            logging.error(f"Error deleting dataset {filename}: {e}")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Failed to delete file: {str(e)}")
 
@@ -537,7 +895,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             self._save_user_config(context, config)
 
         except Exception as e:
-            print(f"Error clearing datasets: {e}")
+            logging.error(f"Error clearing datasets: {e}")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Failed to clear datasets: {str(e)}")
 
@@ -564,83 +922,77 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetRelays(self, request, context):
         request = request or pb2.GetRelaysRequest()
         cache, _ = self._load_user_data(context)
-        relays_data = cache.get("Relay", [])
-        if not relays_data:
-            relays_data = cache.get("RELAY", [])
+        relays_data = cache.get("relay", [])
 
-        relay_names_data = cache.get("RelayNames", []) or cache.get("RELAYNAMES", [])
+        relay_names_data = cache.get("relaynames", [])
         relay_legs_map: dict[tuple[Any, Any, Any], list[Any]] = {}
         for rn in relay_names_data:
-            key = (rn.get("Event_ptr"), rn.get("Team_no"), rn.get("Relay_no"))
+            key = (rn.get("event_ptr"), self._safe_int(rn.get("team_no")), self._safe_int(rn.get("relay_no")))
             if key not in relay_legs_map:
                 relay_legs_map[key] = []
             relay_legs_map[key].append(rn)
 
-        teams = {t.get("Team_no"): t.get("Team_name") for t in cache.get("Team", [])}
-        athletes = {a.get("Ath_no"): a for a in cache.get("Athlete", [])}
+        teams = {self._safe_int(t.get("team_no")): t.get("team_name") for t in cache.get("team", [])}
+        athletes = {self._safe_int(a.get("ath_no")): a for a in cache.get("athlete", [])}
 
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
-        for e in cache.get("Event", []):
-            e_no = e.get("Event_no") or e.get("Event_ptr")
+        for e in cache.get("event", []):
+            e_no = e.get("event_no") or e.get("event_ptr")
             if e_no:
-                g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
-                d = e.get("Event_dist", "")
-                s = stroke_map.get(e.get("Event_stroke", "").strip(), e.get("Event_stroke", ""))
-                age_group = self._format_age(e.get("Low_age"), e.get("High_Age"))
+                g = gender_map.get(e.get("event_sex", "").strip(), e.get("event_sex", ""))
+                d = e.get("event_dist", "")
+                s = stroke_map.get(e.get("event_stroke", "").strip(), e.get("event_stroke", ""))
+                age_group = self._format_age(e.get("low_age"), e.get("high_age"))
                 name = f"{g} {age_group} {d} {s}"
                 events_map[e_no] = name
 
         result = []
         for idx, item in enumerate(relays_data):
-            t_id = item.get("Team_ptr", 0)
-            if not t_id or t_id == "0":
-                t_id = item.get("Team_no", 0)
+            event_ptr = item.get("event_ptr")
+            if request and request.event_id and str(event_ptr) != request.event_id:
+                continue
 
-            event_ptr = item.get("Event_ptr")
-            relay_no = item.get("Relay_no")
+            t_id = self._safe_int(item.get("team_ptr") or item.get("team_no") or 0)
+            relay_no = self._safe_int(item.get("relay_no"))
 
             legs = relay_legs_map.get((event_ptr, t_id, relay_no), [])
-            legs.sort(key=lambda x: int(x.get("Pos_no", 0) if str(x.get("Pos_no")).strip().isdigit() else 99))
+            legs.sort(key=lambda x: self._safe_int(x.get("pos_no"), 99))
 
             leg_names = ["", "", "", ""]
             for leg in legs:
                 try:
-                    pos = int(leg.get("Pos_no", 0))
+                    pos = self._safe_int(leg.get("pos_no", 0))
                     if 1 <= pos <= 4:
-                        ath_id = leg.get("Ath_no")
+                        ath_id = self._safe_int(leg.get("ath_no"))
                         ath = athletes.get(ath_id)
                         if ath:
-                            leg_names[pos - 1] = f"{ath.get('First_name', '')} {ath.get('Last_name', '')}"
-                except ValueError:
+                            leg_names[pos - 1] = f"{ath.get('first_name', '')} {ath.get('last_name', '')}"
+                except (ValueError, TypeError):
                     continue
 
-            seed = item.get("ActualSeed_time") or item.get("ConvSeed_time") or item.get("Seed_Time") or "NT"
-            try:
-                if float(seed) == 0:
-                    seed = "NT"
-            except (ValueError, TypeError):
-                pass
+            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
 
             result.append(
                 pb2.Relay(
                     id=idx,
-                    event_id=self._safe_int(item.get("Event_ptr")),
+                    event_id=self._safe_int(item.get("event_ptr")),
                     team_id=self._safe_int(t_id),
-                    team_name=teams.get(t_id, "Unknown"),
-                    leg1_name=leg_names[0],
-                    leg2_name=leg_names[1],
-                    leg3_name=leg_names[2],
-                    leg4_name=leg_names[3],
-                    seed_time=str(seed),
-                    final_time=str(item.get("Fin_Time", "")),
-                    place=self._safe_int(item.get("Fin_place", item.get("Place"))),
-                    event_name=events_map.get(event_ptr, f"Event {event_ptr}"),
-                    relay_letter=item.get("Team_ltr", ""),
-                    heat=self._safe_int(item.get("Fin_heat")),
-                    lane=self._safe_int(item.get("Fin_lane")),
+                    team_name=str(teams.get(t_id, "Unknown") or "Unknown"),
+                    leg1_name=str(leg_names[0] or ""),
+                    leg2_name=str(leg_names[1] or ""),
+                    leg3_name=str(leg_names[2] or ""),
+                    leg4_name=str(leg_names[3] or ""),
+                    seed_time=self._format_time(seed),
+                    final_time=self._format_time(item.get("fin_time")),
+                    place=self._safe_int(item.get("fin_place") or item.get("place")),
+                    event_name=str(events_map.get(event_ptr, f"Event {event_ptr}") or ""),
+                    relay_letter=str(item.get("team_ltr") or ""),
+                    heat=self._safe_int(item.get("fin_heat")),
+                    lane=self._safe_int(item.get("fin_lane")),
+                    team_color=self._get_team_color(t_id),
                 )
             )
         return pb2.GetRelaysResponse(relays=result)
@@ -649,40 +1001,46 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetScoresRequest()
         cache, config = self._load_user_data(context)
 
-        teams_data = cache.get("Team", [])
-        teams = {t.get("Team_no"): {"name": t.get("Team_name"), "id": t.get("Team_no")} for t in teams_data}
+        teams_data = cache.get("team", [])
+        teams = {t.get("team_no"): {"name": t.get("team_name"), "id": t.get("team_no")} for t in teams_data}
         scores = {t_id: {"ind": 0.0, "rel": 0.0} for t_id in teams}
 
-        entries_data = cache.get("Entry", []) or cache.get("ENTRY", [])
-        athletes = {a.get("Ath_no"): a for a in cache.get("Athlete", [])}
+        entries_data = cache.get("entry", [])
+        athletes = {a.get("ath_no"): a for a in cache.get("athlete", [])}
         events_sex_map = {
-            e.get("Event_no") or e.get("Event_ptr"): e.get("Event_sex", "M") for e in cache.get("Event", [])
+            e.get("event_no") or e.get("event_ptr"): e.get("event_sex", "M") for e in cache.get("event", [])
         }
 
         if entries_data:
             for e in entries_data:
-                ath_id = e.get("Ath_no")
+                ath_id = e.get("ath_no")
                 ath = athletes.get(ath_id)
                 if ath:
-                    t_id = ath.get("Team_no")
+                    t_id = ath.get("team_no")
                     if t_id in scores:
-                        e_id = e.get("Event_ptr")
-                        sex = events_sex_map.get(e_id, ath.get("Ath_Sex", "M"))
+                        e_id = e.get("event_ptr")
+                        sex = events_sex_map.get(e_id, ath.get("ath_sex", "M"))
                         val = self._calculate_points(e, sex, False, cache)
                         scores[t_id]["ind"] += val
 
-        relays_data = cache.get("Relay", []) or cache.get("RELAY", [])
+        relays_data = cache.get("relay", [])
         if relays_data:
             for r in relays_data:
-                t_id = r.get("Team_no")
+                t_id = r.get("team_no")
                 if not t_id or t_id == "0":
-                    t_id = r.get("Team_ptr")
+                    t_id = r.get("team_ptr")
 
                 if t_id in scores:
-                    e_id = r.get("Event_ptr")
-                    sex = events_sex_map.get(e_id, r.get("Rel_sex", "X"))
+                    e_id = r.get("event_ptr")
+                    sex = events_sex_map.get(e_id, r.get("rel_sex", "X"))
                     val = self._calculate_points(r, sex, True, cache)
                     scores[t_id]["rel"] += val
+
+        meets = cache.get("meet", [])
+        meet_name = config.get("meet_name")
+        if not meet_name and meets:
+            m = meets[0]
+            meet_name = m.get("meet_name1") or m.get("meet_name") or m.get("mname")
 
         result = []
         for t_id, s in scores.items():
@@ -695,7 +1053,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     relay_points=s["rel"],
                     total_points=total,
                     rank=0,
-                    meet_name=config.get("meet_name", "Unknown Meet"),
+                    meet_name=str(meet_name or "Unknown Meet"),
                 )
             )
 
@@ -709,70 +1067,66 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetEntries(self, request, context):
         request = request or pb2.GetEntriesRequest()
         cache, _ = self._load_user_data(context)
-        entries_data = cache.get("Entry", []) or cache.get("ENTRY", [])
+        entries_data = cache.get("entry", [])
 
-        athletes = {a.get("Ath_no"): a for a in cache.get("Athlete", [])}
-        teams = {t.get("Team_no"): t.get("Team_name") for t in cache.get("Team", [])}
+        athletes = {self._safe_int(a.get("ath_no")): a for a in cache.get("athlete", [])}
+        teams = {self._safe_int(t.get("team_no")): t.get("team_name") for t in cache.get("team", [])}
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
-        for e in cache.get("Event", []):
-            e_no = e.get("Event_no") or e.get("Event_ptr")
+        for e in cache.get("event", []):
+            e_no = e.get("event_no") or e.get("event_ptr")
             if e_no:
-                g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
-                d = e.get("Event_dist", "")
-                s = stroke_map.get(e.get("Event_stroke", "").strip(), e.get("Event_stroke", ""))
-                age_group = self._format_age(e.get("Low_age"), e.get("High_Age"))
+                g = gender_map.get(e.get("event_sex", "").strip(), e.get("event_sex", ""))
+                d = e.get("event_dist", "")
+                s = stroke_map.get(e.get("event_stroke", "").strip(), e.get("event_stroke", ""))
+                age_group = self._format_age(e.get("low_age"), e.get("high_age"))
                 name = f"{g} {age_group} {d} {s}"
                 events_map[e_no] = name
 
         result = []
         for idx, item in enumerate(entries_data):
-            ath_id = item.get("Ath_no", 0)
+            ath_id = self._safe_int(item.get("ath_no", 0))
             if request and request.athlete_id and str(ath_id) != request.athlete_id:
                 continue
 
             athlete = athletes.get(ath_id, {})
-            t_id = athlete.get("Team_no", 0)
-            event_id = item.get("Event_ptr")
+            t_id = self._safe_int(athlete.get("team_no", 0))
+            event_id = item.get("event_ptr")
             if request and request.event_id and str(event_id) != request.event_id:
                 continue
 
-            seed = item.get("ActualSeed_time") or item.get("ConvSeed_time") or item.get("Seed_Time") or "NT"
-            try:
-                if float(seed) == 0:
-                    seed = "NT"
-            except (ValueError, TypeError):
-                pass
+            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
 
-            entry_id_val = item.get("Entry_no")
-            final_id = int(entry_id_val) if entry_id_val else idx
+            entry_id_val = item.get("entry_no")
+            final_id = self._safe_int(entry_id_val) if entry_id_val else idx
 
             result.append(
                 pb2.Entry(
                     id=final_id,
                     event_id=self._safe_int(event_id),
                     athlete_id=self._safe_int(ath_id),
-                    athlete_name=f"{athlete.get('First_name', '')} {athlete.get('Last_name', '')}",
+                    athlete_name=str(f"{athlete.get('first_name', '')} {athlete.get('last_name', '')}" or ""),
                     team_id=self._safe_int(t_id),
-                    team_name=teams.get(t_id, "Unknown"),
-                    seed_time=str(seed),
-                    final_time=str(item.get("Fin_Time", "")),
-                    place=self._safe_int(item.get("Fin_place", item.get("Place"))),
-                    event_name=events_map.get(event_id, f"Event {event_id}"),
-                    heat=self._safe_int(item.get("Fin_heat", item.get("Pre_heat", 0))),
-                    lane=self._safe_int(item.get("Fin_lane", item.get("Pre_lane", 0))),
-                    points=self._safe_float(item.get("Ev_score", 0.0)),
+                    team_name=str(teams.get(t_id, "Unknown") or "Unknown"),
+                    seed_time=self._format_time(seed),
+                    final_time=self._format_time(item.get("fin_time")),
+                    place=self._safe_int(item.get("fin_place") or item.get("place")),
+                    event_name=str(events_map.get(event_id, f"Event {event_id}") or ""),
+                    heat=self._safe_int(item.get("fin_heat") or item.get("pre_heat") or 0),
+                    lane=self._safe_int(item.get("fin_lane") or item.get("pre_lane") or 0),
+                    points=self._safe_float(item.get("ev_score", 0.0)),
+                    team_color=self._get_team_color(t_id),
                 )
             )
         return pb2.GetEntriesResponse(entries=result)
 
     def _get_scoring_map(self, cache):
-        scoring_data = cache.get("Scoring", []) or cache.get("SCORING", [])
+        scoring_data = cache.get("scoring", [])
         scoring_map: dict[str, dict[str, dict[int, dict[str, float]]]] = {}
         for row in scoring_data:
-            div = row.get("score_divno", "0")
+            div = str(row.get("score_divno", "0"))
             sex = row.get("score_sex", "M").upper()
             place = self._safe_int(row.get("score_place", 0))
 
@@ -800,15 +1154,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return f"{low}-{high}"
 
     def _calculate_points(self, item, sex, is_relay, cache):
-        score = self._safe_float(item.get("Ev_score", 0))
+        score = self._safe_float(item.get("ev_score", 0))
         if score > 0:
             return score
 
-        place = self._safe_int(item.get("Fin_place", item.get("Place", 0)))
+        place = self._safe_int(item.get("fin_place", item.get("place", 0)))
         if place <= 0:
             return 0.0
 
-        div = item.get("Div_no", "0") or "0"
+        div = str(item.get("div_no", "0"))
         sex_map = {"B": "M", "M": "M", "G": "F", "W": "F", "F": "F", "X": "M"}
         mapped_sex = sex_map.get(sex.upper(), "M")
 
@@ -822,10 +1176,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetEventScores(self, request, context):
         request = request or pb2.GetEventScoresRequest()
         cache, _ = self._load_user_data(context)
-        entries = cache.get("Entry", []) or cache.get("ENTRY", [])
-        relays = cache.get("Relay", []) or cache.get("RELAY", [])
-        athletes_map = {a.get("Ath_no"): a for a in cache.get("Athlete", [])}
-        teams_map = {t.get("Team_no"): t.get("Team_name") for t in cache.get("Team", [])}
+        entries = cache.get("entry", [])
+        relays = cache.get("relay", [])
+        athletes_map = {self._safe_int(a.get("ath_no")): a for a in cache.get("athlete", [])}
+        teams_map = {self._safe_int(t.get("team_no")): t.get("team_name") for t in cache.get("team", [])}
 
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
@@ -834,62 +1188,57 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         event_dict: dict[str, dict[str, Any]] = {}
         event_raw_map = {}
 
-        for e in cache.get("Event", []):
-            e_no = e.get("Event_no") or e.get("Event_ptr")
+        for e in cache.get("event", []):
+            e_no = e.get("event_no") or e.get("event_ptr")
             if not e_no:
                 continue
 
             event_raw_map[e_no] = e
-            g = gender_map.get(e.get("Event_sex", "").strip(), e.get("Event_sex", ""))
-            d = e.get("Event_dist", "")
-            s_raw = e.get("Event_stroke", "").strip()
+            g = gender_map.get(e.get("event_sex", "").strip(), e.get("event_sex", ""))
+            d = e.get("event_dist", "")
+            s_raw = e.get("event_stroke", "").strip()
             s = stroke_map.get(s_raw, s_raw)
 
-            is_relay = e.get("Ind_rel", "").upper().strip() == "R"
+            is_relay = e.get("ind_rel", "").upper().strip() == "R"
             if s_raw == "E" and is_relay:
                 s = "Medley Relay"
             elif is_relay and s != s_raw:
                 s += " Relay"
 
-            low = e.get("Low_age", "")
-            high = e.get("High_Age", "")
+            low = e.get("low_age", "")
+            high = e.get("high_age", "")
             age_group = self._format_age(low, high)
             name = f"{g} {age_group} {d} {s}"
             events_map[e_no] = name
-            event_dict[e_no] = {"id": int(e_no), "name": name, "entries": []}
+            event_dict[e_no] = {"id": self._safe_int(e_no), "name": name, "entries": []}
 
         for item in entries:
-            e_id = item.get("Event_ptr")
+            e_id = item.get("event_ptr")
             if e_id not in event_dict:
                 continue
 
-            ath_id = item.get("Ath_no")
+            ath_id = self._safe_int(item.get("ath_no"))
             ath = athletes_map.get(ath_id)
-            t_id = ath.get("Team_no", 0) if ath else 0
-            place = self._safe_int(item.get("Fin_place", item.get("Place", 0)))
+            t_id = self._safe_int(ath.get("team_no", 0)) if ath else 0
+            place = self._safe_int(item.get("fin_place", item.get("place", 0)))
 
             ev_raw = event_raw_map.get(e_id, {})
-            points = self._calculate_points(item, ev_raw.get("Event_sex", "M"), False, cache)
+            points = self._calculate_points(item, ev_raw.get("event_sex", "M"), False, cache)
 
-            if not item.get("Fin_Time") and place <= 0:
+            if not item.get("fin_time") and place <= 0:
                 continue
 
-            seed = item.get("ActualSeed_time") or item.get("ConvSeed_time") or item.get("Seed_Time") or "NT"
-            try:
-                if float(seed) == 0:
-                    seed = "NT"
-            except (ValueError, TypeError):
-                pass
+            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
 
             entry_obj = pb2.Entry(
                 id=0,
-                event_id=int(e_id),
-                athlete_id=int(ath_id if ath else 0),
-                athlete_name=f"{ath.get('First_name', '')} {ath.get('Last_name', '')}" if ath else "Unknown",
-                team_id=int(t_id),
+                event_id=self._safe_int(e_id),
+                athlete_id=ath_id,
+                athlete_name=f"{ath.get('first_name', '')} {ath.get('last_name', '')}" if ath else "Unknown",
+                team_id=t_id,
                 team_name=teams_map.get(t_id, "Unknown"),
-                seed_time=str(seed),
-                final_time=str(item.get("Fin_Time", "")),
+                seed_time=self._format_time(seed),
+                final_time=self._format_time(item.get("fin_time")),
                 place=place,
                 points=points,
                 event_name=events_map.get(e_id, ""),
@@ -897,40 +1246,35 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             event_dict[e_id]["entries"].append(entry_obj)
 
         for item in relays:
-            e_id = item.get("Event_ptr")
+            e_id = item.get("event_ptr")
             if e_id not in event_dict:
                 continue
 
-            t_id = item.get("Team_ptr") or item.get("Team_no")
-            place = self._safe_int(item.get("Fin_place", item.get("Place", 0)))
-            rel_ltr = item.get("Team_ltr", "")
+            t_id = self._safe_int(item.get("team_ptr") or item.get("team_no"))
+            place = self._safe_int(item.get("fin_place", item.get("place", 0)))
+            rel_ltr = item.get("team_ltr", "")
 
             ev_raw = event_raw_map.get(e_id, {})
-            points = self._calculate_points(item, ev_raw.get("Event_sex", "X"), True, cache)
+            points = self._calculate_points(item, ev_raw.get("event_sex", "X"), True, cache)
 
-            if not item.get("Fin_Time") and place <= 0:
+            if not item.get("fin_time") and place <= 0:
                 continue
 
-            seed = item.get("ActualSeed_time") or item.get("ConvSeed_time") or item.get("Seed_Time") or "NT"
-            try:
-                if float(seed) == 0:
-                    seed = "NT"
-            except (ValueError, TypeError):
-                pass
+            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
 
             entry_obj = pb2.Entry(
                 id=0,
-                event_id=int(e_id),
+                event_id=self._safe_int(e_id),
                 athlete_id=0,
                 athlete_name=f"Relay Team ({rel_ltr})" if rel_ltr else "Relay Team",
-                team_id=int(t_id if t_id else 0),
+                team_id=t_id,
                 team_name=teams_map.get(t_id, "Unknown"),
-                seed_time=str(seed),
-                final_time=str(item.get("Fin_Time", "")),
+                seed_time=self._format_time(seed),
+                final_time=self._format_time(item.get("fin_time")),
                 place=place,
                 points=points,
-                heat=self._safe_int(item.get("Fin_heat", 0)),
-                lane=self._safe_int(item.get("Fin_lane", 0)),
+                heat=self._safe_int(item.get("fin_heat", 0)),
+                lane=self._safe_int(item.get("fin_lane", 0)),
                 event_name=events_map.get(e_id, ""),
             )
             event_dict[e_id]["entries"].append(entry_obj)
@@ -946,36 +1290,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetEventScoresResponse(event_scores=resp_list)
 
     def GenerateReport(self, request, context):
-        if request is None:
-            return pb2.GenerateReportResponse(success=False, message="Missing request")
+        request = request or pb2.GenerateReportRequest()
         try:
             cache, _ = self._load_user_data(context)
-            converter = MmToJsonConverter(table_data=cache)
-
-            rtype_val = pb2.REPORT_TYPE_PSYCH_UNSPECIFIED
-            team_filter = None
-            title = None
-            gender_filter = None
-            age_group_filter = None
-            columns_on_page = 2
-            show_relay_swimmers = True
-            zebra_striping = False
-
-            if request:
-                rtype_val = request.type
-                team_filter = request.team_filter
-                title = request.title
-                gender_filter = request.gender_filter
-                age_group_filter = request.age_group_filter
-                if request.columns_on_page:
-                    columns_on_page = request.columns_on_page
-                if request.HasField("show_relay_swimmers"):
-                    show_relay_swimmers = request.show_relay_swimmers
-                if request.HasField("zebra_striping"):
-                    zebra_striping = request.zebra_striping
-
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-                temp_path = tmp.name
 
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
@@ -986,113 +1303,53 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
                 pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
+                pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
+                pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
             }
 
-            rtype = rtype_map.get(rtype_val, "psych")
-            pdf_content = b""
-            html_content = None
+            from mm_to_json.mm_to_json import MmToJsonConverter
 
-            extractor = ReportDataExtractor(converter)
-            renderer = WeasyRenderer(temp_path)
+            # Convert data once
+            converter = MmToJsonConverter(table_data=cache)
+            full_data = converter.convert()
 
-            if rtype == "psych":
-                report_data = extractor.extract_psych_sheet_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "psych_sheet.html")
-            elif rtype == "entries":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_hytek.html")
-            elif rtype == "lineups":
-                report_data = extractor.extract_timer_sheets_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "lineups.html")
-            elif rtype == "results":
-                report_data = extractor.extract_results_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "results.html")
-            elif rtype == "program":
-                program_data = extractor.extract_meet_program_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                    columns_on_page=columns_on_page,
-                    show_relay_swimmers=show_relay_swimmers,
-                )
-                program_data["zebra_striping"] = zebra_striping
-                renderer.render_meet_program(program_data)
-            elif rtype == "program_html":
-                program_data = extractor.extract_meet_program_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                    columns_on_page=columns_on_page,
-                    show_relay_swimmers=show_relay_swimmers,
-                )
-                program_data["zebra_striping"] = zebra_striping
-                html_content = renderer.render_to_html(program_data)
-                with open(temp_path, "wb") as f:
-                    f.write(b"")
-            elif rtype == "entries_hytek":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_hytek.html")
-            elif rtype == "entries_club":
-                report_data = extractor.extract_meet_entries_data(
-                    team_filter=team_filter,
-                    report_title=title,
-                    gender_filter=gender_filter,
-                    age_group_filter=age_group_filter,
-                )
-                report_data["zebra_striping"] = zebra_striping
-                renderer.render_entries(report_data, "entries_club.html")
+            # Serialize to msgpack for worker access
+            with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
+                msgpack_path = msgpack_tmp.name
+                msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
 
-            if os.path.exists(temp_path):
-                with open(temp_path, "rb") as f:
-                    pdf_content = f.read()
-                os.remove(temp_path)
+            try:
+                res = _process_single_report_process(
+                    0,
+                    request.type,
+                    request.title,
+                    request.team_filter,
+                    request.gender_filter,
+                    request.age_group_filter,
+                    request.columns_on_page if request.HasField("columns_on_page") else 2,
+                    request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
+                    request.zebra_striping if request.HasField("zebra_striping") else False,
+                    msgpack_path,
+                    rtype_map,
+                )
+            finally:
+                # Cleanup msgpack file
+                if os.path.exists(msgpack_path):
+                    os.remove(msgpack_path)
 
-            filename = f"report_{rtype}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            if rtype == "program_html":
-                filename = filename.replace(".pdf", ".html")
+            if not res["success"]:
+                return pb2.GenerateReportResponse(success=False, message=res["error"])
 
             return pb2.GenerateReportResponse(
                 success=True,
                 message="Report generated successfully",
-                pdf_content=pdf_content,
-                filename=filename,
-                html_content=html_content,
+                pdf_content=res["content"] if res["filename"].endswith(".pdf") else b"",
+                filename=res["filename"],
+                html_content=res["content"].decode("utf-8") if res["filename"].endswith(".html") else "",
             )
 
         except Exception as e:
-            print(f"Error generating report: {e}")
+            logging.error(f"Error generating report: {e}")
             return pb2.GenerateReportResponse(success=False, message=str(e))
 
     def GenerateReportBundle(self, request, context):
@@ -1103,8 +1360,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             cache, _ = self._load_user_data(context)
-            converter = MmToJsonConverter(table_data=cache)
-            extractor = ReportDataExtractor(converter)
 
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
@@ -1115,124 +1370,68 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
                 pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
+                pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
+                pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
             }
 
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for idx, report_req in enumerate(request.reports):
-                    rtype_val = report_req.type
-                    rtype = rtype_map.get(rtype_val, "psych")
-                    title = report_req.title
-                    team_filter = report_req.team_filter
-                    gender_filter = report_req.gender_filter
-                    age_group_filter = report_req.age_group_filter
+            # Generate reports in parallel with ProcessPoolExecutor to bypass Python GIL
+            # Must use 'spawn' context because forking a gRPC process causes deadlocks!
+            import multiprocessing
+            import zipfile
+            from concurrent.futures import ProcessPoolExecutor
 
-                    # New variation fields
-                    columns_on_page = 2
-                    if report_req.columns_on_page:
-                        columns_on_page = report_req.columns_on_page
+            # Convert data once in main process
+            converter = MmToJsonConverter(table_data=cache)
+            full_data = converter.convert()
 
-                    show_relay_swimmers = True
-                    if report_req.HasField("show_relay_swimmers"):
-                        show_relay_swimmers = report_req.show_relay_swimmers
+            # Serialize to msgpack for fast worker access
+            with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
+                msgpack_path = msgpack_tmp.name
+                msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
 
-                    zebra_striping = False
-                    if report_req.HasField("zebra_striping"):
-                        zebra_striping = report_req.zebra_striping
+            tasks = []
+            # Cloud Run backend has 2 CPUs (or more), 3 workers maximizes CPU usage without massive memory spikes
+            ctx = multiprocessing.get_context("spawn")
+            try:
+                with ProcessPoolExecutor(max_workers=3, mp_context=ctx) as executor:
+                    for idx, report_req in enumerate(request.reports):
+                        tasks.append(
+                            executor.submit(
+                                _process_single_report_process,
+                                idx,
+                                report_req.type,
+                                report_req.title,
+                                report_req.team_filter,
+                                report_req.gender_filter,
+                                report_req.age_group_filter,
+                                report_req.columns_on_page if getattr(report_req, "columns_on_page", None) else 2,
+                                report_req.show_relay_swimmers if report_req.HasField("show_relay_swimmers") else True,
+                                report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
+                                msgpack_path,
+                                rtype_map,
+                            )
+                        )
 
-                    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-                        temp_path = tmp.name
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    for future in tasks:
+                        res = future.result()
+                        if res.get("success"):
+                            zip_file.writestr(res["filename"], res["content"])
+                        else:
+                            raise Exception(
+                                f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
+                            )
+            finally:
+                # Cleanup msgpack file
+                if os.path.exists(msgpack_path):
+                    os.remove(msgpack_path)
 
-                    renderer = WeasyRenderer(temp_path)
-
-                    if rtype == "psych":
-                        report_data = extractor.extract_psych_sheet_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "psych_sheet.html")
-                    elif rtype == "entries":
-                        report_data = extractor.extract_meet_entries_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "entries_hytek.html")
-                    elif rtype == "lineups":
-                        report_data = extractor.extract_timer_sheets_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "lineups.html")
-                    elif rtype == "results":
-                        report_data = extractor.extract_results_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "results.html")
-                    elif rtype == "program":
-                        program_data = extractor.extract_meet_program_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                            columns_on_page=columns_on_page,
-                            show_relay_swimmers=show_relay_swimmers,
-                        )
-                        program_data["zebra_striping"] = zebra_striping
-                        renderer.render_meet_program(program_data)
-                    elif rtype == "program_html":
-                        program_data = extractor.extract_meet_program_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                            columns_on_page=columns_on_page,
-                            show_relay_swimmers=show_relay_swimmers,
-                        )
-                        program_data["zebra_striping"] = zebra_striping
-                        html_content = renderer.render_to_html(program_data)
-                        with open(temp_path, "w") as f:
-                            f.write(html_content)
-                    elif rtype == "entries_hytek":
-                        report_data = extractor.extract_meet_entries_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "entries_hytek.html")
-                    elif rtype == "entries_club":
-                        report_data = extractor.extract_meet_entries_data(
-                            team_filter=team_filter,
-                            report_title=title,
-                            gender_filter=gender_filter,
-                            age_group_filter=age_group_filter,
-                        )
-                        report_data["zebra_striping"] = zebra_striping
-                        renderer.render_entries(report_data, "entries_club.html")
-
-                    if os.path.exists(temp_path):
-                        # Clean title for filename
-                        safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-                        ext = ".html" if rtype == "program_html" else ".pdf"
-                        file_name = f"{idx + 1}_{safe_title}{ext}"
-                        zip_file.write(temp_path, file_name)
-                        os.remove(temp_path)
-
-            bundle_name = request.bundle_name or f"meet_bundle_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+            num_reports = len(request.reports)
+            bundle_name = (
+                request.bundle_name
+                or f"meet_bundle_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{num_reports}_items.zip"
+            )
             if not bundle_name.endswith(".zip"):
                 bundle_name += ".zip"
 
@@ -1244,18 +1443,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             )
 
         except Exception as e:
-            print(f"Error generating report bundle: {e}")
+            logging.error(f"Error generating report bundle: {e}")
             return pb2.GenerateReportBundleResponse(success=False, message=str(e))
 
     def GetSessions(self, request, context):
         request = request or pb2.GetSessionsRequest()
         cache, _ = self._load_user_data(context)
-        data = cache.get("Session", [])
-        meets = cache.get("Meet", [])
+        data = cache.get("session", [])
+        meets = cache.get("meet", [])
         meet_start = None
         if meets:
             m = meets[0]
-            date_str = m.get("Start") or m.get("Start_date") or ""
+            date_str = m.get("start") or m.get("start_date") or ""
             if date_str:
                 try:
                     if " " in date_str:
@@ -1269,36 +1468,36 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 except Exception:
                     pass
 
-        # Count events per session from Sessitem for reliability
-        sess_item_table = cache.get("Sessitem", []) or cache.get("SESSITEM", [])
+        # Count events per session from sessitem for reliability
+        sess_item_table = cache.get("sessitem", [])
         event_counts_map: dict[Any, int] = {}
         for si in sess_item_table:
-            s_ptr = si.get("Sess_ptr")
+            s_ptr = si.get("sess_ptr")
             if s_ptr:
                 event_counts_map[s_ptr] = event_counts_map.get(s_ptr, 0) + 1
 
         sessions_to_process = []
         if data:
             for item in data:
-                s_ptr = item.get("Sess_ptr")
-                e_cnt = self._safe_int(item.get("Event_cnt"))
+                s_ptr = item.get("sess_ptr")
+                e_cnt = self._safe_int(item.get("event_cnt"))
                 if not e_cnt and s_ptr:
                     e_cnt = event_counts_map.get(s_ptr, 0)
 
                 sessions_to_process.append(
                     {
-                        "id": str(item.get("Sess_no")),
-                        "name": item.get("Sess_name", f"Session {item.get('Sess_no')}"),
-                        "day": item.get("Sess_day", 1),
-                        "warmup": item.get("Sess_warmup", 0),
-                        "starttime": item.get("Sess_starttime", 0),
+                        "id": str(item.get("sess_no")),
+                        "name": item.get("sess_name", f"Session {item.get('sess_no')}"),
+                        "day": self._safe_int(item.get("sess_day", 1)),
+                        "warmup": self._safe_int(item.get("sess_warmup", 0)),
+                        "starttime": self._safe_int(item.get("sess_starttime", 0)),
                         "event_cnt": e_cnt,
                         "source_item": item,
                     }
                 )
         else:
-            event_table = cache.get("Event", []) or cache.get("MTEVENT", [])
-            sess_ids = sorted({self._safe_int(e.get("Sess_no", e.get("sess_no", 1))) for e in event_table})
+            event_table = cache.get("event", [])
+            sess_ids = sorted({self._safe_int(e.get("sess_no", 1)) for e in event_table})
             if not sess_ids and not event_table:
                 sess_ids = [1]
 
@@ -1324,13 +1523,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 s_date = meet_start + datetime.timedelta(days=day_offset)
                 sess_date = s_date.strftime("%Y-%m-%d")
             else:
-                sess_date = self._format_date(item.get("Sess_date", ""))
+                sess_date = self._format_date(item.get("sess_date", ""))
 
             s_no = s_info["id"]
-            events = cache.get("Event", []) or cache.get("MTEVENT", [])
+            events = cache.get("event", [])
             ev_count = 0
             if s_no:
-                ev_count = sum(1 for e in events if str(e.get("Sess_no", e.get("sess_no", 1))) == str(s_no))
+                ev_count = sum(1 for e in events if str(e.get("sess_no", 1)) == str(s_no))
 
             sessions.append(
                 pb2.Session(
@@ -1342,9 +1541,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     start_time=self._seconds_to_time(s_info["starttime"]),
                     event_count=s_info.get("event_cnt") or ev_count,
                     session_num=self._safe_int(s_no, 0),
-                    day=self._safe_int(s_info["day"], 1),
                 )
             )
+
         return pb2.GetSessionsResponse(sessions=sessions)
 
     def GetAdminConfig(self, request, context):
@@ -1378,24 +1577,182 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             extractor = JudgeAppExtractor(converter)
             judge_data = extractor.extract_judge_data()
 
-            # Save to a user-specific public-accessible location
-            pub_dir = os.path.join(os.path.dirname(__file__), DATA_DIR, "published", uid)
-            os.makedirs(pub_dir, exist_ok=True)
-
+            # Save to a user-specific public-accessible location via StorageProvider
             filename = f"program_{current_file}.json"
-            filepath = os.path.join(pub_dir, filename)
-            with open(filepath, "w") as f:
-                json.dump(judge_data, f)
+            user_pub_path = os.path.join("users", uid, "published", filename)
 
-            # Use uid in the program_url for isolation
-            program_url = f"http://localhost:8080/data/published/{uid}/{filename}"
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                json.dump(judge_data, tmp)
+                tmp_path = tmp.name
+
+            try:
+                self.storage.upload_file(tmp_path, user_pub_path)
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+
+            # Generate URLs
+            program_url = self.storage.get_url(user_pub_path)
+            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+
+            # Append token to program_url
+            if "?" in program_url:
+                program_url = f"{program_url}&token={token}"
+            else:
+                program_url = f"{program_url}?token={token}"
+
+            # Sync URL points to the frontend API which proxies to gRPC SyncDQs
+            # Use environment variables to avoid port collisions on shared machines
+            frontend_host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
+            frontend_port = os.getenv("FRONTEND_PORT", "3000")
+            frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
+            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+            sync_url = f"{frontend_base}/api/sync-dqs?token={token}"
+
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
-            judge_app_url = f"{base_url}?program_url={program_url}"
+            judge_app_url = f"{base_url}?program_url={program_url}&sync_url={sync_url}"
 
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:
-            print(f"Publish failed: {e}")
+            logging.error(f"Publish failed: {e}")
             return pb2.PublishMeetDataResponse(success=False, message=str(e))
+
+    def SyncDQs(self, request, context):
+        uid = self._check_auth(context)
+        dqs_json = request.dqs_json
+
+        try:
+            # Parse to validate
+            dqs = json.loads(dqs_json)
+
+            # Save to user's dataset directory (as backup/log)
+            filename = "synced_dqs.json"
+            user_path = os.path.join("users", uid, filename)
+
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                json.dump(dqs, tmp, indent=2)
+                tmp_path = tmp.name
+
+            try:
+                self.storage.upload_file(tmp_path, user_path)
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+
+            # Update the master database if it's an MDB
+            config = self._load_user_config(context)
+            active_filename = config.get("active_dataset")
+            if active_filename and active_filename.lower().endswith(".mdb"):
+                dataset_path = os.path.join("users", uid, active_filename)
+                if self.storage.exists(dataset_path):
+                    logging.info(f"Syncing DQs to MDB: {dataset_path} for user {uid}")
+
+                    # Download MDB to local temp for writing
+                    with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp_mdb:
+                        tmp_mdb_path = tmp_mdb.name
+                        tmp_mdb.close()
+
+                    try:
+                        self.storage.download_file(dataset_path, tmp_mdb_path)
+
+                        # Resolve event pointers and relay status from human-readable numbers
+                        cache, _ = self._load_user_data(context)
+                        event_table = cache.get("event", [])
+                        # Map eventNum (human #) to {ptr, is_relay}
+                        event_info_map = {}
+                        for e in event_table:
+                            # event_no is human #, event_ptr is MDB PK
+                            # mtevent is PK in Schema B
+                            h_num = self._safe_int(e.get("event_no") or e.get("mtevent"))
+                            e_ptr = e.get("event_ptr") or e.get("mtevent")
+                            # Ind_rel is 'R' for relays in Schema A, 'i_r' in Schema B?
+                            is_relay = str(e.get("Ind_rel", e.get("i_r", ""))).upper() == "R"
+
+                            if h_num and e_ptr:
+                                event_info_map[h_num] = {"ptr": e_ptr, "is_relay": is_relay}
+
+                        from mm_to_json import mdb_writer
+
+                        db = mdb_writer.open_db(tmp_mdb_path)
+                        try:
+                            updated_count = 0
+                            for dq in dqs:
+                                # Mobile app sends id, swimmer_id, event_id, dq_code, notes, heat, lane
+                                event_id = dq.get("event_id")
+                                athlete_id = dq.get("swimmer_id")
+                                dq_code = dq.get("dq_code", "")
+                                heat = self._safe_int(dq.get("heat", 0))
+                                lane = self._safe_int(dq.get("lane", 0))
+
+                                info = event_info_map.get(self._safe_int(event_id))
+                                if info and athlete_id:
+                                    if mdb_writer.update_entry_status(
+                                        db,
+                                        info["ptr"],
+                                        athlete_id,
+                                        heat,
+                                        lane,
+                                        status="DQ",
+                                        dq_code=dq_code,
+                                        is_relay=info["is_relay"],
+                                    ):
+                                        updated_count += 1
+
+                            db.close()
+                            # Upload updated MDB back to storage
+                            self.storage.upload_file(tmp_mdb_path, dataset_path)
+
+                            # Force cache invalidation so Next.js/Web-Client sees the DQ
+                            if uid in self._user_cache:
+                                del self._user_cache[uid]
+                            logging.info(f"Successfully updated {updated_count} entries in MDB for {uid}")
+                        finally:
+                            try:
+                                db.close()
+                            except Exception:
+                                pass
+                    finally:
+                        if os.path.exists(tmp_mdb_path):
+                            os.remove(tmp_mdb_path)
+
+            logging.info(f"Synced {len(dqs)} DQs for user {uid}")
+            return pb2.SyncDQsResponse(success=True, message=f"Synced {len(dqs)} items")
+        except Exception as e:
+            logging.error(f"Sync failed: {e}")
+            return pb2.SyncDQsResponse(success=False, message=str(e))
+
+    def GetFile(self, request, context):
+        uid = self._check_auth(context)
+        path = request.path
+
+        # Verify path starts with users/[uid] or is Sample_Data.json
+        if not (path.startswith(f"users/{uid}/") or path == SOURCE_FILE):
+            context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
+
+        if not self.storage.exists(path):
+            context.abort(grpc.StatusCode.NOT_FOUND, f"File {path} not found")
+
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            self.storage.download_file(path, tmp_path)
+            with open(tmp_path, "rb") as f:
+                content = f.read()
+
+            import mimetypes
+
+            mime_type, _ = mimetypes.guess_type(path)
+            if not mime_type:
+                mime_type = "application/octet-stream"
+
+            return pb2.GetFileResponse(content=content, mime_type=mime_type)
+        except Exception as e:
+            logging.error(f"GetFile failed: {e}")
+            context.abort(grpc.StatusCode.INTERNAL, str(e))
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     def _safe_int(self, value, default=0):
         try:
@@ -1408,6 +1765,17 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return float(value)
         except (ValueError, TypeError):
             return default
+
+    def _format_time(self, val):
+        if val is None or val == 0 or val == "0" or str(val).strip() == "":
+            return "NT"
+        try:
+            f_val = float(val)
+            if f_val == 0:
+                return "NT"
+            return f"{f_val:.3f}"
+        except (ValueError, TypeError):
+            return str(val).strip()
 
     def _seconds_to_time(self, seconds_val):
         try:
@@ -1438,12 +1806,24 @@ def serve():
 
     pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
 
-    server.add_insecure_port(f"[::]:{port}")
-    print(f"Server starting on port {port} with AuthInterceptor and Health check...")
+    server.add_insecure_port(f"0.0.0.0:{port}")
+    logging.info(f"Server starting on port {port} with AuthInterceptor and Health check...")
     server.start()
     server.wait_for_termination()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    # Configure logging
+    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_level = getattr(logging, log_level_str, logging.INFO)
+
+    logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+    # Suppress verbose third-party loggers unless explicitly requested
+    if log_level_str != "DEBUG":
+        logging.getLogger("fontTools").setLevel(logging.WARNING)
+        logging.getLogger("weasyprint").setLevel(logging.WARNING)
+        logging.getLogger("jpype").setLevel(logging.WARNING)
+
     serve()
+# Triggering fresh CI run with clean lint state

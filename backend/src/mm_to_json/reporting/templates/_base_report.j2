@@ -7,11 +7,13 @@
         /* Base injection for mm-tools styles */
         {{ css_content }}
 
-        /* Optional column configuration applied globally if specified */
-        {% if columns_on_page %}
+        /* Centralized column configuration */
+        {% if columns_on_page and columns_on_page > 1 %}
         .content-container {
             column-count: {{ columns_on_page }};
-            column-gap: 20pt;
+            column-gap: 30pt;
+            column-rule: 1pt solid #ddd;
+            column-fill: auto;
         }
         {% endif %}
         
@@ -20,15 +22,20 @@
 </head>
 <body>
     <div id="header">
-        <div class="header-top">
-            <span class="left">Tri-Valley Swim Lg. C</span>
-            <span class="right">MM-Tools - {{ generation_time }}</span>
-        </div>
-        <div class="header-main">
-            <h1>{{ meet_name }}</h1>
-            <h2>{{ sub_title }}</h2>
-        </div>
+        <table class="header-table">
+            <tr class="header-top">
+                <td class="header-left-col">
+                    <div class="header-meet-name">{{ meet_name|default('Tri-Valley Swim League') }}</div>
+                    <div class="header-sub-title">{{ sub_title }}</div>
+                </td>
+                <td class="header-right-col">
+                    <div class="header-timestamp">MM-Tools - {{ generation_time }}</div>
+                    <div class="header-page-num">Page <span class="page-counter"></span></div>
+                </td>
+            </tr>
+        </table>
     </div>
+
 
     <!-- Main Report Content -->
     <div class="content-container {% block container_class %}{% endblock %}">

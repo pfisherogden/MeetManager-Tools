@@ -1,6 +1,7 @@
 import { getRelays } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { RelaysManager } from "@/components/relays-manager";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Relay as UIRelay } from "@/lib/swim-meet-types";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ interface ServerRelay {
 	eventName?: string;
 	teamId: number;
 	teamName: string;
+	teamColor?: string;
 	leg1Name: string;
 	leg2Name: string;
 	leg3Name: string;
@@ -20,11 +22,20 @@ interface ServerRelay {
 	place?: number;
 }
 
-export default async function RelaysPage() {
+export default async function RelaysPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+	const params = await searchParams;
+	const eventId = params.event as string | undefined;
+
 	let mappedRelays: UIRelay[] = [];
 
 	try {
-		const list = (await getRelays()) as unknown as { relays: ServerRelay[] };
+		const list = (await getRelays(eventId)) as unknown as {
+			relays: ServerRelay[];
+		};
 		if (list?.relays) {
 			mappedRelays = list.relays.map((r) => ({
 				id: r.id.toString(),
@@ -32,6 +43,7 @@ export default async function RelaysPage() {
 				eventName: r.eventName || `Event ${r.eventId}`,
 				teamId: r.teamId.toString(),
 				teamName: r.teamName,
+				teamColor: r.teamColor,
 				leg1: r.leg1Name,
 				leg2: r.leg2Name,
 				leg3: r.leg3Name,
@@ -46,17 +58,22 @@ export default async function RelaysPage() {
 	}
 
 	return (
-		<div className="flex min-h-screen bg-background">
+		<>
 			<AppSidebar />
-			<main className="flex-1 flex flex-col overflow-hidden">
-				<div className="p-6 pb-0">
-					<h1 className="text-2xl font-bold text-foreground">Relays</h1>
-					<p className="text-muted-foreground">
-						Manage relay team entries and results
-					</p>
+			<SidebarInset>
+				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
+					<SidebarTrigger className="-ml-1" />
+				</header>
+				<div className="flex-1 flex flex-col overflow-hidden">
+					<div className="p-6 pb-0">
+						<h1 className="text-2xl font-bold text-foreground">Relays</h1>
+						<p className="text-muted-foreground">
+							Manage relay teams and entries
+						</p>
+					</div>
+					<RelaysManager initialRelays={mappedRelays} />
 				</div>
-				<RelaysManager initialRelays={mappedRelays} />
-			</main>
-		</div>
+			</SidebarInset>
+		</>
 	);
 }

@@ -1,0 +1,51 @@
+digraph Architecture {
+    rankdir=LR;
+    node [shape=box, style=filled, fillcolor=lightblue];
+
+    subgraph cluster_local {
+        label = "Local Deployment";
+        style=dashed;
+        color=grey;
+        
+        Director [label="Meet Director
+(Browser)"];
+        JudgeLocal [label="Judge
+(Mobile App)"];
+        WebClientLocal [label="Next.js Web Client
+(Docker:8080)"];
+        BackendLocal [label="Python gRPC Backend
+(Docker:8081)"];
+        StorageLocal [label="Local Filesystem
+(.mdb / .json)"];
+        
+        Director -> WebClientLocal;
+        JudgeLocal -> BackendLocal [label="gRPC"];
+        WebClientLocal -> BackendLocal [label="gRPC-Web"];
+        BackendLocal -> StorageLocal [label="File I/O"];
+    }
+
+    subgraph cluster_cloud {
+        label = "Cloud Deployment (GCP)";
+        style=dashed;
+        color=blue;
+        
+        UserCloud [label="Users
+(Web/Mobile)"];
+        LB [label="Cloud Run Load Balancer", fillcolor=orange];
+        FrontendCloud [label="Frontend Service
+(Cloud Run)"];
+        BackendCloud [label="Backend Service
+(Cloud Run)"];
+        GCS [label="Google Cloud Storage
+(Sandboxed Buckets)", fillcolor=lightgreen];
+        FirebaseAuth [label="Firebase Auth", fillcolor=yellow];
+        
+        UserCloud -> LB;
+        LB -> FrontendCloud;
+        LB -> BackendCloud;
+        FrontendCloud -> FirebaseAuth [label="Verify Session"];
+        BackendCloud -> FirebaseAuth [label="Verify JWT"];
+        FrontendCloud -> BackendCloud [label="gRPC-Web"];
+        BackendCloud -> GCS [label="Blob API"];
+    }
+}

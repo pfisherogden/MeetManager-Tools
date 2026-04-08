@@ -43,9 +43,12 @@ const columns: Column<Athlete>[] = [
 		// Note: In a real app we might pass team options as props too
 		options: ["Kyleton Swimmers", "Other"],
 		width: "w-44",
-		render: (value) => (
+		render: (value, row) => (
 			<div className="flex items-center gap-2">
-				{/* Simplification: removed color dot for now as we need team metadata lookup */}
+				<span
+					className="w-2.5 h-2.5 rounded-full shrink-0"
+					style={{ backgroundColor: (row as any).teamColor || "#ccc" }}
+				/>
 				<span>{value as string}</span>
 			</div>
 		),

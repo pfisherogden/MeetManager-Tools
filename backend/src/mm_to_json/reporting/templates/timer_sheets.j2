@@ -4,136 +4,129 @@
 {% block container_class %}timer-sheet-content{% endblock %}
 
 {% block extra_css %}
-        .group-block {
-            page-break-after: always;
-            margin-bottom: 20pt;
-        }
-
-        .group-header {
-            background-color: #333;
-            color: white;
-            font-weight: bold;
-            font-size: 16pt;
-            padding: 5pt 10pt;
-            margin-bottom: 10pt;
-            text-transform: uppercase;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .entries-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11pt;
-        }
-
-        .entries-table th {
-            text-align: left;
-            border-bottom: 2pt solid #000;
-            padding: 5pt;
-            background-color: #f8f8f8;
-        }
-
-        .entries-table td {
-            padding: 8pt 5pt;
-            border-bottom: 1pt solid #ccc;
-        }
-
-        .col-event {
-            width: 50pt;
-            font-weight: bold;
-        }
-
-        .col-heat {
-            width: 40pt;
-        }
-
-        .col-name {
-            width: auto;
-            font-weight: bold;
-        }
-
-        .col-seed {
-            width: 60pt;
-            text-align: right;
-            color: #666;
-        }
-
-        .col-manual {
-            width: 70pt;
-            text-align: center;
-            border-left: 1pt solid #ccc;
-            font-family: monospace;
-            font-size: 12pt;
-        }
-
-        .manual-line {
-            border-bottom: 1.5pt solid #000;
-            display: block;
-            width: 90%;
-            height: 16pt;
-            margin: 0 auto;
-        }
-
-        .relay-swimmers-row td {
-            font-size: 9pt;
-            padding-top: 0;
-            color: #444;
-        }
+    .timer-sheet-content {
+        column-count: 1 !important;
+    }
+    .group-block {
+        page-break-after: always;
+        break-after: page;
+    }
+    .lane-header {
+        font-size: 14pt;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 5pt;
+        background-color: #f0f0f0;
+        padding: 4pt;
+        border: 1pt solid #000;
+    }
+    .timer-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 5pt;
+    }
+    .timer-table th {
+        border: 1pt solid #333;
+        padding: 3pt;
+        font-size: 8.5pt;
+        background-color: #eee;
+        text-align: center;
+    }
+    .timer-table td {
+        border: 1pt solid #333;
+        padding: 4pt;
+        height: 44pt; /* Targeted height to fit exactly 12 rows on one page */
+        vertical-align: middle;
+    }
+    .col-ev-ht { width: 45pt; text-align: center; font-weight: bold; font-size: 10pt; }
+    .col-name-team { width: auto; }
+    .col-seed { 
+        width: 60pt; 
+        text-align: center; 
+        font-family: monospace; 
+        font-weight: bold;
+        font-size: 11pt;
+    }
+    .col-timer { width: 75pt; }
+    
+    .swimmer-info-block {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100%;
+    }
+    .swimmer-name {
+        font-weight: bold;
+        font-size: 10pt;
+        line-height: 1.1;
+    }
+    .team-name {
+        font-size: 9pt;
+        color: #333;
+        line-height: 1.1;
+    }
+    
+    .relay-swimmers-grid {
+        display: flex;
+        width: 100%;
+        margin-top: 2pt;
+        font-size: 8pt;
+        line-height: 1.0;
+        color: #444;
+    }
+    .relay-col {
+        flex: 1;
+    }
 {% endblock %}
 
 {% block content %}
     {% for group in groups %}
     <div class="group-block">
-        <div class="group-header">
-            <span>{{ group.header }}</span>
-        </div>
-
-        {% for item in group.heats %}
-        <div class="heat-block">
-            <table class="entries-table">
-                <thead>
-                    <tr>
-                        <th class="col-event">Event</th>
-                        <th class="col-heat">Heat</th>
-                        <th class="col-name">Swimmer/Relay</th>
-                        <th class="col-seed">Seed</th>
-                        <th class="col-manual">Timer 1</th>
-                        <th class="col-manual">Timer 2</th>
-                        <th class="col-manual">Stopwatch</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in item.sub_items %}
-                    <tr class="entry-row">
-                        <td class="col-event">#{{ entry.event_num }}</td>
-                        <td class="col-heat">H {{ entry.heat }}</td>
-                        <td class="col-name">
+        <h2 class="lane-header">{{ group.header }}</h2>
+        
+        <table class="timer-table">
+            <thead>
+                <tr>
+                    <th class="col-ev-ht">Ev / Ht</th>
+                    <th class="col-name-team">Swimmer / Team</th>
+                    <th class="col-seed">Seed Time</th>
+                    <th class="col-timer">Timer 1</th>
+                    <th class="col-timer">Timer 2</th>
+                    <th class="col-timer">Stopwatch</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in group.sub_items %}
+                <tr class="timer-row">
+                    <td class="col-ev-ht">{{ entry.event_num }} / {{ entry.heat }}</td>
+                    <td class="col-name-team">
+                        <div class="swimmer-info-block">
                             {% if entry.is_relay %}
-                            {{ entry.team }} - '{{ entry.relay_ltr }}'
+                                <div class="swimmer-name">{{ entry.team }} - {{ entry.relayLtr }}</div>
+                                <div class="relay-swimmers-grid">
+                                    <div class="relay-col">
+                                        <div>1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
+                                        <div>3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                                    </div>
+                                    <div class="relay-col">
+                                        <div>2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
+                                        <div>4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                                    </div>
+                                </div>
                             {% else %}
-                            {{ entry.name }} ({{ entry.team }})
+                                <div class="swimmer-name">{{ entry.name }}{% if entry.age %} ({{ entry.age }}){% endif %}</div>
+                                <div class="team-name">{{ entry.team }}</div>
                             {% endif %}
-                        </td>
-                        <td class="col-seed">{{ entry.time }}</td>
-                        <td class="col-manual">
-                            <div class="manual-line"></div>
-                        </td>
-                        <td class="col-manual">
-                            <div class="manual-line"></div>
-                        </td>
-                        <td class="col-manual">
-                            <div class="manual-line"></div>
-                        </td>
-                    </tr>
-                    
-                    {{ macros.render_relay_swimmers_row(entry, is_zebra=false, colspan=5) }}
-                    
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% endfor %}
+                        </div>
+                    </td>
+                    <td class="col-seed">{{ entry.time }}</td>
+                    <td class="col-timer"></td>
+                    <td class="col-timer"></td>
+                    <td class="col-timer"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
     {% endfor %}
 {% endblock %}

@@ -1,6 +1,25 @@
 import { Linking, Platform } from "react-native";
 import { loadFromJSON } from "../database/db";
 
+const ALLOWED_HOSTS = [
+	"localhost",
+	"127.0.0.1",
+	"pfisherogden.github.io",
+	"example.com", // For testing
+];
+
+const validateUrl = (url: string): boolean => {
+	try {
+		// Use regex to extract hostname safely
+		const match = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/im);
+		const hostname = match ? match[1] : "";
+		return ALLOWED_HOSTS.includes(hostname.toLowerCase());
+	} catch (e) {
+		console.warn(`Invalid URL format: ${url}`);
+		return false;
+	}
+};
+
 const parseQueryParams = (url: string) => {
 	const queryParams: Record<string, string> = {};
 	if (!url) return queryParams;
@@ -36,28 +55,54 @@ export const loadDataFromUrl = async () => {
 
 	let loaded = false;
 	let dqData = null;
+	let errorMessage = "";
 
 	if (programUrl) {
-		try {
-			const response = await fetch(programUrl as string);
-			if (!response.ok) throw new Error("Failed to fetch program data");
-			const data = await response.json();
-			loadFromJSON(data);
-			loaded = true;
-		} catch (e) {
-			console.error("Error loading program data:", e);
+		if (validateUrl(programUrl)) {
+			try {
+				const response = await fetch(programUrl as string);
+				if (!response.ok) throw new Error(`Server returned ${response.status}`);
+				const data = await response.json();
+
+				// Structure validation: must contain 'sessions' or 'events'
+				if (data && (data.sessions || data.events)) {
+					loadFromJSON(data);
+					loaded = true;
+				} else {
+					errorMessage = "Invalid program data structure from URL";
+					console.error(errorMessage);
+				}
+			} catch (e: any) {
+				errorMessage = `Failed to fetch program data: ${e.message}`;
+				console.error(errorMessage);
+			}
+		} else {
+			errorMessage = `Blocked untrusted program URL: ${programUrl}`;
+			console.warn(errorMessage);
 		}
 	}
 
 	if (dqUrl) {
-		try {
-			const response = await fetch(dqUrl as string);
-			if (!response.ok) throw new Error("Failed to fetch DQ data");
-			dqData = await response.json();
-		} catch (e) {
-			console.error("Error loading DQ data:", e);
+		if (validateUrl(dqUrl)) {
+			try {
+				const response = await fetch(dqUrl as string);
+				if (!response.ok) throw new Error(`Server returned ${response.status}`);
+				const data = await response.json();
+
+				// Structure validation: must be an object (map of category to DqCode[])
+				if (data && typeof data === "object" && !Array.isArray(data)) {
+					dqData = data;
+				} else {
+					console.error("Invalid DQ data structure: expected object");
+				}
+			} catch (e) {
+				console.error("Error loading DQ data:", e);
+			}
+		} else {
+			console.warn(`Blocked untrusted DQ URL: ${dqUrl}`);
 		}
 	}
 
-	return { loaded, dqData, syncUrl };
-};
+	return { loaded, dqData, syncUrl, errorMessage };
+	};
+

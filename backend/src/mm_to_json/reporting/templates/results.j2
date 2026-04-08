@@ -1,0 +1,69 @@
+{% extends "_base_report.j2" %}
+
+{% block extra_css %}
+    .group-block {
+        break-inside: avoid;
+        margin-bottom: 15pt;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10pt;
+    }
+    .group-header {
+        font-weight: bold;
+        font-size: 11pt;
+        margin-bottom: 5pt;
+        background-color: #f9f9f9;
+        padding: 3pt 6pt;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+    }
+    th {
+        text-align: left;
+        border-bottom: 1px solid #333;
+        padding: 2pt;
+        font-size: 8pt;
+    }
+    td {
+        padding: 3pt 2pt;
+    }
+    .col-place { width: 30pt; text-align: center; }
+    .col-name { width: auto; }
+    .col-age { width: 30pt; text-align: center; }
+    .col-team { width: 80pt; }
+    .col-time { width: 60pt; text-align: right; font-weight: bold; }
+    .col-pts { width: 40pt; text-align: right; }
+{% endblock %}
+
+{% block content %}
+    {% for group in groups %}
+    <div class="group-block">
+        <div class="group-header">{{ group.header }}</div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-place">Pl</th>
+                    <th class="col-name">Name</th>
+                    <th class="col-age">Age</th>
+                    <th class="col-team">Team</th>
+                    <th class="col-time">Time</th>
+                    <th class="col-pts">Pts</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in group.sub_items %}
+                <tr class="{% if zebra_striping and loop.index is even %}zebra-row{% endif %}">
+                    <td class="col-place">{{ item.place }}</td>
+                    <td class="col-name">{{ item.name }}</td>
+                    <td class="col-age">{{ item.age }}</td>
+                    <td class="col-team">{{ item.team }}</td>
+                    <td class="col-time">{{ item.time }}</td>
+                    <td class="col-pts">{{ item.points }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+{% endblock %}

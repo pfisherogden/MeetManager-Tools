@@ -5,6 +5,7 @@ import {
 	Check,
 	Database,
 	ExternalLink,
+	HardDrive,
 	Loader2,
 	QrCode,
 	Trash2,
@@ -20,6 +21,7 @@ import {
 	publishMeetData,
 	setActiveDataset,
 	uploadDataset,
+	uploadDatasetFromDrive,
 } from "@/app/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/hooks/use-auth";
+import {
+	type GoogleDriveFile,
+	useGooglePicker,
+} from "@/hooks/use-google-picker";
+import { handleActionError } from "@/lib/error-handler";
 
 interface Dataset {
 	filename: string;
@@ -61,6 +69,8 @@ export function DatasetManager() {
 	const [judgeAppUrl, setJudgeAppUrl] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	const { googleAccessToken } = useAuth();
+
 	const fetchDatasets = useCallback(async () => {
 		try {
 			setLoading(true);
@@ -69,12 +79,38 @@ export function DatasetManager() {
 				setDatasets(res.datasets);
 			}
 		} catch (error) {
-			console.error(error);
-			toast.error("Failed to load datasets");
+			handleActionError(error, "Failed to load datasets");
 		} finally {
 			setLoading(false);
 		}
 	}, []);
+
+	const onDriveFileSelect = useCallback(
+		async (file: GoogleDriveFile) => {
+			const ext = file.name.split(".").pop()?.toLowerCase();
+			if (ext !== "mdb" && ext !== "json") {
+				toast.error("Invalid file type. Please select an .mdb or .json file.");
+				return;
+			}
+
+			setUploading(true);
+			try {
+				await uploadDatasetFromDrive(file.id, file.name);
+				toast.success(`Successfully imported ${file.name} from Drive`);
+				fetchDatasets();
+			} catch (error: unknown) {
+				handleActionError(error, "Drive import failed");
+			} finally {
+				setUploading(false);
+			}
+		},
+		[fetchDatasets],
+	);
+
+	const { openPicker, isLoaded: isDriveLoaded } = useGooglePicker({
+		onFileSelect: onDriveFileSelect,
+		accessToken: googleAccessToken,
+	});
 
 	useEffect(() => {
 		fetchDatasets();
@@ -86,8 +122,7 @@ export function DatasetManager() {
 			toast.success(`Active dataset changed to ${filename}`);
 			fetchDatasets();
 		} catch (error) {
-			console.error(error);
-			toast.error("Failed to set active dataset");
+			handleActionError(error, "Failed to set active dataset");
 		}
 	};
 
@@ -100,9 +135,7 @@ export function DatasetManager() {
 				toast.success("Meet data published for Judge App");
 			}
 		} catch (error: unknown) {
-			console.error(error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Failed to publish: ${msg}`);
+			handleActionError(error, "Failed to publish");
 		} finally {
 			setPublishing(false);
 		}
@@ -112,8 +145,9 @@ export function DatasetManager() {
 		const file = e.target.files?.[0];
 		if (!file) return;
 
-		if (!file.name.endsWith(".mdb")) {
-			toast.error("Invalid file type. Please upload an .mdb file.");
+		const ext = file.name.split(".").pop()?.toLowerCase();
+		if (ext !== "mdb" && ext !== "json") {
+			toast.error("Invalid file type. Please upload an .mdb or .json file.");
 			return;
 		}
 
@@ -127,9 +161,7 @@ export function DatasetManager() {
 			if (fileInputRef.current) fileInputRef.current.value = "";
 			fetchDatasets();
 		} catch (error: unknown) {
-			console.error(error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Upload failed: ${msg}`);
+			handleActionError(error, "Upload failed");
 		} finally {
 			setUploading(false);
 		}
@@ -142,9 +174,7 @@ export function DatasetManager() {
 			toast.success(`Deleted ${filename}`);
 			fetchDatasets();
 		} catch (error: unknown) {
-			console.error(error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Failed to delete dataset: ${msg}`);
+			handleActionError(error, "Failed to delete dataset");
 		}
 	};
 
@@ -160,9 +190,7 @@ export function DatasetManager() {
 			toast.success("All datasets deleted");
 			fetchDatasets();
 		} catch (error: unknown) {
-			console.error(error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Failed to clear datasets: ${msg}`);
+			handleActionError(error, "Failed to clear datasets");
 		}
 	};
 
@@ -175,10 +203,10 @@ export function DatasetManager() {
 						Upload and manage MDB database files
 					</CardDescription>
 				</div>
-				<div>
+				<div className="flex items-center gap-2">
 					<Input
 						type="file"
-						accept=".mdb"
+						accept=".mdb,.json"
 						className="hidden"
 						ref={fileInputRef}
 						onChange={handleUpload}
@@ -187,7 +215,7 @@ export function DatasetManager() {
 						disabled={uploading}
 						onClick={() => fileInputRef.current?.click()}
 					>
-						{uploading ? (
+						{uploading && !isDriveLoaded ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								Uploading...
@@ -200,8 +228,24 @@ export function DatasetManager() {
 						)}
 					</Button>
 					<Button
+						variant="outline"
+						onClick={openPicker}
+						disabled={uploading || !isDriveLoaded}
+					>
+						{uploading && isDriveLoaded ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Importing...
+							</>
+						) : (
+							<>
+								<HardDrive className="mr-2 h-4 w-4" />
+								Import from Drive
+							</>
+						)}
+					</Button>
+					<Button
 						variant="destructive"
-						className="ml-2"
 						onClick={handleClearAll}
 						disabled={loading || datasets.length === 0}
 					>
@@ -224,7 +268,10 @@ export function DatasetManager() {
 						{loading ? (
 							<TableRow>
 								<TableCell colSpan={4} className="text-center py-8">
-									<Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+									<Loader2
+										role="status"
+										className="h-6 w-6 animate-spin mx-auto text-muted-foreground"
+									/>
 								</TableCell>
 							</TableRow>
 						) : datasets.length === 0 ? (

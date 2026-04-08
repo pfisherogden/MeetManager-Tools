@@ -1,6 +1,8 @@
 "use client";
 
 import {
+	Check,
+	ChevronsUpDown,
 	Download,
 	FileText,
 	Filter,
@@ -23,13 +25,20 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
@@ -39,6 +48,9 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { handleActionError } from "@/lib/error-handler";
+import type { Team as UITeam } from "@/lib/swim-meet-types";
+import { cn } from "@/lib/utils";
 
 const reportTypes = [
 	{
@@ -81,6 +93,16 @@ const reportTypes = [
 		name: "Entries (Club Style)",
 		description: "Single-column format optimized for team distribution.",
 	},
+	{
+		id: 8,
+		name: "Lane Timer Sheets",
+		description: "Timer sheets grouped by physical lane (10 entries per page).",
+	},
+	{
+		id: 9,
+		name: "S&T Judge Sheets",
+		description: "Meet Program format with dedicated lines for DQ codes.",
+	},
 ];
 
 type CustomPackItem = {
@@ -93,23 +115,31 @@ type CustomPackItem = {
 	zebraStriping: boolean;
 };
 
-export function ReportsManager() {
+interface ReportsManagerProps {
+	initialTeams?: UITeam[];
+}
+
+export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 	const [selectedType, setSelectedType] = useState<number>(0);
 	const [title, setTitle] = useState("");
 	const [teamFilter, setTeamFilter] = useState("");
 	const [isGenerating, setIsGenerating] = useState(false);
-	const [htmlContent, setHtmlContent] = useState<string | null>(null);
-	const [showHtmlDialog, setShowHtmlDialog] = useState(false);
 	const [isBundling, setIsBundling] = useState(false);
 	const [customPack, setCustomPack] = useState<CustomPackItem[]>([]);
 	const [zebraStriping, setZebraStriping] = useState(false);
+	const [presetTeamFilter, setPresetTeamFilter] = useState("All Teams");
+
+	// Improved Team Filter State
+	const [teamFilterOpen, setTeamFilterOpen] = useState(false);
+	const [presetTeamOpen, setPresetTeamOpen] = useState(false);
 
 	const addToPack = () => {
+		const reportName =
+			reportTypes.find((r) => r.id === selectedType)?.name || "";
 		const newItem: CustomPackItem = {
-			id: Math.random().toString(36).substr(2, 9),
+			id: crypto.randomUUID(),
 			type: selectedType,
-			title:
-				title || reportTypes.find((r) => r.id === selectedType)?.name || "",
+			title: title || reportName,
 			teamFilter: teamFilter,
 			genderFilter: "Mixed",
 			ageGroupFilter: "Open",
@@ -121,6 +151,12 @@ export function ReportsManager() {
 
 	const removeFromPack = (id: string) => {
 		setCustomPack(customPack.filter((item) => item.id !== id));
+	};
+
+	const clearPack = () => {
+		if (customPack.length === 0) return;
+		setCustomPack([]);
+		toast.success("Cleared custom pack");
 	};
 
 	const updatePackItem = (id: string, updates: Partial<CustomPackItem>) => {
@@ -138,7 +174,12 @@ export function ReportsManager() {
 		}
 		setIsBundling(true);
 		try {
-			const result = await generateReportBundle(customPack, "custom_pack.zip");
+			const timestamp = new Date()
+				.toISOString()
+				.replace(/[:.]/g, "-")
+				.slice(0, 19);
+			const suggestedName = `reports_${timestamp}_${customPack.length}_items.zip`;
+			const result = await generateReportBundle(customPack, suggestedName);
 			if (result.success && result.zipContent) {
 				const blob = new Blob([new Uint8Array(result.zipContent)], {
 					type: "application/zip",
@@ -146,16 +187,17 @@ export function ReportsManager() {
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement("a");
 				a.href = url;
-				a.download = result.filename || "custom_pack.zip";
+				a.download = result.filename || suggestedName;
 				document.body.appendChild(a);
 				a.click();
 				document.body.removeChild(a);
 				URL.revokeObjectURL(url);
 				toast.success("Custom pack generated successfully");
+			} else {
+				throw new Error(result.message || "Failed to generate bundle");
 			}
 		} catch (error: unknown) {
-			console.error("Failed to generate custom pack", error);
-			toast.error("Custom pack generation failed");
+			handleActionError(error, "Custom pack generation failed");
 		} finally {
 			setIsBundling(false);
 		}
@@ -166,47 +208,31 @@ export function ReportsManager() {
 			id: "default_pack",
 			name: "Default Meet Pack",
 			description:
-				"Complete set: Lineups, Coaches, Posting & Computer programs.",
+				"Coaches, S&T Judges, Lane Timers, and Posting/Computer programs.",
 			reports: [
-				// Coaches Program
 				{
 					type: 4,
 					title: "Coaches Meet Program",
 					columnsOnPage: 2,
 					showRelaySwimmers: true,
 				},
-				// Posting Programs
 				{
-					type: 4,
-					title: "Posting Program - Girls",
-					genderFilter: "Girls",
+					type: 9,
+					title: "S&T Judge Program",
 					columnsOnPage: 2,
 					showRelaySwimmers: true,
+					zebraStriping: true,
+				},
+				{
+					type: 8,
+					title: "Lane Timer Sheets",
 				},
 				{
 					type: 4,
-					title: "Posting Program - Boys",
-					genderFilter: "Boys",
+					title: "Computer/Posting Program",
 					columnsOnPage: 2,
-					showRelaySwimmers: true,
+					showRelaySwimmers: false,
 				},
-				// Computer Program
-				{
-					type: 4,
-					title: "Computer Team Program",
-					columnsOnPage: 1,
-					showRelaySwimmers: true,
-				},
-				// Lineups (using current filters)
-				...["Girls", "Boys"].flatMap((gender) =>
-					["6 & under", "7-8", "9-10"].map((age) => ({
-						type: 2,
-						title: `Line Up - ${gender} ${age}`,
-						genderFilter: gender,
-						ageGroupFilter: age,
-						teamFilter: teamFilter,
-					})),
-				),
 			],
 		},
 		{
@@ -216,7 +242,7 @@ export function ReportsManager() {
 			reports: [
 				{
 					type: 4,
-					title: `Coaches Meet Program ${new Date().toLocaleTimeString()}`,
+					title: "Coaches Meet Program",
 					columnsOnPage: 2,
 					showRelaySwimmers: true,
 				},
@@ -229,7 +255,7 @@ export function ReportsManager() {
 			reports: [
 				{
 					type: 4,
-					title: `Compact Meet Program ${new Date().toLocaleTimeString()}`,
+					title: "Compact Meet Program",
 					columnsOnPage: 1,
 					showRelaySwimmers: false,
 				},
@@ -264,40 +290,27 @@ export function ReportsManager() {
 					title: `Line Up Report - ${gender}, ${age}`,
 					genderFilter: gender,
 					ageGroupFilter: age,
-					teamFilter: teamFilter, // Uses the team filter from config
 				})),
 			),
 		},
 	];
 
-	const handleGenerateBundle = async (preset: (typeof reportPresets)[0]) => {
-		setIsBundling(true);
-		try {
-			const result = await generateReportBundle(
-				preset.reports,
-				`${preset.name.toLowerCase().replace(/\s+/g, "_")}.zip`,
-			);
-
-			if (result.success && result.zipContent) {
-				const blob = new Blob([new Uint8Array(result.zipContent)], {
-					type: "application/zip",
-				});
-				const url = URL.createObjectURL(blob);
-				const a = document.createElement("a");
-				a.href = url;
-				a.download = result.filename || `${preset.id}_bundle.zip`;
-				document.body.appendChild(a);
-				a.click();
-				document.body.removeChild(a);
-				URL.revokeObjectURL(url);
-				toast.success(`${preset.name} generated successfully`);
-			}
-		} catch (error: unknown) {
-			console.error("Failed to generate bundle", error);
-			toast.error("Bundle generation failed");
-		} finally {
-			setIsBundling(false);
-		}
+	const handleApplyPreset = (preset: (typeof reportPresets)[0]) => {
+		const targetTeam = presetTeamFilter === "All Teams" ? "" : presetTeamFilter;
+		const newItems: CustomPackItem[] = preset.reports.map((r: any) => ({
+			id: crypto.randomUUID(),
+			type: r.type,
+			title: r.title,
+			teamFilter: r.teamFilter || targetTeam,
+			genderFilter: r.genderFilter || "Mixed",
+			ageGroupFilter: r.ageGroupFilter || "Open",
+			zebraStriping: zebraStriping,
+		}));
+		setCustomPack([...customPack, ...newItems]);
+		toast.success(`Applied ${preset.name} to builder`);
+		document
+			.getElementById("custom-builder")
+			?.scrollIntoView({ behavior: "smooth" });
 	};
 
 	const handleGenerate = async () => {
@@ -318,16 +331,20 @@ export function ReportsManager() {
 
 			if (result.success) {
 				if (selectedType === 5 && result.htmlContent) {
-					setHtmlContent(result.htmlContent);
-					setShowHtmlDialog(true);
+					// Open HTML content in a new tab
+					const newTab = window.open("", "_blank");
+					if (newTab) {
+						newTab.document.write(result.htmlContent);
+						newTab.document.close();
+						toast.success("HTML Program opened in new tab");
+					} else {
+						toast.error("Pop-up blocked. Please allow pop-ups for this site.");
+					}
 				} else if (result.pdfContent) {
-					// Create a blob from the content
 					const blob = new Blob([new Uint8Array(result.pdfContent)], {
 						type: "application/pdf",
 					});
 					const url = URL.createObjectURL(blob);
-
-					// Create a temporary link and click it to download
 					const a = document.createElement("a");
 					a.href = url;
 					a.download =
@@ -337,14 +354,13 @@ export function ReportsManager() {
 					a.click();
 					document.body.removeChild(a);
 					URL.revokeObjectURL(url);
-
 					toast.success("Report generated successfully");
 				}
+			} else {
+				throw new Error(result.message || "Failed to generate report");
 			}
 		} catch (error: unknown) {
-			console.error("Failed to generate report", error);
-			const msg = error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Generation failed: ${msg}`);
+			handleActionError(error, "Generation failed");
 		} finally {
 			setIsGenerating(false);
 		}
@@ -356,6 +372,7 @@ export function ReportsManager() {
 				{reportTypes.map((report) => (
 					<Card
 						key={report.id}
+						data-testid={`report-card-${report.name.toLowerCase().replace(/\s+/g, "-")}`}
 						className={`cursor-pointer transition-all duration-200 border-2 ${
 							selectedType === report.id
 								? "border-primary bg-primary/5"
@@ -379,37 +396,106 @@ export function ReportsManager() {
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 				<Card className="shadow-lg">
 					<CardHeader>
-						<div className="flex items-center gap-2">
-							<Package className="h-5 w-5 text-primary" />
-							<CardTitle>Report Presets</CardTitle>
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-2">
+								<Package className="h-5 w-5 text-primary" />
+								<CardTitle>Report Presets</CardTitle>
+							</div>
+							<div className="flex items-center gap-2">
+								<Label
+									htmlFor="preset-team"
+									className="text-xs text-muted-foreground whitespace-nowrap"
+								>
+									Target Team:
+								</Label>
+								<Popover open={presetTeamOpen} onOpenChange={setPresetTeamOpen}>
+									<PopoverTrigger asChild>
+										<Button
+											variant="outline"
+											role="combobox"
+											aria-expanded={presetTeamOpen}
+											className="h-8 w-40 justify-between text-xs"
+										>
+											{presetTeamFilter}
+											<ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="w-48 p-0">
+										<Command>
+											<CommandInput
+												placeholder="Search teams..."
+												className="h-8 text-xs"
+											/>
+											<CommandList>
+												<CommandEmpty>No team found.</CommandEmpty>
+												<CommandGroup>
+													<CommandItem
+														onSelect={() => {
+															setPresetTeamFilter("All Teams");
+															setPresetTeamOpen(false);
+														}}
+													>
+														<Check
+															className={cn(
+																"mr-2 h-3 w-3",
+																presetTeamFilter === "All Teams"
+																	? "opacity-100"
+																	: "opacity-0",
+															)}
+														/>
+														All Teams
+													</CommandItem>
+													{initialTeams.map((team) => (
+														<CommandItem
+															key={team.id}
+															onSelect={() => {
+																setPresetTeamFilter(team.name);
+																setPresetTeamOpen(false);
+															}}
+														>
+															<Check
+																className={cn(
+																	"mr-2 h-3 w-3",
+																	presetTeamFilter === team.name
+																		? "opacity-100"
+																		: "opacity-0",
+																)}
+															/>
+															{team.name}
+														</CommandItem>
+													))}
+												</CommandGroup>
+											</CommandList>
+										</Command>
+									</PopoverContent>
+								</Popover>
+							</div>
 						</div>
 						<CardDescription>
-							Generate pre-configured bundles for meet day
+							Populate the builder with pre-configured bundles
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						{reportPresets.map((preset) => (
 							<div
 								key={preset.id}
-								className="flex items-center justify-between p-4 border rounded-lg bg-muted/10"
+								data-testid={`preset-${preset.id}`}
+								className="flex items-center justify-between p-4 border rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors"
 							>
 								<div>
-									<h4 className="font-medium">{preset.name}</h4>
-									<p className="text-xs text-muted-foreground">
+									<h4 className="font-medium text-sm">{preset.name}</h4>
+									<p className="text-[10px] text-muted-foreground">
 										{preset.description}
 									</p>
 								</div>
 								<Button
 									variant="outline"
 									size="sm"
-									onClick={() => handleGenerateBundle(preset)}
-									disabled={isBundling}
+									data-testid={`preset-apply-${preset.id}`}
+									onClick={() => handleApplyPreset(preset)}
+									className="text-xs h-8"
 								>
-									{isBundling ? (
-										<Loader2 className="h-4 w-4 animate-spin" />
-									) : (
-										"Generate"
-									)}
+									Apply to Builder
 								</Button>
 							</div>
 						))}
@@ -446,13 +532,68 @@ export function ReportsManager() {
 						<div className="space-y-2">
 							<Label htmlFor="team">Team Filter (Optional)</Label>
 							<div className="flex gap-2">
-								<Input
-									id="team"
-									placeholder="All Teams"
-									value={teamFilter}
-									onChange={(e) => setTeamFilter(e.target.value)}
-								/>
-								<Button variant="outline" size="icon">
+								<Popover open={teamFilterOpen} onOpenChange={setTeamFilterOpen}>
+									<PopoverTrigger asChild>
+										<Button
+											variant="outline"
+											role="combobox"
+											data-testid="team-filter-trigger"
+											aria-expanded={teamFilterOpen}
+											className="w-full justify-between"
+										>
+											{teamFilter || "All Teams"}
+											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="w-full p-0">
+										<Command>
+											<CommandInput placeholder="Search teams..." />
+											<CommandList>
+												<CommandEmpty>No team found.</CommandEmpty>
+												<CommandGroup>
+													<CommandItem
+														onSelect={() => {
+															setTeamFilter("");
+															setTeamFilterOpen(false);
+														}}
+													>
+														<Check
+															className={cn(
+																"mr-2 h-4 w-4",
+																teamFilter === "" ? "opacity-100" : "opacity-0",
+															)}
+														/>
+														All Teams
+													</CommandItem>
+													{initialTeams.map((team) => (
+														<CommandItem
+															key={team.id}
+															onSelect={() => {
+																setTeamFilter(team.name);
+																setTeamFilterOpen(false);
+															}}
+														>
+															<Check
+																className={cn(
+																	"mr-2 h-4 w-4",
+																	teamFilter === team.name
+																		? "opacity-100"
+																		: "opacity-0",
+																)}
+															/>
+															{team.name}
+														</CommandItem>
+													))}
+												</CommandGroup>
+											</CommandList>
+										</Command>
+									</PopoverContent>
+								</Popover>
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() => setTeamFilterOpen(true)}
+								>
 									<Filter className="h-4 w-4" />
 								</Button>
 							</div>
@@ -499,17 +640,15 @@ export function ReportsManager() {
 					</CardContent>
 					<CardFooter className="bg-muted/10 border-t pt-6 gap-4">
 						<Button
-							className="flex-1"
+							className="flex-1 text-xs h-10"
 							variant="outline"
-							size="lg"
 							onClick={addToPack}
 						>
 							<Plus className="mr-2 h-4 w-4" />
 							Add to Pack
 						</Button>
 						<Button
-							className="flex-1"
-							size="lg"
+							className="flex-1 text-xs h-10"
 							onClick={handleGenerate}
 							disabled={isGenerating}
 						>
@@ -521,9 +660,7 @@ export function ReportsManager() {
 							) : (
 								<>
 									<Download className="mr-2 h-4 w-4" />
-									{selectedType === 5
-										? "Generate & View HTML"
-										: "Generate & Download Report"}
+									{selectedType === 5 ? "View HTML" : "Download PDF"}
 								</>
 							)}
 						</Button>
@@ -531,8 +668,8 @@ export function ReportsManager() {
 				</Card>
 			</div>
 
-			<Card className="shadow-lg border-primary/20">
-				<CardHeader className="bg-primary/5">
+			<Card id="custom-builder" className="shadow-lg border-primary/30">
+				<CardHeader className="bg-primary/5 border-b rounded-t-xl">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							<Package className="h-6 w-6 text-primary" />
@@ -545,6 +682,18 @@ export function ReportsManager() {
 							</div>
 						</div>
 						<div className="flex items-center gap-4">
+							{customPack.length > 0 && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={clearPack}
+									className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
+									data-testid="clear-pack-button"
+								>
+									<Trash2 className="h-4 w-4 mr-1" />
+									Clear All
+								</Button>
+							)}
 							<div className="text-right">
 								<p className="text-sm font-medium">
 									{customPack.length} Reports Selected
@@ -557,6 +706,7 @@ export function ReportsManager() {
 								onClick={generateCustomPack}
 								disabled={isBundling || customPack.length === 0}
 								size="lg"
+								className="shadow-md"
 							>
 								{isBundling ? (
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -569,30 +719,39 @@ export function ReportsManager() {
 					</div>
 				</CardHeader>
 				<CardContent className="p-0">
-					<ScrollArea className="h-[400px]">
+					<ScrollArea className="h-[500px]">
 						{customPack.length === 0 ? (
 							<div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground gap-4">
 								<Package className="h-12 w-12 opacity-20" />
 								<p>
-									Your pack is empty. Use "Add to Pack" above to get started.
+									Your pack is empty. Use "Apply to Builder" or "Add to Pack" to
+									get started.
 								</p>
 							</div>
 						) : (
-							<div className="divide-y">
+							<div className="divide-y border-b">
 								{customPack.map((item, index) => (
 									<div
 										key={item.id}
-										className="p-6 hover:bg-muted/50 transition-colors"
+										className={cn(
+											"p-6 transition-colors border-l-4",
+											index % 2 === 0
+												? "bg-card border-l-primary/40"
+												: "bg-muted/30 border-l-muted-foreground/40",
+											"hover:bg-primary/5",
+										)}
 									>
 										<div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
 											<div className="md:col-span-1 flex items-center justify-center">
-												<div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+												<div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm border border-primary/20">
 													{index + 1}
 												</div>
 											</div>
 											<div className="md:col-span-10 grid grid-cols-1 md:grid-cols-3 gap-4">
 												<div className="space-y-2">
-													<Label className="text-xs">Report Type</Label>
+													<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+														Report Type
+													</Label>
 													<Select
 														value={item.type.toString()}
 														onValueChange={(v) =>
@@ -601,7 +760,7 @@ export function ReportsManager() {
 															})
 														}
 													>
-														<SelectTrigger>
+														<SelectTrigger className="h-9">
 															<SelectValue />
 														</SelectTrigger>
 														<SelectContent>
@@ -614,36 +773,93 @@ export function ReportsManager() {
 													</Select>
 												</div>
 												<div className="space-y-2">
-													<Label className="text-xs">Custom Title</Label>
+													<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+														Custom Title
+													</Label>
 													<Input
 														value={item.title}
 														onChange={(e) =>
 															updatePackItem(item.id, { title: e.target.value })
 														}
 														placeholder="Report Title"
+														className="h-9"
 													/>
 												</div>
 												<div className="space-y-2">
-													<Label className="text-xs">Team Filter</Label>
-													<Input
-														value={item.teamFilter}
-														onChange={(e) =>
-															updatePackItem(item.id, {
-																teamFilter: e.target.value,
-															})
-														}
-														placeholder="All Teams"
-													/>
+													<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+														Team Filter
+													</Label>
+													<Popover>
+														<PopoverTrigger asChild>
+															<Button
+																variant="outline"
+																role="combobox"
+																className="h-9 w-full justify-between font-normal"
+															>
+																{item.teamFilter || "All Teams"}
+																<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+															</Button>
+														</PopoverTrigger>
+														<PopoverContent className="w-full p-0">
+															<Command>
+																<CommandInput placeholder="Search teams..." />
+																<CommandList>
+																	<CommandEmpty>No team found.</CommandEmpty>
+																	<CommandGroup>
+																		<CommandItem
+																			onSelect={() => {
+																				updatePackItem(item.id, {
+																					teamFilter: "",
+																				});
+																			}}
+																		>
+																			<Check
+																				className={cn(
+																					"mr-2 h-4 w-4",
+																					item.teamFilter === ""
+																						? "opacity-100"
+																						: "opacity-0",
+																				)}
+																			/>
+																			All Teams
+																		</CommandItem>
+																		{initialTeams.map((team) => (
+																			<CommandItem
+																				key={team.id}
+																				onSelect={() => {
+																					updatePackItem(item.id, {
+																						teamFilter: team.name,
+																					});
+																				}}
+																			>
+																				<Check
+																					className={cn(
+																						"mr-2 h-4 w-4",
+																						item.teamFilter === team.name
+																							? "opacity-100"
+																							: "opacity-0",
+																					)}
+																				/>
+																				{team.name}
+																			</CommandItem>
+																		))}
+																	</CommandGroup>
+																</CommandList>
+															</Command>
+														</PopoverContent>
+													</Popover>
 												</div>
 												<div className="space-y-2">
-													<Label className="text-xs">Gender</Label>
+													<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+														Gender
+													</Label>
 													<Select
 														value={item.genderFilter}
 														onValueChange={(v) =>
 															updatePackItem(item.id, { genderFilter: v })
 														}
 													>
-														<SelectTrigger>
+														<SelectTrigger className="h-9">
 															<SelectValue />
 														</SelectTrigger>
 														<SelectContent>
@@ -654,14 +870,16 @@ export function ReportsManager() {
 													</Select>
 												</div>
 												<div className="space-y-2">
-													<Label className="text-xs">Age Group</Label>
+													<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+														Age Group
+													</Label>
 													<Select
 														value={item.ageGroupFilter}
 														onValueChange={(v) =>
 															updatePackItem(item.id, { ageGroupFilter: v })
 														}
 													>
-														<SelectTrigger>
+														<SelectTrigger className="h-9">
 															<SelectValue />
 														</SelectTrigger>
 														<SelectContent>
@@ -677,7 +895,7 @@ export function ReportsManager() {
 														</SelectContent>
 													</Select>
 												</div>
-												<div className="flex items-center gap-3 pt-4">
+												<div className="flex items-center gap-3 pt-6">
 													<Switch
 														id={`zebra-${item.id}`}
 														checked={item.zebraStriping}
@@ -687,7 +905,7 @@ export function ReportsManager() {
 													/>
 													<Label
 														htmlFor={`zebra-${item.id}`}
-														className="text-xs"
+														className="text-xs font-medium"
 													>
 														Zebra Striping
 													</Label>
@@ -697,10 +915,10 @@ export function ReportsManager() {
 												<Button
 													variant="ghost"
 													size="icon"
-													className="text-destructive hover:text-destructive hover:bg-destructive/10"
+													className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 w-9 transition-colors"
 													onClick={() => removeFromPack(item.id)}
 												>
-													<Trash2 className="h-5 w-5" />
+													<Trash2 className="h-4 w-4" />
 												</Button>
 											</div>
 										</div>
@@ -711,23 +929,6 @@ export function ReportsManager() {
 					</ScrollArea>
 				</CardContent>
 			</Card>
-
-			<Dialog open={showHtmlDialog} onOpenChange={setShowHtmlDialog}>
-				<DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
-					<DialogHeader className="p-4 border-b">
-						<DialogTitle>Meet Program Preview</DialogTitle>
-					</DialogHeader>
-					<div className="flex-1 w-full overflow-hidden">
-						{htmlContent && (
-							<iframe
-								srcDoc={htmlContent}
-								title="Meet Program Preview"
-								className="w-full h-full border-none"
-							/>
-						)}
-					</div>
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }

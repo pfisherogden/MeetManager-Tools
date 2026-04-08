@@ -65,3 +65,26 @@ backend/src/test_touch
 .gemini/*
 !.gemini/skills/
 !.gemini/agents/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# NPM/Mobile cache and builds
+mobile-judge-app/.npm-cache-local/
+mobile-judge-app/web-build/
+mobile-judge-app/.expo/
+meet-program-viewer/web-build/
+meet-program-viewer/.expo/
+
+# Playwright
+web-client/playwright-report/
+web-client/test-results/
+
+# Generated Proto files
+backend/src/meetmanager/v1/meet_manager_pb2.py
+backend/src/meetmanager/v1/meet_manager_pb2_grpc.py
+backend/src/meetmanager/v1/meet_manager_pb2.pyi
+web-client/lib/proto/

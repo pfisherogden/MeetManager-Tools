@@ -56,10 +56,54 @@ export const seedData = () => {
 		if (mockEvents.length > 0) return; // Already seeded or loaded
 
 		if (sampleData && sampleData.events) {
-			mockEvents = sampleData.events as unknown as Event[];
-			mockHeats = sampleData.heats as unknown as Heat[];
-			mockSwimmers = sampleData.swimmers as unknown as Swimmer[];
-			console.log("Web Mock DB Seeded from comprehensive JSON:", {
+			mockEvents = [...(sampleData.events as unknown as Event[])];
+			mockHeats = [...(sampleData.heats as unknown as Heat[])];
+			mockSwimmers = [...(sampleData.swimmers as unknown as Swimmer[])];
+
+			// Add a custom Boys relay event for variety (if not already present)
+			const hasBoysRelay = mockEvents.some((e) => e.name.includes("Boys") && e.isRelay);
+			if (!hasBoysRelay) {
+				const nextEventId = Math.max(0, ...mockEvents.map((e) => e.id)) + 1;
+				const nextHeatId = Math.max(0, ...mockHeats.map((h) => h.id)) + 1;
+				const nextSwimmerId = Math.max(0, ...mockSwimmers.map((s) => s.id)) + 1;
+
+				mockEvents.push({
+					id: nextEventId,
+					number: 81,
+					name: "Boys 8&U 100 Free Relay",
+					distance: 100,
+					stroke: "Free",
+					isRelay: true,
+				});
+
+				mockHeats.push({
+					id: nextHeatId,
+					number: 1,
+					event_id: nextEventId,
+					swimmers: [],
+				});
+
+				mockSwimmers.push({
+					id: nextSwimmerId,
+					lane: 1, // Diversify!
+					name: "Speedy Sharks Team A",
+					team: "SHARK",
+					heat_id: nextHeatId,
+					isRelay: true,
+					members: ["Leo D.", "Guy F.", "Tim C.", "Bob J."],
+					relay_dqs: [],
+					notes: "",
+					dq_code: "",
+				});
+			}
+
+			// Diversify some existing mid-lane assignments to lanes 1 and 6 for testing
+			mockSwimmers.slice(0, 10).forEach((s, idx) => {
+				if (idx % 3 === 0) s.lane = 1;
+				if (idx % 3 === 1) s.lane = 6;
+			});
+
+			console.log("Web Mock DB Seeded from comprehensive JSON with enhancements:", {
 				events: mockEvents.length,
 				heats: mockHeats.length,
 				swimmers: mockSwimmers.length,
@@ -79,9 +123,9 @@ export const seedData = () => {
 			{
 				id: 2,
 				number: 2,
-				name: "Boys 8&U 100 Medley Relay",
+				name: "Boys 8&U 100 Free Relay",
 				distance: 100,
-				stroke: "Medley",
+				stroke: "Free",
 				isRelay: true,
 			},
 			{
@@ -96,7 +140,8 @@ export const seedData = () => {
 
 		mockHeats = [
 			{ id: 1, number: 1, event_id: 1, swimmers: [] },
-			{ id: 2, number: 1, event_id: 3, swimmers: [] },
+			{ id: 2, number: 1, event_id: 2, swimmers: [] },
+			{ id: 3, number: 1, event_id: 3, swimmers: [] },
 		];
 
 		mockSwimmers = [
@@ -106,18 +151,30 @@ export const seedData = () => {
 				name: "Alice Smith",
 				team: "FAST",
 				heat_id: 1,
-				isRelay: false,
-				members: [],
+				isRelay: true,
+				members: ["Alice S.", "Dana R.", "Zoe M.", "Mia K."],
 				relay_dqs: [],
 				notes: "",
 				dq_code: "",
 			},
 			{
 				id: 2,
-				lane: 2,
+				lane: 3,
 				name: "Bob Jones",
 				team: "FAST",
-				heat_id: 1,
+				heat_id: 2,
+				isRelay: true,
+				members: ["Bob J.", "Tim C.", "Leo D.", "Guy F."],
+				relay_dqs: [],
+				notes: "",
+				dq_code: "",
+			},
+			{
+				id: 3,
+				lane: 5,
+				name: "Charlie Brown",
+				team: "FAST",
+				heat_id: 3,
 				isRelay: false,
 				members: [],
 				relay_dqs: [],
@@ -125,11 +182,11 @@ export const seedData = () => {
 				dq_code: "",
 			},
 			{
-				id: 3,
-				lane: 1,
-				name: "Charlie Brown",
-				team: "FAST",
-				heat_id: 2,
+				id: 4,
+				lane: 6,
+				name: "David Wilson",
+				team: "STORM",
+				heat_id: 3,
 				isRelay: false,
 				members: [],
 				relay_dqs: [],
@@ -217,6 +274,13 @@ export const getSwimmerById = (id: number | string): Swimmer | null => {
 	return null;
 };
 
+const parseSwimmerId = (id: number | string): number => {
+	if (typeof id === "number") return id;
+	// Handle strings like "Relay-1" or "empty-101"
+	const numeric = id.replace(/[^0-9]/g, "");
+	return parseInt(numeric, 10) || 0;
+};
+
 export const saveDQ = (
 	eventId: number,
 	swimmerId: number | string,
@@ -224,20 +288,16 @@ export const saveDQ = (
 	leg?: number,
 	notes?: string,
 ) => {
-	console.log("Web Mock DQ Saved:", { eventId, swimmerId, dqCode, leg, notes });
-
-	const sid =
-		typeof swimmerId === "string"
-			? parseInt(swimmerId.replace("empty-", ""), 10)
-			: swimmerId;
+	const sid = parseSwimmerId(swimmerId);
+	console.log("Web Mock DQ Saved:", { eventId, swimmerId, sid, dqCode, leg, notes });
 
 	// Remove existing DQ for the same context
 	if (leg) {
 		mockDQs = mockDQs.filter(
-			(dq) => !(dq.swimmer_id === sid && dq.leg === leg),
+			(dq) => !(dq.swimmer_id === sid && dq.leg === leg && dq.event_id === eventId),
 		);
 	} else {
-		mockDQs = mockDQs.filter((dq) => !(dq.swimmer_id === sid && !dq.leg));
+		mockDQs = mockDQs.filter((dq) => !(dq.swimmer_id === sid && !dq.leg && dq.event_id === eventId));
 	}
 
 	const newDQ: DQ = {
@@ -267,10 +327,7 @@ export const markAsSynced = (id: number) => {
 };
 
 export const deleteDQ = (swimmerId: number | string, leg?: number) => {
-	const sid =
-		typeof swimmerId === "string"
-			? parseInt(swimmerId.replace("empty-", ""), 10)
-			: swimmerId;
+	const sid = parseSwimmerId(swimmerId);
 	mockDQs = mockDQs.filter((d) => !(d.swimmer_id === sid && d.leg === leg));
 	return { changes: 1 };
 };

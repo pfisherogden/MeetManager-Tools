@@ -229,27 +229,47 @@ export const getSwimmerById = (id: number | string): Swimmer | null => {
 	};
 };
 
+const parseSwimmerId = (id: number | string): number => {
+	if (typeof id === "number") return id;
+	// Handle strings like "Relay-1" or "empty-101"
+	const numeric = id.replace(/[^0-9]/g, "");
+	return parseInt(numeric, 10) || 0;
+};
+
 export const saveDQ = (
 	eventId: number,
-	swimmerId: number,
+	swimmerId: number | string,
 	dqCode: string,
 	leg?: number,
 	notes?: string,
 ) => {
+	const sid = parseSwimmerId(swimmerId);
 	if (Platform.OS === "web") {
 		console.log("Web Mock DQ Saved:", {
 			eventId,
 			swimmerId,
+			sid,
 			dqCode,
 			leg,
 			notes,
 		});
 		return { changes: 1 };
 	}
-	return getDb().runSync(
-		"INSERT OR REPLACE INTO dqs (event_id, swimmer_id, dq_code, leg, notes, sync_status) VALUES (?, ?, ?, ?, ?, ?)",
+	
+	const db = getDb();
+	// Remove existing DQ first to handle leg=NULL unique constraint issues in SQLite
+	db.runSync(
+		"DELETE FROM dqs WHERE event_id = ? AND swimmer_id = ? AND (leg = ? OR (leg IS NULL AND ? IS NULL))",
 		eventId,
-		swimmerId,
+		sid,
+		leg || null,
+		leg || null,
+	);
+
+	return db.runSync(
+		"INSERT INTO dqs (event_id, swimmer_id, dq_code, leg, notes, sync_status) VALUES (?, ?, ?, ?, ?, ?)",
+		eventId,
+		sid,
 		dqCode,
 		leg || null,
 		notes || "",
@@ -285,10 +305,11 @@ export const markAsSynced = (id: number) => {
 };
 
 export const deleteDQ = (swimmerId: number | string, leg?: number) => {
+	const sid = parseSwimmerId(swimmerId);
 	if (Platform.OS === "web") return;
 	return getDb().runSync(
 		"DELETE FROM dqs WHERE swimmer_id = ? AND (leg = ? OR (leg IS NULL AND ? IS NULL))",
-		swimmerId,
+		sid,
 		leg || null,
 		leg || null,
 	);

@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: '30 1 * * 1'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   analyze:
     name: Analyze
@@ -26,13 +29,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
 
+    - name: Check for C++ code
+      id: check_cpp
+      run: |
+        if [ "${{ matrix.language }}" == "cpp" ] && [ ! -d "mm_to_json" ]; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Initialize CodeQL
+      if: steps.check_cpp.outputs.skip != 'true'
       uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
 
     - name: Autobuild
+      if: steps.check_cpp.outputs.skip != 'true'
       uses: github/codeql-action/autobuild@v4
 
     - name: Perform CodeQL Analysis
+      if: steps.check_cpp.outputs.skip != 'true'
       uses: github/codeql-action/analyze@v4

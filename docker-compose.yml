@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8081}:8080"
     volumes:
       # - ./backend/data:/app/data # Removed to fix locking issues on macOS
       - ./backend/src:/app/src
@@ -12,18 +12,36 @@ services:
       - ./backend/tests/fixtures:/app/tests/fixtures
       - ./tests/fixtures/anonymized_meets:/app/tests/fixtures/anonymized_meets
       - ./protos:/app/protos
+      - ./tmp:/app/tmp
+      # Anonymous volumes to keep high-churn files inside the VM (hole punching)
+      - /app/src/__pycache__
+      - /app/tests/__pycache__
+      - /app/.pytest_cache
+      - /app/.venv
+      - /app/src/mm_to_json/lib
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - GRPC_AUTH_DISABLED=true
 
   frontend:
     build:
       context: .
       dockerfile: web-client/Dockerfile
+      args:
+        - NEXT_PUBLIC_AUTH_DISABLED=true
+        - NEXT_PUBLIC_BUILD_TIME=2026-03-15T00:00:00Z
     ports:
-      - "3001:3000"
-    volumes:
-      - ./protos:/app/protos
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       - BACKEND_INTERNAL_HOST=backend:8080
+      - NEXT_PUBLIC_AUTH_DISABLED=true
     depends_on:
       - backend
+
+  judge-app:
+    build:
+      context: mobile-judge-app
+      dockerfile: Dockerfile
+    ports:
+      - "${MOBILE_APP_PORT:-8080}:8080"

@@ -4,7 +4,7 @@
         {% if entry.is_relay %}
             <td class="col-lane">{{ entry.lane }}</td>
             <td class="col-team">{{ entry.team }}</td>
-            <td class="col-relay">{{ entry.relay_ltr }}</td>
+            <td class="col-relay">{{ entry.relayLtr }}</td>
             <td class="col-time">{{ entry.time }}</td>
             {% if show_dq_lines %}
                 <td class="col-dq">________________</td>
@@ -28,21 +28,28 @@
     <tr class="relay-swimmers-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-row{% endif %}">
         <td></td>
         <td colspan="{{ colspan }}" class="swimmers-list">
-            {% if show_dq_lines %}
-                <div class="relay-dq-grid">
-                    {% for swimmer in entry.swimmers %}
-                    <div class="relay-swimmer-dq">
-                        <span class="swimmer-num">{{ loop.index }})</span>
-                        <span class="swimmer-name">{{ swimmer }}</span>
-                        <span class="swimmer-dq-box">DQ: ________</span>
+            <div class="relay-grid">
+                <div class="relay-col">
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
                     </div>
-                    {% endfor %}
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
                 </div>
-            {% else %}
-                {% for swimmer in entry.swimmers %}
-                <span>{{ loop.index }}) {{ swimmer }}</span>{% if not loop.last %} {% endif %}
-                {% endfor %}
-            {% endif %}
+                <div class="relay-col">
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
+                    <div class="relay-swimmer-container">
+                        <div class="relay-swimmer">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                        {% if show_dq_lines %}<div class="relay-dq-line"></div>{% endif %}
+                    </div>
+                </div>
+            </div>
         </td>
     </tr>
     {% endif %}

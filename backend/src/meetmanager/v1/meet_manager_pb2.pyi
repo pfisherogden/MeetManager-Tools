@@ -17,6 +17,8 @@ class ReportType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REPORT_TYPE_MEET_PROGRAM_HTML: _ClassVar[ReportType]
     REPORT_TYPE_ENTRIES_HYTEK: _ClassVar[ReportType]
     REPORT_TYPE_ENTRIES_CLUB: _ClassVar[ReportType]
+    REPORT_TYPE_LANE_TIMER_SHEETS: _ClassVar[ReportType]
+    REPORT_TYPE_JUDGE_SHEETS: _ClassVar[ReportType]
 REPORT_TYPE_PSYCH_UNSPECIFIED: ReportType
 REPORT_TYPE_ENTRIES: ReportType
 REPORT_TYPE_LINEUPS: ReportType
@@ -25,6 +27,36 @@ REPORT_TYPE_MEET_PROGRAM: ReportType
 REPORT_TYPE_MEET_PROGRAM_HTML: ReportType
 REPORT_TYPE_ENTRIES_HYTEK: ReportType
 REPORT_TYPE_ENTRIES_CLUB: ReportType
+REPORT_TYPE_LANE_TIMER_SHEETS: ReportType
+REPORT_TYPE_JUDGE_SHEETS: ReportType
+
+class GetFileRequest(_message.Message):
+    __slots__ = ("path",)
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    def __init__(self, path: _Optional[str] = ...) -> None: ...
+
+class GetFileResponse(_message.Message):
+    __slots__ = ("content", "mime_type")
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    MIME_TYPE_FIELD_NUMBER: _ClassVar[int]
+    content: bytes
+    mime_type: str
+    def __init__(self, content: _Optional[bytes] = ..., mime_type: _Optional[str] = ...) -> None: ...
+
+class SyncDQsRequest(_message.Message):
+    __slots__ = ("dqs_json",)
+    DQS_JSON_FIELD_NUMBER: _ClassVar[int]
+    dqs_json: str
+    def __init__(self, dqs_json: _Optional[str] = ...) -> None: ...
+
+class SyncDQsResponse(_message.Message):
+    __slots__ = ("success", "message")
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    success: bool
+    message: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ...) -> None: ...
 
 class PublishMeetDataRequest(_message.Message):
     __slots__ = ()
@@ -177,8 +209,10 @@ class ClearAllDatasetsResponse(_message.Message):
     def __init__(self) -> None: ...
 
 class GetRelaysRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("event_id",)
+    EVENT_ID_FIELD_NUMBER: _ClassVar[int]
+    event_id: str
+    def __init__(self, event_id: _Optional[str] = ...) -> None: ...
 
 class GetRelaysResponse(_message.Message):
     __slots__ = ("relays",)
@@ -269,7 +303,7 @@ class Dataset(_message.Message):
     def __init__(self, filename: _Optional[str] = ..., is_active: bool = ..., last_modified: _Optional[str] = ...) -> None: ...
 
 class Relay(_message.Message):
-    __slots__ = ("id", "event_id", "team_id", "team_name", "leg1_name", "leg2_name", "leg3_name", "leg4_name", "seed_time", "final_time", "place", "event_name", "relay_letter", "heat", "lane")
+    __slots__ = ("id", "event_id", "team_id", "team_name", "leg1_name", "leg2_name", "leg3_name", "leg4_name", "seed_time", "final_time", "place", "event_name", "relay_letter", "heat", "lane", "team_color")
     ID_FIELD_NUMBER: _ClassVar[int]
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
     TEAM_ID_FIELD_NUMBER: _ClassVar[int]
@@ -285,6 +319,7 @@ class Relay(_message.Message):
     RELAY_LETTER_FIELD_NUMBER: _ClassVar[int]
     HEAT_FIELD_NUMBER: _ClassVar[int]
     LANE_FIELD_NUMBER: _ClassVar[int]
+    TEAM_COLOR_FIELD_NUMBER: _ClassVar[int]
     id: int
     event_id: int
     team_id: int
@@ -300,7 +335,8 @@ class Relay(_message.Message):
     relay_letter: str
     heat: int
     lane: int
-    def __init__(self, id: _Optional[int] = ..., event_id: _Optional[int] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., leg1_name: _Optional[str] = ..., leg2_name: _Optional[str] = ..., leg3_name: _Optional[str] = ..., leg4_name: _Optional[str] = ..., seed_time: _Optional[str] = ..., final_time: _Optional[str] = ..., place: _Optional[int] = ..., event_name: _Optional[str] = ..., relay_letter: _Optional[str] = ..., heat: _Optional[int] = ..., lane: _Optional[int] = ...) -> None: ...
+    team_color: str
+    def __init__(self, id: _Optional[int] = ..., event_id: _Optional[int] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., leg1_name: _Optional[str] = ..., leg2_name: _Optional[str] = ..., leg3_name: _Optional[str] = ..., leg4_name: _Optional[str] = ..., seed_time: _Optional[str] = ..., final_time: _Optional[str] = ..., place: _Optional[int] = ..., event_name: _Optional[str] = ..., relay_letter: _Optional[str] = ..., heat: _Optional[int] = ..., lane: _Optional[int] = ..., team_color: _Optional[str] = ...) -> None: ...
 
 class Score(_message.Message):
     __slots__ = ("team_id", "team_name", "individual_points", "relay_points", "total_points", "rank", "meet_name")
@@ -331,7 +367,7 @@ class EventScore(_message.Message):
     def __init__(self, event_id: _Optional[int] = ..., event_name: _Optional[str] = ..., entries: _Optional[_Iterable[_Union[Entry, _Mapping]]] = ...) -> None: ...
 
 class Entry(_message.Message):
-    __slots__ = ("id", "event_id", "athlete_id", "athlete_name", "team_id", "team_name", "seed_time", "final_time", "place", "event_name", "heat", "lane", "points")
+    __slots__ = ("id", "event_id", "athlete_id", "athlete_name", "team_id", "team_name", "seed_time", "final_time", "place", "event_name", "heat", "lane", "points", "team_color")
     ID_FIELD_NUMBER: _ClassVar[int]
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
     ATHLETE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -345,6 +381,7 @@ class Entry(_message.Message):
     HEAT_FIELD_NUMBER: _ClassVar[int]
     LANE_FIELD_NUMBER: _ClassVar[int]
     POINTS_FIELD_NUMBER: _ClassVar[int]
+    TEAM_COLOR_FIELD_NUMBER: _ClassVar[int]
     id: int
     event_id: int
     athlete_id: int
@@ -358,7 +395,8 @@ class Entry(_message.Message):
     heat: int
     lane: int
     points: float
-    def __init__(self, id: _Optional[int] = ..., event_id: _Optional[int] = ..., athlete_id: _Optional[int] = ..., athlete_name: _Optional[str] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., seed_time: _Optional[str] = ..., final_time: _Optional[str] = ..., place: _Optional[int] = ..., event_name: _Optional[str] = ..., heat: _Optional[int] = ..., lane: _Optional[int] = ..., points: _Optional[float] = ...) -> None: ...
+    team_color: str
+    def __init__(self, id: _Optional[int] = ..., event_id: _Optional[int] = ..., athlete_id: _Optional[int] = ..., athlete_name: _Optional[str] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., seed_time: _Optional[str] = ..., final_time: _Optional[str] = ..., place: _Optional[int] = ..., event_name: _Optional[str] = ..., heat: _Optional[int] = ..., lane: _Optional[int] = ..., points: _Optional[float] = ..., team_color: _Optional[str] = ...) -> None: ...
 
 class Session(_message.Message):
     __slots__ = ("id", "meet_id", "name", "date", "warm_up_time", "start_time", "event_count", "session_num", "day")
@@ -399,7 +437,7 @@ class Meet(_message.Message):
     def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., location: _Optional[str] = ..., start_date: _Optional[str] = ..., end_date: _Optional[str] = ..., status: _Optional[str] = ...) -> None: ...
 
 class Team(_message.Message):
-    __slots__ = ("id", "name", "code", "lsc", "city", "state", "athlete_count")
+    __slots__ = ("id", "name", "code", "lsc", "city", "state", "athlete_count", "color")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     CODE_FIELD_NUMBER: _ClassVar[int]
@@ -407,6 +445,7 @@ class Team(_message.Message):
     CITY_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     ATHLETE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    COLOR_FIELD_NUMBER: _ClassVar[int]
     id: int
     name: str
     code: str
@@ -414,7 +453,8 @@ class Team(_message.Message):
     city: str
     state: str
     athlete_count: int
-    def __init__(self, id: _Optional[int] = ..., name: _Optional[str] = ..., code: _Optional[str] = ..., lsc: _Optional[str] = ..., city: _Optional[str] = ..., state: _Optional[str] = ..., athlete_count: _Optional[int] = ...) -> None: ...
+    color: str
+    def __init__(self, id: _Optional[int] = ..., name: _Optional[str] = ..., code: _Optional[str] = ..., lsc: _Optional[str] = ..., city: _Optional[str] = ..., state: _Optional[str] = ..., athlete_count: _Optional[int] = ..., color: _Optional[str] = ...) -> None: ...
 
 class Athlete(_message.Message):
     __slots__ = ("id", "first_name", "last_name", "gender", "age", "team_id", "team_name", "school_year", "reg_no", "date_of_birth")

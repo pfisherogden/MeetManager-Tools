@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ meet_name }} - {{ sub_title }}</title>
+    <style>
+        {{ css_content }}
+        .group-block {
+            break-inside: avoid;
+            margin-bottom: 15pt;
+        }
+        .group-header {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            font-size: 11pt;
+            padding: 3pt 5pt;
+            border: 1pt solid #999;
+            margin-bottom: 5pt;
+            text-transform: uppercase;
+        }
+        .entries-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+        }
+        .entries-table th {
+            text-align: left;
+            border-bottom: 1pt solid #eee;
+        }
+        .col-lane { width: 35pt; font-weight: bold; }
+        .col-name { width: auto; }
+        .col-team { width: 60pt; }
+        .col-time { width: 60pt; text-align: right; }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <table class="header-table">
+            <tr class="header-top">
+                <td class="header-left-col">
+                    <div class="header-meet-name">{{ meet_name|default('Tri-Valley Swim League') }}</div>
+                    <div class="header-sub-title">{{ sub_title }}</div>
+                </td>
+                <td class="header-right-col">
+                    <div class="header-timestamp">MM-Tools - {{ generation_time }}</div>
+                    <div class="header-page-num">Page <span class="page-counter"></span></div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+
+    <div class="content-container">
+        {% for group in groups %}
+        <div class="group-block">
+            <div class="group-header">{{ group.header }}</div>
+            
+            {% for item in group.heats %}
+            <div class="heat-block">
+                <div class="heat-header">{{ item.header }}</div>
+                
+                <table class="entries-table">
+                    <thead>
+                        <tr>
+                            <th class="col-lane">Lane</th>
+                            <th class="col-name">Name</th>
+                            <th class="col-team">Team</th>
+                            <th class="col-time">Seed Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for athlete in item.sub_items %}
+                        {% set is_zebra = zebra_striping and loop.index is even %}
+                        <tr class="entry-row {% if is_zebra %}zebra-row{% endif %}">
+                            <td class="col-lane">{{ athlete.lane }}</td>
+                            {% if athlete.is_relay %}
+                                <td>{{ athlete.team }} - '{{ athlete.relay_ltr }}'</td>
+                            {% else %}
+                                <td>{{ athlete.name }}</td>
+                            {% endif %}
+                            <td>{{ athlete.team }}</td>
+                            <td class="col-time">{{ athlete.time }}</td>
+                        </tr>
+                        {% if athlete.is_relay and athlete.swimmers %}
+                        <tr class="relay-swimmers-row {% if is_zebra %}zebra-row{% endif %}">
+                            <td></td>
+                            <td colspan="3" class="swimmers-list">
+                                {% for swimmer in athlete.swimmers %}
+                                <span>{{ loop.index }}) {{ swimmer }}</span>{% if not loop.last %} {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
