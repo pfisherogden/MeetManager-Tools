@@ -137,7 +137,12 @@ class GCSStorageProvider(StorageProvider):
         blob = self.bucket.blob(remote_path)
         try:
             # Try to generate signed URL (requires credentials with service account)
-            return blob.generate_signed_url(expiration=3600, method="GET")
-        except Exception:
+            # Use service_account_email if provided via credentials
+            url = blob.generate_signed_url(expiration=3600, method="GET", version="v4")
+            logger.info(f"Generated signed URL for {remote_path}")
+            return url
+        except Exception as e:
             # Fallback to public URL
+            logger.warning(f"Failed to generate signed URL for {remote_path}: {e}")
+            logger.info(f"Falling back to public URL for {remote_path}: {blob.public_url}")
             return blob.public_url
