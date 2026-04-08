@@ -114,6 +114,7 @@ body {
 
 .heat-block {
     margin-bottom: 8pt;
+    break-inside: avoid;
 }
 
 .heat-header {
@@ -151,13 +152,16 @@ body {
 }
 
 .entry-row {
+    break-after: avoid;
 }
 
 .entry-tbody {
+    display: block; /* Treat as box container for better break control in WeasyPrint */
     break-inside: avoid;
 }
 
 .relay-swimmers-row {
+    break-inside: avoid;
 }
 
 .entries-table td {
