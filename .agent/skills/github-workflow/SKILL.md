@@ -25,6 +25,7 @@ description: Mandatory practices for GitHub workflows and session continuity in 
 ### Phase 3: Verification & Closure
 - **Local Verification**: 100% pass on `just lint`, `just type-check-backend`, and `just test-backend-fast`.
 - **5-Cycle Rule**: For major refactors, run the relevant test suite **5 times consecutively** to catch flakiness.
+- **CI/CD Monitoring**: Use `gh pr checks --watch` to monitor PR status in real-time. This ensures the "Mandatory" CI/CD monitoring requirement is met efficiently.
 - **CI/CD Pass**: Merge ONLY after all GitHub Actions are green on the PR.
 - **Issue Closure**: Only close after the PR is merged and CI/CD passes on the `main` branch.
 
@@ -33,7 +34,7 @@ To ensure continuity across crashes or session timeouts:
 1. **GitHub Issue Updates**: Post a comment with **"Current Progress"** and **"Planned Next Steps"** every 3-5 turns or at major milestones.
 2. **Chat Communication**: Post progress updates to the `pfo-gemcli` Google Chat space.
    - **Work Started**: Notify when beginning a task or major phase.
-   - **Work Completed**: **Mandatory** - Notify when work is finished, merged, or deployed. **Start a new thread for completions** to ensure unread notifications for the user.
+   - **Work Completed**: **Mandatory** - Notify when work is finished, merged, or deployed. **Always include the PR or Commit URL.** Start a new thread for completions to ensure unread notifications for the user.
    - **Frequency**: Every 15-20 minutes or at major milestones.
 3. **Context Precedence**: `GEMINI.md` and this skill take absolute precedence over general defaults.
 
@@ -41,3 +42,4 @@ To ensure continuity across crashes or session timeouts:
 1. **No Bulk Reads**: NEVER read files >500 lines in full. Use `start_line` and `end_line`.
 2. **Contextual Grep**: Use `grep_search` with `context` to find logic before reading.
 3. **Precise Replace**: Provide enough context in `old_string` to ensure unambiguous targeting.
+4. **MDB Schema Discovery**: When working with MDB synchronization, always use `mdb-tables` and `mdb-export` to verify column names and table structures. Document any found patterns in the issue or relevant `README.md` to prevent re-discovery.
