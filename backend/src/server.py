@@ -1616,15 +1616,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 program_url = f"{program_url}?token={token}"
 
             # Sync URL points to the frontend API which proxies to gRPC SyncDQs
-            # Use environment variables to avoid port collisions on shared machines
-            frontend_host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
-            frontend_port = os.getenv("FRONTEND_PORT", "3000")
-            frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
-            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+            # Use frontend_url from request if provided, otherwise environment variables
+            if request.frontend_url:
+                frontend_base = request.frontend_url.rstrip("/")
+            else:
+                frontend_host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
+                frontend_port = os.getenv("FRONTEND_PORT", "3000")
+                frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
+
             sync_url = f"{frontend_base}/api/sync-dqs?token={token}"
 
+            # Properly URL-encode nested parameters
+            import urllib.parse
+
+            encoded_program = urllib.parse.quote(program_url, safe="")
+            encoded_sync = urllib.parse.quote(sync_url, safe="")
+
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
-            judge_app_url = f"{base_url}?program_url={program_url}&sync_url={sync_url}"
+            judge_app_url = f"{base_url}?program_url={encoded_program}&sync_url={encoded_sync}"
 
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:
