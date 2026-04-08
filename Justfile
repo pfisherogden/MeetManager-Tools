@@ -148,6 +148,11 @@ test-journeys:
     @echo "Running Headless Journey Tests..."
     docker compose exec -T -e TEST_WEB_TARGET=http://frontend:3000 backend python -m pytest tests/integration/test_headless_journeys.py
 
+# Run E2E DQ synchronization tests
+test-dq-sync:
+    @echo "Running E2E DQ Sync Tests..."
+    docker compose exec -T -e TEST_WEB_TARGET=http://frontend:3000 -e RUN_INTEGRATION=1 backend python -m pytest tests/integration/test_dq_sync_e2e.py
+
 # Full verification pipeline (includes production builds to catch styling/turbopack errors)
 verify: lint test build-frontend build-mobile
 

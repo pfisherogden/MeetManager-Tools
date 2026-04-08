@@ -160,6 +160,10 @@ body {
     break-inside: avoid;
 }
 
+.entry-tbody {
+    break-inside: avoid;
+}
+
 .relay-swimmers-row {
     break-inside: avoid;
 }

@@ -41,11 +41,13 @@
                 {% for entry in heat.sub_items %}
                     {% set is_zebra = zebra_striping and loop.index is even %}
                     
-                    {{ macros.render_standard_entry_row(entry, is_zebra, show_dq_lines=show_dq_lines) }}
-                    
-                    {# Colspan calculation for relay swimmers - use full width #}
-                    {% set final_colspan = 5 if show_dq_lines else 4 %}
-                    {{ macros.render_relay_swimmers_row(entry, is_zebra, colspan=final_colspan, show_dq_lines=show_dq_lines) }}
+                    <tbody class="entry-tbody">
+                        {{ macros.render_standard_entry_row(entry, is_zebra, show_dq_lines=show_dq_lines) }}
+                        
+                        {# Colspan calculation for relay swimmers - use full width #}
+                        {% set final_colspan = 5 if show_dq_lines else 4 %}
+                        {{ macros.render_relay_swimmers_row(entry, is_zebra, colspan=final_colspan, show_dq_lines=show_dq_lines) }}
+                    </tbody>
                     
                 {% endfor %}
             </tbody>

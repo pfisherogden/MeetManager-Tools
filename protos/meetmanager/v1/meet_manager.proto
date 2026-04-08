@@ -362,6 +362,8 @@ message Relay {
   int32 lane = 15;
   // team_color is the hex code assigned to the team.
   string team_color = 16;
+  // status is the relay status (e.g. 'DQ', 'SCR').
+  string status = 17;
 }
 
 // Score represents team points and rank.
@@ -422,6 +424,8 @@ message Entry {
   float points = 14;
   // team_color is the hex code assigned to the team.
   string team_color = 15;
+  // status is the entry status (e.g. 'DQ', 'SCR').
+  string status = 16;
 }
 
 // Session represents a time block of events in the meet.

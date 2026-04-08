@@ -252,7 +252,9 @@ jobs:
 
       - name: Run Headless Journeys
         if: matrix.shardIndex == 1
-        run: just test-journeys
+        run: |
+          just test-journeys
+          just test-dq-sync
 
       - name: Shutdown Services
         if: always()

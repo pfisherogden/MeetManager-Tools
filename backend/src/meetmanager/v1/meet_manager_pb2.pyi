@@ -309,7 +309,7 @@ class Dataset(_message.Message):
     def __init__(self, filename: _Optional[str] = ..., is_active: bool = ..., last_modified: _Optional[str] = ...) -> None: ...
 
 class Relay(_message.Message):
-    __slots__ = ("id", "event_id", "team_id", "team_name", "leg1_name", "leg2_name", "leg3_name", "leg4_name", "seed_time", "final_time", "place", "event_name", "relay_letter", "heat", "lane", "team_color")
+    __slots__ = ("id", "event_id", "team_id", "team_name", "leg1_name", "leg2_name", "leg3_name", "leg4_name", "seed_time", "final_time", "place", "event_name", "relay_letter", "heat", "lane", "team_color", "status")
     ID_FIELD_NUMBER: _ClassVar[int]
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
     TEAM_ID_FIELD_NUMBER: _ClassVar[int]
@@ -326,6 +326,7 @@ class Relay(_message.Message):
     HEAT_FIELD_NUMBER: _ClassVar[int]
     LANE_FIELD_NUMBER: _ClassVar[int]
     TEAM_COLOR_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
     id: int
     event_id: int
     team_id: int
@@ -342,7 +343,8 @@ class Relay(_message.Message):
     heat: int
     lane: int
     team_color: str
-    def __init__(self, id: _Optional[int] = ..., event_id: _Optional[int] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., leg1_name: _Optional[str] = ..., leg2_name: _Optional[str] = ..., leg3_name: _Optional[str] = ..., leg4_name: _Optional[str] = ..., seed_time: _Optional[str] = ..., final_time: _Optional[str] = ..., place: _Optional[int] = ..., event_name: _Optional[str] = ..., relay_letter: _Optional[str] = ..., heat: _Optional[int] = ..., lane: _Optional[int] = ..., team_color: _Optional[str] = ...) -> None: ...
+    status: str
+    def __init__(self, id: _Optional[int] = ..., event_id: _Optional[int] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., leg1_name: _Optional[str] = ..., leg2_name: _Optional[str] = ..., leg3_name: _Optional[str] = ..., leg4_name: _Optional[str] = ..., seed_time: _Optional[str] = ..., final_time: _Optional[str] = ..., place: _Optional[int] = ..., event_name: _Optional[str] = ..., relay_letter: _Optional[str] = ..., heat: _Optional[int] = ..., lane: _Optional[int] = ..., team_color: _Optional[str] = ..., status: _Optional[str] = ...) -> None: ...
 
 class Score(_message.Message):
     __slots__ = ("team_id", "team_name", "individual_points", "relay_points", "total_points", "rank", "meet_name")
@@ -373,7 +375,7 @@ class EventScore(_message.Message):
     def __init__(self, event_id: _Optional[int] = ..., event_name: _Optional[str] = ..., entries: _Optional[_Iterable[_Union[Entry, _Mapping]]] = ...) -> None: ...
 
 class Entry(_message.Message):
-    __slots__ = ("id", "event_id", "athlete_id", "athlete_name", "team_id", "team_name", "seed_time", "final_time", "place", "event_name", "heat", "lane", "points", "team_color")
+    __slots__ = ("id", "event_id", "athlete_id", "athlete_name", "team_id", "team_name", "seed_time", "final_time", "place", "event_name", "heat", "lane", "points", "team_color", "status")
     ID_FIELD_NUMBER: _ClassVar[int]
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
     ATHLETE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -388,6 +390,7 @@ class Entry(_message.Message):
     LANE_FIELD_NUMBER: _ClassVar[int]
     POINTS_FIELD_NUMBER: _ClassVar[int]
     TEAM_COLOR_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
     id: int
     event_id: int
     athlete_id: int
@@ -402,7 +405,8 @@ class Entry(_message.Message):
     lane: int
     points: float
     team_color: str
-    def __init__(self, id: _Optional[int] = ..., event_id: _Optional[int] = ..., athlete_id: _Optional[int] = ..., athlete_name: _Optional[str] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., seed_time: _Optional[str] = ..., final_time: _Optional[str] = ..., place: _Optional[int] = ..., event_name: _Optional[str] = ..., heat: _Optional[int] = ..., lane: _Optional[int] = ..., points: _Optional[float] = ..., team_color: _Optional[str] = ...) -> None: ...
+    status: str
+    def __init__(self, id: _Optional[int] = ..., event_id: _Optional[int] = ..., athlete_id: _Optional[int] = ..., athlete_name: _Optional[str] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., seed_time: _Optional[str] = ..., final_time: _Optional[str] = ..., place: _Optional[int] = ..., event_name: _Optional[str] = ..., heat: _Optional[int] = ..., lane: _Optional[int] = ..., points: _Optional[float] = ..., team_color: _Optional[str] = ..., status: _Optional[str] = ...) -> None: ...
 
 class Session(_message.Message):
     __slots__ = ("id", "meet_id", "name", "date", "warm_up_time", "start_time", "event_count", "session_num", "day")

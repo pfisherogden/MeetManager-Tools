@@ -995,6 +995,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     heat=self._safe_int(item.get("fin_heat")),
                     lane=self._safe_int(item.get("fin_lane")),
                     team_color=self._get_team_color(t_id),
+                    status=str(item.get("fin_stat") or item.get("pre_stat") or ""),
                 )
             )
         return pb2.GetRelaysResponse(relays=result)
@@ -1120,6 +1121,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     lane=self._safe_int(item.get("fin_lane") or item.get("pre_lane") or 0),
                     points=self._safe_float(item.get("ev_score", 0.0)),
                     team_color=self._get_team_color(t_id),
+                    status=str(item.get("fin_stat") or item.get("pre_stat") or ""),
                 )
             )
         return pb2.GetEntriesResponse(entries=result)
