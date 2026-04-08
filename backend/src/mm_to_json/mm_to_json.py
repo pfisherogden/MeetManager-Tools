@@ -994,10 +994,11 @@ class MmToJsonConverter:
 
                     tid = self._safe_int(get_val(["team", "team_no", "team_ptr"], row, r_keys))
                     abbr = str(get_val(["tcode", "team_abbr", "abbr"], row, r_keys) or "").strip()
+                    full_name = str(get_val(["team_name", "name"], row, r_keys) or "").strip()
                     short = str(get_val(["short", "team_short", "short_name"], row, r_keys) or "").strip()
                     lsc = str(get_val(["lsc", "team_lsc"], row, r_keys) or "").strip()
 
-                    name = short if short else f"{abbr}-{lsc}".strip("-")
+                    name = full_name if full_name else (short if short else f"{abbr}-{lsc}".strip("-"))
                     self.cache_team_map[tid] = {
                         "name": name.strip(),
                         "abbr": abbr if abbr else name.strip(),

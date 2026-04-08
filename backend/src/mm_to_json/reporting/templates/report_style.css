@@ -87,10 +87,10 @@ body {
 .event-block {
     margin-bottom: 12pt;
     width: 100%;
-    overflow: hidden; /* Ensure content doesn't bleed */
+    break-inside: avoid;
 }
 
-.event-title-row th.event-header {
+.event-header-box {
     background-color: #f0f0f0;
     font-weight: bold;
     font-size: 9pt;
@@ -99,6 +99,7 @@ body {
     text-transform: uppercase;
     text-align: left;
     width: 100%;
+    break-after: avoid;
 }
 
 .entries-table thead {
@@ -113,7 +114,6 @@ body {
 
 .heat-block {
     margin-bottom: 8pt;
-    break-inside: avoid;
 }
 
 .heat-header {
@@ -128,7 +128,6 @@ body {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed; /* Force constraint within column */
-    overflow: hidden;
 }
 
 .entries-table th {
@@ -147,17 +146,11 @@ body {
     text-align: center;
 }
 
-.entries-table thead {
-    break-after: avoid;
-}
-
 .heat-row-header {
-    break-inside: avoid;
     break-after: avoid; /* Keep with entries of the heat */
 }
 
 .entry-row {
-    break-inside: avoid;
 }
 
 .entry-tbody {
@@ -165,7 +158,6 @@ body {
 }
 
 .relay-swimmers-row {
-    break-inside: avoid;
 }
 
 .entries-table td {
