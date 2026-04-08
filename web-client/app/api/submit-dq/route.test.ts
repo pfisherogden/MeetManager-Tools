@@ -1,11 +1,18 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as dqDb from "@/lib/dq-db";
+import client from "@/lib/mm-client";
 import { POST } from "./route";
 
 vi.mock("@/lib/dq-db", () => ({
 	checkDqExists: vi.fn(),
 	saveDq: vi.fn(),
+}));
+
+vi.mock("@/lib/mm-client", () => ({
+	default: {
+		syncDQs: vi.fn(),
+	},
 }));
 
 describe("POST /api/submit-dq", () => {
@@ -173,6 +180,13 @@ describe("POST /api/submit-dq", () => {
 			swimmer: 1,
 			infraction_code: "1A",
 		});
+
+		expect(client.syncDQs).toHaveBeenCalledTimes(1);
+		const syncCall = vi.mocked(client.syncDQs).mock.calls[0][0];
+		const syncDqs = JSON.parse(syncCall.dqsJson);
+		expect(syncDqs).toHaveLength(1);
+		expect(syncDqs[0].event_id).toBe(1);
+		expect(syncDqs[0].dq_code).toBe("1A");
 	});
 
 	it("returns 500 on database error", async () => {

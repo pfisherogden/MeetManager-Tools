@@ -106,3 +106,38 @@ def test_judge_publish_fetch_sync(grpc_stub):
     resp = requests.post(sync_url, json=test_dqs, timeout=10)
     assert resp.status_code == 200
     assert resp.json()["success"] is True
+
+
+def test_judge_submit_single_dq(grpc_stub):
+    """
+    User Journey: Judge App submits a single DQ using the new stateless endpoint.
+    """
+    # 1. Publish Data to get urls
+    pub_res = grpc_stub.PublishMeetData(pb2.PublishMeetDataRequest())
+    assert pub_res.success is True
+
+    # Extract sync_url and derive submit-dq url
+    import urllib.parse
+
+    parsed = urllib.parse.urlparse(pub_res.judge_app_url)
+    params = urllib.parse.parse_qs(parsed.query)
+    sync_url = params.get("sync_url", [None])[0]
+
+    # Derive submit-dq URL from sync-dqs URL
+    submit_url = sync_url.replace("/api/sync-dqs", "/api/submit-dq")
+
+    if "localhost:3000" in submit_url and "frontend" in WEB_TARGET:
+        submit_url = submit_url.replace("localhost:3000", "frontend:3000")
+
+    # 2. Submit DQ
+    payload = {
+        "clientDqId": f"test-dq-{int(time.time())}",
+        "event": 1,
+        "heat": 1,
+        "lane": 1,
+        "swimmer": "Test Swimmer",
+        "infraction_code": "1A",
+    }
+    resp = requests.post(submit_url, json=payload, timeout=10)
+    assert resp.status_code == 200
+    assert resp.json()["success"] is True
