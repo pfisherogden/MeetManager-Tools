@@ -101,16 +101,31 @@ class ReportDataExtractor:
         if not filter_team:
             return True
 
-        # Check both full name and abbreviation
-        candidates = [str(entry.get("team", "")).strip().lower(), str(entry.get("teamCode", "")).strip().lower()]
-
         f_t = str(filter_team).strip().lower()
-        if not f_t:
+        if not f_t or f_t == "all teams":
             return True
 
-        # Use regex for whole-word matching
+        # Check both full name and abbreviation/code
+        candidates = [
+            str(entry.get("team", "")).strip().lower(),
+            str(entry.get("teamCode", "")).strip().lower(),
+            str(entry.get("teamName", "")).strip().lower(),
+        ]
+
+        # 1. Try exact match (most reliable)
+        if any(f_t == c for c in candidates if c):
+            return True
+
+        # 2. Use regex for whole-word matching (handles "TVSL" in "TVSL-CA")
         pattern = r"\b" + re.escape(f_t) + r"\b"
-        return any(bool(re.search(pattern, c)) for c in candidates if c)
+        if any(bool(re.search(pattern, c)) for c in candidates if c):
+            return True
+
+        # 3. Last resort: simple inclusion (if filter is at least 3 chars)
+        if len(f_t) >= 3 and any(f_t in c for c in candidates if c):
+            return True
+
+        return False
 
     def _normalize_gender(self, gender: str | None) -> str:
         """Normalize gender string to M, F, or X. Return 'X' if no filtering is desired."""
