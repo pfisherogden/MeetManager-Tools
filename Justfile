@@ -48,6 +48,7 @@ codegen-backend:
     @echo "Regenerating Backend Protos..."
     cd backend && uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto
 
+
 codegen-frontend:
     @echo "Regenerating Frontend Protos..."
     cd web-client && npm run codegen

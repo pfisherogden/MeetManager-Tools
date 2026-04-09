@@ -1481,7 +1481,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             safe_bundle_path = urllib.parse.quote(bundle_rel_path)
             bundle_url = f"/api/data?path={safe_bundle_path}&token={token}"
 
-            return pb2.GenerateReportBundleResponse(
+            return pb2.GenerateReportBundleResponse(  # type: ignore
                 success=True,
                 message="Bundle generated successfully",
                 zip_content=b"",  # Empty legacy field
