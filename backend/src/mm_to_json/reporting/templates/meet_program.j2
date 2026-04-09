@@ -7,49 +7,41 @@
         <div class="event-header-box">
             {{ group.header }}
         </div>
-        <table class="entries-table">
-            <thead>
+        
+        <div class="entries-container">
+            <div class="entries-header-row">
                 {% if group.heats and group.heats[0].sub_items and group.heats[0].sub_items[0].is_relay %}
-                <tr>
-                    <th class="col-lane">Lane</th>
-                    <th class="col-team">Team</th>
-                    <th class="col-relay">Relay</th>
-                    <th class="col-time">Seed Time</th>
-                    {% if show_dq_lines %}<th class="col-dq dq-centered">DQ</th>{% endif %}
-                </tr>
+                    <div class="div-col col-lane">Lane</div>
+                    <div class="div-col col-team">Team</div>
+                    <div class="div-col col-relay">Relay</div>
+                    <div class="div-col col-time">Seed Time</div>
+                    {% if show_dq_lines %}<div class="div-col col-dq dq-centered">DQ</div>{% endif %}
                 {% else %}
-                <tr>
-                    <th class="col-lane">Lane</th>
-                    <th class="col-name">Name</th>
-                    <th class="col-age">Age</th>
-                    <th class="col-team">Team</th>
-                    <th class="col-time">Seed Time</th>
-                    {% if show_dq_lines %}<th class="col-dq dq-centered">DQ</th>{% endif %}
-                </tr>
+                    <div class="div-col col-lane">Lane</div>
+                    <div class="div-col col-name">Name</div>
+                    <div class="div-col col-age">Age</div>
+                    <div class="div-col col-team">Team</div>
+                    <div class="div-col col-time">Seed Time</div>
+                    {% if show_dq_lines %}<div class="div-col col-dq dq-centered">DQ</div>{% endif %}
                 {% endif %}
-            </thead>
+            </div>
+
             {% for heat in group.heats %}
-                <tbody class="heat-tbody">
-                    <tr class="heat-row-header">
-                        <td colspan="{% if show_dq_lines %}6{% else %}5{% endif %}" class="heat-header">
-                            {{ heat.header }}
-                        </td>
-                    </tr>
-                </tbody>
+                <div class="heat-header-row">
+                    {{ heat.header }}
+                </div>
+                
                 {% for entry in heat.sub_items %}
                     {% set is_zebra = zebra_striping and loop.index is even %}
                     
-                    <tbody class="entry-tbody">
-                        {{ macros.render_standard_entry_row(entry, is_zebra, show_dq_lines=show_dq_lines) }}
-                        
-                        {# Colspan calculation for relay swimmers - use full width #}
-                        {% set final_colspan = 5 if show_dq_lines else 4 %}
-                        {{ macros.render_relay_swimmers_row(entry, is_zebra, colspan=final_colspan, show_dq_lines=show_dq_lines) }}
-                    </tbody>
+                    <div class="entry-group">
+                        {{ macros.render_div_entry_row(entry, is_zebra, show_dq_lines=show_dq_lines) }}
+                        {{ macros.render_div_relay_swimmers_row(entry, is_zebra, show_dq_lines=show_dq_lines) }}
+                    </div>
                     
                 {% endfor %}
             {% endfor %}
-        </table>
+        </div>
     </div>
     {% endfor %}
 {% endblock %}

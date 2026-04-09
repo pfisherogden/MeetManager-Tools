@@ -387,7 +387,9 @@ export async function generateReport(
 
 		return {
 			success: true,
-			pdfContent: Array.from(response.pdfContent as Uint8Array),
+			pdfContentBase64: Buffer.from(response.pdfContent as Uint8Array).toString(
+				"base64",
+			),
 			filename: response.filename,
 			htmlContent: response.htmlContent,
 		};
@@ -432,7 +434,9 @@ export async function generateReportBundle(
 			success: true,
 			message: response.message,
 			filename: response.filename,
-			zipContent: Array.from(response.zipContent as Uint8Array),
+			zipContentBase64: Buffer.from(response.zipContent as Uint8Array).toString(
+				"base64",
+			),
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (generateReportBundle):", err);
