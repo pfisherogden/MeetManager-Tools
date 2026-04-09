@@ -1840,18 +1840,22 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.SyncDQsResponse(success=False, message=str(e))
 
     def GetFile(self, request, context):
-        # System-level bypass for stateless access
-        token = os.getenv("DATA_ACCESS_TOKEN")
-        if token and request.token == token:
-            # Authorized via system token, skip uid check for the path prefix
-            # but we should still validate it's within 'users/'
-            if not (request.path.startswith("users/") or request.path == SOURCE_FILE):
-                context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
-        else:
-            uid = self._check_auth(context)
-            # Verify path starts with users/[uid] or is Sample_Data.json
-            if not (request.path.startswith(f"users/{uid}/") or request.path == SOURCE_FILE):
-                context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
+        # Allow unauthenticated access specifically for sample-user paths (public sample data)
+        is_sample = request.path.startswith("users/sample-user/")
+
+        if not is_sample:
+            # System-level bypass for stateless access
+            token = os.getenv("DATA_ACCESS_TOKEN")
+            if token and request.token == token:
+                # Authorized via system token, skip uid check for the path prefix
+                # but we should still validate it's within 'users/'
+                if not (request.path.startswith("users/") or request.path == SOURCE_FILE):
+                    context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
+            else:
+                uid = self._check_auth(context)
+                # Verify path starts with users/[uid] or is Sample_Data.json
+                if not (request.path.startswith(f"users/{uid}/") or request.path == SOURCE_FILE):
+                    context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
 
         path = request.path
 
