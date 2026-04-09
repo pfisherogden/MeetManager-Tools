@@ -1296,7 +1296,33 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GenerateReport(self, request, context):
         request = request or pb2.GenerateReportRequest()
         try:
-            cache, _ = self._load_user_data(context)
+            # Support unauthenticated access for Sample_Data.json (for dev/debug)
+            # Otherwise require authentication
+            try:
+                # We must NOT use _check_auth here because it aborts immediately.
+                uid = getattr(context, "uid", None)
+                if uid is None and context:
+                    # If no uid in context, check for metadata override (E2E)
+                    try:
+                        metadata = dict(context.invocation_metadata())
+                        uid = metadata.get("x-user-id")
+                    except Exception:
+                        pass
+
+                if uid is None:
+                    # Still no UID, check if it's local or auth disabled
+                    if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
+                        uid = "dev-user"
+
+                if uid:
+                    cache, _ = self._load_user_data(context)
+                else:
+                    raise ValueError("No authentication")
+            except Exception:
+                # Fallback to Sample_Data if no auth provided
+                sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
+                with open(sample_path) as f:
+                    cache = json.load(f)
 
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
@@ -1370,8 +1396,25 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # Support unauthenticated access for Sample_Data.json (for dev/debug)
         # Otherwise require authentication
         try:
-            uid = self._check_auth(context)
-            cache, _ = self._load_user_data(context)
+            # We must NOT use _check_auth here because it aborts immediately.
+            uid = getattr(context, "uid", None)
+            if uid is None and context:
+                # If no uid in context, check for metadata override (E2E)
+                try:
+                    metadata = dict(context.invocation_metadata())
+                    uid = metadata.get("x-user-id")
+                except Exception:
+                    pass
+
+            if uid is None:
+                # Still no UID, check if it's local or auth disabled
+                if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
+                    uid = "dev-user"
+
+            if uid:
+                cache, _ = self._load_user_data(context)
+            else:
+                raise ValueError("No authentication")
         except Exception:
             # Fallback to Sample_Data if no auth provided
             # This is safe because Sample_Data is public
