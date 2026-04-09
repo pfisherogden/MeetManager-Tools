@@ -438,9 +438,7 @@ export async function generateReportBundle(
 			success: true,
 			message: response.message,
 			filename: response.filename,
-			zipContentBase64: Buffer.from(response.zipContent as Uint8Array).toString(
-				"base64",
-			),
+			bundleUrl: response.bundleUrl,
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (generateReportBundle):", err);

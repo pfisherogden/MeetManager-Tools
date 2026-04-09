@@ -136,10 +136,11 @@ class GCSStorageProvider(StorageProvider):
         try:
             # Try to generate signed URL (requires iam.serviceAccounts.signBlob permission)
             # v4 signing is the modern standard
-            service_account_email = getattr(self.client.credentials, "service_account_email", None)
+            service_account_email = getattr(self.client, "service_account_email", None)
             url = blob.generate_signed_url(
                 expiration=3600, method="GET", version="v4", service_account_email=service_account_email
             )
+
             logger.info(f"Generated signed URL for {remote_path} (SA: {service_account_email})")
             return url
         except Exception as e:

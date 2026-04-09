@@ -6,6 +6,7 @@ const ALLOWED_HOSTS = [
 	"127.0.0.1",
 	"pfisherogden.github.io",
 	"storage.googleapis.com",
+	"mmtools-frontend-ckhcthqhya-uw.a.run.app",
 	"example.com", // For testing
 ];
 
