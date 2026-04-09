@@ -31,10 +31,12 @@ REPORT_TYPE_LANE_TIMER_SHEETS: ReportType
 REPORT_TYPE_JUDGE_SHEETS: ReportType
 
 class GetFileRequest(_message.Message):
-    __slots__ = ("path",)
+    __slots__ = ("path", "token")
     PATH_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_FIELD_NUMBER: _ClassVar[int]
     path: str
-    def __init__(self, path: _Optional[str] = ...) -> None: ...
+    token: str
+    def __init__(self, path: _Optional[str] = ..., token: _Optional[str] = ...) -> None: ...
 
 class GetFileResponse(_message.Message):
     __slots__ = ("content", "mime_type")

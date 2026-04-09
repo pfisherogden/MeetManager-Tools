@@ -1608,18 +1608,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     os.remove(tmp_path)
 
             # Generate URLs
-            program_url = self.storage.get_url(user_pub_path)
+            # Use the /api/data proxy for the program_url to avoid direct GCS signed URL issues.
+            # This works statelessly using the DATA_ACCESS_TOKEN.
             token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
 
-            # Append token to program_url ONLY if it's not already a signed GCS URL
-            # Signed GCS URLs contain 'X-Goog-Algorithm'
-            if "X-Goog-Algorithm" not in program_url:
-                if "?" in program_url:
-                    program_url = f"{program_url}&token={token}"
-                else:
-                    program_url = f"{program_url}?token={token}"
-
-            # Sync URL points to the frontend API which proxies to gRPC SyncDQs
             # Use frontend_url from request if provided, otherwise environment variables
             if request.frontend_url:
                 frontend_base = request.frontend_url.rstrip("/")
@@ -1628,22 +1620,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 frontend_port = os.getenv("FRONTEND_PORT", "3000")
                 frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
 
-            sync_url = f"{frontend_base}/api/sync-dqs?token={token}&uid={uid}"
-
-            # Properly URL-encode nested parameters
-            # Use urllib.parse.quote to ensure the nested URLs are safe as query params.
-            # We must be careful NOT to double-encode if the StorageProvider already encoded it.
-            # GCS Signed URLs ARE already encoded.
+            # Correctly path-encode the user_pub_path
             import urllib.parse
 
+            safe_pub_path = urllib.parse.quote(user_pub_path)
+            program_url = f"{frontend_base}/api/data?path={safe_pub_path}&token={token}"
+
+            sync_url = f"{frontend_base}/api/sync-dqs?token={token}&uid={uid}"
+
             # Nested URLs must be fully encoded to be valid as a query parameter value.
-            # We use safe="" to ensure EVERYTHING including / and : is encoded.
+            # We use safe="" to ensure EVERYTHING including / and : is encoded for the final link.
             encoded_program = urllib.parse.quote(program_url, safe="")
             encoded_sync = urllib.parse.quote(sync_url, safe="")
 
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
             judge_app_url = f"{base_url}?program_url={encoded_program}&sync_url={encoded_sync}"
-
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:
             logging.error(f"Publish failed: {e}")
@@ -1761,12 +1752,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.SyncDQsResponse(success=False, message=str(e))
 
     def GetFile(self, request, context):
-        uid = self._check_auth(context)
-        path = request.path
+        # System-level bypass for stateless access
+        token = os.getenv("DATA_ACCESS_TOKEN")
+        if token and request.token == token:
+            # Authorized via system token, skip uid check for the path prefix
+            # but we should still validate it's within 'users/'
+            if not (request.path.startswith("users/") or request.path == SOURCE_FILE):
+                context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
+        else:
+            uid = self._check_auth(context)
+            # Verify path starts with users/[uid] or is Sample_Data.json
+            if not (request.path.startswith(f"users/{uid}/") or request.path == SOURCE_FILE):
+                context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
 
-        # Verify path starts with users/[uid] or is Sample_Data.json
-        if not (path.startswith(f"users/{uid}/") or path == SOURCE_FILE):
-            context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
+        path = request.path
 
         if not self.storage.exists(path):
             context.abort(grpc.StatusCode.NOT_FOUND, f"File {path} not found")
