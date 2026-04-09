@@ -340,8 +340,20 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 					} else {
 						toast.error("Pop-up blocked. Please allow pop-ups for this site.");
 					}
-				} else if (result.pdfContent) {
-					const blob = new Blob([new Uint8Array(result.pdfContent)], {
+				} else if (result.pdfContentBase64) {
+					// Decode base64 to binary
+					const binaryString = window.atob(result.pdfContentBase64);
+					const bytes = new Uint8Array(binaryString.length);
+					for (let i = 0; i < binaryString.length; i++) {
+						bytes[i] = binaryString.charCodeAt(i);
+					}
+
+					if (bytes.length === 0) {
+						toast.error("Generated PDF was empty. Please try again.");
+						return;
+					}
+
+					const blob = new Blob([bytes], {
 						type: "application/pdf",
 					});
 					const url = URL.createObjectURL(blob);
