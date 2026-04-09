@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { corsOptions, withCors } from "@/lib/cors";
 import { checkDqExists, saveDq } from "@/lib/dq-db";
 import client from "@/lib/mm-client";
+
+export async function OPTIONS() {
+	return corsOptions();
+}
 
 export async function POST(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
@@ -14,7 +19,9 @@ export async function POST(request: NextRequest) {
 	const isAuthorized = !isTokenConfigured || token === configuredToken;
 
 	if (!isAuthorized) {
-		return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
+		return withCors(
+			NextResponse.json({ error: "Unauthorized access" }, { status: 403 }),
+		);
 	}
 
 	try {
@@ -22,9 +29,8 @@ export async function POST(request: NextRequest) {
 		const { clientDqId, event, heat, lane, swimmer, infraction_code } = payload;
 
 		if (!clientDqId) {
-			return NextResponse.json(
-				{ error: "Missing clientDqId" },
-				{ status: 400 },
+			return withCors(
+				NextResponse.json({ error: "Missing clientDqId" }, { status: 400 }),
 			);
 		}
 		if (
@@ -33,18 +39,22 @@ export async function POST(request: NextRequest) {
 			swimmer === undefined ||
 			infraction_code === undefined
 		) {
-			return NextResponse.json(
-				{ error: "Malformed payload: missing required fields" },
-				{ status: 400 },
+			return withCors(
+				NextResponse.json(
+					{ error: "Malformed payload: missing required fields" },
+					{ status: 400 },
+				),
 			);
 		}
 
 		// Idempotency check
 		const exists = await checkDqExists(clientDqId);
 		if (exists) {
-			return NextResponse.json(
-				{ success: true, message: "DQ already submitted" },
-				{ status: 200 },
+			return withCors(
+				NextResponse.json(
+					{ success: true, message: "DQ already submitted" },
+					{ status: 200 },
+				),
 			);
 		}
 
@@ -81,15 +91,16 @@ export async function POST(request: NextRequest) {
 			// We still return 200 because it's saved in Firestore and can be synced later
 		}
 
-		return NextResponse.json({
-			success: true,
-			message: "DQ submitted successfully",
-		});
+		return withCors(
+			NextResponse.json({
+				success: true,
+				message: "DQ submitted successfully",
+			}),
+		);
 	} catch (error: any) {
 		console.error("API Error (submit-dq):", error);
-		return NextResponse.json(
-			{ error: "Internal server error" },
-			{ status: 500 },
+		return withCors(
+			NextResponse.json({ error: "Internal server error" }, { status: 500 }),
 		);
 	}
 }

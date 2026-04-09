@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { corsOptions, withCors } from "@/lib/cors";
 import client from "@/lib/mm-client";
+
+export async function OPTIONS() {
+	return corsOptions();
+}
 
 export async function POST(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
@@ -13,7 +18,9 @@ export async function POST(request: NextRequest) {
 	const isAuthorized = !isTokenConfigured || token === configuredToken;
 
 	if (!isAuthorized) {
-		return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
+		return withCors(
+			NextResponse.json({ error: "Unauthorized access" }, { status: 403 }),
+		);
 	}
 
 	try {
@@ -27,17 +34,23 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (response.success) {
-			return NextResponse.json({ success: true, message: response.message });
+			return withCors(
+				NextResponse.json({ success: true, message: response.message }),
+			);
 		}
-		return NextResponse.json(
-			{ success: false, message: response.message },
-			{ status: 500 },
+		return withCors(
+			NextResponse.json(
+				{ success: false, message: response.message },
+				{ status: 500 },
+			),
 		);
 	} catch (error: any) {
 		console.error("API Error (sync-dqs):", error);
-		return NextResponse.json(
-			{ success: false, message: error.message },
-			{ status: 500 },
+		return withCors(
+			NextResponse.json(
+				{ success: false, message: error.message },
+				{ status: 500 },
+			),
 		);
 	}
 }
