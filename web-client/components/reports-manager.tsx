@@ -180,25 +180,18 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 				.slice(0, 19);
 			const suggestedName = `reports_${timestamp}_${customPack.length}_items.zip`;
 			const result = await generateReportBundle(customPack, suggestedName);
-			if (result.success && result.zipContentBase64) {
-				// Decode base64 to binary
-				const binaryString = window.atob(result.zipContentBase64);
-				const bytes = new Uint8Array(binaryString.length);
-				for (let i = 0; i < binaryString.length; i++) {
-					bytes[i] = binaryString.charCodeAt(i);
-				}
+			if (result.success && result.bundleUrl) {
+				// Construct the full URL if it's relative
+				const downloadUrl = result.bundleUrl.startsWith("http")
+					? result.bundleUrl
+					: `${window.location.origin}${result.bundleUrl}`;
 
-				const blob = new Blob([bytes], {
-					type: "application/zip",
-				});
-				const url = URL.createObjectURL(blob);
 				const a = document.createElement("a");
-				a.href = url;
+				a.href = downloadUrl;
 				a.download = result.filename || suggestedName;
 				document.body.appendChild(a);
 				a.click();
 				document.body.removeChild(a);
-				URL.revokeObjectURL(url);
 				toast.success("Custom pack generated successfully");
 			} else {
 				throw new Error(result.message || "Failed to generate bundle");

@@ -559,13 +559,15 @@ class GenerateReportBundleRequest(_message.Message):
     def __init__(self, reports: _Optional[_Iterable[_Union[GenerateReportRequest, _Mapping]]] = ..., bundle_name: _Optional[str] = ...) -> None: ...
 
 class GenerateReportBundleResponse(_message.Message):
-    __slots__ = ("success", "message", "zip_content", "filename")
+    __slots__ = ("success", "message", "zip_content", "filename", "bundle_url")
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     ZIP_CONTENT_FIELD_NUMBER: _ClassVar[int]
     FILENAME_FIELD_NUMBER: _ClassVar[int]
+    BUNDLE_URL_FIELD_NUMBER: _ClassVar[int]
     success: bool
     message: str
     zip_content: bytes
     filename: str
-    def __init__(self, success: bool = ..., message: _Optional[str] = ..., zip_content: _Optional[bytes] = ..., filename: _Optional[str] = ...) -> None: ...
+    bundle_url: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., zip_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., bundle_url: _Optional[str] = ...) -> None: ...

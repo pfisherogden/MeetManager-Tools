@@ -1357,6 +1357,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.GenerateReportResponse(success=False, message=str(e))
 
     def GenerateReportBundle(self, request, context):
+        uid = self._check_auth(context)
         import zipfile
 
         if request is None:
@@ -1451,11 +1452,33 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if not bundle_name.endswith(".zip"):
                 bundle_name += ".zip"
 
+            # Upload to GCS and return a proxy URL
+            bundle_rel_path = os.path.join("users", uid, "published", "bundles", bundle_name)
+
+            with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as bundle_tmp:
+                bundle_tmp.write(zip_buffer.getvalue())
+                bundle_tmp_path = bundle_tmp.name
+                bundle_tmp.close()
+
+            try:
+                self.storage.upload_file(bundle_tmp_path, bundle_rel_path)
+            finally:
+                if os.path.exists(bundle_tmp_path):
+                    os.remove(bundle_tmp_path)
+
+            # Construct proxy URL
+            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+            import urllib.parse
+
+            safe_bundle_path = urllib.parse.quote(bundle_rel_path)
+            bundle_url = f"/api/data?path={safe_bundle_path}&token={token}"
+
             return pb2.GenerateReportBundleResponse(
                 success=True,
                 message="Bundle generated successfully",
-                zip_content=zip_buffer.getvalue(),
+                zip_content=b"",  # Empty legacy field
                 filename=bundle_name,
+                bundle_url=bundle_url,
             )
 
         except Exception as e:
