@@ -62,6 +62,11 @@ const credentials = useSsl
 const client: MeetManagerServiceClient = clientFactory.create(
 	MeetManagerServiceDefinition,
 	createChannel(defaultHost, credentials),
+	{
+		"*": {
+			timeout: 300000, // 5 minutes
+		},
+	},
 );
 
 export default client;

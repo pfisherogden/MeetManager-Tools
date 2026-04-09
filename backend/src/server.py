@@ -1342,14 +1342,22 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     os.remove(msgpack_path)
 
             if not res["success"]:
+                logging.error(f"Report generation failed in worker: {res.get('error')}")
                 return pb2.GenerateReportResponse(success=False, message=res["error"])
+
+            pdf_bytes = res["content"] if res["filename"].endswith(".pdf") else b""
+            html_str = res["content"].decode("utf-8") if res["filename"].endswith(".html") else ""
+
+            logging.info(
+                f"Report generated: {res['filename']} (PDF: {len(pdf_bytes)} bytes, HTML: {len(html_str)} chars)"
+            )
 
             return pb2.GenerateReportResponse(
                 success=True,
                 message="Report generated successfully",
-                pdf_content=res["content"] if res["filename"].endswith(".pdf") else b"",
+                pdf_content=pdf_bytes,
                 filename=res["filename"],
-                html_content=res["content"].decode("utf-8") if res["filename"].endswith(".html") else "",
+                html_content=html_str,
             )
 
         except Exception as e:
