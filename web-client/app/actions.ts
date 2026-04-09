@@ -387,9 +387,7 @@ export async function generateReport(
 
 		return {
 			success: true,
-			pdfContentBase64: Buffer.from(response.pdfContent as Uint8Array).toString(
-				"base64",
-			),
+			pdfContent: response.pdfContent as Uint8Array,
 			filename: response.filename,
 			htmlContent: response.htmlContent,
 		};

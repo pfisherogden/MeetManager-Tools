@@ -137,13 +137,22 @@ test.describe("Champs Dataset Journey", () => {
 		);
 
 		// Enforce a strict 3-minute (180,000ms) timeout on the download to accommodate CI limits
-		const downloadPromise = page.waitForEvent("download", { timeout: 180000 });
-		await generateZipBtn.click();
+		const [download] = await Promise.all([
+			page.waitForEvent("download", { timeout: 180000 }),
+			generateZipBtn.click(),
+		]);
 
-		const download = await downloadPromise;
+		console.log("Download initiated...");
 
 		// Wait for download to complete
-		const downloadPath = await download.path();
+		let downloadPath: string | null = null;
+		try {
+			downloadPath = await download.path();
+		} catch (e: any) {
+			console.error(`Download failed or was canceled: ${e.message}`);
+			throw e;
+		}
+
 		expect(downloadPath).toBeTruthy();
 
 		if (downloadPath) {
