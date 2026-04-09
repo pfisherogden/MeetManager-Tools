@@ -35,9 +35,7 @@ test.describe("Production Smoke Tests", () => {
 			]);
 		}
 
-		console.log(
-			`Verifying production environment as User: ${userId} on ${domain}`,
-		);
+		console.log(`Verifying production environment on ${domain}`);
 	});
 
 	test("should load dashboard", async ({ page }) => {
