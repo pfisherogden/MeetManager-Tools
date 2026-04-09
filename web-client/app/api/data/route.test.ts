@@ -58,7 +58,10 @@ describe("GET /api/data", () => {
 			);
 			const res = await GET(req);
 			expect(res.status).toBe(200);
-			expect(client.getFile).toHaveBeenCalledWith({ path: "test.json" });
+			expect(client.getFile).toHaveBeenCalledWith({
+				path: "test.json",
+				token: "my-secret-token",
+			});
 		});
 	});
 
@@ -73,7 +76,10 @@ describe("GET /api/data", () => {
 			const req = new NextRequest("http://localhost/api/data?path=test.json");
 			const res = await GET(req);
 			expect(res.status).toBe(200);
-			expect(client.getFile).toHaveBeenCalledWith({ path: "test.json" });
+			expect(client.getFile).toHaveBeenCalledWith({
+				path: "test.json",
+				token: "",
+			});
 		});
 
 		it("allows access with an empty token", async () => {
@@ -86,7 +92,10 @@ describe("GET /api/data", () => {
 			const req = new NextRequest("http://localhost/api/data?path=test.json");
 			const res = await GET(req);
 			expect(res.status).toBe(200);
-			expect(client.getFile).toHaveBeenCalledWith({ path: "test.json" });
+			expect(client.getFile).toHaveBeenCalledWith({
+				path: "test.json",
+				token: "",
+			});
 		});
 
 		it("allows access with a random token", async () => {
@@ -101,7 +110,10 @@ describe("GET /api/data", () => {
 			);
 			const res = await GET(req);
 			expect(res.status).toBe(200);
-			expect(client.getFile).toHaveBeenCalledWith({ path: "test.json" });
+			expect(client.getFile).toHaveBeenCalledWith({
+				path: "test.json",
+				token: "random",
+			});
 		});
 	});
 });

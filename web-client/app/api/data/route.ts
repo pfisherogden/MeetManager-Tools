@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		const response = await client.getFile({ path });
+		const response = await client.getFile({
+			path,
+			token: token || "",
+		});
 
 		return new NextResponse(response.content, {
 			headers: {

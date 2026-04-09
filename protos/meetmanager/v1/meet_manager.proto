@@ -81,6 +81,8 @@ service MeetManagerService {
 message GetFileRequest {
   // path is the relative path to the file in storage.
   string path = 1;
+  // token is the shared secret for stateless access.
+  string token = 2;
 }
 
 // GetFileResponse contains the file content.

@@ -135,3 +135,23 @@ def test_sync_dqs_logic():
                         mock_db, 200, 456, 3, 4, status="DQ", dq_code="2B", is_relay=True
                     )
                     assert mock_mdb_writer.update_entry_status.call_count == 2
+
+
+def test_get_file_system_auth():
+    service = MeetManagerService()
+    path = "users/test-uid/published/program.json"
+    token = "system-token"
+
+    with patch.object(service, "storage") as mock_storage:
+        mock_storage.exists.return_value = True
+        mock_storage.download_file.side_effect = lambda p, tmp: open(tmp, "wb").write(b"content")
+
+        request = meet_manager_pb2.GetFileRequest(path=path, token=token)
+
+        with patch.dict(os.environ, {"DATA_ACCESS_TOKEN": token}):
+            # This should NOT call _check_auth
+            with patch.object(service, "_check_auth") as mock_check_auth:
+                response = service.GetFile(request, None)
+                assert mock_check_auth.call_count == 0
+                assert response.content == b"content"
+                assert response.mime_type == "application/json"
