@@ -26,15 +26,24 @@ const parseQueryParams = (url: string) => {
 	const queryParams: Record<string, string> = {};
 	if (!url) return queryParams;
 
-	const queryString = url.split("?")[1];
-	if (!queryString) return queryParams;
+	try {
+		const searchPart = url.split("?")[1];
+		if (!searchPart) return queryParams;
 
-	queryString.split("&").forEach((param) => {
-		const [key, value] = param.split("=");
-		if (key) {
-			queryParams[key] = decodeURIComponent(value || "");
+		// Use a more robust regex-based approach to extract known parameters that might be URLs
+		// This handles the case where nested URLs contain their own query parameters
+		const params = ["program_url", "dq_url", "sync_url", "token", "uid"];
+
+		for (const param of params) {
+			const regex = new RegExp(`[?&]${param}=([^&]+)`);
+			const match = url.match(regex);
+			if (match) {
+				queryParams[param] = decodeURIComponent(match[1]);
+			}
 		}
-	});
+	} catch (e) {
+		console.warn("Error parsing query params:", e);
+	}
 
 	return queryParams;
 };
@@ -62,6 +71,7 @@ export const loadDataFromUrl = async () => {
 	if (programUrl) {
 		if (validateUrl(programUrl)) {
 			try {
+				console.log(`FETCHING PROGRAM DATA FROM: ${programUrl}`);
 				const response = await fetch(programUrl as string);
 				if (!response.ok) throw new Error(`Server returned ${response.status}`);
 				const data = await response.json();

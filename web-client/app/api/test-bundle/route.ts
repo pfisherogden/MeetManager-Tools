@@ -30,11 +30,20 @@ export async function GET(_request: NextRequest) {
 			return NextResponse.json({ error: response.message }, { status: 500 });
 		}
 
+		// Security: Do NOT include the DATA_ACCESS_TOKEN in the public JSON response.
+		// The frontend/caller should use the returned bundleUrl which points to the sample-user's data.
+		// Since we've enabled unauthenticated access for 'sample-user' in the backend for these specific paths,
+		// we don't need to append the token here.
+
+		const cleanBundleUrl = response.bundleUrl?.split("&token=")[0];
+
 		return NextResponse.json({
 			success: true,
-			message: "Test bundle triggered successfully",
-			bundleUrl: response.bundleUrl,
+			message: "Test bundle generated successfully for sample data",
+			downloadUrl: cleanBundleUrl,
 			filename: response.filename,
+			instructions:
+				"To download, append your session token if needed, or use the unauthenticated sample path if enabled.",
 		});
 	} catch (error: any) {
 		console.error("TEST-BUNDLE ERROR:", error);
