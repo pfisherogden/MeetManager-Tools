@@ -608,8 +608,10 @@ message GenerateReportBundleResponse {
   bool success = 1;
   // message provides additional information or error details.
   string message = 2;
-  // zip_content is the raw bytes of the generated zip file containing all reports.
+  // zip_content is the raw bytes of the generated zip file containing all reports (Legacy).
   bytes zip_content = 3;
   // filename is the suggested name for the zip file.
   string filename = 4;
+  // bundle_url is a proxy-compatible URL to download the zip file.
+  string bundle_url = 5;
 }
