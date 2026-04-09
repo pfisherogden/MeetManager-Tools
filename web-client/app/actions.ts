@@ -80,6 +80,11 @@ export async function clearAllDatasets() {
 }
 
 export async function uploadDatasetFromDrive(fileId: string, filename: string) {
+	// Sanitize fileId to prevent SSRF: Google Drive IDs are alphanumeric, underscores, and hyphens.
+	if (!/^[a-zA-Z0-9_-]+$/.test(fileId)) {
+		throw new Error("Invalid Google Drive file ID format.");
+	}
+
 	console.log(`SERVER ACTION: uploadDatasetFromDrive called for ${filename}`);
 
 	const { cookies: nextCookies } = await import("next/headers");
@@ -347,7 +352,8 @@ export async function getAthlete(id: number) {
 		const metadata = await getAuthMetadata();
 		return await client.getAthlete({ id }, { metadata });
 	} catch (err: unknown) {
-		console.error(`SERVER ACTION ERROR (getAthlete ${id}):`, err);
+		const safeId = Number.parseInt(String(id), 10);
+		console.error(`SERVER ACTION ERROR (getAthlete ${safeId}):`, err);
 		if (err instanceof Error) {
 			throw new Error(err.message);
 		}
