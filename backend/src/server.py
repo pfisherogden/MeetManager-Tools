@@ -1536,7 +1536,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             safe_bundle_path = urllib.parse.quote(bundle_rel_path)
             bundle_url = f"/api/data?path={safe_bundle_path}&token={token}"
 
-            return pb2.GenerateReportBundleResponse(  # type: ignore
+            return pb2.GenerateReportBundleResponse(
                 success=True,
                 message="Bundle generated successfully",
                 zip_content=b"",  # Empty legacy field
@@ -1714,10 +1714,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             sync_url = f"{frontend_base}/api/sync-dqs?token={token}&uid={uid}"
 
-            # Nested URLs must be fully encoded to be valid as a query parameter value.
-            # We use safe="" to ensure EVERYTHING including / and : is encoded for the final link.
-            encoded_program = urllib.parse.quote(program_url, safe="")
-            encoded_sync = urllib.parse.quote(sync_url, safe="")
+            # Nested URLs must be encoded to be valid as a query parameter value.
+            # We use safe="/:?=&" to ensure we don't double-encode already encoded parts
+            # while still keeping the nested URL safe for the outer URL.
+            encoded_program = urllib.parse.quote(program_url, safe="/:?=&")
+            encoded_sync = urllib.parse.quote(sync_url, safe="/:?=&")
 
             base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
             judge_app_url = f"{base_url}?program_url={encoded_program}&sync_url={encoded_sync}"
