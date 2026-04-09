@@ -64,7 +64,7 @@ def test_meet_program_has_data(champs_cache):
 
     # 3. Validate HTML content
     soup = BeautifulSoup(html, "html.parser")
-    entry_rows = soup.find_all("tr", class_="entry-row")
+    entry_rows = soup.find_all(class_="div-entry-row")
     print(f"Meet Program: Found {len(entry_rows)} entries")
     assert len(entry_rows) > 1000  # Champs has many entries
 
@@ -73,7 +73,7 @@ def test_meet_program_has_data(champs_cache):
     assert len(entry_rows) > 1000
 
     # Just verify some team info is present in the table
-    teams = [row.find("td", class_="col-team").get_text(strip=True) for row in entry_rows]
+    teams = [row.find("div", class_="col-team").get_text(strip=True) for row in entry_rows]
     assert any(len(t) > 0 for t in teams)
 
 

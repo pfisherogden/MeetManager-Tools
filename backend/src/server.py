@@ -226,7 +226,7 @@ def _process_single_report_process(
             safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
             ext = ".html" if rtype == "program_html" else ".pdf"
             file_name = f"{idx + 1}_{safe_title}{ext}"
-            return {"success": True, "filename": file_name, "content": content}
+            return {"success": True, "filename": file_name, "content": content, "rtype": rtype, "idx": idx}
 
         return {"success": False, "error": "Temp file not found"}
     except Exception as e:

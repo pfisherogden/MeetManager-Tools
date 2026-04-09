@@ -16,7 +16,9 @@ from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 # Locally: ../../tests/fixtures/anonymized_meets
 # Docker: /app/data/fixtures_root/anonymized_meets
 FIXTURES_DIR_LOCAL_1 = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tests/fixtures/anonymized_meets"))
-FIXTURES_DIR_LOCAL_2 = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../tests/fixtures/anonymized_meets"))
+FIXTURES_DIR_LOCAL_2 = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../../tests/fixtures/anonymized_meets")
+)
 FIXTURES_DIR_DOCKER = "/app/data/fixtures_root/anonymized_meets"
 
 if os.path.exists(FIXTURES_DIR_DOCKER):

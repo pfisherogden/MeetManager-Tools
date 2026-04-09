@@ -130,7 +130,7 @@ def test_html_structural_verification(sample_extractor):
 
     # Check for dedicated DQ column header or similar expected structure
     # In some rendered versions with simpler CSS, the class list changes.
-    assert "DQ</th>" in html_output
+    assert "DQ</div>" in html_output
     assert "col-dq" in html_output
 
 

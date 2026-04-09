@@ -52,6 +52,13 @@ resource "google_storage_bucket_iam_member" "storage_admin" {
   member = "serviceAccount:${google_service_account.run_sa.email}"
 }
 
+# IAM Role: Service Account Token Creator (Required for signed GCS URLs)
+resource "google_project_iam_member" "run_sa_token_creator" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${google_service_account.run_sa.email}"
+}
+
 # Backend Service (Cloud Run)
 resource "google_cloud_run_v2_service" "backend" {
   name     = "${var.app_name}-backend"
