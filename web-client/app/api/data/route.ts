@@ -1,25 +1,36 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { corsOptions, withCors } from "@/lib/cors";
 import client from "@/lib/mm-client";
+
+export async function OPTIONS() {
+	return corsOptions();
+}
 
 export async function GET(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
 	const path = searchParams.get("path");
 	const token = searchParams.get("token");
 
+	if (!path) {
+		return withCors(
+			NextResponse.json({ error: "Path is required" }, { status: 400 }),
+		);
+	}
+
 	// Basic security check: allow if token matches environment secret or if it's a public path
 	const configuredToken = process.env.DATA_ACCESS_TOKEN;
 	const isTokenConfigured =
 		configuredToken !== undefined && configuredToken !== "";
 
-	// Allow if no token is configured (fallback mode), OR if the configured token matches
-	const isAuthorized = !isTokenConfigured || token === configuredToken;
-
-	if (!path) {
-		return NextResponse.json({ error: "Path is required" }, { status: 400 });
-	}
+	// Allow unauthenticated access specifically for sample-user paths (public sample data)
+	const isSamplePath = path.startsWith("users/sample-user/");
+	const isAuthorized =
+		isSamplePath || !isTokenConfigured || token === configuredToken;
 
 	if (!isAuthorized) {
-		return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
+		return withCors(
+			NextResponse.json({ error: "Unauthorized access" }, { status: 403 }),
+		);
 	}
 
 	try {
@@ -28,17 +39,21 @@ export async function GET(request: NextRequest) {
 			token: token || "",
 		});
 
-		return new NextResponse(response.content, {
-			headers: {
-				"Content-Type": response.mimeType,
-				"Cache-Control": "public, max-age=3600",
-			},
-		});
+		return withCors(
+			new NextResponse(response.content, {
+				headers: {
+					"Content-Type": response.mimeType,
+					"Cache-Control": "public, max-age=3600",
+				},
+			}),
+		);
 	} catch (error: any) {
 		console.error(`API Error (data?path=${path}):`, error);
-		return NextResponse.json(
-			{ error: `Failed to fetch file: ${error.message}` },
-			{ status: 500 },
+		return withCors(
+			NextResponse.json(
+				{ error: `Failed to fetch file: ${error.message}` },
+				{ status: 500 },
+			),
 		);
 	}
 }
