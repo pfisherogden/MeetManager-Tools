@@ -348,6 +348,11 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 						bytes[i] = binaryString.charCodeAt(i);
 					}
 
+					if (bytes.length === 0) {
+						toast.error("Generated PDF was empty. Please try again.");
+						return;
+					}
+
 					const blob = new Blob([bytes], {
 						type: "application/pdf",
 					});
