@@ -51,6 +51,11 @@ body {
     text-align: right;
 }
 
+.header-timestamp, .header-page-num {
+    text-align: right;
+    width: 100%;
+}
+
 .header-meet-name {
     font-size: 10pt;
     font-weight: bold;
