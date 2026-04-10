@@ -69,7 +69,7 @@ class JudgeAppExtractor:
                         if is_relay:
                             if "relayAthletes" in entry:
                                 members = [
-                                    f"{a.get('first', '')} {a.get('last', '')}".strip() for a in entry["relayAthletes"]
+                                    f"{a.get('firstName', '')} {a.get('lastName', '')}".strip() for a in entry["relayAthletes"]
                                 ]
                             elif "name" in entry and entry.get("name"):
                                 members = [n.strip() for n in entry["name"].split(",")]

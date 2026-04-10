@@ -1927,7 +1927,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 def serve():
     port = os.getenv("PORT", "50051")
     interceptors = [FirebaseAuthInterceptor()]
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), interceptors=interceptors)
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        interceptors=interceptors,
+        options=[
+            ("grpc.max_send_message_length", 50 * 1024 * 1024),
+            ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+        ],
+    )
 
     # Add Health Servicer
     health_servicer = health.HealthServicer()
