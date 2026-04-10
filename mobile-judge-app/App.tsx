@@ -569,10 +569,12 @@ export default function App() {
 												const dq = item.relay_dqs?.find(
 													(d: DQ) => d.leg === leg,
 												);
-												const legName = item.members?.[leg - 1]
-													? item.members[leg - 1]
+												const membersList = item.members || (item as any).relaySwimmers || [];
+												const legName = membersList[leg - 1]
+													? membersList[leg - 1]
 													: `Leg ${leg}`;
 												return (
+
 													<TouchableOpacity
 														key={leg}
 														style={styles.legRow}

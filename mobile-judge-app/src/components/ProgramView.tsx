@@ -70,8 +70,9 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 						<View style={styles.legsContainer}>
 							{[1, 2, 3, 4].map((leg) => {
 								const dq = swimmer.relay_dqs?.find((d: DQ) => d.leg === leg);
-								const legName = swimmer.members?.[leg - 1]
-									? swimmer.members[leg - 1]
+								const membersList = swimmer.members || (swimmer as any).relaySwimmers || [];
+								const legName = membersList[leg - 1]
+									? membersList[leg - 1]
 									: `Leg ${leg}`;
 								return (
 									<TouchableOpacity
