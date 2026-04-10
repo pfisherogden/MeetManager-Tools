@@ -47,6 +47,10 @@ body {
     white-space: nowrap;
 }
 
+.header-right-col {
+    text-align: right;
+}
+
 .header-meet-name {
     font-size: 10pt;
     font-weight: bold;

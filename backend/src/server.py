@@ -1460,10 +1460,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 msgpack_tmp.close()
 
             tasks = []
-            # Cloud Run backend has 2 CPUs now, match workers to CPU count to avoid thrashing
-            cpu_count = os.cpu_count() or 1
-            max_workers = min(cpu_count, 3)
-            logging.info(f"Generating report bundle with {len(request.reports)} reports using {max_workers} workers")
+            # WeasyPrint is extremely memory intensive.
+            # In Cloud Run (2GB limit), we must limit parallelism to avoid OOM.
+            max_workers = 1
+            logging.info(f"Generating report bundle with {len(request.reports)} reports using {max_workers} worker")
 
             start_time = datetime.datetime.now()
             ctx = multiprocessing.get_context("spawn")
