@@ -39,10 +39,16 @@ export async function GET(request: NextRequest) {
 			token: token || "",
 		});
 
+		const filename = path.split("/").pop() || "download";
+		const isZip = filename.endsWith(".zip");
+
 		return withCors(
 			new NextResponse(response.content, {
 				headers: {
-					"Content-Type": response.mimeType,
+					"Content-Type":
+						response.mimeType ||
+						(isZip ? "application/zip" : "application/octet-stream"),
+					"Content-Disposition": `attachment; filename="${filename}"`,
 					"Cache-Control": "public, max-age=3600",
 				},
 			}),

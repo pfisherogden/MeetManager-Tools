@@ -125,9 +125,9 @@ body {
 .div-entry-row {
     display: flex;
     width: 100%;
-    padding: 1pt 0;
+    padding: 2pt 0;
     font-size: 9pt;
-    align-items: flex-end;
+    align-items: flex-start; /* Changed from flex-end to keep columns aligned with top of name */
     min-height: 18pt;
 }
 
@@ -136,7 +136,12 @@ body {
 }
 
 .col-lane { width: 20pt; flex-shrink: 0; }
-.col-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-name { 
+    flex: 1; 
+    overflow-wrap: break-word; /* Allow wrapping */
+    word-break: break-word;
+    white-space: normal; /* Allow wrapping */
+}
 .col-age { width: 25pt; flex-shrink: 0; text-align: center; }
 .col-team { width: 50pt; flex-shrink: 0; overflow: hidden; }
 .col-relay { width: 25pt; flex-shrink: 0; text-align: center; }

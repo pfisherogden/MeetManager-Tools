@@ -842,6 +842,7 @@ class MmToJsonConverter:
                             "athleteId": self._safe_int(row.get("relay_no")),
                             "relayLtr": relay_ltr,
                             "relaySwimmers": swimmers_list,
+                            "members": swimmers_list,  # For mobile-judge-app
                             "relayAthletes": relay_athletes,  # Full objects for extractor
                             "teamId": team_no,
                         }

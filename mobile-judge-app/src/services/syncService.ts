@@ -34,15 +34,17 @@ export const triggerSync = async () => {
 	const state = await NetInfo.fetch();
 	if (!state.isConnected) return;
 
-	console.log(`Syncing ${pending.length} items to ${SYNC_ENDPOINT}`);
+	// Optimization: If the endpoint is sync-dqs, we should ideally use submit-dq for individual items
+	// or wrap the single item in an array. The web-client provides /api/submit-dq for this purpose.
+	let targetUrl = SYNC_ENDPOINT;
+	if (SYNC_ENDPOINT.includes("/api/sync-dqs")) {
+		targetUrl = SYNC_ENDPOINT.replace("/api/sync-dqs", "/api/submit-dq");
+	}
+
+	console.log(`Syncing ${pending.length} items to ${targetUrl}`);
 
 	try {
-		const method =
-			SYNC_ENDPOINT.includes("googleapis") ||
-			SYNC_ENDPOINT.includes("amazonaws")
-				? "PUT"
-				: "POST";
-
+		const method = "POST";
 		let allSuccess = true;
 
 		for (const item of pending) {
@@ -64,7 +66,7 @@ export const triggerSync = async () => {
 				infraction_code: item.dq_code,
 			};
 
-			const response = await fetch(SYNC_ENDPOINT, {
+			const response = await fetch(targetUrl, {
 				method,
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(payload),
@@ -73,7 +75,13 @@ export const triggerSync = async () => {
 			if (response.ok) {
 				markAsSynced(item.id);
 			} else {
-				console.error("Sync failed for item", item.id, response.statusText);
+				const errorText = await response.text();
+				console.error(
+					"Sync failed for item",
+					item.id,
+					response.status,
+					errorText,
+				);
 				allSuccess = false;
 			}
 		}

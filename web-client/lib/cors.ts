@@ -10,6 +10,7 @@ export function withCors(response: NextResponse) {
 		"Access-Control-Allow-Headers",
 		"Content-Type, Authorization, x-user-id",
 	);
+	response.headers.set("Access-Control-Expose-Headers", "Content-Disposition");
 	return response;
 }
 
