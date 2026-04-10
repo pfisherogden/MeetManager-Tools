@@ -37,6 +37,13 @@ description: Project structure and decoupling principles for MeetManager-Tools. 
 - **Static Assets**: Avoid `output: "static"` if not using Expo Router, as it introduces unnecessary dependencies. Use standard SPA bundling.
 - **Web Compatibility**: Ensure files starting with underscores (like `_expo/`) are served by adding a `.nojekyll` file to the build root.
 
+## Cloud Native & Serverless (Cloud Run)
+- **Memory Management**: For resource-intensive tasks (e.g., WeasyPrint PDF generation), assume a **2GB-4GB limit**. Limit parallelism (e.g., `max_workers = 1`) to prevent OOM errors in serverless environments.
+- **gRPC Message Limits**: Default 4MB limits are insufficient for binary data (ZIPs/PDFs). Explicitly configure **50MB limits** on both server and client channels.
+- **Serialization Boundaries**: Avoid passing raw binary (`Uint8Array`, `bytes`) through Next.js Server Action boundaries in production standalone builds. Utilize **Base64 strings** for reliable serialization and transport between server and client components.
+- **GCS Proxy Pattern**: For large binary payloads (ZIP bundles), use a **Proxy Strategy**: Upload the file to GCS and return a proxy URL (`/api/data?path=...`) instead of transmitting the raw binary over gRPC. This improves memory stability and prevents timeouts.
+- **Stateless Authentication**: Use a shared secret (`DATA_ACCESS_TOKEN`) for authorized system-level access between decoupled services (e.g., Next.js frontend proxying for a mobile app).
+
 ## Verification Workflow
 - **Local Check**: Run `just verify-local` before pushing to verify codegen, linting, and tests.
 - **Hermetic Check**: Run `just verify-ci` for a clean-room Docker verification in `ci.Dockerfile`.

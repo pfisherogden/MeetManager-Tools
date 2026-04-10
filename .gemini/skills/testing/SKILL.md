@@ -38,17 +38,16 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
        - The number of blocks matches the database query.
    - **Template Pitfalls**:
        - **Jinja2 Shadowing**: Never use the key `items` in a dictionary passed to Jinja2 templates (e.g., `group.items`). Jinja2 resolves `items` to the built-in `dict.items()` method, causing `UndefinedError` or unexpected behavior. Use `sections` or `entries` instead.
-   - **Renderer Logs**: Capture WeasyPrint or Playwright stdout/stderr to programmatically check for layout warnings like "Content box too small."
-   
-   ## Design Patterns
-   
-- **Unit over Integration**: Prefer testing logic in isolation before full system tests.
-- **Snapshots**: Use file-based snapshots for visual reports to ensure data integrity across transformations.
+## Report Validation & Stability
+- **Layout Stability**: WeasyPrint is highly unstable with 2-column layouts and `<table>` structures. Always prefer **DIV/Flexbox** layouts for report templates to ensure column synchronization and prevent `AttributeError` crashes in production.
+- **Top-Alignment Rule**: When allowing text wrapping (e.g., for long names), use `align-items: flex-start` for entry rows. This ensures that columns remain horizontally aligned even if one field spans multiple lines.
+- **Break Logic Optimization**: To maximize page density, avoid global `break-inside: avoid` on large blocks (e.g., `.event-block`). Instead, wrap only the **Header and First Heat** in a non-breaking container (`break-inside: avoid`) to ensure they stay together, while allowing subsequent heats to flow freely into the next column or page.
+- **Renderer Logs**: Capture WeasyPrint or Playwright stdout/stderr to programmatically check for layout warnings like "Content box too small."
 
-## Live Environment Verification
-- **Pathing Issues**: GitHub Pages hosts sites in a subdirectory (e.g., `/Repo-Name/`). Always verify the app on the deployed URL to catch pathing regressions that don't appear in Docker root deployments.
-- **Asset Loading**: Check the browser console on the live site for 404s on JS chunks or assets, which often indicate `publicPath` or `baseUrl` configuration errors.
-- **Service Workers**: If implementing PWAs, verify service worker registration scope matches the subdirectory.
+## Production Smoke Testing
+- **Mandatory E2E Check**: After every production deployment, run a local smoke test suite (Playwright) against the live URL. This catches environment-specific failures (e.g., Cloud Run gRPC limits, GCS permissions) that CI might miss.
+- **Non-Destructive Tests**: Production tests should focus on read-only actions (dashboard load, report generation, data fetching) or use dedicated test/sample datasets to avoid polluting live meet data.
+- **Debug Endpoints**: Utilize unauthenticated test endpoints (e.g., `/api/test-bundle`) to verify large binary pipelines (ZIP generation/download) without requiring manual session credentials.
 
 ## Lessons Learned (Mobile Judge App)
 - **UI/Test Sync**: When modifying UI text strings (e.g., simplifying "DQ Swimmer: Name" to "DQ: Name"), immediately grep for that string in `__tests__` or `test/` directories. UI copy changes often break strict text matchers in Jest.
