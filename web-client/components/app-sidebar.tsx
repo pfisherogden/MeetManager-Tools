@@ -53,6 +53,7 @@ const navItems = [
 	{ name: "Scores", href: "/scores", icon: Medal },
 	{ name: "Reports", href: "/reports", icon: FileText },
 	{ name: "Submitted DQs", href: "/dqs", icon: ClipboardList },
+	{ name: "Admin", href: "/admin", icon: LayoutDashboard },
 ];
 
 export function AppSidebar() {

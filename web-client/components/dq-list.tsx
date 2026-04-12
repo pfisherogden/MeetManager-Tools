@@ -1,7 +1,11 @@
 "use client";
 
+import { CheckCircle2, Info } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { getDisqualifications } from "@/app/actions";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
 	Table,
 	TableBody,
@@ -10,10 +14,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, TableTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, Info } from "lucide-react";
-import { toast } from "sonner";
 
 interface DQRecord {
 	id: string;
@@ -57,7 +57,9 @@ export function DqList() {
 			<Card>
 				<CardHeader>
 					<div className="flex items-center justify-between">
-						<h2 className="text-xl font-semibold">Submitted Disqualifications</h2>
+						<h2 className="text-xl font-semibold">
+							Submitted Disqualifications
+						</h2>
 						<Badge variant="secondary">{dqs.length} Total</Badge>
 					</div>
 				</CardHeader>
@@ -100,7 +102,9 @@ export function DqList() {
 										<TableCell className="text-right">
 											<div className="flex items-center justify-end gap-2 text-success">
 												<CheckCircle2 className="h-4 w-4" />
-												<span className="text-xs font-medium uppercase">Synced</span>
+												<span className="text-xs font-medium uppercase">
+													Synced
+												</span>
 											</div>
 										</TableCell>
 									</TableRow>
