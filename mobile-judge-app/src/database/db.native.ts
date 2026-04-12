@@ -67,7 +67,7 @@ export const initDatabase = () => {
 export const resetDatabase = () => {
 	if (Platform.OS === "web") return;
 	const db = getDb();
-	db.execSync("DELETE FROM dqs");
+	// dqs table is preserved to maintain history across program reloads
 	db.execSync("DELETE FROM swimmers");
 	db.execSync("DELETE FROM heats");
 	db.execSync("DELETE FROM events");
