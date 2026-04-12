@@ -46,6 +46,7 @@ export const triggerSync = async () => {
 	try {
 		const method = "POST";
 		let allSuccess = true;
+		let anySuccess = false;
 
 		for (const item of pending) {
 			const swimmer = getSwimmerById(item.swimmer_id);
@@ -80,6 +81,7 @@ export const triggerSync = async () => {
 				if (response.ok) {
 					console.log(`Successfully synced DQ ${item.id}`);
 					markAsSynced(item.id);
+					anySuccess = true;
 				} else {
 					const errorText = await response.text();
 					console.error(
@@ -96,8 +98,8 @@ export const triggerSync = async () => {
 			}
 		}
 
-		if (allSuccess) {
-			console.log("Sync successful");
+		if (anySuccess || (pending.length > 0 && allSuccess)) {
+			console.log(`Sync iteration complete. Any success: ${anySuccess}`);
 			if (onSyncComplete) onSyncComplete();
 		}
 	} catch (e) {
