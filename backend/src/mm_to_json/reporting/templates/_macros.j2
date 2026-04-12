@@ -1,6 +1,6 @@
 {# Macro to render entry row using DIVs instead of TR/TD for better stability in columns #}
 {% macro render_div_entry_row(entry, is_zebra, show_dq_lines=false) %}
-    <div class="div-entry-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-bottom{% endif %}">
+    <div class="div-entry-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-bottom{% endif %} {% if entry.is_relay %}is-relay{% endif %}">
         {% if entry.is_relay %}
             <div class="div-col col-lane">{{ entry.lane }}</div>
             <div class="div-col col-team">{{ entry.team }}</div>
