@@ -11,7 +11,7 @@
             </div>
             
             <div class="entries-container">
-                <div class="entries-header-row">
+                <div class="entries-header-row {% if group.heats and group.heats[0].sub_items and group.heats[0].sub_items[0].is_relay %}is-relay{% endif %}">
                     {% if group.heats and group.heats[0].sub_items and group.heats[0].sub_items[0].is_relay %}
                         <div class="div-col col-lane">Lane</div>
                         <div class="div-col col-team">Team</div>
