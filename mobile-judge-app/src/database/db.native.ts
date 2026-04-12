@@ -308,6 +308,21 @@ export const getPendingDQs = (): DQ[] => {
 	}));
 };
 
+export const getAllDQs = (): DQ[] => {
+	if (Platform.OS === "web") return [];
+	const rows = getDb().getAllSync("SELECT * FROM dqs ORDER BY timestamp DESC");
+	return rows.map((r: any) => ({
+		id: r.id,
+		event_id: r.event_id,
+		swimmer_id: r.swimmer_id,
+		dq_code: r.dq_code,
+		leg: r.leg,
+		notes: r.notes,
+		sync_status: r.sync_status,
+		timestamp: r.timestamp,
+	}));
+};
+
 export const markAsSynced = (id: number) => {
 	if (Platform.OS === "web") return;
 	return getDb().runSync(

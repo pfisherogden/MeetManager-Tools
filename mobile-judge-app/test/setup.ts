@@ -1,5 +1,10 @@
 import { NativeModules } from "react-native";
 
+// Mock window.dispatchEvent if it's missing (common in some Jest environments)
+if (typeof window !== "undefined" && !window.dispatchEvent) {
+	(window as any).dispatchEvent = jest.fn();
+}
+
 // Mock NativeModules if they are missing
 NativeModules.NativeUnimoduleProxy = NativeModules.NativeUnimoduleProxy || {};
 

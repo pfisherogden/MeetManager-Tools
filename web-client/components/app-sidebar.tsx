@@ -52,7 +52,7 @@ const navItems = [
 	{ name: "Relays", href: "/relays", icon: GitBranch },
 	{ name: "Scores", href: "/scores", icon: Medal },
 	{ name: "Reports", href: "/reports", icon: FileText },
-	{ name: "Admin", href: "/admin", icon: ClipboardList }, // Temporary icon
+	{ name: "Submitted DQs", href: "/dqs", icon: ClipboardList },
 ];
 
 export function AppSidebar() {

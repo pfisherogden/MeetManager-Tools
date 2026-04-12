@@ -56,6 +56,7 @@ jest.mock("../src/database/db", () => ({
 	})),
 	saveDQ: jest.fn(() => ({ changes: 1 })),
 	getPendingDQs: jest.fn(() => []),
+	getAllDQs: jest.fn(() => []),
 	markAsSynced: jest.fn(),
 	deleteDQ: jest.fn(),
 	clearAllDQs: jest.fn(),

@@ -18,6 +18,7 @@ import defaultDqCodes from "./src/config/dqCodes.json";
 import {
 	clearAllDQs,
 	deleteDQ,
+	getAllDQs,
 	getEvents,
 	getHeatsByEvent,
 	getPendingDQs,
@@ -708,7 +709,7 @@ export default function App() {
 			<View style={styles.statusBar}>
 				<Text style={styles.versionText}>v1.0.4 ({BUILD_TIME})</Text>
 				<TouchableOpacity onPress={() => setOfflineModalVisible(true)}>
-					<Text style={styles.statusText}>Offline Queue: {pendingCount}</Text>
+					<Text style={styles.statusText}>DQ History (Pending: {pendingCount})</Text>
 				</TouchableOpacity>
 				<View style={{ flexDirection: "row", alignItems: "center" }}>
 					{programMode && (
@@ -978,7 +979,7 @@ export default function App() {
 				<Text style={styles.footerText}>Build: {BUILD_TIME}</Text>
 			</View>
 
-			{/* Offline Queue Modal */}
+			{/* DQ History Modal */}
 			<Modal
 				visible={offlineModalVisible}
 				animationType="slide"
@@ -989,7 +990,7 @@ export default function App() {
 						<View style={styles.modalHeader}>
 							<View style={{ flexDirection: "row", alignItems: "center" }}>
 								<Text style={styles.modalTitle}>
-									Offline Queue ({pendingCount})
+									DQ History (Total: {getAllDQs().length})
 								</Text>
 								{pendingCount > 0 && (
 									<TouchableOpacity
@@ -1008,56 +1009,74 @@ export default function App() {
 												fontSize: 12,
 											}}
 										>
-											CLEAR ALL
+											CLEAR PENDING
 										</Text>
 									</TouchableOpacity>
 								)}
 							</View>
 							<TouchableOpacity
 								onPress={() => setOfflineModalVisible(false)}
-								accessibilityLabel="Close offline queue"
+								accessibilityLabel="Close history"
 							>
 								<Ionicons name="close" size={24} color={COLORS.accent} />
 							</TouchableOpacity>
 						</View>
 						<ScrollView style={{ padding: 15 }}>
-							{getPendingDQs().length === 0 ? (
-								<Text style={styles.emptyText}>No pending DQs</Text>
+							{getAllDQs().length === 0 ? (
+								<Text style={styles.emptyText}>No DQs recorded</Text>
 							) : (
-								getPendingDQs().map((dq) => (
-									<View
-										key={`${dq.event_id}-${dq.swimmer_id}-${dq.leg}`}
-										style={styles.pendingCard}
-									>
-										<TouchableOpacity
-											onPress={() => handleDeleteDQ(dq.swimmer_id, dq.leg)}
-											style={styles.deletePendingButton}
+								getAllDQs().map((dq) => {
+									const swimmer = getSwimmerById(dq.swimmer_id);
+									const isSynced = dq.sync_status === "synced";
+									
+									// Correct leg name for relays
+									let legInfo = "";
+									if (dq.leg) {
+										const memberName = swimmer?.members?.[dq.leg - 1];
+										legInfo = memberName ? ` (${memberName})` : ` (Leg ${dq.leg})`;
+									}
+
+									return (
+										<View
+											key={`${dq.event_id}-${dq.swimmer_id}-${dq.leg}-${dq.timestamp}`}
+											style={styles.pendingCard}
 										>
-											<Ionicons
-												name="trash-outline"
-												size={20}
-												color={COLORS.danger}
-											/>
-										</TouchableOpacity>
-										<TouchableOpacity
-											style={styles.pendingInfo}
-											onPress={() => handleEditDQ(dq)}
-										>
-											<Text style={styles.pendingText}>
-												Event {dq.event_id} -{" "}
-												{getSwimmerById(dq.swimmer_id)?.name ||
-													`Swimmer ${dq.swimmer_id}`}
-												{dq.leg ? ` (Leg ${dq.leg})` : ""}
-											</Text>
-											<Text style={styles.pendingCodes}>{dq.dq_code}</Text>
-											{dq.notes ? (
-												<Text style={styles.pendingNote} numberOfLines={1}>
-													{dq.notes}
-												</Text>
-											) : null}
-										</TouchableOpacity>
-									</View>
-								))
+											<TouchableOpacity
+												onPress={() => handleDeleteDQ(dq.swimmer_id, dq.leg)}
+												style={styles.deletePendingButton}
+											>
+												<Ionicons
+													name="trash-outline"
+													size={20}
+													color={COLORS.danger}
+												/>
+											</TouchableOpacity>
+											<TouchableOpacity
+												style={styles.pendingInfo}
+												onPress={() => handleEditDQ(dq)}
+											>
+												<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+													<Text style={styles.pendingText}>
+														Event {dq.event_id} -{" "}
+														{swimmer?.name || `Swimmer ${dq.swimmer_id}`}
+														{legInfo}
+													</Text>
+													<Ionicons 
+														name={isSynced ? "cloud-done" : "cloud-offline"} 
+														size={18} 
+														color={isSynced ? COLORS.success : COLORS.secondary} 
+													/>
+												</View>
+												<Text style={styles.pendingCodes}>{dq.dq_code}</Text>
+												{dq.notes ? (
+													<Text style={styles.pendingNote} numberOfLines={1}>
+														{dq.notes}
+													</Text>
+												) : null}
+											</TouchableOpacity>
+										</View>
+									);
+								})
 							)}
 						</ScrollView>
 					</View>

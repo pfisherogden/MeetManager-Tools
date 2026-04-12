@@ -14,4 +14,8 @@ export const getHeatsByEvent = jest.fn(() => []);
 export const getSwimmersByHeat = jest.fn(() => []);
 export const saveDQ = jest.fn(() => ({ changes: 1 }));
 export const getPendingDQs = jest.fn(() => []);
+export const getAllDQs = jest.fn(() => []);
 export const markAsSynced = jest.fn();
+export const deleteDQ = jest.fn(() => ({ changes: 1 }));
+export const clearAllDQs = jest.fn(() => ({ changes: 1 }));
+export const getSwimmerById = jest.fn(() => null);

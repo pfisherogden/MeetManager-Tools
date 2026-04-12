@@ -451,6 +451,16 @@ export async function generateReportBundle(
 	}
 }
 
+export async function getDisqualifications() {
+	try {
+		const { getDqs } = await import("@/lib/dq-db");
+		return await getDqs();
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (getDisqualifications):", err);
+		throw new Error("Failed to fetch disqualifications");
+	}
+}
+
 export async function publishMeetData(frontendUrl?: string) {
 	try {
 		const metadata = await getAuthMetadata();
