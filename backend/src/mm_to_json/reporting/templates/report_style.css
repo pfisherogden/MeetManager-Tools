@@ -131,15 +131,21 @@ body {
 
 /* Fixed widths for perfect alignment across rows */
 .col-lane  { width: 22pt; text-align: center; }
-.col-name  { width: 90pt; overflow-wrap: break-word; word-break: break-word; } /* Shrunk from 110pt */
+.col-name  { flex: 1; min-width: 90pt; overflow-wrap: break-word; word-break: break-word; } 
 .col-age   { width: 25pt; text-align: center; }
 .col-team  { width: 40pt; overflow: hidden; }
 .col-relay { width: 25pt; text-align: center; }
 .col-time  { width: 45pt; text-align: right; }
 
-/* Dynamic width for DQ line */
+/* In relay context, the team name should be the flexible column */
+.is-relay .col-team {
+    flex: 1;
+    width: auto;
+}
+
+/* Fixed width for DQ column so other columns can expand when it's absent */
 .col-dq { 
-    flex: 1; 
+    width: 80pt;
     padding-left: 5pt;
 }
 
