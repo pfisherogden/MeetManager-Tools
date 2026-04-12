@@ -48,12 +48,12 @@ body {
 }
 
 .header-right-col {
-    text-align: right !important;
+    text-align: right;
+    vertical-align: top;
 }
 
 .header-timestamp, .header-page-num {
-    text-align: right !important;
-    width: 100%;
+    text-align: right;
     display: block;
 }
 
@@ -66,34 +66,33 @@ body {
 }
 
 .event-block {
-    margin-bottom: 12pt;
+    margin-bottom: 15pt;
     width: 100%;
-    /* Removed break-inside: avoid to allow events to span columns/pages */
+    /* Allow events to span columns/pages */
 }
 
 .event-header-box {
     background-color: #f0f0f0;
     font-weight: bold;
-    font-size: 9pt;
-    padding: 2pt 4pt;
+    font-size: 9.5pt;
+    padding: 3pt 4pt;
     border: 1pt solid #999;
     text-transform: uppercase;
     text-align: left;
     width: 100%;
-    break-after: avoid; /* Keep with first heat */
+    break-after: avoid;
 }
 
-/* Container for Header + First Heat to keep them together */
+/* Container for Header + First Heat */
 .event-header-group {
     break-inside: avoid;
-    break-after: avoid;
 }
 
 .heat-header-row {
     font-weight: bold;
     font-size: 8.5pt;
-    margin-top: 4pt;
-    margin-bottom: 2pt;
+    margin-top: 6pt;
+    margin-bottom: 3pt;
     border-bottom: 1pt solid #ccc;
     padding: 1pt 2pt;
     width: 100%;
@@ -110,44 +109,43 @@ body {
     width: 100%;
     padding: 2pt 0;
     font-size: 9pt;
-    align-items: flex-start; 
-    min-height: 18pt;
+    align-items: flex-start;
+    min-height: 14pt;
 }
 
 .div-col {
     padding: 0 2pt;
+    flex-shrink: 0;
 }
 
-.col-lane { width: 22pt; flex-shrink: 0; }
-.col-name { 
-    flex: 1 1 120pt; /* grow, shrink, basis */
-    overflow-wrap: break-word;
-    word-break: break-word;
-    white-space: normal;
-}
-.col-age { width: 28pt; flex-shrink: 0; text-align: center; }
-.col-team { width: 55pt; flex-shrink: 0; overflow: hidden; }
-.col-relay { width: 30pt; flex-shrink: 0; text-align: center; }
-.col-time { width: 60pt; flex-shrink: 0; text-align: right; }
+/* Fixed widths for perfect alignment across rows */
+.col-lane  { width: 22pt; text-align: center; }
+.col-name  { width: 110pt; overflow-wrap: break-word; word-break: break-word; }
+.col-age   { width: 25pt; text-align: center; }
+.col-team  { width: 40pt; overflow: hidden; }
+.col-relay { width: 25pt; text-align: center; }
+.col-time  { width: 45pt; text-align: right; }
+
+/* Dynamic width for DQ line */
 .col-dq { 
-    width: 80pt; 
-    flex-shrink: 0; 
-    text-align: center;
+    flex: 1; 
+    padding-left: 5pt;
 }
 
 /* For relay rows to maintain alignment with individual rows */
-.col-spacer-name {
-    flex: 1 1 120pt;
-}
-.col-spacer-age {
-    width: 28pt;
-}
+.col-spacer-name { width: 110pt; }
+.col-spacer-age  { width: 25pt; }
 
 .dq-underline {
-    border-bottom: 1pt solid #000;
-    width: 60pt; /* Constrain width */
-    height: 12pt;
-    margin: 0 auto;
+    border-bottom: 0.5pt solid #000;
+    width: 100%; /* Dynamic width based on remaining space */
+    height: 10pt;
+}
+
+.dq-centered { text-align: center; }
+
+.zebra-row {
+    background-color: #f9f9f9;
 }
 
 .dq-centered { text-align: center; }
