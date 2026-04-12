@@ -84,7 +84,7 @@ jobs:
           service: '${{ env.FRONTEND_SERVICE }}'
           image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.FRONTEND_SERVICE }}:${{ github.sha }}'
           region: '${{ env.REGION }}'
-          flags: '--allow-unauthenticated'
+          flags: '--allow-unauthenticated --timeout 600s'
           env_vars: |
             BACKEND_INTERNAL_HOST=${{ steps.deploy-backend.outputs.url }}
             BACKEND_USE_SSL=true
