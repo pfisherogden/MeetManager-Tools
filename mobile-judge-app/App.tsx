@@ -143,6 +143,7 @@ export default function App() {
 	const [dqNote, setDqNote] = useState("");
 	const [pendingDqCode, setPendingDqCode] = useState<string[]>([]); // Issue #84: Multi-select
 	const [pendingCount, setPendingCount] = useState(0);
+	const [allDQs, setAllDQs] = useState<DQ[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [dqCodes, setDqCodes] = useState<{ [key: string]: DqCode[] }>(
 		defaultDqCodes,
@@ -166,7 +167,13 @@ export default function App() {
 	const updatePendingCount = useCallback(() => {
 		const pending = getPendingDQs();
 		setPendingCount(pending.length);
+		setAllDQs(getAllDQs());
 	}, []);
+
+	const handleSyncComplete = useCallback(() => {
+		updatePendingCount();
+		refreshEvents();
+	}, [updatePendingCount, refreshEvents]);
 
 	useEffect(() => {
 		const initializeApp = async () => {
@@ -183,7 +190,7 @@ export default function App() {
 			}
 
 			// Initialize sync listener
-			initSyncService(updatePendingCount);
+			initSyncService(handleSyncComplete);
 
 			if (!loaded) {
 				// If error message exists, it means we TRIED to load but failed
@@ -201,7 +208,7 @@ export default function App() {
 		};
 
 		initializeApp();
-	}, [refreshEvents, updatePendingCount]);
+	}, [refreshEvents, updatePendingCount, handleSyncComplete]);
 
 	const selectEvent = (event: Event) => {
 		setSelectedEvent(event);
@@ -990,7 +997,7 @@ export default function App() {
 						<View style={styles.modalHeader}>
 							<View style={{ flexDirection: "row", alignItems: "center" }}>
 								<Text style={styles.modalTitle}>
-									DQ History (Total: {getAllDQs().length})
+									DQ History (Total: {allDQs.length})
 								</Text>
 								{pendingCount > 0 && (
 									<TouchableOpacity
@@ -1022,10 +1029,10 @@ export default function App() {
 							</TouchableOpacity>
 						</View>
 						<ScrollView style={{ padding: 15 }}>
-							{getAllDQs().length === 0 ? (
+							{allDQs.length === 0 ? (
 								<Text style={styles.emptyText}>No DQs recorded</Text>
 							) : (
-								getAllDQs().map((dq) => {
+								allDQs.map((dq) => {
 									const swimmer = getSwimmerById(dq.swimmer_id);
 									const isSynced = dq.sync_status === "synced";
 									

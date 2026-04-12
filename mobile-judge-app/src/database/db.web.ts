@@ -30,7 +30,7 @@ export const resetDatabase = () => {
 	mockEvents = [];
 	mockHeats = [];
 	mockSwimmers = [];
-	mockDQs = [];
+	// mockDQs is preserved to maintain history across program reloads
 };
 
 export const loadFromJSON = (programData: {
