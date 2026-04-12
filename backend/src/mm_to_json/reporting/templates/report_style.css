@@ -124,7 +124,6 @@ body {
     align-items: flex-start;
     min-height: 14pt;
 }
-
 .div-col {
     padding: 0 2pt;
     flex-shrink: 0;
@@ -132,7 +131,7 @@ body {
 
 /* Fixed widths for perfect alignment across rows */
 .col-lane  { width: 22pt; text-align: center; }
-.col-name  { width: 110pt; overflow-wrap: break-word; word-break: break-word; }
+.col-name  { width: 90pt; overflow-wrap: break-word; word-break: break-word; } /* Shrunk from 110pt */
 .col-age   { width: 25pt; text-align: center; }
 .col-team  { width: 40pt; overflow: hidden; }
 .col-relay { width: 25pt; text-align: center; }
@@ -145,7 +144,7 @@ body {
 }
 
 /* For relay rows to maintain alignment with individual rows */
-.col-spacer-name { width: 110pt; }
+.col-spacer-name { width: 90pt; } /* Matched with col-name */
 .col-spacer-age  { width: 25pt; }
 
 .dq-underline {
@@ -160,14 +159,8 @@ body {
     background-color: #f9f9f9;
 }
 
-.dq-centered { text-align: center; }
-
-.zebra-row {
-    background-color: #f9f9f9;
-}
-
 .dotted-bottom {
-    border-bottom: 0.5pt dotted #999;
+    border-bottom: 0.5pt solid #eee; /* Changed from dotted to solid to shrink PDF size */
 }
 
 .div-relay-swimmers-row {

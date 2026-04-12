@@ -3,8 +3,6 @@
     <div class="div-entry-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-bottom{% endif %}">
         {% if entry.is_relay %}
             <div class="div-col col-lane">{{ entry.lane }}</div>
-            <div class="div-col col-spacer-name"></div> {# Spacer to align with individual rows #}
-            <div class="div-col col-spacer-age"></div> {# Spacer to align with individual rows #}
             <div class="div-col col-team">{{ entry.team }}</div>
             <div class="div-col col-relay">{{ entry.relayLtr }}</div>
             <div class="div-col col-time">{{ entry.time }}</div>
