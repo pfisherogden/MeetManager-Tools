@@ -8,6 +8,28 @@ let mockHeats: Heat[] = [];
 let mockSwimmers: Swimmer[] = [];
 let mockDQs: DQ[] = [];
 
+// LocalStorage persistence for web
+const STORAGE_KEY = "mmtools_judge_dqs";
+
+const saveToStorage = () => {
+	if (typeof window !== "undefined" && window.localStorage) {
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify(mockDQs));
+	}
+};
+
+const loadFromStorage = () => {
+	if (typeof window !== "undefined" && window.localStorage) {
+		const saved = window.localStorage.getItem(STORAGE_KEY);
+		if (saved) {
+			try {
+				mockDQs = JSON.parse(saved);
+			} catch (e) {
+				console.error("Failed to parse saved DQs", e);
+			}
+		}
+	}
+};
+
 export const getDb = () => {
 	return {
 		execSync: () => {},
@@ -18,11 +40,8 @@ export const getDb = () => {
 };
 
 export const initDatabase = () => {
-	if (Platform.OS === "web") {
-		// Reset or ensure initial state
-		if (mockEvents.length === 0) {
-			// Default mock data if nothing loaded
-		}
+	if (typeof window !== "undefined") {
+		loadFromStorage();
 	}
 };
 
@@ -335,6 +354,7 @@ export const saveDQ = (
 	};
 
 	mockDQs.push(newDQ);
+	saveToStorage();
 	return { changes: 1 };
 };
 
@@ -352,16 +372,19 @@ export const markAsSynced = (id: number) => {
 	const dq = mockDQs.find((d) => d.id === id);
 	if (dq) {
 		dq.sync_status = "synced";
+		saveToStorage();
 	}
 };
 
 export const deleteDQ = (swimmerId: number | string, leg?: number) => {
 	const sid = parseSwimmerId(swimmerId);
 	mockDQs = mockDQs.filter((d) => !(d.swimmer_id === sid && d.leg === leg));
+	saveToStorage();
 	return { changes: 1 };
 };
 
 export const clearAllDQs = () => {
 	mockDQs = [];
+	saveToStorage();
 	return { changes: 1 };
 };
