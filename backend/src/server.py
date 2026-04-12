@@ -99,6 +99,9 @@ def _process_single_report_process(
     rtype = rtype_map.get(report_req_type, "psych")
     title = report_req_title
 
+    import datetime
+    start_time = datetime.datetime.now()
+
     # Load from msgpack
     import msgpack
 
@@ -108,6 +111,9 @@ def _process_single_report_process(
     cache_data = packed_data["cache"]
     full_data = packed_data["full_data"]
 
+    load_end_time = datetime.datetime.now()
+    load_duration = (load_end_time - start_time).total_seconds()
+
     converter = MmToJsonConverter(table_data=cache_data)
     extractor = ReportDataExtractor(converter, full_data=full_data)
 
@@ -115,6 +121,7 @@ def _process_single_report_process(
         temp_path = tmp.name
 
     try:
+        render_start_time = datetime.datetime.now()
         renderer = WeasyRenderer(temp_path)
 
         if rtype == "psych":
@@ -222,6 +229,14 @@ def _process_single_report_process(
             with open(temp_path, "rb") as f:
                 content = f.read()
             os.remove(temp_path)
+
+            render_end_time = datetime.datetime.now()
+            render_duration = (render_end_time - render_start_time).total_seconds()
+            total_duration = (render_end_time - start_time).total_seconds()
+
+            logging.info(
+                f"Worker {idx} finished {rtype}: Load: {load_duration:.2f}s, Render: {render_duration:.2f}s, Total: {total_duration:.2f}s"
+            )
 
             safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
             ext = ".html" if rtype == "program_html" else ".pdf"
@@ -1460,11 +1475,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 msgpack_tmp.close()
 
             tasks = []
-            # WeasyPrint is extremely memory intensive.
-            # In Cloud Run (2GB limit), we must limit parallelism to avoid OOM.
-            max_workers = 1
-            logging.info(f"Generating report bundle with {len(request.reports)} reports using {max_workers} worker")
-
+            # WeasyPrint is memory intensive (~1GB per large report). 
+            # In Cloud Run (4GB limit, 4 CPUs), we can safely use more workers.
+            max_workers = 3
+            logging.info(f"Generating report bundle with {len(request.reports)} reports using {max_workers} workers")
             start_time = datetime.datetime.now()
             ctx = multiprocessing.get_context("spawn")
             try:
