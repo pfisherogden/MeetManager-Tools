@@ -149,6 +149,12 @@ body {
     padding-left: 5pt;
 }
 
+/* Constrained width for individual event DQ lines to prevent gutter overflow */
+.col-dq-limited {
+    width: 40pt;
+    padding-left: 5pt;
+}
+
 /* For relay rows to maintain alignment with individual rows */
 .col-spacer-name { width: 90pt; } /* Matched with col-name */
 .col-spacer-age  { width: 25pt; }
