@@ -22,6 +22,11 @@ description: Best practices for GitHub flows in MeetManager-Tools
 - Base all new features on `main`.
 - Use descriptive branch names like `feat/feature-name` or `fix/bug-name`.
 
-## Issue Updates
-- **Add Comments**: When updating a GitHub issue with progress or new information, always add a **new comment**.
-- **Do Not Edit**: Do not rewrite or edit previous status updates unless correcting a factual error (e.g., a typo). This ensures the history of the work is preserved.
+## Issue Updates & Progress Tracking
+- **Preserve Context**: NEVER edit the original issue description (body) once it has been created by the user. This contains the primary requirements and should remain as the source of truth.
+- **New Comments Only**: Always use the `add_issue_comment` tool to post status updates, research findings, and check-in notifications. 
+- **Milestones**: Add a comment when:
+    1. Research is finished and a strategy is chosen.
+    2. A fix has been implemented and pushed to a branch.
+    3. A PR has been created.
+- **Completion Traceability**: Before closing an issue, add a final summary comment that explicitly lists the changes made and references the successful PR number and merge commit SHA. This provides a clear audit trail for the work.
