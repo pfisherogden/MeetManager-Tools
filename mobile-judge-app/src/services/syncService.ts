@@ -49,7 +49,10 @@ export const triggerSync = async () => {
 
 		for (const item of pending) {
 			const swimmer = getSwimmerById(item.swimmer_id);
-			if (!swimmer) continue;
+			if (!swimmer) {
+				console.warn(`Swimmer ${item.swimmer_id} not found, skipping sync for DQ ${item.id}`);
+				continue;
+			}
 
 			const heat = getHeatById(swimmer.heat_id);
 			const event = getEventById(item.event_id);
@@ -66,22 +69,29 @@ export const triggerSync = async () => {
 				infraction_code: item.dq_code,
 			};
 
-			const response = await fetch(targetUrl, {
-				method,
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
-			});
+			console.log(`Sending DQ POST to ${targetUrl} for swimmer ${swimmer.name}`);
+			try {
+				const response = await fetch(targetUrl, {
+					method,
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload),
+				});
 
-			if (response.ok) {
-				markAsSynced(item.id);
-			} else {
-				const errorText = await response.text();
-				console.error(
-					"Sync failed for item",
-					item.id,
-					response.status,
-					errorText,
-				);
+				if (response.ok) {
+					console.log(`Successfully synced DQ ${item.id}`);
+					markAsSynced(item.id);
+				} else {
+					const errorText = await response.text();
+					console.error(
+						"Sync failed for item",
+						item.id,
+						"Status:", response.status,
+						"Error:", errorText,
+					);
+					allSuccess = false;
+				}
+			} catch (fetchError: any) {
+				console.error(`Fetch error during sync for DQ ${item.id}:`, fetchError.message);
 				allSuccess = false;
 			}
 		}

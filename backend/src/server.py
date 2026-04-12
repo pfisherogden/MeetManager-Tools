@@ -1732,11 +1732,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # System-level bypass for stateless sync from mobile apps (authenticated by web-client proxy)
         token = os.getenv("DATA_ACCESS_TOKEN")
         uid = request.uid
-        
+
         logging.info(f"SyncDQs: Received request for UID: {uid}, Payload length: {len(request.dqs_json)}")
 
         if not token or request.access_token != token:
-
             uid = request.uid
             logging.info(f"SyncDQs: Authenticated via system token for user {uid}")
         else:
