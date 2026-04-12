@@ -17,6 +17,7 @@ import {
 
 interface DQRecord {
 	id: string;
+	client_id?: string;
 	event: number;
 	heat: number;
 	lane: number;
@@ -77,6 +78,7 @@ export function DqList() {
 									<TableHead>Heat</TableHead>
 									<TableHead>Lane</TableHead>
 									<TableHead>Swimmer</TableHead>
+									<TableHead>Judge</TableHead>
 									<TableHead>Infraction</TableHead>
 									<TableHead>Submitted At</TableHead>
 									<TableHead className="text-right">Status</TableHead>
@@ -91,6 +93,9 @@ export function DqList() {
 											<Badge variant="outline">{dq.lane}</Badge>
 										</TableCell>
 										<TableCell>{dq.swimmer}</TableCell>
+										<TableCell className="font-medium text-blue-600">
+											{dq.client_id || "Unknown"}
+										</TableCell>
 										<TableCell>
 											<code className="bg-muted px-1 py-0.5 rounded text-sm font-bold">
 												{dq.infraction_code}

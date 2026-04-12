@@ -174,6 +174,7 @@ describe("POST /api/submit-dq", () => {
 
 		expect(dqDb.saveDq).toHaveBeenCalledTimes(1);
 		expect(dqDb.saveDq).toHaveBeenCalledWith("dq-124", {
+			client_id: "Unknown",
 			event: 1,
 			heat: 1,
 			lane: 1,
@@ -185,8 +186,8 @@ describe("POST /api/submit-dq", () => {
 		const syncCall = vi.mocked(client.syncDQs).mock.calls[0][0];
 		const syncDqs = JSON.parse(syncCall.dqsJson);
 		expect(syncDqs).toHaveLength(1);
-		expect(syncDqs[0].event_id).toBe(1);
-		expect(syncDqs[0].dq_code).toBe("1A");
+		expect(syncDqs[0].event).toBe(1);
+		expect(syncDqs[0].infraction_code).toBe("1A");
 		expect(syncCall.uid).toBe("test-uid");
 		expect(syncCall.accessToken).toBe(validToken);
 	});

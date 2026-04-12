@@ -61,8 +61,14 @@ export const triggerSync = async () => {
 			const timestampMs = new Date(item.timestamp).getTime();
 			const clientDqId = `dq-${item.id}-${timestampMs}`;
 
+			// Load judge name for traceability
+			const judgeName = (typeof window !== "undefined" && window.localStorage) 
+				? window.localStorage.getItem("mmtools_judge_name") || "Unknown"
+				: "Unknown";
+
 			const payload = {
 				clientDqId,
+				client_id: judgeName,
 				event: event ? event.number : item.event_id,
 				heat: heat ? heat.number : swimmer.heat_id,
 				lane: swimmer.lane,
