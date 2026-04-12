@@ -1750,7 +1750,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         logging.info(f"SyncDQs: Received request for UID: {uid}, Payload length: {len(request.dqs_json)}")
 
-        if not token or request.access_token != token:
+        if token and request.access_token == token:
             uid = request.uid
             logging.info(f"SyncDQs: Authenticated via system token for user {uid}")
         else:
