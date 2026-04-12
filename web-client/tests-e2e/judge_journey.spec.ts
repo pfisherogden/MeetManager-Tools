@@ -29,6 +29,10 @@ test.describe("Mobile Judge App Journey", () => {
 	test("should allow adding a DQ in individual event", async ({ page }) => {
 		await page.goto("/");
 
+		// 0. Handle Judge Name Prompt
+		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
+		await page.getByText("START JUDGING").click();
+
 		// 1. Verify we are on the Events view
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
 
@@ -80,6 +84,10 @@ test.describe("Mobile Judge App Journey", () => {
 	test("should toggle between Event and Program views", async ({ page }) => {
 		await page.goto("/");
 
+		// 0. Handle Judge Name Prompt
+		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
+		await page.getByText("START JUDGING").click();
+
 		// Default is Event view
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
 
@@ -100,6 +108,10 @@ test.describe("Mobile Judge App Journey", () => {
 
 	test("should manage offline queue (clear all)", async ({ page }) => {
 		await page.goto("/");
+
+		// 0. Handle Judge Name Prompt
+		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
+		await page.getByText("START JUDGING").click();
 
 		// Add a DQ first
 		await page
