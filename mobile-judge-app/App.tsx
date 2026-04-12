@@ -152,6 +152,8 @@ export default function App() {
 	const [programMode, setProgramMode] = useState(false); // Toggle state
 	const [showEmptyLanes, setShowEmptyLanes] = useState(true); // Issue #140
 	const [refreshCounter, setRefreshCounter] = useState<number>(0);
+	const [judgeName, setJudgeName] = useState<string>("");
+	const [namePromptVisible, setNamePromptVisible] = useState(false);
 
 	const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -178,6 +180,28 @@ export default function App() {
 	useEffect(() => {
 		const initializeApp = async () => {
 			initDatabase();
+
+			// 1. Detect dataset change and clear stale DQs if needed
+			if (typeof window !== "undefined" && window.localStorage) {
+				const currentUrl = window.location.search;
+				const lastUrl = window.localStorage.getItem("mmtools_last_url");
+				
+				// Only clear if the URL (and thus the meet dataset) has actually changed
+				if (lastUrl && lastUrl !== currentUrl) {
+					console.log("Dataset changed, clearing local DQ history");
+					clearAllDQs();
+					window.localStorage.removeItem("mmtools_judge_name"); // Reset name on new meet
+				}
+				window.localStorage.setItem("mmtools_last_url", currentUrl);
+
+				// 2. Load judge name or prompt for it
+				const savedName = window.localStorage.getItem("mmtools_judge_name");
+				if (savedName) {
+					setJudgeName(savedName);
+				} else {
+					setNamePromptVisible(true);
+				}
+			}
 
 			const { loaded, dqData, syncUrl, errorMessage } = await loadDataFromUrl();
 
@@ -713,6 +737,43 @@ export default function App() {
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
+			{/* Judge Name Prompt */}
+			<Modal visible={namePromptVisible} animationType="fade" transparent={true}>
+				<View style={styles.modalOverlay}>
+					<View style={[styles.modalContainer, styles.modalPopup, { padding: 25 }]}>
+						<Text style={[styles.mainTitle, { fontSize: 24, marginBottom: 10 }]}>Welcome, Judge</Text>
+						<Text style={{ marginBottom: 20, color: COLORS.secondary }}>
+							Please enter your name to begin. This will be used to identify your DQ submissions.
+						</Text>
+						<TextInput
+							style={[styles.noteInput, { minHeight: 50, fontSize: 18, marginBottom: 20 }]}
+							placeholder="Your Name"
+							value={judgeName}
+							onChangeText={setJudgeName}
+							autoFocus
+						/>
+						<TouchableOpacity 
+							onPress={() => {
+								if (judgeName.trim()) {
+									if (typeof window !== "undefined" && window.localStorage) {
+										window.localStorage.setItem("mmtools_judge_name", judgeName.trim());
+									}
+									setNamePromptVisible(false);
+								}
+							}}
+							style={{ 
+								backgroundColor: COLORS.primary, 
+								padding: 15, 
+								borderRadius: 8,
+								alignItems: 'center'
+							}}
+						>
+							<Text style={{ color: COLORS.white, fontWeight: 'bold', fontSize: 16 }}>START JUDGING</Text>
+						</TouchableOpacity>
+					</View>
+				</View>
+			</Modal>
+
 			<View style={styles.statusBar}>
 				<Text style={styles.versionText}>v1.0.4 ({BUILD_TIME})</Text>
 				<TouchableOpacity onPress={() => setOfflineModalVisible(true)}>

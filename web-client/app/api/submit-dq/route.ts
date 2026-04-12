@@ -31,10 +31,18 @@ export async function POST(request: NextRequest) {
 
 	try {
 		const payload = await request.json();
-		const { clientDqId, event, heat, lane, swimmer, infraction_code } = payload;
+		const {
+			clientDqId,
+			client_id,
+			event,
+			heat,
+			lane,
+			swimmer,
+			infraction_code,
+		} = payload;
 
 		console.log(
-			`API SUBMIT-DQ: Processing payload for clientDqId: ${clientDqId}`,
+			`API SUBMIT-DQ: Processing payload for clientDqId: ${clientDqId}, Judge: ${client_id}`,
 		);
 
 		if (!clientDqId) {
@@ -66,6 +74,7 @@ export async function POST(request: NextRequest) {
 
 		// Save the new DQ to Firestore (Stateless storage)
 		await saveDq(clientDqId, {
+			client_id: client_id || "Unknown",
 			event,
 			heat,
 			lane,
@@ -74,27 +83,14 @@ export async function POST(request: NextRequest) {
 		});
 
 		// Trigger backend sync to MDB (Stateful storage)
-		// We wrap it in a try-catch to avoid failing the whole request if backend is down,
-		// though idempotency allows the client to retry.
 		try {
-			const syncPayload = [
-				{
-					event_id: event,
-					swimmer_id: swimmer, // This might be name or ID depending on app version
-					dq_code: infraction_code,
-					heat: heat,
-					lane: lane,
-					timestamp: new Date().toISOString(),
-				},
-			];
 			await client.syncDQs({
-				dqsJson: JSON.stringify(syncPayload),
+				dqsJson: JSON.stringify([payload]),
 				uid: uid || "",
-				accessToken: configuredToken || "",
+				accessToken: token || "",
 			});
 		} catch (syncError) {
 			console.error("Failed to trigger backend sync for DQ:", syncError);
-			// We still return 200 because it's saved in Firestore and can be synced later
 		}
 
 		return NextResponse.json({
