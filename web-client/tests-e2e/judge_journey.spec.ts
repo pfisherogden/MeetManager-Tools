@@ -73,8 +73,8 @@ test.describe("Mobile Judge App Journey", () => {
 		).not.toBeVisible();
 		await expect(page.getByText("1A")).toBeVisible();
 
-		// 10. Verification: Offline Queue count increments
-		await expect(page.getByText(/Offline Queue: 1/)).toBeVisible();
+		// 10. Verification: DQ History count increments
+		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
 	});
 
 	test("should toggle between Event and Program views", async ({ page }) => {
@@ -114,27 +114,27 @@ test.describe("Mobile Judge App Journey", () => {
 		await page.getByText("1A").first().click();
 		await page.getByLabel("Save changes").click();
 
-		await expect(page.getByText(/Offline Queue: 1/)).toBeVisible();
+		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
 
-		// Open Offline Queue
-		await page.getByText(/Offline Queue: 1/).click();
+		// Open DQ History
+		await page.getByText(/DQ History \(Pending: 1\)/).click();
 
 		// Verify modal content
-		await expect(page.getByText("Offline Queue (1)")).toBeVisible();
-		await expect(page.getByText("CLEAR ALL")).toBeVisible();
+		await expect(page.getByText("DQ History (Total: 1)")).toBeVisible();
+		await expect(page.getByText("CLEAR PENDING")).toBeVisible();
 
-		// Clear All
-		await page.getByText("CLEAR ALL").click();
+		// Clear Pending
+		await page.getByText("CLEAR PENDING").click();
 
 		// Verification
-		await expect(page.getByText("No pending DQs")).toBeVisible();
+		await expect(page.getByText("No DQs recorded")).toBeVisible();
 
 		// Close modal
 		await page.keyboard.press("Escape");
 		await page.waitForTimeout(1000);
 		// If still visible, try accessibility label or click outside
-		if (await page.getByText("Offline Queue").first().isVisible()) {
-			const closeButton = page.getByLabel("Close offline queue");
+		if (await page.getByText("DQ History").first().isVisible()) {
+			const closeButton = page.getByLabel("Close history");
 			if (await closeButton.isVisible()) {
 				await closeButton.click();
 			} else {
@@ -143,6 +143,6 @@ test.describe("Mobile Judge App Journey", () => {
 		}
 
 		// Queue count should be 0
-		await expect(page.getByText(/Offline Queue: 0/)).toBeVisible();
+		await expect(page.getByText(/DQ History \(Pending: 0\)/)).toBeVisible();
 	});
 });
