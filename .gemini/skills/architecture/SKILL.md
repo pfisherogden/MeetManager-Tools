@@ -36,6 +36,8 @@ description: Project structure and decoupling principles for MeetManager-Tools. 
 - **Dynamic Build Injection**: Use a `prebuild-web` npm script with a custom Node.js file to dynamically replace constant values (like timestamps or versions) in source files just before the Expo bundler executes.
 - **Static Assets**: Avoid `output: "static"` if not using Expo Router, as it introduces unnecessary dependencies. Use standard SPA bundling.
 - **Web Compatibility**: Ensure files starting with underscores (like `_expo/`) are served by adding a `.nojekyll` file to the build root.
+- **Protobuf Case Sensitivity**: When communicating between Python (backend) and TypeScript (frontend/mobile) via gRPC, be mindful of property casing. Protobuf compilers generate **snake_case** for Python and **camelCase** for TypeScript. Mismatches will result in `AttributeError` or missing data.
+- **Property Resilience**: In decoupled environments (where mobile apps might lag behind backend updates), use **property fallbacks** when reading data (e.g., `const name = item.members || item.relaySwimmers || []`). This ensures continuity when internal JSON keys are renamed or migrated.
 
 ## Cloud Native & Serverless (Cloud Run)
 - **Memory Management**: For resource-intensive tasks (e.g., WeasyPrint PDF generation), assume a **2GB-4GB limit**. Limit parallelism (e.g., `max_workers = 1`) to prevent OOM errors in serverless environments.
