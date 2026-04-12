@@ -1,11 +1,20 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { corsOptions, withCors } from "@/lib/cors";
 import { checkDqExists, saveDq } from "@/lib/dq-db";
 import client from "@/lib/mm-client";
+
+export async function OPTIONS() {
+	return corsOptions();
+}
 
 export async function POST(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
 	const token = searchParams.get("token");
 	const uid = searchParams.get("uid");
+
+	console.log(
+		`API SUBMIT-DQ: Received request. UID: ${uid}, Token Provided: ${token ? "YES" : "NO"}`,
+	);
 
 	// Basic security check
 	const configuredToken = process.env.DATA_ACCESS_TOKEN;
@@ -14,12 +23,19 @@ export async function POST(request: NextRequest) {
 	const isAuthorized = !isTokenConfigured || token === configuredToken;
 
 	if (!isAuthorized) {
-		return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
+		console.warn(`API SUBMIT-DQ: Unauthorized access attempt. UID: ${uid}`);
+		return withCors(
+			NextResponse.json({ error: "Unauthorized access" }, { status: 403 }),
+		);
 	}
 
 	try {
 		const payload = await request.json();
 		const { clientDqId, event, heat, lane, swimmer, infraction_code } = payload;
+
+		console.log(
+			`API SUBMIT-DQ: Processing payload for clientDqId: ${clientDqId}`,
+		);
 
 		if (!clientDqId) {
 			return NextResponse.json(
