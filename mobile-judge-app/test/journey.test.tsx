@@ -85,6 +85,10 @@ describe("User Journey: Record a DQ", () => {
 			{ timeout: 10000 },
 		);
 
+		// 0. Handle Judge Name Prompt
+		fireEvent.changeText(screen.getByPlaceholderText("Your Name"), "Test Judge");
+		fireEvent.press(screen.getByText("START JUDGING"));
+
 		// 1. View Event List
 		expect(screen.getByText("Events")).toBeTruthy();
 		expect(screen.getAllByText("Event 1")[0]).toBeTruthy();

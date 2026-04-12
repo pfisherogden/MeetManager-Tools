@@ -1,8 +1,49 @@
 import { NativeModules } from "react-native";
 
-// Mock window.dispatchEvent if it's missing (common in some Jest environments)
-if (typeof window !== "undefined" && !window.dispatchEvent) {
-	(window as any).dispatchEvent = jest.fn();
+// Mock window.dispatchEvent and other browser globals
+if (typeof window !== "undefined") {
+	if (!window.dispatchEvent) {
+		(window as any).dispatchEvent = jest.fn();
+	}
+}
+
+// Ensure localStorage is mocked properly for Node/Jest
+const mockLocalStorage = {
+	getItem: jest.fn(),
+	setItem: jest.fn(),
+	removeItem: jest.fn(),
+	clear: jest.fn(),
+};
+
+Object.defineProperty(global, "localStorage", {
+	value: mockLocalStorage,
+	writable: true,
+});
+
+if (typeof window !== "undefined") {
+	Object.defineProperty(window, "localStorage", {
+		value: mockLocalStorage,
+		writable: true,
+	});
+}
+
+// Mock window.location
+const mockLocation = {
+	search: "",
+	pathname: "/",
+	reload: jest.fn(),
+};
+
+Object.defineProperty(global, "location", {
+	value: mockLocation,
+	writable: true,
+});
+
+if (typeof window !== "undefined") {
+	Object.defineProperty(window, "location", {
+		value: mockLocation,
+		writable: true,
+	});
 }
 
 // Mock NativeModules if they are missing
