@@ -342,6 +342,12 @@ export const getPendingDQs = (): DQ[] => {
 	return mockDQs.filter((dq) => dq.sync_status === "pending");
 };
 
+export const getAllDQs = (): DQ[] => {
+	return [...mockDQs].sort(
+		(a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+	);
+};
+
 export const markAsSynced = (id: number) => {
 	const dq = mockDQs.find((d) => d.id === id);
 	if (dq) {

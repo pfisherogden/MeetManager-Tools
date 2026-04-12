@@ -34,3 +34,16 @@ export async function saveDq(
 		createdAt: new Date().toISOString(),
 	});
 }
+
+export async function getDqs(): Promise<any[]> {
+	const db = initAdmin();
+	const snapshot = await db
+		.collection("disqualifications")
+		.orderBy("createdAt", "desc")
+		.get();
+
+	return snapshot.docs.map((doc) => ({
+		id: doc.id,
+		...doc.data(),
+	}));
+}
