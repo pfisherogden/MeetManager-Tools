@@ -100,6 +100,7 @@ def _process_single_report_process(
     title = report_req_title
 
     import datetime
+
     start_time = datetime.datetime.now()
 
     # Load from msgpack
@@ -1475,7 +1476,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 msgpack_tmp.close()
 
             tasks = []
-            # WeasyPrint is memory intensive (~1GB per large report). 
+            # WeasyPrint is memory intensive (~1GB per large report).
             # In Cloud Run (4GB limit, 4 CPUs), we can safely use more workers.
             max_workers = 3
             logging.info(f"Generating report bundle with {len(request.reports)} reports using {max_workers} workers")
