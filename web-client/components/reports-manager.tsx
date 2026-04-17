@@ -12,9 +12,13 @@ import {
 	Settings2,
 	Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { generateReport, generateReportBundle } from "@/app/actions";
+import {
+	generateReport,
+	generateReportBundle,
+	getJobStatus,
+} from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -49,6 +53,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { handleActionError } from "@/lib/error-handler";
+import { JobStatus } from "@/lib/proto/meetmanager/v1/meet_manager";
 import type { Team as UITeam } from "@/lib/swim-meet-types";
 import { cn } from "@/lib/utils";
 
@@ -129,6 +134,12 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 	const [zebraStriping, setZebraStriping] = useState(false);
 	const [presetTeamFilter, setPresetTeamFilter] = useState("All Teams");
 
+	// Async Job State
+	const [activeJobId, setJobId] = useState<string | null>(null);
+	const [jobProgress, setJobProgress] = useState(0);
+	const [jobMessage, setJobMessage] = useState("");
+	const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+
 	// Improved Team Filter State
 	const [teamFilterOpen, setTeamFilterOpen] = useState(false);
 	const [presetTeamOpen, setPresetTeamOpen] = useState(false);
@@ -167,6 +178,61 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		);
 	};
 
+	const startPolling = (jobId: string, filename: string) => {
+		setJobId(jobId);
+		setJobProgress(0);
+		setJobMessage("Starting generation...");
+
+		if (pollingInterval.current) clearInterval(pollingInterval.current);
+
+		pollingInterval.current = setInterval(async () => {
+			try {
+				const status = await getJobStatus(jobId);
+				setJobProgress(status.progress * 100);
+				setJobMessage(status.message || "Processing...");
+
+				if (status.status === JobStatus.JOB_STATUS_COMPLETED) {
+					if (pollingInterval.current) {
+						clearInterval(pollingInterval.current);
+						pollingInterval.current = null;
+					}
+					setJobId(null);
+					setIsBundling(false);
+
+					if (status.bundleUrl) {
+						const downloadUrl = status.bundleUrl.startsWith("http")
+							? status.bundleUrl
+							: `${window.location.origin}${status.bundleUrl}`;
+
+						const a = document.createElement("a");
+						a.href = downloadUrl;
+						a.download = filename;
+						document.body.appendChild(a);
+						a.click();
+						document.body.removeChild(a);
+						toast.success("Custom pack generated successfully");
+					}
+				} else if (status.status === JobStatus.JOB_STATUS_FAILED) {
+					if (pollingInterval.current) {
+						clearInterval(pollingInterval.current);
+						pollingInterval.current = null;
+					}
+					setJobId(null);
+					setIsBundling(false);
+					toast.error(`Generation failed: ${status.message}`);
+				}
+			} catch (error) {
+				console.error("Polling error:", error);
+			}
+		}, 2000);
+	};
+
+	useEffect(() => {
+		return () => {
+			if (pollingInterval.current) clearInterval(pollingInterval.current);
+		};
+	}, []);
+
 	const generateCustomPack = async () => {
 		if (customPack.length === 0) {
 			toast.error("Pack is empty");
@@ -180,8 +246,12 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 				.slice(0, 19);
 			const suggestedName = `reports_${timestamp}_${customPack.length}_items.zip`;
 			const result = await generateReportBundle(customPack, suggestedName);
-			if (result.success && result.bundleUrl) {
-				// Construct the full URL if it's relative
+
+			if (result.success && result.jobId) {
+				startPolling(result.jobId, suggestedName);
+				toast.info("Report generation started in background...");
+			} else if (result.success && result.bundleUrl) {
+				// Fallback for immediate success
 				const downloadUrl = result.bundleUrl.startsWith("http")
 					? result.bundleUrl
 					: `${window.location.origin}${result.bundleUrl}`;
@@ -193,12 +263,12 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 				a.click();
 				document.body.removeChild(a);
 				toast.success("Custom pack generated successfully");
+				setIsBundling(false);
 			} else {
 				throw new Error(result.message || "Failed to generate bundle");
 			}
 		} catch (error: unknown) {
 			handleActionError(error, "Custom pack generation failed");
-		} finally {
 			setIsBundling(false);
 		}
 	};
@@ -711,21 +781,30 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 									{customPack.length} Reports Selected
 								</p>
 								<p className="text-xs text-muted-foreground">
-									Will be delivered as a single ZIP file
+									{activeJobId
+										? jobMessage
+										: "Will be delivered as a single ZIP file"}
 								</p>
 							</div>
 							<Button
 								onClick={generateCustomPack}
 								disabled={isBundling || customPack.length === 0}
 								size="lg"
-								className="shadow-md"
+								className="shadow-md min-w-[200px]"
 							>
 								{isBundling ? (
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									<>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										{activeJobId
+											? `${Math.round(jobProgress)}%`
+											: "Initializing..."}
+									</>
 								) : (
-									<Download className="mr-2 h-4 w-4" />
+									<>
+										<Download className="mr-2 h-4 w-4" />
+										Generate Bundle ZIP
+									</>
 								)}
-								Generate Bundle ZIP
 							</Button>
 						</div>
 					</div>

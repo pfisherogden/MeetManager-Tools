@@ -60,7 +60,8 @@ class WeasyRenderer:
         logging.getLogger("weasyprint").setLevel(logging.ERROR)
 
         # Convert to PDF using thread-local font config
-        HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
+        # optimize_size=('images',) disables slow font subsetting for massive speed gains
+        HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config(), optimize_size=("images",))
 
         return html_out
 
@@ -84,7 +85,9 @@ class WeasyRenderer:
         logging.getLogger("fontTools").setLevel(logging.ERROR)
         logging.getLogger("weasyprint").setLevel(logging.ERROR)
 
-        HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config())
+        # Convert to PDF using thread-local font config
+        # optimize_size=('images',) disables slow font subsetting
+        HTML(string=html_out).write_pdf(self.output_path, font_config=get_font_config(), optimize_size=("images",))
         return html_out
 
     def render_to_html(self, data: dict[str, Any], template_name: str = "meet_program.j2") -> str:

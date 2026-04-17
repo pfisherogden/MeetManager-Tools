@@ -12,16 +12,23 @@ from mm_to_json.reporting.extractor import ReportDataExtractor
 
 def test_report_sizes():
     # Load sample data
-    sample_path = "backend/data/Sample_Data.json"
+    sample_path = "data/fixtures_root/anonymized_meets/sample_data_champs_2025-aftermeet.json"
+    if not os.path.exists(sample_path):
+        sample_path = "tests/fixtures/anonymized_meets/sample_data_champs_2025-aftermeet.json"
+        
     with open(sample_path, "r") as f:
-        cache = json.load(f)
+        fixture_wrapper = json.load(f)
+    
+    cache = fixture_wrapper["data"]
     
     # Convert
     converter = MmToJsonConverter(table_data=cache)
     full_data = converter.convert()
     
     # Setup Jinja Environment
-    template_dir = "backend/src/mm_to_json/reporting/templates"
+    template_dir = "src/mm_to_json/reporting/templates"
+    if not os.path.exists(template_dir):
+        template_dir = "backend/src/mm_to_json/reporting/templates"
     env = Environment(
         loader=FileSystemLoader(template_dir),
         autoescape=select_autoescape(["html", "xml"]),

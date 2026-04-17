@@ -6,6 +6,8 @@ import json
 import logging
 import os
 import tempfile
+import threading
+import uuid
 from collections import OrderedDict
 from concurrent import futures
 from typing import Any
@@ -48,6 +50,56 @@ DATA_DIR = "../data"
 SOURCE_FILE = "Sample_Data.json"
 CONFIG_FILE = "config.json"
 MAX_CACHE_SIZE = 3  # Keep only the last 3 users' data in memory
+
+
+class JobManager:
+    """Manages the state of background jobs (e.g., report bundle generation)."""
+
+    def __init__(self, max_jobs: int = 100):
+        self.jobs = OrderedDict()
+        self.max_jobs = max_jobs
+        self.lock = threading.Lock()
+
+    def create_job(self) -> str:
+        job_id = str(uuid.uuid4())
+        with self.lock:
+            # Enforce max jobs (evict oldest)
+            if len(self.jobs) >= self.max_jobs:
+                self.jobs.popitem(last=False)
+
+            self.jobs[job_id] = {
+                "status": pb2.JOB_STATUS_PENDING,
+                "progress": 0.0,
+                "message": "Job queued",
+                "bundle_url": "",
+            }
+        return job_id
+
+    def update_job(
+        self,
+        job_id: str,
+        status: int | None = None,
+        progress: float | None = None,
+        message: str | None = None,
+        bundle_url: str | None = None,
+    ):
+        with self.lock:
+            if job_id in self.jobs:
+                job = self.jobs[job_id]
+                if status is not None:
+                    job["status"] = status
+                if progress is not None:
+                    job["progress"] = progress
+                if message is not None:
+                    job["message"] = message
+                if bundle_url is not None:
+                    job["bundle_url"] = bundle_url
+                # Move to end (most recently updated)
+                self.jobs.move_to_end(job_id)
+
+    def get_job(self, job_id: str) -> dict | None:
+        with self.lock:
+            return self.jobs.get(job_id)
 
 
 def msgpack_encode(obj):
@@ -267,6 +319,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # Using OrderedDict for simple LRU eviction
         self._user_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.current_file = SOURCE_FILE
+        self.job_manager = JobManager()
         # Note: We don't load data in __init__ anymore because it's per-user
         # self._load_data()
         # self._load_config()
@@ -1407,8 +1460,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.GenerateReportResponse(success=False, message=str(e))
 
     def GenerateReportBundle(self, request, context):
-        from mm_to_json.mm_to_json import MmToJsonConverter
-
+        """Asynchronously generates a report bundle."""
         # Support unauthenticated access for Sample_Data.json (for dev/debug)
         # Otherwise require authentication
         try:
@@ -1439,12 +1491,30 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 cache = json.load(f)
             uid = "sample-user"
 
-        import zipfile
-
         if request is None:
             return pb2.GenerateReportBundleResponse(success=False, message="Missing request")
 
+        # Create background job
+        job_id = self.job_manager.create_job()
+
+        # Start background thread for generation
+        # Note: In Cloud Run, this thread gets CPU while polling requests are active.
+        thread = threading.Thread(target=self._run_bundle_generation_job, args=(job_id, request, uid, cache))
+        thread.start()
+
+        return pb2.GenerateReportBundleResponse(
+            success=True,
+            message="Bundle generation started",
+            job_id=job_id,
+        )
+
+    def _run_bundle_generation_job(self, job_id, request, uid, cache):
+        """Background worker for report bundle generation."""
+        from mm_to_json.mm_to_json import MmToJsonConverter
+
         try:
+            self.job_manager.update_job(job_id, status=pb2.JOB_STATUS_PROCESSING, message="Converting data...")
+
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
                 pb2.REPORT_TYPE_ENTRIES: "entries",
@@ -1458,17 +1528,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
             }
 
-            # Generate reports in parallel with ProcessPoolExecutor to bypass Python GIL
-            # Must use 'spawn' context because forking a gRPC process causes deadlocks!
+            # Parallel generation with ProcessPoolExecutor
             import multiprocessing
             import zipfile
             from concurrent.futures import ProcessPoolExecutor
 
-            # Convert data once in main process
             converter = MmToJsonConverter(table_data=cache)
             full_data = converter.convert()
 
-            # Serialize to msgpack for fast worker access
             with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
                 msgpack_path = msgpack_tmp.name
                 msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
@@ -1476,11 +1543,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 msgpack_tmp.close()
 
             tasks = []
-            # WeasyPrint is memory intensive (~1GB per large report).
-            # In Cloud Run (4GB limit, 4 CPUs), we can safely use more workers.
             max_workers = 3
-            logging.info(f"Generating report bundle with {len(request.reports)} reports using {max_workers} workers")
-            start_time = datetime.datetime.now()
+            self.job_manager.update_job(job_id, message=f"Rendering {len(request.reports)} reports...")
+
             ctx = multiprocessing.get_context("spawn")
             try:
                 with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
@@ -1503,24 +1568,25 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         )
 
                 zip_buffer = io.BytesIO()
+                total_reports = len(tasks)
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for future in tasks:
+                    for i, future in enumerate(tasks):
                         res = future.result()
                         if res.get("success"):
                             zip_file.writestr(res["filename"], res["content"])
-                            logging.info(f"Report {res.get('idx')} ({res.get('rtype')}) added to bundle")
+                            progress = (i + 1) / total_reports
+                            self.job_manager.update_job(
+                                job_id, progress=progress, message=f"Generated {i + 1}/{total_reports} reports"
+                            )
                         else:
                             raise Exception(
                                 f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
                             )
             finally:
-                # Cleanup msgpack file
                 if os.path.exists(msgpack_path):
                     os.remove(msgpack_path)
 
-            end_time = datetime.datetime.now()
-            duration = (end_time - start_time).total_seconds()
-            logging.info(f"Bundle generation complete. Duration: {duration:.2f}s")
+            self.job_manager.update_job(job_id, message="Uploading bundle...")
 
             num_reports = len(request.reports)
             bundle_name = (
@@ -1530,7 +1596,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if not bundle_name.endswith(".zip"):
                 bundle_name += ".zip"
 
-            # Upload to GCS and return a proxy URL
             bundle_rel_path = os.path.join("users", uid, "published", "bundles", bundle_name)
 
             with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as bundle_tmp:
@@ -1544,24 +1609,32 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if os.path.exists(bundle_tmp_path):
                     os.remove(bundle_tmp_path)
 
-            # Construct proxy URL
-            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
-            import urllib.parse
+            # Task C: Use Signed URL if available
+            bundle_url = self.storage.get_url(bundle_rel_path)
 
-            safe_bundle_path = urllib.parse.quote(bundle_rel_path)
-            bundle_url = f"/api/data?path={safe_bundle_path}&token={token}"
-
-            return pb2.GenerateReportBundleResponse(
-                success=True,
-                message="Bundle generated successfully",
-                zip_content=b"",  # Empty legacy field
-                filename=bundle_name,
-                bundle_url=bundle_url,
+            self.job_manager.update_job(
+                job_id, status=pb2.JOB_STATUS_COMPLETED, progress=1.0, message="Complete", bundle_url=bundle_url
             )
 
         except Exception as e:
-            logging.error(f"Error generating report bundle: {e}")
-            return pb2.GenerateReportBundleResponse(success=False, message=str(e))
+            logging.error(f"Background job {job_id} failed: {e}")
+            self.job_manager.update_job(job_id, status=pb2.JOB_STATUS_FAILED, message=str(e))
+
+    def GetJobStatus(self, request, context):
+        """Retrieves the status of a background job."""
+        if not request.job_id:
+            return pb2.GetJobStatusResponse(status=pb2.JOB_STATUS_FAILED, message="Missing job_id")
+
+        job = self.job_manager.get_job(request.job_id)
+        if not job:
+            return pb2.GetJobStatusResponse(status=pb2.JOB_STATUS_FAILED, message="Job not found")
+
+        return pb2.GetJobStatusResponse(
+            status=job["status"],
+            progress=job["progress"],
+            message=job["message"],
+            bundle_url=job["bundle_url"],
+        )
 
     def GetSessions(self, request, context):
         request = request or pb2.GetSessionsRequest()

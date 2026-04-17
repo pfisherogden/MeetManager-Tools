@@ -25,8 +25,8 @@
 {# Macro to render relay swimmers using DIVs #}
 {% macro render_div_relay_swimmers_row(entry, is_zebra, show_dq_lines=false) %}
     {% if entry.is_relay and entry.swimmers %}
-    <div class="div-relay-swimmers-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-bottom{% endif %}">
-        <div class="div-col col-lane"></div> {# Spacer #}
+    <div class="div-relay-swimmers-row {% if is_zebra %}zebra-row{% endif %} {% if show_dq_lines %}dotted-bottom{% endif %} is-relay">
+        <div class="div-col col-lane"></div> {# Spacer matched to Lane column #}
         <div class="div-col div-swimmers-container">
             <div class="relay-grid">
                 <div class="relay-col">
