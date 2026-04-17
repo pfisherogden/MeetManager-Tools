@@ -56,7 +56,7 @@ class JobManager:
     """Manages the state of background jobs (e.g., report bundle generation)."""
 
     def __init__(self, max_jobs: int = 100):
-        self.jobs = OrderedDict()
+        self.jobs: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.max_jobs = max_jobs
         self.lock = threading.Lock()
 
