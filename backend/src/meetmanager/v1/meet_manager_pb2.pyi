@@ -27,6 +27,12 @@ class ReportType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REPORT_TYPE_ENTRIES_CLUB: _ClassVar[ReportType]
     REPORT_TYPE_LANE_TIMER_SHEETS: _ClassVar[ReportType]
     REPORT_TYPE_JUDGE_SHEETS: _ClassVar[ReportType]
+
+class RendererType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    RENDERER_TYPE_UNSPECIFIED: _ClassVar[RendererType]
+    RENDERER_TYPE_WEASYPRINT: _ClassVar[RendererType]
+    RENDERER_TYPE_PLAYWRIGHT: _ClassVar[RendererType]
 JOB_STATUS_UNSPECIFIED: JobStatus
 JOB_STATUS_PENDING: JobStatus
 JOB_STATUS_PROCESSING: JobStatus
@@ -42,6 +48,9 @@ REPORT_TYPE_ENTRIES_HYTEK: ReportType
 REPORT_TYPE_ENTRIES_CLUB: ReportType
 REPORT_TYPE_LANE_TIMER_SHEETS: ReportType
 REPORT_TYPE_JUDGE_SHEETS: ReportType
+RENDERER_TYPE_UNSPECIFIED: RendererType
+RENDERER_TYPE_WEASYPRINT: RendererType
+RENDERER_TYPE_PLAYWRIGHT: RendererType
 
 class GetJobStatusRequest(_message.Message):
     __slots__ = ("job_id",)
@@ -582,12 +591,14 @@ class GenerateReportResponse(_message.Message):
     def __init__(self, success: bool = ..., message: _Optional[str] = ..., pdf_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., html_content: _Optional[str] = ...) -> None: ...
 
 class GenerateReportBundleRequest(_message.Message):
-    __slots__ = ("reports", "bundle_name")
+    __slots__ = ("reports", "bundle_name", "renderer_type")
     REPORTS_FIELD_NUMBER: _ClassVar[int]
     BUNDLE_NAME_FIELD_NUMBER: _ClassVar[int]
+    RENDERER_TYPE_FIELD_NUMBER: _ClassVar[int]
     reports: _containers.RepeatedCompositeFieldContainer[GenerateReportRequest]
     bundle_name: str
-    def __init__(self, reports: _Optional[_Iterable[_Union[GenerateReportRequest, _Mapping]]] = ..., bundle_name: _Optional[str] = ...) -> None: ...
+    renderer_type: RendererType
+    def __init__(self, reports: _Optional[_Iterable[_Union[GenerateReportRequest, _Mapping]]] = ..., bundle_name: _Optional[str] = ..., renderer_type: _Optional[_Union[RendererType, str]] = ...) -> None: ...
 
 class GenerateReportBundleResponse(_message.Message):
     __slots__ = ("success", "message", "zip_content", "filename", "bundle_url", "job_id")

@@ -371,26 +371,25 @@ class ReportDataExtractor:
                 sub_rows = []
                 for e in sorted_events:
                     desc = e["evt_desc"] + (" (Relay)" if e["is_relay"] else "")
-                    sub_rows.append({
-                        "event_num": str(e['evt_num']), 
-                        "event_name": desc, 
-                        "time": e["time"], 
-                        "heat_lane": e["hl"],
-                        "is_relay": e["is_relay"],
-                        "swimmers": e.get("swimmers", []) if e["is_relay"] else []
-                    })
+                    sub_rows.append(
+                        {
+                            "event_num": str(e["evt_num"]),
+                            "event_name": desc,
+                            "time": e["time"],
+                            "heat_lane": e["hl"],
+                            "is_relay": e["is_relay"],
+                            "swimmers": e.get("swimmers", []) if e["is_relay"] else [],
+                        }
+                    )
                 team_items.append({"header": header_str, "sub_items": sub_rows})
                 seq += 1
             relay_teams_list = grouped[t_name].get("RelayTeams", [])
             if relay_teams_list:
                 team_items.append({"header": "   RELAY TEAMS", "sub_items": []})
                 flat_relays = sorted(relay_teams_list, key=self._get_event_sort_key)
-                for idx, r in enumerate(flat_relays):
-                    rltr = r.get("relayLtr", "")
-                    ltr_str = f" - '{rltr}'" if rltr else ""
-                    line1_desc = f"{t_name}{ltr_str}        #{r['evt_num']} {r['evt_desc']}"
+                for _, r in enumerate(flat_relays):
                     hl_text = f"{r['heat']}/{r['lane']}" if r.get("heat") else ""
-                    
+
                     names = []
                     if "relayAthletes" in r:
                         names = [
@@ -399,15 +398,15 @@ class ReportDataExtractor:
                         ]
                     else:
                         names = [n.strip() for n in r.get("name", "").split(",")]
-                    
+
                     sub_items = [
                         {
-                            "event_num": str(r['evt_num']),
-                            "event_name": r['evt_desc'],
+                            "event_num": str(r["evt_num"]),
+                            "event_name": r["evt_desc"],
                             "time": r.get("seedTime", r.get("time", "")),
                             "heat_lane": hl_text,
                             "is_relay": True,
-                            "swimmers": names
+                            "swimmers": names,
                         },
                     ]
                     team_items.append({"header": "", "force_1col": True, "sub_items": sub_items})

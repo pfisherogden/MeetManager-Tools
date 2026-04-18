@@ -143,11 +143,12 @@ def _process_single_report_process(
     renderer_type=None,
 ):
     # This runs in a separate process, avoiding the GIL
+    import datetime
     import logging
     import os
     import tempfile
     import traceback
-    import datetime
+
     import msgpack
 
     # Re-initialize logging configuration in the subprocess to ensure logs are captured
@@ -165,8 +166,6 @@ def _process_single_report_process(
         logging.disable(logging.DEBUG)
 
     from mm_to_json.mm_to_json import MmToJsonConverter
-    from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
-    from mm_to_json.reporting.weasy_renderer import WeasyRenderer
     from mm_to_json.reporting.extractor import ReportDataExtractor
 
     rtype = rtype_map.get(report_req_type, "psych")
@@ -191,7 +190,7 @@ def _process_single_report_process(
 
     try:
         render_start_time = datetime.datetime.now()
-        
+
         # Use requested renderer
         if renderer_type == pb2.RENDERER_TYPE_PLAYWRIGHT:
             renderer = PlaywrightRenderer(temp_path)
@@ -486,8 +485,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     raw_data = json.load(f)
                 # Use converter to normalize keys/types even for JSON
                 from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
-from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
                 converter = MmToJsonConverter(table_data=raw_data)
                 cache = converter.export_raw()
@@ -1430,8 +1427,6 @@ from mm_to_json.reporting.weasy_renderer import WeasyRenderer
             }
 
             from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
-from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
             # Convert data once
             converter = MmToJsonConverter(table_data=cache)

@@ -53,7 +53,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { handleActionError } from "@/lib/error-handler";
-import { JobStatus, RendererType } from "@/lib/proto/meetmanager/v1/meet_manager";
+import {
+	JobStatus,
+	RendererType,
+} from "@/lib/proto/meetmanager/v1/meet_manager";
 import type { Team as UITeam } from "@/lib/swim-meet-types";
 import { cn } from "@/lib/utils";
 

@@ -630,8 +630,11 @@ message GenerateReportResponse {
 
 // RendererType specifies which engine to use for PDF generation.
 enum RendererType {
+  // RENDERER_TYPE_UNSPECIFIED is the default unspecified state (fallback to weasyprint).
   RENDERER_TYPE_UNSPECIFIED = 0;
+  // RENDERER_TYPE_WEASYPRINT uses the Python-based WeasyPrint engine (smaller files).
   RENDERER_TYPE_WEASYPRINT = 1;
+  // RENDERER_TYPE_PLAYWRIGHT uses the Chromium-based Playwright engine (high performance).
   RENDERER_TYPE_PLAYWRIGHT = 2;
 }
 

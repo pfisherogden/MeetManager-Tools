@@ -370,7 +370,7 @@ export async function generateReport(
 	columnsOnPage: number = 2,
 	showRelaySwimmers: boolean = true,
 	zebraStriping: boolean = false,
-	rendererType: number = 0,
+	_rendererType: number = 0,
 ) {
 	try {
 		const metadata = await getAuthMetadata();

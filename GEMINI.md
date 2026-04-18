@@ -89,8 +89,17 @@ All agents MUST follow these workflow phases:
   - **Frequency**: Update the chat every 15-20 minutes or at major milestones.
 - **Persistence**: Periodically update the GitHub issue with **Next Steps** to ensure session continuity.
 
+### Phase 4: High-Precision Reporting & Persistence
+- **Visual Regression**: ALWAYS generate "Before/After" PDFs using a 20+ page dataset for layout changes. Use Gemini (`generalist`) to verify vertical alignment and gutter spacing. (See `visual-regression` skill).
+- **Persistent State**: NEVER use in-memory dictionaries for background task status in Cloud Run. Use **Firestore** to ensure `job_id` tracking survives instance scaling/rotation.
+- **CSS Table Standard**: Prefer `display: table` and `table-layout: fixed` over Flexbox for all PDF reports. This is 2x faster in WeasyPrint and mathematically locks column alignment.
+- **IAM URL Signing**: Use `iam.serviceAccountTokenCreator` for GCS signed URLs in production to avoid local key file dependencies.
+
 ## Recent Learnings & Persistent Decisions
-- **2026-03-21**: Implemented `ProcessPoolExecutor` with `spawn` context in `server.py` to bypass GIL. (Issue #220).
-- **2026-03-21**: Found that `TemplateNotFound` errors in subprocesses can stall bundle generation. Corrected template paths. (Issue #222).
-- **2026-03-21**: Optimized extraction performance by 30% using O(1) lookup maps. (Issue #225).
-- **2026-03-21**: Resolved Next.js Server Action stale cache issues by implementing a "New version available" refresh prompt. (Issue #227).
+- **2026-04-17**: Implemented **Asynchronous Job Pattern** for report generation to resolve 504 Gateway Timeouts. The backend now returns a `job_id` and processes in a background thread while the frontend polls for progress. (Issue #350).
+- **2026-04-17**: Switched to **GCS Signed URLs** for large bundle delivery, offloading heavy bandwidth and memory usage from the backend services. (Issue #351).
+- **2026-04-17**: Optimized WeasyPrint rendering by 2x using **CSS Table Layout** (`display: table`) instead of Flexbox and disabling font subsetting via `optimize_size=('images',)`. This also resolved header and relay alignment regressions. (Issue #349).
+- **2026-04-17**: Found that in-memory job state is lost during Cloud Run rotations; **Firestore** is mandatory for all background task tracking.
+- **2026-04-17**: Identified that 2-column layouts have exactly **255pt** of width per column (letter page). All fixed column widths must sum to this value to prevent gutter overlap.
+
+
