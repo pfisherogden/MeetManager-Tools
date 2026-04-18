@@ -5,13 +5,7 @@ import * as admin from "firebase-admin";
 // This allows sharing data across processes (e.g. API route vs Server Action)
 class MockFirestore {
 	private getFilePath(): string {
-		const path = process.env.FIRESTORE_MOCK_PATH || "/tmp/mock_firestore.json";
-		if (Math.random() < 0.1) {
-			console.log(
-				`MockFirestore: Path=${path}, CWD=${process.cwd()}, UID=${process.getuid?.()}`,
-			);
-		}
-		return path;
+		return process.env.FIRESTORE_MOCK_PATH || "/tmp/mock_firestore.json";
 	}
 
 	private readStorage(): Map<string, any> {
@@ -23,13 +17,8 @@ class MockFirestore {
 					const realPath = fs.realpathSync(filePath);
 					const content = fs.readFileSync(realPath, "utf8");
 					const data = JSON.parse(content);
-					const storageMap = new Map(Object.entries(data));
-					console.log(
-						`MockFirestore READ SUCCESS (attr ${attempts}): ${content.length} bytes from ${realPath}, Keys: ${Array.from(storageMap.keys()).join(", ")}`,
-					);
-					return storageMap;
+					return new Map(Object.entries(data));
 				}
-				console.log(`MockFirestore READ: File not found at ${filePath} (attempt ${attempts})`);
 			} catch (e: any) {
 				console.error(`MockFirestore READ ERROR: ${filePath}: ${e.message}`);
 			}
@@ -48,17 +37,12 @@ class MockFirestore {
 		try {
 			const data = Object.fromEntries(storage);
 			const content = JSON.stringify(data, null, 2);
-			
+
 			// Use more robust write with sync
 			const fd = fs.openSync(filePath, "w");
 			fs.writeSync(fd, content);
 			fs.fsyncSync(fd);
 			fs.closeSync(fd);
-			
-			const realPath = fs.realpathSync(filePath);
-			console.log(
-				`MockFirestore WRITE SUCCESS: ${content.length} bytes to ${realPath}, Keys: ${Array.from(storage.keys()).join(", ")}`,
-			);
 		} catch (e: any) {
 			console.error(`MockFirestore WRITE ERROR: ${filePath}: ${e.message}`);
 		}
@@ -124,7 +108,6 @@ const initAdmin = () => {
 					process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mmtools-488404",
 			});
 		}
-		console.log("initAdmin: Returning REAL Firestore client");
 		return admin.firestore();
 	} catch (e) {
 		console.warn("Firestore initialization failed, using file-based mock:", e);

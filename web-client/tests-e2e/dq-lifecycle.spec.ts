@@ -136,10 +136,6 @@ test.describe("Disqualification Lifecycle", () => {
 		await volunteerPage.waitForTimeout(5000);
 		await volunteerPage.goto("/dqs");
 
-		// Debug: list all rows to console
-		const rows = await volunteerPage.locator("tr").allTextContents();
-		console.log(`Volunteer Page Rows (${rows.length}):`, rows);
-
 		// Verify the DQ row exists. Increase timeout for polling.
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "1A" }),
