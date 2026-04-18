@@ -66,13 +66,20 @@ export const triggerSync = async () => {
 				? window.localStorage.getItem("mmtools_judge_name") || "Unknown"
 				: "Unknown";
 
+			// For relays, include the specific member name if a leg was DQ'd
+			let swimmerDisplay = swimmer.name;
+			if (item.leg && swimmer.members && swimmer.members[item.leg - 1]) {
+				const legMember = swimmer.members[item.leg - 1];
+				swimmerDisplay = `${swimmer.name} (Leg ${item.leg}: ${legMember})`;
+			}
+
 			const payload = {
 				clientDqId,
 				client_id: judgeName,
 				event: event ? event.number : item.event_id,
 				heat: heat ? heat.number : swimmer.heat_id,
 				lane: swimmer.lane,
-				swimmer: swimmer.name,
+				swimmer: swimmerDisplay,
 				infraction_code: item.dq_code,
 			};
 
