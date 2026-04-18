@@ -1544,9 +1544,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 msgpack_tmp.flush()
                 msgpack_tmp.close()
 
+            # Set initial progress to show activity in UI immediately
+            self.job_manager.update_job(job_id, progress=0.05, message=f"Rendering {len(request.reports)} reports...")
+
             tasks = []
             max_workers = 3
-            self.job_manager.update_job(job_id, message=f"Rendering {len(request.reports)} reports...")
 
             ctx = multiprocessing.get_context("spawn")
             try:
@@ -1613,6 +1615,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             # Task C: Use Signed URL if available
             bundle_url = self.storage.get_url(bundle_rel_path)
+
+            # Fallback: If signing failed (returned public URL which is private), 
+            # use the proxy API URL instead.
+            if "storage.googleapis.com" in bundle_url and ".zip" in bundle_url and "?" not in bundle_url:
+                token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+                import urllib.parse
+
+                safe_bundle_path = urllib.parse.quote(bundle_rel_path)
+                bundle_url = f"/api/data?path={safe_bundle_path}&token={token}"
+                logging.info(f"Using proxy fallback URL for {bundle_rel_path}")
 
             self.job_manager.update_job(
                 job_id, status=pb2.JOB_STATUS_COMPLETED, progress=1.0, message="Complete", bundle_url=bundle_url
