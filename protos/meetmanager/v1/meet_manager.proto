@@ -612,6 +612,8 @@ message GenerateReportRequest {
   optional bool show_relay_swimmers = 7;
   // zebra_striping enables alternating background colors for rows.
   optional bool zebra_striping = 8;
+  // renderer_type specifies the engine to use (default: weasyprint).
+  RendererType renderer_type = 9;
 }
 
 // GenerateReportResponse contains the generated report data.

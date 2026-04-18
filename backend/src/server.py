@@ -1490,6 +1490,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     request.zebra_striping if request.HasField("zebra_striping") else False,
                     msgpack_path,
                     rtype_map,
+                    request.renderer_type if hasattr(request, "renderer_type") else None,
                 )
             finally:
                 # Cleanup msgpack file

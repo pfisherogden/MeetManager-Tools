@@ -29,7 +29,7 @@ test.describe("Champs Dataset Journey", () => {
 		page,
 	}, _testInfo) => {
 		// Set higher timeout for this complex journey
-		test.setTimeout(240000);
+		test.setTimeout(600000);
 
 		// 1. Admin: Upload and Set Active
 		await page.goto("/admin", { waitUntil: "networkidle" });

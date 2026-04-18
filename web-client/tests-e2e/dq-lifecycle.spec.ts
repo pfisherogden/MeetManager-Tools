@@ -83,7 +83,9 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage.getByLabel("Save changes").click();
 
 		// Verify code is shown on the swimmer card
-		await expect(judgePage.getByText("1A")).toBeVisible();
+		await expect(
+			judgePage.locator("#root").getByText("1A").first(),
+		).toBeVisible();
 
 		// --- 4. Computer Volunteer: Live Review (Individual) ---
 		console.log("Journey Step 4: Volunteer verifying live DQ...");
