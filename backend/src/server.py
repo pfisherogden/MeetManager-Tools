@@ -192,6 +192,7 @@ def _process_single_report_process(
         render_start_time = datetime.datetime.now()
 
         # Use requested renderer
+        renderer: PlaywrightRenderer | WeasyRenderer
         if renderer_type == pb2.RENDERER_TYPE_PLAYWRIGHT:
             renderer = PlaywrightRenderer(temp_path)
         else:
