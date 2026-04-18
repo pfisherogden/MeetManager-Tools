@@ -204,8 +204,11 @@ def _process_single_report_process(
         # Also disable global logging for anything below INFO to catch stray loggers
         logging.disable(logging.DEBUG)
 
+    from meetmanager.v1 import meet_manager_pb2 as pb2
     from mm_to_json.mm_to_json import MmToJsonConverter
     from mm_to_json.reporting.extractor import ReportDataExtractor
+    from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
+    from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
     rtype = rtype_map.get(report_req_type, "psych")
     title = report_req_title
