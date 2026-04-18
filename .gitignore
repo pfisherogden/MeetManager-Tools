@@ -88,3 +88,5 @@ backend/src/meetmanager/v1/meet_manager_pb2.py
 backend/src/meetmanager/v1/meet_manager_pb2_grpc.py
 backend/src/meetmanager/v1/meet_manager_pb2.pyi
 web-client/lib/proto/
+*.pdf
+*.png
