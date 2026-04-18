@@ -4,26 +4,34 @@ import * as admin from "firebase-admin";
 // File-based mock for local/CI development when Firestore is unavailable
 // This allows sharing data across processes (e.g. API route vs Server Action)
 class MockFirestore {
-	private filePath = "/tmp/mock_firestore.json";
+	private getFilePath(): string {
+		return process.env.FIRESTORE_MOCK_PATH || "/tmp/mock_firestore.json";
+	}
 
 	private readStorage(): Map<string, any> {
+		const filePath = this.getFilePath();
 		try {
-			if (fs.existsSync(this.filePath)) {
-				const data = JSON.parse(fs.readFileSync(this.filePath, "utf8"));
+			if (fs.existsSync(filePath)) {
+				const content = fs.readFileSync(filePath, "utf8");
+				console.log(`MockFirestore: Read ${content.length} bytes from ${filePath}`);
+				const data = JSON.parse(content);
 				return new Map(Object.entries(data));
 			}
 		} catch (e) {
-			console.error("MockFirestore: Error reading storage file", e);
+			console.error(`MockFirestore: Error reading storage file ${filePath}`, e);
 		}
 		return new Map<string, any>();
 	}
 
 	private writeStorage(storage: Map<string, any>) {
+		const filePath = this.getFilePath();
 		try {
 			const data = Object.fromEntries(storage);
-			fs.writeFileSync(this.filePath, JSON.stringify(data), "utf8");
+			const content = JSON.stringify(data, null, 2);
+			fs.writeFileSync(filePath, content, "utf8");
+			console.log(`MockFirestore: Wrote ${content.length} bytes to ${filePath}`);
 		} catch (e) {
-			console.error("MockFirestore: Error writing storage file", e);
+			console.error(`MockFirestore: Error writing storage file ${filePath}`, e);
 		}
 	}
 

@@ -35,12 +35,13 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     volumes:
-      - ./tmp:/tmp
+      - ./tmp:/app/tmp
     environment:
       - BACKEND_INTERNAL_HOST=backend:8080
       - NEXT_PUBLIC_AUTH_DISABLED=true
       - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
       - USE_MOCK_FIRESTORE=true
+      - FIRESTORE_MOCK_PATH=/app/tmp/mock_firestore.json
     depends_on:
       - backend
 

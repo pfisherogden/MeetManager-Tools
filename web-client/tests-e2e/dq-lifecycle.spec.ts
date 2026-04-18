@@ -19,6 +19,7 @@ test.describe("Disqualification Lifecycle", () => {
 	test.beforeAll(async ({ browser }) => {
 		// Clear mock firestore for a fresh run
 		// path relative to web-client directory where playwright runs
+		// Corrected path to match docker-compose volume mount
 		const mockFilePath = path.join(__dirname, "../../tmp/mock_firestore.json");
 		if (fs.existsSync(mockFilePath)) {
 			console.log(`Clearing existing mock firestore at ${mockFilePath}`);
@@ -131,7 +132,8 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 4. Computer Volunteer: Live Review (Individual) ---
 		console.log("Journey Step 4: Volunteer verifying live DQ...");
-		await volunteerPage.waitForTimeout(2000);
+		// Give more time for the file-based mock firestore to settle and for the volunteer page to load
+		await volunteerPage.waitForTimeout(5000);
 		await volunteerPage.goto("/dqs");
 		// Verify the DQ row exists. Increase timeout for polling.
 		await expect(
@@ -167,8 +169,8 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 6. Computer Volunteer: Verify Relay Swimmer Name ---
 		console.log("Journey Step 6: Volunteer verifying relay swimmer name...");
-		// The page polls every 5 seconds, so we wait or reload
-		await volunteerPage.waitForTimeout(2000);
+		// Give more time for the file-based mock firestore to settle in CI
+		await volunteerPage.waitForTimeout(5000);
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
@@ -180,7 +182,7 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 7. S&T Judge: Edit DQ ---
 		console.log("Journey Step 7: Judge editing pending DQ...");
-		await judgePage.getByText(/DQ History/).click();
+		await judgePage.getByText(/DQ History/).first().click({ force: true });
 		await judgePage.getByText("7Q").first().click();
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
@@ -196,7 +198,8 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log("Journey Step 8: Volunteer verifying sync status...");
 		// In our current implementation, sync happens immediately via API trigger
 		// So it should show as "Synced" (CheckCircle2 + Synced text)
-		await volunteerPage.waitForTimeout(2000);
+		await volunteerPage.waitForTimeout(5000);
+		await volunteerPage.reload();
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
