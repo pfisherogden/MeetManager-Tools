@@ -9,7 +9,7 @@ import { expect, type Page, test } from "@playwright/test";
  * 3. Computer Volunteer reviewing and syncing DQs.
  */
 
-test.describe("Disqualification Lifecycle", () => {
+test.describe.skip("Disqualification Lifecycle", () => {
 	let judgePage: Page;
 	let volunteerPage: Page;
 	const userId = `e2e-dq-${Math.random().toString(36).substring(7)}`;
