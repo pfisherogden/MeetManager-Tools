@@ -13,7 +13,9 @@ class MockFirestore {
 		try {
 			if (fs.existsSync(filePath)) {
 				const content = fs.readFileSync(filePath, "utf8");
-				console.log(`MockFirestore: Read ${content.length} bytes from ${filePath}`);
+				console.log(
+					`MockFirestore: Read ${content.length} bytes from ${filePath}`,
+				);
 				const data = JSON.parse(content);
 				return new Map(Object.entries(data));
 			}
@@ -29,7 +31,9 @@ class MockFirestore {
 			const data = Object.fromEntries(storage);
 			const content = JSON.stringify(data, null, 2);
 			fs.writeFileSync(filePath, content, "utf8");
-			console.log(`MockFirestore: Wrote ${content.length} bytes to ${filePath}`);
+			console.log(
+				`MockFirestore: Wrote ${content.length} bytes to ${filePath}`,
+			);
 		} catch (e) {
 			console.error(`MockFirestore: Error writing storage file ${filePath}`, e);
 		}

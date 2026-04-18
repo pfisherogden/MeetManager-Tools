@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { corsOptions, withCors } from "@/lib/cors";
 import { checkDqExists, saveDq } from "@/lib/dq-db";
 import client from "@/lib/mm-client";
@@ -84,6 +85,9 @@ export async function POST(request: NextRequest) {
 			swimmer,
 			infraction_code,
 		});
+
+		// Ensure the volunteer page is revalidated
+		revalidatePath("/dqs");
 
 		// Trigger backend sync to MDB (Stateful storage)
 		try {

@@ -135,6 +135,11 @@ test.describe("Disqualification Lifecycle", () => {
 		// Give more time for the file-based mock firestore to settle and for the volunteer page to load
 		await volunteerPage.waitForTimeout(5000);
 		await volunteerPage.goto("/dqs");
+
+		// Debug: list all rows to console
+		const rows = await volunteerPage.locator("tr").allTextContents();
+		console.log(`Volunteer Page Rows (${rows.length}):`, rows);
+
 		// Verify the DQ row exists. Increase timeout for polling.
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "1A" }),
@@ -182,7 +187,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 7. S&T Judge: Edit DQ ---
 		console.log("Journey Step 7: Judge editing pending DQ...");
-		await judgePage.getByText(/DQ History/).first().click({ force: true });
+		await judgePage
+			.getByText(/DQ History/)
+			.first()
+			.click({ force: true });
 		await judgePage.getByText("7Q").first().click();
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
