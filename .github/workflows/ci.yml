@@ -162,6 +162,7 @@ jobs:
 
       - name: Build and Start Services
         run: |
+          mkdir -p tmp && chmod 777 tmp
           just build
           just up
         env:
