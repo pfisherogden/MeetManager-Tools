@@ -4,12 +4,15 @@ import datetime
 import io
 import json
 import logging
+import multiprocessing
 import os
 import tempfile
 import threading
 import uuid
+import zipfile
 from collections import OrderedDict
 from concurrent import futures
+from concurrent.futures import ProcessPoolExecutor
 from typing import Any
 
 import grpc
@@ -1524,10 +1527,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _run_bundle_generation_job(self, job_id, request, uid, cache):
         """Background worker for report bundle generation."""
-        from mm_to_json.mm_to_json import MmToJsonConverter
-
+        logging.info(f"Background thread started for job {job_id}")
         try:
             self.job_manager.update_job(job_id, status=pb2.JOB_STATUS_PROCESSING, message="Converting data...")
+            logging.info(f"Job {job_id}: starting MmToJsonConverter")
 
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
@@ -1542,11 +1545,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
             }
 
-            # Parallel generation with ProcessPoolExecutor
-            import multiprocessing
-            import zipfile
-            from concurrent.futures import ProcessPoolExecutor
-
+            # Convert data once in main process
             converter = MmToJsonConverter(table_data=cache)
             full_data = converter.convert()
 
@@ -1556,11 +1555,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 msgpack_tmp.flush()
                 msgpack_tmp.close()
 
-            # Set initial progress to show activity in UI immediately
-            self.job_manager.update_job(job_id, progress=0.05, message=f"Rendering {len(request.reports)} reports...")
-
             tasks = []
             max_workers = 3
+            self.job_manager.update_job(job_id, progress=0.05, message=f"Rendering {len(request.reports)} reports...")
+            logging.info(f"Job {job_id}: starting ProcessPoolExecutor with {max_workers} workers")
 
             ctx = multiprocessing.get_context("spawn")
             try:
