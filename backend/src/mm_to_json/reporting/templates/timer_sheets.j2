@@ -67,15 +67,30 @@
     }
     
     .relay-swimmers-grid {
-        display: flex;
+        display: table;
         width: 100%;
+        table-layout: fixed;
         margin-top: 2pt;
         font-size: 8pt;
         line-height: 1.0;
         color: #444;
     }
     .relay-col {
-        flex: 1;
+        display: table-cell;
+        width: 50%;
+        vertical-align: top;
+    }
+    .relay-swimmer-container {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+        padding-right: 4pt;
+    }
+    .relay-swimmer-name {
+        display: table-cell;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 {% endblock %}
 
@@ -105,12 +120,20 @@
                                 <div class="swimmer-name">{{ entry.team }} - {{ entry.relayLtr }}</div>
                                 <div class="relay-swimmers-grid">
                                     <div class="relay-col">
-                                        <div>1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
-                                        <div>3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                                        <div class="relay-swimmer-container">
+                                            <div class="relay-swimmer-name">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
+                                        </div>
+                                        <div class="relay-swimmer-container">
+                                            <div class="relay-swimmer-name">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                                        </div>
                                     </div>
                                     <div class="relay-col">
-                                        <div>2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
-                                        <div>4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                                        <div class="relay-swimmer-container">
+                                            <div class="relay-swimmer-name">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
+                                        </div>
+                                        <div class="relay-swimmer-container">
+                                            <div class="relay-swimmer-name">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                                        </div>
                                     </div>
                                 </div>
                             {% else %}

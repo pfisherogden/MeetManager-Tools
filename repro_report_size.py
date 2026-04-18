@@ -76,5 +76,19 @@ def test_report_sizes():
     judge_size = os.path.getsize("test_judge_sheets.pdf") / 1024
     print(f"Judge Sheets: {judge_size:.2f} KB, Pages: {len(judge_doc.pages)}")
 
+    # 3. Lane Timer Sheets
+    template = env.get_template("timer_sheets.j2")
+    timer_data = extractor.extract_lane_timer_sheets_data()
+    timer_context = {
+        **timer_data,
+        "css_content": css_content,
+        "generation_time": "05:00 PM 2026/04/12",
+    }
+    timer_html = template.render(**timer_context)
+    timer_doc = HTML(string=timer_html).render()
+    timer_doc.write_pdf("test_lane_timer_sheets.pdf")
+    timer_size = os.path.getsize("test_lane_timer_sheets.pdf") / 1024
+    print(f"Lane Timer Sheets: {timer_size:.2f} KB, Pages: {len(timer_doc.pages)}")
+
 if __name__ == "__main__":
     test_report_sizes()
