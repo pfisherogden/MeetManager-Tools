@@ -139,6 +139,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 	const [jobProgress, setJobProgress] = useState(0);
 	const [jobMessage, setJobMessage] = useState("");
 	const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+	const downloadTriggered = useRef<string | null>(null);
 
 	// Improved Team Filter State
 	const [teamFilterOpen, setTeamFilterOpen] = useState(false);
@@ -182,35 +183,50 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		setJobId(jobId);
 		setJobProgress(0);
 		setJobMessage("Starting generation...");
+		
+		// Reset trigger for new job
+		if (downloadTriggered.current === jobId) {
+			downloadTriggered.current = null;
+		}
 
 		if (pollingInterval.current) clearInterval(pollingInterval.current);
 
 		pollingInterval.current = setInterval(async () => {
 			try {
 				const status = await getJobStatus(jobId);
+				
+				// If status check failed or is somehow null, stop
+				if (!status) return;
+
 				setJobProgress(status.progress * 100);
 				setJobMessage(status.message || "Processing...");
 
 				if (status.status === JobStatus.JOB_STATUS_COMPLETED) {
+					// CRITICAL: Clear interval FIRST to prevent re-entry
 					if (pollingInterval.current) {
 						clearInterval(pollingInterval.current);
 						pollingInterval.current = null;
 					}
-					setJobId(null);
-					setIsBundling(false);
 
-					if (status.bundleUrl) {
-						const downloadUrl = status.bundleUrl.startsWith("http")
-							? status.bundleUrl
-							: `${window.location.origin}${status.bundleUrl}`;
+					// Only trigger download once per jobId
+					if (downloadTriggered.current !== jobId) {
+						downloadTriggered.current = jobId;
+						setJobId(null);
+						setIsBundling(false);
 
-						const a = document.createElement("a");
-						a.href = downloadUrl;
-						a.download = filename;
-						document.body.appendChild(a);
-						a.click();
-						document.body.removeChild(a);
-						toast.success("Custom pack generated successfully");
+						if (status.bundleUrl) {
+							const downloadUrl = status.bundleUrl.startsWith("http")
+								? status.bundleUrl
+								: `${window.location.origin}${status.bundleUrl}`;
+
+							const a = document.createElement("a");
+							a.href = downloadUrl;
+							a.download = filename;
+							document.body.appendChild(a);
+							a.click();
+							document.body.removeChild(a);
+							toast.success("Custom pack generated successfully");
+						}
 					}
 				} else if (status.status === JobStatus.JOB_STATUS_FAILED) {
 					if (pollingInterval.current) {
@@ -224,7 +240,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 			} catch (error) {
 				console.error("Polling error:", error);
 			}
-		}, 2000);
+		}, 3000);
 	};
 
 	useEffect(() => {

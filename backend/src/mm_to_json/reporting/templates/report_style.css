@@ -129,13 +129,13 @@ body {
 }
 .div-col {
     display: table-cell;
-    padding: 0 2pt;
+    padding: 0 4pt; /* Increased from 2pt to ensure spacing between columns */
     vertical-align: middle;
 }
 
 /* Fixed widths adjusted for 2-column layout to fit within 255pt max width */
-.col-lane  { width: 20pt; text-align: center; }
-.col-name  { width: 90pt; overflow-wrap: break-word; word-break: break-word; } 
+.col-lane  { width: 20pt; text-align: center; } 
+.col-name  { width: 88pt; overflow-wrap: break-word; word-break: break-word; } /* -2pt for padding */
 .col-age   { width: 22pt; text-align: center; }
 .col-team  { width: 38pt; overflow: hidden; }
 .col-relay { width: 22pt; text-align: center; }
@@ -143,12 +143,12 @@ body {
 
 /* In relay context, headers and rows shift */
 .is-relay .col-team {
-    width: 90pt; /* Match col-name width for alignment */
+    width: 88pt; /* Match col-name */
 }
 
-/* Fixed width for DQ column so other columns can expand when it's absent */
+/* Fixed width for DQ column */
 .col-dq { 
-    width: 78pt;
+    width: 76pt; /* -2pt for padding */
     padding-left: 5pt;
 }
 
