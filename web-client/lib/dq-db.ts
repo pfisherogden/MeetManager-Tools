@@ -6,8 +6,10 @@ import * as admin from "firebase-admin";
 class MockFirestore {
 	private getFilePath(): string {
 		const path = process.env.FIRESTORE_MOCK_PATH || "/tmp/mock_firestore.json";
-		if (Math.random() < 0.01) { // Throttle path logging
-			console.log(`MockFirestore: Using file path: ${path}`);
+		if (Math.random() < 0.1) {
+			console.log(
+				`MockFirestore: Path=${path}, CWD=${process.cwd()}, UID=${process.getuid?.()}`,
+			);
 		}
 		return path;
 	}
@@ -16,13 +18,15 @@ class MockFirestore {
 		const filePath = this.getFilePath();
 		try {
 			if (fs.existsSync(filePath)) {
-				const content = fs.readFileSync(filePath, "utf8");
-				console.log(`MockFirestore READ: ${content.length} bytes from ${filePath}`);
+				const realPath = fs.realpathSync(filePath);
+				const content = fs.readFileSync(realPath, "utf8");
+				console.log(
+					`MockFirestore READ SUCCESS: ${content.length} bytes from ${realPath}`,
+				);
 				const data = JSON.parse(content);
 				return new Map(Object.entries(data));
-			} else {
-				console.log(`MockFirestore READ: File does not exist at ${filePath}`);
 			}
+			console.log(`MockFirestore READ: File not found at ${filePath}`);
 		} catch (e: any) {
 			console.error(`MockFirestore READ ERROR: ${filePath}: ${e.message}`);
 		}
@@ -32,22 +36,15 @@ class MockFirestore {
 	private writeStorage(storage: Map<string, any>) {
 		const filePath = this.getFilePath();
 		try {
-			// Ensure directory exists
-			const dir = fs.realpathSync(require("node:path").dirname(filePath));
-			console.log(`MockFirestore WRITE: Directory ${dir} is writable`);
-
 			const data = Object.fromEntries(storage);
 			const content = JSON.stringify(data, null, 2);
 			fs.writeFileSync(filePath, content, "utf8");
-			console.log(`MockFirestore WRITE SUCCESS: ${content.length} bytes to ${filePath}`);
+			const realPath = fs.realpathSync(filePath);
+			console.log(
+				`MockFirestore WRITE SUCCESS: ${content.length} bytes to ${realPath}`,
+			);
 		} catch (e: any) {
 			console.error(`MockFirestore WRITE ERROR: ${filePath}: ${e.message}`);
-			// Fallback to a guaranteed writable location if possible
-			try {
-				const fallback = "/tmp/mock_firestore_fallback.json";
-				fs.writeFileSync(fallback, JSON.stringify(Object.fromEntries(storage)));
-				console.log(`MockFirestore: Wrote to fallback ${fallback}`);
-			} catch (e2) {}
 		}
 	}
 
@@ -93,19 +90,15 @@ class MockFirestore {
 let mockDb: MockFirestore | null = null;
 
 const initAdmin = () => {
-	console.log(
-		`initAdmin: mockDb=${!!mockDb}, USE_MOCK=${process.env.USE_MOCK_FIRESTORE}`,
-	);
 	if (mockDb) return mockDb as any;
 
 	if (process.env.USE_MOCK_FIRESTORE === "true") {
-		console.log("USE_MOCK_FIRESTORE is true, using in-memory mock");
+		console.log("USE_MOCK_FIRESTORE is true, using file-based mock");
 		mockDb = new MockFirestore();
 		return mockDb as any;
 	}
 
 	try {
-		console.log("initAdmin: Attempting real Firestore initialization...");
 		if (admin.apps.length === 0) {
 			// Try to get credentials, if this fails it will throw
 			const credential = admin.credential.applicationDefault();
@@ -117,7 +110,7 @@ const initAdmin = () => {
 		}
 		return admin.firestore();
 	} catch (e) {
-		console.warn("Firestore initialization failed, using in-memory mock:", e);
+		console.warn("Firestore initialization failed, using file-based mock:", e);
 		if (!mockDb) mockDb = new MockFirestore();
 		return mockDb as any;
 	}
@@ -140,21 +133,14 @@ export async function checkDqExists(clientDqId: string): Promise<boolean> {
 	}
 }
 
-export async function saveDq(
-	clientDqId: string,
-	dqDetails: any,
-): Promise<void> {
-	if (!clientDqId) throw new Error("clientDqId is required");
-
+export async function saveDq(clientDqId: string, data: any) {
 	try {
 		const db = initAdmin();
 		const dqRef = db.collection("disqualifications").doc(clientDqId);
-
 		await dqRef.set({
-			...dqDetails,
+			...data,
 			createdAt: new Date().toISOString(),
 		});
-		console.log(`FIRESTORE: Saved DQ ${clientDqId}`);
 	} catch (error: any) {
 		console.error(`FIRESTORE ERROR (saveDq): ${error.message}`, {
 			code: error.code,
@@ -171,8 +157,7 @@ export async function getDqs(): Promise<any[]> {
 			.collection("disqualifications")
 			.orderBy("createdAt", "desc")
 			.get();
-
-		return snapshot.docs.map((doc) => ({
+		return snapshot.docs.map((doc: any) => ({
 			id: doc.id,
 			...doc.data(),
 		}));
