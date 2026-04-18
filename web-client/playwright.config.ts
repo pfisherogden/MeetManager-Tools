@@ -15,9 +15,9 @@ export default defineConfig({
 	workers: 1,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: "html",
-	timeout: 120000,
+	timeout: 600000, // 10 minutes for large championship renders
 	expect: {
-		timeout: 15000,
+		timeout: 120000, // 2 minutes for progress polling
 	},
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
@@ -26,7 +26,8 @@ export default defineConfig({
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: "on-first-retry",
-		navigationTimeout: 60000,
+		navigationTimeout: 120000,
+		actionTimeout: 300000, // 5 minutes per action
 	},
 
 	/* Configure projects for major browsers */

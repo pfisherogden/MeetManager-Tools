@@ -183,7 +183,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		setJobId(jobId);
 		setJobProgress(0);
 		setJobMessage("Starting generation...");
-		
+
 		// Reset trigger for new job
 		if (downloadTriggered.current === jobId) {
 			downloadTriggered.current = null;
@@ -194,7 +194,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		pollingInterval.current = setInterval(async () => {
 			try {
 				const status = await getJobStatus(jobId);
-				
+
 				// If status check failed or is somehow null, stop
 				if (!status) return;
 

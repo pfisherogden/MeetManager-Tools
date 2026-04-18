@@ -1548,7 +1548,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Convert data once in main process
             converter = MmToJsonConverter(table_data=cache)
             full_data = converter.convert()
-            
+
             num_events = len(full_data.get("event", []))
             logging.info(f"Job {job_id}: data conversion complete. {num_events} events found.")
 
@@ -1594,9 +1594,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             # Map progress from 0.05 to 0.95 to keep UI "moving"
                             progress = 0.05 + (0.90 * ((i + 1) / total_reports))
                             self.job_manager.update_job(
-                                job_id, progress=progress, message=f"Generated {i+1}/{total_reports} reports"
+                                job_id, progress=progress, message=f"Generated {i + 1}/{total_reports} reports"
                             )
-                            logging.info(f"Job {job_id}: Report {i+1}/{total_reports} ({res.get('rtype')}) added to bundle")
+                            logging.info(
+                                f"Job {job_id}: Report {i + 1}/{total_reports} ({res.get('rtype')}) added to bundle"
+                            )
                         else:
                             raise Exception(
                                 f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
@@ -1631,7 +1633,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Task C: Use Signed URL if available
             bundle_url = self.storage.get_url(bundle_rel_path)
 
-            # Fallback: If signing failed (returned public URL which is private), 
+            # Fallback: If signing failed (returned public URL which is private),
             # use the proxy API URL instead.
             if "storage.googleapis.com" in bundle_url and ".zip" in bundle_url and "?" not in bundle_url:
                 token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
