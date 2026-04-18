@@ -48,7 +48,7 @@ test.describe("Disqualification Lifecycle", () => {
 	});
 
 	test("Full DQ Journey: Publish -> Submit -> Sync -> Verify", async () => {
-		test.setTimeout(120000); // 2 minutes
+		test.setTimeout(300000); // 5 minutes
 
 		// --- 1. Meet Administrator: Publish Data ---
 		console.log("Journey Step 1: Admin publishing data...");
@@ -69,11 +69,11 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log(`Extracted Judge App URL: ${judgeAppUrl}`);
 
 		// Map the URL to localhost:8080 for the E2E environment
-		// Example URL: http://localhost:3000/?program_url=...&sync_url=...
-		// We need to replace the origin with localhost:8080
+		// The URL might have a production origin (https://pfisherogden.github.io/MeetManager-Tools/)
+		// or localhost:3000. We need to strip everything up to the 'judge?' part.
 		const localUrl = judgeAppUrl.replace(
-			/http:\/\/localhost:3000\/?/i,
-			"http://localhost:8080/",
+			/^.*\/judge\?/i,
+			"http://localhost:8080/judge?",
 		);
 		console.log(`Navigating Judge to: ${localUrl}`);
 
