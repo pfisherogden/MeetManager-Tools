@@ -94,6 +94,8 @@ All agents MUST follow these workflow phases:
 - **Artifact Protection**: NEVER commit `.pdf` or `.png` files to the repository. These are large binaries that bloat the git history. Always verify your `.gitignore` is active.
 - **Proto Documentation**: Every new `enum` value or `message` field in `.proto` files MUST have a descriptive comment to satisfy `buf lint`.
 - **E2E Timeout Awareness**: Championship-scale rendering can take up to 400s. Ensure Playwright `timeout` and `actionTimeout` in `playwright.config.ts` are set to at least 10 minutes (600,000ms) for high-load testing.
+- **Multiprocessing Import Safety**: When using `ProcessPoolExecutor` with `spawn` (required to bypass GIL without gRPC deadlocks), all dependencies (e.g. `PlaywrightRenderer`, `pb2`) **MUST** be explicitly imported *inside* the background worker function. Missing imports will cause silent `NameError` crashes in the worker thread, leading to endless 0% hangs or E2E timeout failures in CI.
+- **Container Dependencies**: If adding new binaries or heavy tools (like Playwright/Chromium) to the backend, you MUST update both `pyproject.toml` AND ensure the installation steps (e.g. `playwright install --with-deps chromium`) are added to `backend/Dockerfile` so CI environments match local dev.
 
 ### Phase 4: High-Precision Reporting & Persistence
 - **Visual Regression**: ALWAYS generate "Before/After" PDFs using a 20+ page dataset for layout changes. Use Gemini (`generalist`) to verify vertical alignment and gutter spacing. (See `visual-regression` skill).
