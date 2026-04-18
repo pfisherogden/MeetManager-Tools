@@ -69,7 +69,9 @@ class MockFirestore {
 let mockDb: MockFirestore | null = null;
 
 const initAdmin = () => {
-	console.log(`initAdmin: mockDb=${!!mockDb}, USE_MOCK=${process.env.USE_MOCK_FIRESTORE}`);
+	console.log(
+		`initAdmin: mockDb=${!!mockDb}, USE_MOCK=${process.env.USE_MOCK_FIRESTORE}`,
+	);
 	if (mockDb) return mockDb as any;
 
 	if (process.env.USE_MOCK_FIRESTORE === "true") {

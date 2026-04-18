@@ -126,7 +126,7 @@ describe("Sync Service", () => {
 			expect.objectContaining({
 				method: "POST",
 				body: JSON.stringify({
-					clientDqId: `dq-1-${new Date("2023-01-01T00:00:00Z").getTime()}`,
+					clientDqId: "dq-1-1-0",
 					client_id: "Unknown",
 					event: 1,
 					heat: 1,

@@ -1853,7 +1853,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             base_filename = current_file
             if base_filename.lower().endswith((".json", ".mdb")):
                 base_filename = os.path.splitext(base_filename)[0]
-            
+
             filename = f"program_{base_filename}.json"
             user_pub_path = os.path.join("users", uid, "published", filename)
 

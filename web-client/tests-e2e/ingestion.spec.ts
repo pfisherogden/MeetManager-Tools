@@ -39,13 +39,57 @@ test.describe("Ingestion and Admin Journey", () => {
 		const testFileName = `test-ingestion-${testInfo.workerIndex}.json`;
 		const testFilePath = path.join(__dirname, testFileName);
 		const dummyData = {
-			meet: [{ meet_name1: "E2E Test Meet", meet_location: "Test Pool", meet_start: "2024-06-01", meet_end: "2024-06-01" }],
+			meet: [
+				{
+					meet_name1: "E2E Test Meet",
+					meet_location: "Test Pool",
+					meet_start: "2024-06-01",
+					meet_end: "2024-06-01",
+				},
+			],
 			team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
-			athlete: [{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "Athlete", sex: "M", ath_age: 10 }],
-			event: [{ event_no: 1, event_ptr: 1, event_gender: "M", event_dist: 50, event_stroke: "A", event_sex: "Boys", low_age: 9, high_age: 10, ind_rel: "I" }],
-			session: [{ sess_ptr: 1, sess_no: 1, sess_name: "Session 1", sess_day: 1, sess_starttime: 32400 }],
+			athlete: [
+				{
+					ath_no: 1,
+					team_no: 1,
+					first_name: "Test",
+					last_name: "Athlete",
+					sex: "M",
+					ath_age: 10,
+				},
+			],
+			event: [
+				{
+					event_no: 1,
+					event_ptr: 1,
+					event_gender: "M",
+					event_dist: 50,
+					event_stroke: "A",
+					event_sex: "Boys",
+					low_age: 9,
+					high_age: 10,
+					ind_rel: "I",
+				},
+			],
+			session: [
+				{
+					sess_ptr: 1,
+					sess_no: 1,
+					sess_name: "Session 1",
+					sess_day: 1,
+					sess_starttime: 32400,
+				},
+			],
 			sessitem: [{ sess_ptr: 1, event_ptr: 1, sess_order: 1, sess_rnd: "F" }],
-			entry: [{ ath_no: 1, event_ptr: 1, pre_heat: 1, pre_lane: 1, convseed_time: 30.0 }]
+			entry: [
+				{
+					ath_no: 1,
+					event_ptr: 1,
+					pre_heat: 1,
+					pre_lane: 1,
+					convseed_time: 30.0,
+				},
+			],
 		};
 		fs.writeFileSync(testFilePath, JSON.stringify(dummyData));
 

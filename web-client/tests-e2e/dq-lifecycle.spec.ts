@@ -82,7 +82,7 @@ test.describe("Disqualification Lifecycle", () => {
 		// The URL might have a production origin (https://pfisherogden.github.io/MeetManager-Tools/)
 		// or localhost:3000. We need to replace only the origin part.
 		const localUrl = judgeAppUrl.replace(
-			/^https?:\/\/[^\/]+/i,
+			/^https?:\/\/[^/]+/i,
 			"http://localhost:8080",
 		);
 		console.log(`Navigating Judge to: ${localUrl}`);
@@ -131,6 +131,7 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 4. Computer Volunteer: Live Review (Individual) ---
 		console.log("Journey Step 4: Volunteer verifying live DQ...");
+		await volunteerPage.waitForTimeout(2000);
 		await volunteerPage.goto("/dqs");
 		// Verify the DQ row exists. Increase timeout for polling.
 		await expect(
@@ -167,6 +168,7 @@ test.describe("Disqualification Lifecycle", () => {
 		// --- 6. Computer Volunteer: Verify Relay Swimmer Name ---
 		console.log("Journey Step 6: Volunteer verifying relay swimmer name...");
 		// The page polls every 5 seconds, so we wait or reload
+		await volunteerPage.waitForTimeout(2000);
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
@@ -194,6 +196,7 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log("Journey Step 8: Volunteer verifying sync status...");
 		// In our current implementation, sync happens immediately via API trigger
 		// So it should show as "Synced" (CheckCircle2 + Synced text)
+		await volunteerPage.waitForTimeout(2000);
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
@@ -201,7 +204,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 9. S&T Judge: Sync Indicator ---
 		console.log("Journey Step 9: Judge verifying sync status...");
-		await judgePage.getByText(/DQ History/).first().click({ force: true });
+		await judgePage
+			.getByText(/DQ History/)
+			.first()
+			.click({ force: true });
 		// Initially it might be cloud-upload (pending), eventually cloud-done
 		// We just check if the history list is visible and has items
 		await expect(judgePage.getByText("7Q").first()).toBeVisible();
