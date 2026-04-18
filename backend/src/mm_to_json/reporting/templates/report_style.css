@@ -121,6 +121,7 @@ body {
 .div-entry-row {
     display: table;
     width: 100%;
+    max-width: 255pt;
     padding: 2pt 0;
     font-size: 8.5pt;
     min-height: 14pt;
@@ -181,6 +182,7 @@ body {
 .div-relay-swimmers-row {
     display: table;
     width: 100%;
+    max-width: 255pt;
     padding-bottom: 3pt;
     font-size: 8.5pt;
     color: #333;
@@ -190,7 +192,6 @@ body {
 
 .div-swimmers-container {
     display: table-cell;
-    width: 100%;
 }
 
 /* Relay Grid Layout (2x2) */
