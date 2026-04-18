@@ -141,6 +141,11 @@ class MeetManagerServiceStub(object):
                 request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleRequest.SerializeToString,
                 response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleResponse.FromString,
                 _registered_method=True)
+        self.GetJobStatus = channel.unary_unary(
+                '/meetmanager.v1.MeetManagerService/GetJobStatus',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetJobStatusRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetJobStatusResponse.FromString,
+                _registered_method=True)
         self.PublishMeetData = channel.unary_unary(
                 '/meetmanager.v1.MeetManagerService/PublishMeetData',
                 request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.PublishMeetDataRequest.SerializeToString,
@@ -324,6 +329,13 @@ class MeetManagerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetJobStatus(self, request, context):
+        """GetJobStatus retrieves the current status of a background job.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def PublishMeetData(self, request, context):
         """PublishMeetData publishes the active meet data to a cloud location for the judge app.
         """
@@ -452,6 +464,11 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
                     servicer.GenerateReportBundle,
                     request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleRequest.FromString,
                     response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleResponse.SerializeToString,
+            ),
+            'GetJobStatus': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetJobStatus,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetJobStatusRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.GetJobStatusResponse.SerializeToString,
             ),
             'PublishMeetData': grpc.unary_unary_rpc_method_handler(
                     servicer.PublishMeetData,
@@ -1038,6 +1055,33 @@ class MeetManagerService(object):
             '/meetmanager.v1.MeetManagerService/GenerateReportBundle',
             meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleRequest.SerializeToString,
             meetmanager_dot_v1_dot_meet__manager__pb2.GenerateReportBundleResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetJobStatus(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.v1.MeetManagerService/GetJobStatus',
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetJobStatusRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.GetJobStatusResponse.FromString,
             options,
             channel_credentials,
             insecure,

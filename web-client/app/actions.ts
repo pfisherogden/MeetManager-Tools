@@ -441,9 +441,29 @@ export async function generateReportBundle(
 			message: response.message,
 			filename: response.filename,
 			bundleUrl: response.bundleUrl,
+			jobId: response.jobId,
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (generateReportBundle):", err);
+		if (err instanceof Error) {
+			throw new Error(err.message);
+		}
+		throw new Error("An unknown error occurred");
+	}
+}
+
+export async function getJobStatus(jobId: string) {
+	try {
+		const metadata = await getAuthMetadata();
+		const response = await client.getJobStatus({ jobId }, { metadata });
+		return {
+			status: response.status,
+			progress: response.progress,
+			message: response.message,
+			bundleUrl: response.bundleUrl,
+		};
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (getJobStatus):", err);
 		if (err instanceof Error) {
 			throw new Error(err.message);
 		}

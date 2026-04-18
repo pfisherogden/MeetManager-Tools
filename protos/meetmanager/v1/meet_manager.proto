@@ -69,12 +69,46 @@ service MeetManagerService {
   rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
   // GenerateReportBundle generates a set of customized reports bundled in a zip file.
   rpc GenerateReportBundle(GenerateReportBundleRequest) returns (GenerateReportBundleResponse);
+  // GetJobStatus retrieves the current status of a background job.
+  rpc GetJobStatus(GetJobStatusRequest) returns (GetJobStatusResponse);
   // PublishMeetData publishes the active meet data to a cloud location for the judge app.
   rpc PublishMeetData(PublishMeetDataRequest) returns (PublishMeetDataResponse);
   // SyncDQs receives disqualifications from the judge app and stores them.
   rpc SyncDQs(SyncDQsRequest) returns (SyncDQsResponse);
   // GetFile retrieves the content of a file from storage.
   rpc GetFile(GetFileRequest) returns (GetFileResponse);
+}
+
+// GetJobStatusRequest specifies the ID of the job to track.
+message GetJobStatusRequest {
+  // job_id is the unique identifier for the background job.
+  string job_id = 1;
+}
+
+// JobStatus indicates the current state of a background task.
+enum JobStatus {
+  // JOB_STATUS_UNSPECIFIED is the default unspecified state.
+  JOB_STATUS_UNSPECIFIED = 0;
+  // JOB_STATUS_PENDING indicates the job is queued but not yet started.
+  JOB_STATUS_PENDING = 1;
+  // JOB_STATUS_PROCESSING indicates the job is currently being executed.
+  JOB_STATUS_PROCESSING = 2;
+  // JOB_STATUS_COMPLETED indicates the job has finished successfully.
+  JOB_STATUS_COMPLETED = 3;
+  // JOB_STATUS_FAILED indicates the job has failed.
+  JOB_STATUS_FAILED = 4;
+}
+
+// GetJobStatusResponse contains the progress and status of a job.
+message GetJobStatusResponse {
+  // status is the current state of the job.
+  JobStatus status = 1;
+  // progress is a percentage (0.0 to 1.0) indicating completion.
+  float progress = 2;
+  // message provides additional info or error details.
+  string message = 3;
+  // bundle_url is the URL to download the result (if completed).
+  string bundle_url = 4;
 }
 
 // GetFileRequest specifies the path of the file to retrieve.
@@ -614,4 +648,6 @@ message GenerateReportBundleResponse {
   string filename = 4;
   // bundle_url is a proxy-compatible URL to download the zip file.
   string bundle_url = 5;
+  // job_id is the unique identifier for tracking asynchronous generation.
+  string job_id = 6;
 }

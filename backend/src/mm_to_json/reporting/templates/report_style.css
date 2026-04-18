@@ -89,7 +89,8 @@ body {
 }
 
 .entries-header-row {
-    display: flex;
+    display: table;
+    width: 100%;
     font-size: 7pt;
     color: #666;
     text-transform: uppercase;
@@ -98,6 +99,7 @@ body {
     font-weight: bold;
     margin-top: 2pt;
     break-after: avoid;
+    table-layout: fixed;
 }
 
 .heat-header-row {
@@ -117,30 +119,30 @@ body {
 }
 
 .div-entry-row {
-    display: flex;
+    display: table;
     width: 100%;
     padding: 2pt 0;
     font-size: 9pt;
-    align-items: flex-start;
     min-height: 14pt;
+    table-layout: fixed;
 }
 .div-col {
+    display: table-cell;
     padding: 0 2pt;
-    flex-shrink: 0;
+    vertical-align: middle;
 }
 
-/* Fixed widths for perfect alignment across rows */
+/* Fixed widths for perfect alignment across headers AND rows */
 .col-lane  { width: 22pt; text-align: center; }
-.col-name  { flex: 1; min-width: 90pt; overflow-wrap: break-word; word-break: break-word; } 
+.col-name  { width: 115pt; overflow-wrap: break-word; word-break: break-word; } 
 .col-age   { width: 25pt; text-align: center; }
 .col-team  { width: 40pt; overflow: hidden; }
 .col-relay { width: 25pt; text-align: center; }
 .col-time  { width: 45pt; text-align: right; }
 
-/* In relay context, the team name should be the flexible column */
+/* In relay context, headers and rows shift */
 .is-relay .col-team {
-    flex: 1;
-    width: auto;
+    width: 115pt; /* Match col-name width for alignment */
 }
 
 /* Fixed width for DQ column so other columns can expand when it's absent */
@@ -156,11 +158,12 @@ body {
 }
 
 /* For relay rows to maintain alignment with individual rows */
-.col-spacer-name { width: 90pt; } /* Matched with col-name */
-.col-spacer-age  { width: 25pt; }
+.col-spacer-name { display: table-cell; width: 115pt; } /* Matched with col-name */
+.col-spacer-age  { display: table-cell; width: 25pt; }
 
 .dq-underline {
     border-bottom: 0.5pt solid #000;
+    display: block;
     width: 100%; /* Dynamic width based on remaining space */
     height: 10pt;
 }
@@ -176,50 +179,58 @@ body {
 }
 
 .div-relay-swimmers-row {
-    display: flex;
+    display: table;
     width: 100%;
     padding-bottom: 3pt;
     font-size: 8.5pt;
     color: #333;
     font-style: italic;
+    table-layout: fixed;
 }
 
 .div-swimmers-container {
-    flex: 1;
+    display: table-cell;
+    width: 100%;
 }
 
 /* Relay Grid Layout (2x2) */
 .relay-grid {
-    display: flex;
+    display: table;
     width: 100%;
     margin-top: 1pt;
+    table-layout: fixed;
 }
 
 .relay-col {
-    flex: 1;
+    display: table-cell;
+    width: 50%;
+    vertical-align: top; /* Changed to top for better alignment with text */
 }
 
 .relay-swimmer-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    padding-right: 5pt;
-    margin-bottom: 1pt;
+    display: table;
+    width: 100%;
+    padding-right: 8pt;
+    margin-bottom: 2pt;
+    table-layout: fixed;
 }
 
 .relay-swimmer {
+    display: table-cell;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.2;
-    flex: 1;
+    width: auto;
+    vertical-align: bottom;
 }
 
 .relay-dq-line {
-    width: 30pt;
+    display: table-cell;
+    width: 35pt;
     border-bottom: 0.5pt solid #000;
-    margin-left: 4pt;
-    height: 1pt;
+    height: 10pt;
+    vertical-align: bottom;
 }
 
 .team-dot {

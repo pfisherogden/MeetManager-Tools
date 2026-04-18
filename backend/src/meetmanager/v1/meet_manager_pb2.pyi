@@ -7,6 +7,14 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class JobStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    JOB_STATUS_UNSPECIFIED: _ClassVar[JobStatus]
+    JOB_STATUS_PENDING: _ClassVar[JobStatus]
+    JOB_STATUS_PROCESSING: _ClassVar[JobStatus]
+    JOB_STATUS_COMPLETED: _ClassVar[JobStatus]
+    JOB_STATUS_FAILED: _ClassVar[JobStatus]
+
 class ReportType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     REPORT_TYPE_PSYCH_UNSPECIFIED: _ClassVar[ReportType]
@@ -19,6 +27,11 @@ class ReportType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REPORT_TYPE_ENTRIES_CLUB: _ClassVar[ReportType]
     REPORT_TYPE_LANE_TIMER_SHEETS: _ClassVar[ReportType]
     REPORT_TYPE_JUDGE_SHEETS: _ClassVar[ReportType]
+JOB_STATUS_UNSPECIFIED: JobStatus
+JOB_STATUS_PENDING: JobStatus
+JOB_STATUS_PROCESSING: JobStatus
+JOB_STATUS_COMPLETED: JobStatus
+JOB_STATUS_FAILED: JobStatus
 REPORT_TYPE_PSYCH_UNSPECIFIED: ReportType
 REPORT_TYPE_ENTRIES: ReportType
 REPORT_TYPE_LINEUPS: ReportType
@@ -29,6 +42,24 @@ REPORT_TYPE_ENTRIES_HYTEK: ReportType
 REPORT_TYPE_ENTRIES_CLUB: ReportType
 REPORT_TYPE_LANE_TIMER_SHEETS: ReportType
 REPORT_TYPE_JUDGE_SHEETS: ReportType
+
+class GetJobStatusRequest(_message.Message):
+    __slots__ = ("job_id",)
+    JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    job_id: str
+    def __init__(self, job_id: _Optional[str] = ...) -> None: ...
+
+class GetJobStatusResponse(_message.Message):
+    __slots__ = ("status", "progress", "message", "bundle_url")
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    PROGRESS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    BUNDLE_URL_FIELD_NUMBER: _ClassVar[int]
+    status: JobStatus
+    progress: float
+    message: str
+    bundle_url: str
+    def __init__(self, status: _Optional[_Union[JobStatus, str]] = ..., progress: _Optional[float] = ..., message: _Optional[str] = ..., bundle_url: _Optional[str] = ...) -> None: ...
 
 class GetFileRequest(_message.Message):
     __slots__ = ("path", "token")
@@ -559,15 +590,17 @@ class GenerateReportBundleRequest(_message.Message):
     def __init__(self, reports: _Optional[_Iterable[_Union[GenerateReportRequest, _Mapping]]] = ..., bundle_name: _Optional[str] = ...) -> None: ...
 
 class GenerateReportBundleResponse(_message.Message):
-    __slots__ = ("success", "message", "zip_content", "filename", "bundle_url")
+    __slots__ = ("success", "message", "zip_content", "filename", "bundle_url", "job_id")
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     ZIP_CONTENT_FIELD_NUMBER: _ClassVar[int]
     FILENAME_FIELD_NUMBER: _ClassVar[int]
     BUNDLE_URL_FIELD_NUMBER: _ClassVar[int]
+    JOB_ID_FIELD_NUMBER: _ClassVar[int]
     success: bool
     message: str
     zip_content: bytes
     filename: str
     bundle_url: str
-    def __init__(self, success: bool = ..., message: _Optional[str] = ..., zip_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., bundle_url: _Optional[str] = ...) -> None: ...
+    job_id: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., zip_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., bundle_url: _Optional[str] = ..., job_id: _Optional[str] = ...) -> None: ...
