@@ -228,18 +228,48 @@ export const getHeatById = (id: number): Heat | null => {
 
 export const getSwimmerById = (id: number | string): Swimmer | null => {
 	if (Platform.OS === "web") return null;
-	const r = getDb().getFirstSync("SELECT * FROM swimmers WHERE id = ?", id);
-	if (!r) return null;
-	return {
-		id: r.id,
-		heat_id: r.heat_id,
-		lane: r.lane,
-		name: r.name,
-		team: r.team,
-		isRelay: false, // Need more info to be accurate here, but helper usually for individual
-		members: r.members ? JSON.parse(r.members) : [],
-		empty: false,
-	};
+	const db = getDb();
+	const r = db.getFirstSync("SELECT * FROM swimmers WHERE id = ?", id);
+	if (r) {
+		const heat = db.getFirstSync("SELECT * FROM heats WHERE id = ?", r.heat_id);
+		const event = heat ? db.getFirstSync("SELECT * FROM events WHERE id = ?", heat.event_id) : null;
+		return {
+			id: r.id,
+			heat_id: r.heat_id,
+			lane: r.lane,
+			name: r.name,
+			team: r.team,
+			isRelay: event ? !!event.isRelay : false,
+			members: r.members ? JSON.parse(r.members) : [],
+			empty: false,
+		};
+	}
+
+	// Handle synthetic IDs for empty lanes (10000 + heatId * 10 + lane)
+	const nid = typeof id === "number" ? id : parseInt(id, 10);
+	if (nid >= 10000) {
+		const heatId = Math.floor((nid - 10000) / 10);
+		const lane = (nid - 10000) % 10;
+		const heat = db.getFirstSync("SELECT * FROM heats WHERE id = ?", heatId);
+		const event = heat ? db.getFirstSync("SELECT * FROM events WHERE id = ?", heat.event_id) : null;
+		if (heat) {
+			return {
+				id: nid,
+				lane: lane,
+				name: "Empty",
+				team: "",
+				heat_id: heatId,
+				isRelay: event ? !!event.isRelay : false,
+				members: [],
+				relay_dqs: [],
+				dq_code: "",
+				notes: "",
+				empty: true,
+			};
+		}
+	}
+
+	return null;
 };
 
 const parseSwimmerId = (id: number | string): number => {

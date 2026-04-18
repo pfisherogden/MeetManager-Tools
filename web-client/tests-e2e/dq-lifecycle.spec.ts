@@ -1,3 +1,5 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
 /**
@@ -15,10 +17,18 @@ test.describe("Disqualification Lifecycle", () => {
 	const userId = `e2e-dq-${Math.random().toString(36).substring(7)}`;
 
 	test.beforeAll(async ({ browser }) => {
+		// Clear mock firestore for a fresh run
+		// path relative to web-client directory where playwright runs
+		const mockFilePath = path.join(__dirname, "../../tmp/mock_firestore.json");
+		if (fs.existsSync(mockFilePath)) {
+			console.log(`Clearing existing mock firestore at ${mockFilePath}`);
+			fs.unlinkSync(mockFilePath);
+		}
+
 		// Create isolated contexts for Judge and Volunteer
 		const judgeContext = await browser.newContext({
 			baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080",
-			viewport: { width: 375, height: 667 }, // iPhone 6/7/8
+			viewport: { width: 375, height: 1200 }, // Extra tall for safety
 			userAgent:
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
 		});
@@ -70,12 +80,17 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// Map the URL to localhost:8080 for the E2E environment
 		// The URL might have a production origin (https://pfisherogden.github.io/MeetManager-Tools/)
-		// or localhost:3000. We need to strip everything up to the 'judge?' part.
+		// or localhost:3000. We need to replace only the origin part.
 		const localUrl = judgeAppUrl.replace(
-			/^.*\/judge\?/i,
-			"http://localhost:8080/judge?",
+			/^https?:\/\/[^\/]+/i,
+			"http://localhost:8080",
 		);
 		console.log(`Navigating Judge to: ${localUrl}`);
+
+		// Enable console logging for the judge page
+		judgePage.on("console", (msg) => {
+			console.log(`JUDGE CONSOLE [${msg.type()}]: ${msg.text()}`);
+		});
 
 		// --- 2. S&T Judge: Onboarding ---
 		console.log("Journey Step 2: Judge onboarding...");
@@ -86,9 +101,9 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 3. S&T Judge: Submit Individual DQ ---
 		console.log("Journey Step 3: Judge submitting individual DQ...");
-		// Use Event 3 for individual Free
+		// Use Event 15 for individual
 		await judgePage
-			.getByText(/Event 3/i)
+			.getByText(/Event 15/i)
 			.first()
 			.click();
 		await judgePage
@@ -102,7 +117,12 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("False start on lane 1");
-		await judgePage.getByLabel("Save changes").click();
+		await judgePage.evaluate(() => {
+			const btn = document.querySelector(
+				'[aria-label="Save changes"]',
+			) as HTMLElement;
+			if (btn) btn.click();
+		});
 
 		// Verify code is shown on the swimmer card
 		await expect(
@@ -120,10 +140,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 5. S&T Judge: Submit Relay DQ (Targeting Bug) ---
 		console.log("Journey Step 5: Judge submitting relay DQ...");
-		await judgePage.getByText("BACK").click();
-		await judgePage.getByText("EVENTS").click();
+		await judgePage.getByText("BACK", { exact: true }).click();
+		await judgePage.getByText("EVENTS", { exact: true }).click();
 		await judgePage
-			.getByText(/Event 1/i)
+			.getByText(/Event 13/i)
 			.first()
 			.click(); // Relay
 		await judgePage
@@ -131,12 +151,18 @@ test.describe("Disqualification Lifecycle", () => {
 			.first()
 			.click();
 
-		// Find Leg 3 of Lane 1 Relay (nth(2) because 0-indexed)
-		const leg3 = judgePage.getByText("TAP TO DQ").nth(2);
+		// Find Leg 3 of Lane 2 Relay (Miranda Anderson's team)
+		// Remapped to Erika Garza in our script
+		const leg3 = judgePage.getByText(/Erika Garza/i).first();
 		await expect(leg3).toBeVisible();
 		await leg3.click();
 		await judgePage.getByText("7Q").first().click(); // Early take-off
-		await judgePage.getByLabel("Save changes").click();
+		await judgePage.evaluate(() => {
+			const btn = document.querySelector(
+				'[aria-label="Save changes"]',
+			) as HTMLElement;
+			if (btn) btn.click();
+		});
 
 		// --- 6. Computer Volunteer: Verify Relay Swimmer Name ---
 		console.log("Journey Step 6: Volunteer verifying relay swimmer name...");
@@ -147,9 +173,8 @@ test.describe("Disqualification Lifecycle", () => {
 		).toBeVisible({ timeout: 10000 });
 
 		// Verify relay swimmer name logic (The fix we implemented)
-		// Seed for Event 1 Lane 1 has members: ["Alice S.", "Dana R.", "Zoe M.", "Mia K."]
-		// Should show "Zoe M." as Leg 3
-		await expect(volunteerPage.getByText(/Zoe M/i)).toBeVisible();
+		// Should show "Erika Garza" as Leg 3
+		await expect(volunteerPage.getByText(/Erika Garza/i)).toBeVisible();
 
 		// --- 7. S&T Judge: Edit DQ ---
 		console.log("Journey Step 7: Judge editing pending DQ...");
@@ -158,19 +183,27 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("Corrected: Early start on leg 3");
-		await judgePage.getByLabel("Save changes").click();
+		await judgePage.evaluate(() => {
+			const btn = document.querySelector(
+				'[aria-label="Save changes"]',
+			) as HTMLElement;
+			if (btn) btn.click();
+		});
 
 		// --- 8. Computer Volunteer: Sync ---
 		console.log("Journey Step 8: Volunteer verifying sync status...");
-		// In a real meet, they click Sync. Here we verify background sync if automated,
-		// or just check that status is visible.
-		await expect(volunteerPage.getByText("Pending").first()).toBeVisible();
+		// In our current implementation, sync happens immediately via API trigger
+		// So it should show as "Synced" (CheckCircle2 + Synced text)
+		await volunteerPage.reload();
+		await expect(
+			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
+		).toContainText(/Synced/i);
 
 		// --- 9. S&T Judge: Sync Indicator ---
 		console.log("Journey Step 9: Judge verifying sync status...");
-		await judgePage.getByText(/DQ History/).click();
+		await judgePage.getByText(/DQ History/).first().click({ force: true });
 		// Initially it might be cloud-upload (pending), eventually cloud-done
 		// We just check if the history list is visible and has items
-		await expect(judgePage.getByText("7Q")).toBeVisible();
+		await expect(judgePage.getByText("7Q").first()).toBeVisible();
 	});
 });

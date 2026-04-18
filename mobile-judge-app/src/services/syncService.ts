@@ -58,8 +58,8 @@ export const triggerSync = async () => {
 			const heat = getHeatById(swimmer.heat_id);
 			const event = getEventById(item.event_id);
 
-			const timestampMs = new Date(item.timestamp).getTime();
-			const clientDqId = `dq-${item.id}-${timestampMs}`;
+			// Stable ID for re-editing the same logical DQ (same event/swimmer/leg)
+			const clientDqId = `dq-${item.event_id}-${item.swimmer_id}-${item.leg || 0}`;
 
 			// Load judge name for traceability
 			const judgeName = (typeof window !== "undefined" && window.localStorage) 

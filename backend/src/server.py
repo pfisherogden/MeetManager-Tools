@@ -1850,7 +1850,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             judge_data = extractor.extract_judge_data()
 
             # Save to a user-specific public-accessible location via StorageProvider
-            filename = f"program_{current_file}.json"
+            base_filename = current_file
+            if base_filename.lower().endswith((".json", ".mdb")):
+                base_filename = os.path.splitext(base_filename)[0]
+            
+            filename = f"program_{base_filename}.json"
             user_pub_path = os.path.join("users", uid, "published", filename)
 
             with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
@@ -1891,7 +1895,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             encoded_program = urllib.parse.quote(program_url, safe="")
             encoded_sync = urllib.parse.quote(sync_url, safe="")
 
-            base_url = "https://pfisherogden.github.io/MeetManager-Tools/judge"
+            base_url = f"{frontend_base}/judge"
             judge_app_url = f"{base_url}?program_url={encoded_program}&sync_url={encoded_sync}"
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:

@@ -4,6 +4,7 @@ import { loadFromJSON } from "../database/db";
 const ALLOWED_HOSTS = [
 	"localhost",
 	"127.0.0.1",
+	"frontend",
 	"pfisherogden.github.io",
 	"storage.googleapis.com",
 	"mmtools-frontend-ckhcthqhya-uw.a.run.app",
@@ -12,10 +13,14 @@ const ALLOWED_HOSTS = [
 
 const validateUrl = (url: string): boolean => {
 	try {
-		// Use regex to extract hostname safely
+		// Use regex to extract hostname safely (stripping port if present)
 		const match = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/im);
-		const hostname = match ? match[1] : "";
-		return ALLOWED_HOSTS.includes(hostname.toLowerCase());
+		let hostname = match ? match[1] : "";
+		// Strip port if present
+		if (hostname.includes(":")) {
+			hostname = hostname.split(":")[0];
+		}
+		return ALLOWED_HOSTS.includes(hostname.toLowerCase()) || hostname.endsWith(".run.app");
 	} catch (e) {
 		console.warn(`Invalid URL format: ${url}`);
 		return false;
@@ -73,8 +78,10 @@ export const loadDataFromUrl = async () => {
 			try {
 				console.log(`FETCHING PROGRAM DATA FROM: ${programUrl}`);
 				const response = await fetch(programUrl as string);
+				console.log(`FETCH STATUS: ${response.status}`);
 				if (!response.ok) throw new Error(`Server returned ${response.status}`);
 				const data = await response.json();
+				console.log(`FETCH SUCCESS: ${Object.keys(data).length} keys`);
 
 				// Structure validation: must contain 'sessions' or 'events'
 				if (data && (data.sessions || data.events)) {

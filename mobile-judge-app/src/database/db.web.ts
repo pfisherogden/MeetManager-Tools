@@ -303,6 +303,31 @@ export const getSwimmerById = (id: number | string): Swimmer | null => {
 			empty: false,
 		};
 	}
+
+	// Handle synthetic IDs for empty lanes (10000 + heatId * 10 + lane)
+	const nid = typeof id === "number" ? id : parseInt(id, 10);
+	if (nid >= 10000) {
+		const heatId = Math.floor((nid - 10000) / 10);
+		const lane = (nid - 10000) % 10;
+		const heat = mockHeats.find((h) => h.id === heatId);
+		const event = heat ? mockEvents.find((e) => e.id === heat.event_id) : null;
+		if (heat) {
+			return {
+				id: nid,
+				lane: lane,
+				name: "Empty",
+				team: "",
+				heat_id: heatId,
+				isRelay: event ? event.isRelay : false,
+				members: [],
+				relay_dqs: [],
+				dq_code: "",
+				notes: "",
+				empty: true,
+			};
+		}
+	}
+
 	return null;
 };
 
@@ -330,6 +355,13 @@ export const saveDQ = (
 		notes,
 	});
 
+	// Find existing DQ to preserve ID if it's an update
+	const existing = mockDQs.find(
+		(dq) =>
+			dq.swimmer_id === sid && dq.leg === leg && dq.event_id === eventId,
+	);
+	const targetId = existing ? existing.id : mockDQs.length + 1;
+
 	// Remove existing DQ for the same context
 	if (leg) {
 		mockDQs = mockDQs.filter(
@@ -343,7 +375,7 @@ export const saveDQ = (
 	}
 
 	const newDQ: DQ = {
-		id: mockDQs.length + 1,
+		id: targetId,
 		event_id: eventId,
 		swimmer_id: sid,
 		dq_code: dqCode,

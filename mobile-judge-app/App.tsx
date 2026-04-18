@@ -179,56 +179,73 @@ export default function App() {
 
 	useEffect(() => {
 		const initializeApp = async () => {
-			initDatabase();
+			console.log("APP: Initializing...");
+			try {
+				console.log("APP: Calling initDatabase()...");
+				initDatabase();
+				console.log("APP: initDatabase() done.");
 
-			// 1. Detect dataset change and clear stale DQs if needed
-			if (typeof window !== "undefined" && window.localStorage) {
-				const currentUrl = window.location.search;
-				const lastUrl = window.localStorage.getItem("mmtools_last_url");
-				
-				// Only clear if the URL (and thus the meet dataset) has actually changed
-				if (lastUrl && lastUrl !== currentUrl) {
-					console.log("Dataset changed, clearing local DQ history");
-					clearAllDQs();
-					window.localStorage.removeItem("mmtools_judge_name"); // Reset name on new meet
+				// 1. Detect dataset change and clear stale DQs if needed
+				if (typeof window !== "undefined" && window.localStorage) {
+					console.log("APP: Checking localStorage...");
+					const currentUrl = window.location.search;
+					const lastUrl = window.localStorage.getItem("mmtools_last_url");
+					
+					// Only clear if the URL (and thus the meet dataset) has actually changed
+					if (lastUrl && lastUrl !== currentUrl) {
+						console.log("APP: Dataset changed, clearing local DQ history");
+						clearAllDQs();
+						window.localStorage.removeItem("mmtools_judge_name"); // Reset name on new meet
+					}
+					window.localStorage.setItem("mmtools_last_url", currentUrl);
+
+					// 2. Load judge name or prompt for it
+					const savedName = window.localStorage.getItem("mmtools_judge_name");
+					console.log(`APP: Saved name: ${savedName}`);
+					if (savedName) {
+						setJudgeName(savedName);
+					} else {
+						console.log("APP: No name found, will show prompt.");
+						setNamePromptVisible(true);
+					}
 				}
-				window.localStorage.setItem("mmtools_last_url", currentUrl);
 
-				// 2. Load judge name or prompt for it
-				const savedName = window.localStorage.getItem("mmtools_judge_name");
-				if (savedName) {
-					setJudgeName(savedName);
-				} else {
-					setNamePromptVisible(true);
+				console.log("APP: Calling loadDataFromUrl()...");
+				const { loaded, dqData, syncUrl, errorMessage } = await loadDataFromUrl();
+				console.log(`APP: loadDataFromUrl() result: loaded=${loaded}, error=${errorMessage}`);
+
+				if (dqData) {
+					setDqCodes(dqData);
 				}
-			}
 
-			const { loaded, dqData, syncUrl, errorMessage } = await loadDataFromUrl();
-
-			if (dqData) {
-				setDqCodes(dqData);
-			}
-
-			if (syncUrl) {
-				setSyncEndpoint(syncUrl);
-			}
-
-			// Initialize sync listener
-			initSyncService(handleSyncComplete);
-
-			if (!loaded) {
-				// If error message exists, it means we TRIED to load but failed
-				if (errorMessage) {
-					setLoadError(errorMessage);
-					setIsLoading(false);
-					return;
+				if (syncUrl) {
+					setSyncEndpoint(syncUrl);
 				}
-				seedData();
-			}
 
-			refreshEvents();
-			updatePendingCount();
-			setIsLoading(false);
+				// Initialize sync listener
+				initSyncService(handleSyncComplete);
+
+				if (!loaded) {
+					// If error message exists, it means we TRIED to load but failed
+					if (errorMessage) {
+						console.log(`APP: Load failed: ${errorMessage}`);
+						setLoadError(errorMessage);
+						setIsLoading(false);
+						return;
+					}
+					console.log("APP: Not loaded from URL, seeding default data...");
+					seedData();
+				}
+
+				refreshEvents();
+				updatePendingCount();
+				console.log("APP: Initialization complete, setting isLoading=false");
+				setIsLoading(false);
+			} catch (err: any) {
+				console.error("APP: FATAL INITIALIZATION ERROR:", err);
+				setLoadError(`Fatal Init Error: ${err.message}`);
+				setIsLoading(false);
+			}
 		};
 
 		initializeApp();

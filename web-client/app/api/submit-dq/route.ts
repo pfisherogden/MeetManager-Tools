@@ -46,9 +46,8 @@ export async function POST(request: NextRequest) {
 		);
 
 		if (!clientDqId) {
-			return NextResponse.json(
-				{ error: "Missing clientDqId" },
-				{ status: 400 },
+			return withCors(
+				NextResponse.json({ error: "Missing clientDqId" }, { status: 400 }),
 			);
 		}
 		if (
@@ -57,18 +56,22 @@ export async function POST(request: NextRequest) {
 			swimmer === undefined ||
 			infraction_code === undefined
 		) {
-			return NextResponse.json(
-				{ error: "Malformed payload: missing required fields" },
-				{ status: 400 },
+			return withCors(
+				NextResponse.json(
+					{ error: "Malformed payload: missing required fields" },
+					{ status: 400 },
+				),
 			);
 		}
 
 		// Idempotency check
 		const exists = await checkDqExists(clientDqId);
 		if (exists) {
-			return NextResponse.json(
-				{ success: true, message: "DQ already submitted" },
-				{ status: 200 },
+			return withCors(
+				NextResponse.json(
+					{ success: true, message: "DQ already submitted" },
+					{ status: 200 },
+				),
 			);
 		}
 
@@ -93,15 +96,16 @@ export async function POST(request: NextRequest) {
 			console.error("Failed to trigger backend sync for DQ:", syncError);
 		}
 
-		return NextResponse.json({
-			success: true,
-			message: "DQ submitted successfully",
-		});
+		return withCors(
+			NextResponse.json({
+				success: true,
+				message: "DQ submitted successfully",
+			}),
+		);
 	} catch (error: any) {
 		console.error("API Error (submit-dq):", error);
-		return NextResponse.json(
-			{ error: "Internal server error" },
-			{ status: 500 },
+		return withCors(
+			NextResponse.json({ error: "Internal server error" }, { status: 500 }),
 		);
 	}
 }

@@ -23,6 +23,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - GRPC_AUTH_DISABLED=true
+      - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
 
   frontend:
     build:
@@ -33,9 +34,13 @@ services:
         - NEXT_PUBLIC_BUILD_TIME=2026-03-15T00:00:00Z
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./tmp:/tmp
     environment:
       - BACKEND_INTERNAL_HOST=backend:8080
       - NEXT_PUBLIC_AUTH_DISABLED=true
+      - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
+      - USE_MOCK_FIRESTORE=true
     depends_on:
       - backend
 
