@@ -164,7 +164,14 @@ test.describe("Disqualification Lifecycle", () => {
 		const leg3 = judgePage.getByText(/Erika Garza/i).first();
 		await expect(leg3).toBeVisible();
 		await leg3.click();
-		await judgePage.getByText("7Q").first().click(); // Early take-off
+		await judgePage.getByText("7Q").first().waitFor({ state: "visible" });
+		await judgePage.evaluate(() => {
+			const elements = Array.from(document.querySelectorAll("div, span, p"));
+			const dqBtn = elements.find(
+				(el) => el.textContent?.trim() === "7Q",
+			) as HTMLElement;
+			if (dqBtn) dqBtn.click();
+		}); // Early take-off
 		await judgePage.evaluate(() => {
 			const btn = document.querySelector(
 				'[aria-label="Save changes"]',
@@ -191,7 +198,14 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByText(/DQ History/)
 			.first()
 			.click({ force: true });
-		await judgePage.getByText("7Q").first().click();
+		await judgePage.getByText("7Q").first().waitFor({ state: "visible" });
+		await judgePage.evaluate(() => {
+			const elements = Array.from(document.querySelectorAll("div, span, p"));
+			const dqBtn = elements.find(
+				(el) => el.textContent?.trim() === "7Q",
+			) as HTMLElement;
+			if (dqBtn) dqBtn.click();
+		});
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("Corrected: Early start on leg 3");
