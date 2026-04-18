@@ -47,6 +47,10 @@
     {% for group in groups %}
     <div class="athlete-block">
         <div class="athlete-name">{{ group.header }}</div>
+        {% for athlete_group in group.sub_items %}
+        <div class="athlete-info" style="margin-top: 10pt; margin-bottom: 5pt; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 2pt;">
+            {{ athlete_group.header }}
+        </div>
         <table class="entries-table">
             <thead>
                 <tr>
@@ -56,21 +60,29 @@
                 </tr>
             </thead>
             <tbody>
-                {% for event in group.sub_items %}
+                {% for event in athlete_group.sub_items %}
                 <tr>
                     <td class="col-ev">#{{ event.event_num }}</td>
                     <td>
                         {{ event.event_name }}
                         {% if event.is_relay and event.swimmers %}
                         <div class="relay-swimmers">
-                            <div class="relay-grid">
-                                <div class="relay-col">
-                                    <div class="relay-swimmer">1) {{ event.swimmers[0] if event.swimmers|length > 0 else '' }}</div>
-                                    <div class="relay-swimmer">3) {{ event.swimmers[2] if event.swimmers|length > 2 else '' }}</div>
+                            <div class="relay-swimmers-grid" style="display: table; width: 100%; table-layout: fixed; margin-top: 2pt; font-size: 8pt; line-height: 1.0; color: #444;">
+                                <div class="relay-col" style="display: table-cell; width: 50%; vertical-align: top;">
+                                    <div class="relay-swimmer-container" style="display: table; width: 100%; table-layout: fixed; padding-right: 4pt;">
+                                        <div class="relay-swimmer-name" style="display: table-cell; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">1) {{ event.swimmers[0] if event.swimmers|length > 0 else '' }}</div>
+                                    </div>
+                                    <div class="relay-swimmer-container" style="display: table; width: 100%; table-layout: fixed; padding-right: 4pt;">
+                                        <div class="relay-swimmer-name" style="display: table-cell; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">3) {{ event.swimmers[2] if event.swimmers|length > 2 else '' }}</div>
+                                    </div>
                                 </div>
-                                <div class="relay-col">
-                                    <div class="relay-swimmer">2) {{ event.swimmers[1] if event.swimmers|length > 1 else '' }}</div>
-                                    <div class="relay-swimmer">4) {{ event.swimmers[3] if event.swimmers|length > 3 else '' }}</div>
+                                <div class="relay-col" style="display: table-cell; width: 50%; vertical-align: top;">
+                                    <div class="relay-swimmer-container" style="display: table; width: 100%; table-layout: fixed; padding-right: 4pt;">
+                                        <div class="relay-swimmer-name" style="display: table-cell; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">2) {{ event.swimmers[1] if event.swimmers|length > 1 else '' }}</div>
+                                    </div>
+                                    <div class="relay-swimmer-container" style="display: table; width: 100%; table-layout: fixed; padding-right: 4pt;">
+                                        <div class="relay-swimmer-name" style="display: table-cell; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">4) {{ event.swimmers[3] if event.swimmers|length > 3 else '' }}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -81,6 +93,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% endfor %}
     </div>
     {% endfor %}
 {% endblock %}

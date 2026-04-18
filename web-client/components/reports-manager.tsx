@@ -53,7 +53,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { handleActionError } from "@/lib/error-handler";
-import { JobStatus } from "@/lib/proto/meetmanager/v1/meet_manager";
+import { JobStatus, RendererType } from "@/lib/proto/meetmanager/v1/meet_manager";
 import type { Team as UITeam } from "@/lib/swim-meet-types";
 import { cn } from "@/lib/utils";
 
@@ -133,6 +133,9 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 	const [customPack, setCustomPack] = useState<CustomPackItem[]>([]);
 	const [zebraStriping, setZebraStriping] = useState(false);
 	const [presetTeamFilter, setPresetTeamFilter] = useState("All Teams");
+	const [rendererType, setRendererType] = useState<RendererType>(
+		RendererType.RENDERER_TYPE_PLAYWRIGHT,
+	);
 
 	// Async Job State
 	const [activeJobId, setJobId] = useState<string | null>(null);
@@ -261,7 +264,11 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 				.replace(/[:.]/g, "-")
 				.slice(0, 19);
 			const suggestedName = `reports_${timestamp}_${customPack.length}_items.zip`;
-			const result = await generateReportBundle(customPack, suggestedName);
+			const result = await generateReportBundle(
+				customPack,
+				suggestedName,
+				rendererType,
+			);
 
 			if (result.success && result.jobId) {
 				startPolling(result.jobId, suggestedName);
@@ -413,6 +420,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 				2,
 				true,
 				zebraStriping,
+				rendererType,
 			);
 
 			if (result.success) {
@@ -779,7 +787,42 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 								</CardDescription>
 							</div>
 						</div>
-						<div className="flex items-center gap-4">
+						<div className="flex items-center gap-6">
+							<div className="flex items-center gap-2 border-r pr-6 mr-2">
+								<span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+									Engine:
+								</span>
+								<div className="flex items-center gap-1 bg-muted/50 p-1 rounded-md border">
+									<Button
+										variant={
+											rendererType === RendererType.RENDERER_TYPE_PLAYWRIGHT
+												? "secondary"
+												: "ghost"
+										}
+										size="sm"
+										className="h-7 text-[10px] px-2"
+										onClick={() =>
+											setRendererType(RendererType.RENDERER_TYPE_PLAYWRIGHT)
+										}
+									>
+										Playwright
+									</Button>
+									<Button
+										variant={
+											rendererType === RendererType.RENDERER_TYPE_WEASYPRINT
+												? "secondary"
+												: "ghost"
+										}
+										size="sm"
+										className="h-7 text-[10px] px-2"
+										onClick={() =>
+											setRendererType(RendererType.RENDERER_TYPE_WEASYPRINT)
+										}
+									>
+										WeasyPrint
+									</Button>
+								</div>
+							</div>
 							{customPack.length > 0 && (
 								<Button
 									variant="ghost"

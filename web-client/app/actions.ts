@@ -370,6 +370,7 @@ export async function generateReport(
 	columnsOnPage: number = 2,
 	showRelaySwimmers: boolean = true,
 	zebraStriping: boolean = false,
+	rendererType: number = 0,
 ) {
 	try {
 		const metadata = await getAuthMetadata();
@@ -411,6 +412,7 @@ export async function generateReport(
 export async function generateReportBundle(
 	reports: any[],
 	bundleName: string = "bundle.zip",
+	rendererType: number = 0,
 ) {
 	try {
 		const metadata = await getAuthMetadata();
@@ -428,6 +430,7 @@ export async function generateReportBundle(
 					zebraStriping: !!r.zebraStriping,
 				})),
 				bundleName,
+				rendererType,
 			},
 			{ metadata },
 		);

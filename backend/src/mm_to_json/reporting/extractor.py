@@ -371,7 +371,14 @@ class ReportDataExtractor:
                 sub_rows = []
                 for e in sorted_events:
                     desc = e["evt_desc"] + (" (Relay)" if e["is_relay"] else "")
-                    sub_rows.append({"idx": f"#{e['evt_num']}", "desc": desc, "time": e["time"], "heat_lane": e["hl"]})
+                    sub_rows.append({
+                        "event_num": str(e['evt_num']), 
+                        "event_name": desc, 
+                        "time": e["time"], 
+                        "heat_lane": e["hl"],
+                        "is_relay": e["is_relay"],
+                        "swimmers": e.get("swimmers", []) if e["is_relay"] else []
+                    })
                 team_items.append({"header": header_str, "sub_items": sub_rows})
                 seq += 1
             relay_teams_list = grouped[t_name].get("RelayTeams", [])
@@ -383,25 +390,28 @@ class ReportDataExtractor:
                     ltr_str = f" - '{rltr}'" if rltr else ""
                     line1_desc = f"{t_name}{ltr_str}        #{r['evt_num']} {r['evt_desc']}"
                     hl_text = f"{r['heat']}/{r['lane']}" if r.get("heat") else ""
-                    names_parts = [
-                        f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
-                        for a in r.get("relayAthletes", [])
-                    ]
-
-                    if not names_parts:
-                        names_parts = [n.strip() for n in r.get("name", "").split(",")]
-                    full_names_str = "; ".join(names_parts)
+                    
+                    names = []
+                    if "relayAthletes" in r:
+                        names = [
+                            f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
+                            for a in r["relayAthletes"]
+                        ]
+                    else:
+                        names = [n.strip() for n in r.get("name", "").split(",")]
+                    
                     sub_items = [
                         {
-                            "idx": str(idx + 1),
-                            "desc": line1_desc,
+                            "event_num": str(r['evt_num']),
+                            "event_name": r['evt_desc'],
                             "time": r.get("seedTime", r.get("time", "")),
                             "heat_lane": hl_text,
+                            "is_relay": True,
+                            "swimmers": names
                         },
-                        {"idx": "", "desc": "         " + full_names_str, "time": "", "heat_lane": ""},
                     ]
                     team_items.append({"header": "", "force_1col": True, "sub_items": sub_items})
-            report_groups.append({"header": f"Team Entries - {t_name}", "athletes": team_items, "items": team_items})
+            report_groups.append({"header": f"Team Entries - {t_name}", "sub_items": team_items})
 
         sub_title = self._get_report_subtitle(
             report_title or "Entries - All Events", team_filter, gender_filter, age_group_filter
@@ -634,8 +644,7 @@ class ReportDataExtractor:
             report_groups.append(
                 {
                     "header": f"Event {evt_num}  {evt_desc}",
-                    "sections": [{"sub_items": sub_items}],
-                    "items": [{"sub_items": sub_items}],
+                    "sub_items": sub_items,
                 }
             )
 
@@ -986,8 +995,7 @@ class ReportDataExtractor:
             report_groups.append(
                 {
                     "header": f"Event {evt_num}  {evt_desc}",
-                    "sections": [{"sub_items": sub_items}],
-                    "items": [{"sub_items": sub_items}],
+                    "sub_items": sub_items,
                 }
             )
 

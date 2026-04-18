@@ -34,6 +34,8 @@ from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from auth_interceptor import FirebaseAuthInterceptor
 from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
+from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
 
 # Configure logging
@@ -138,12 +140,15 @@ def _process_single_report_process(
     zebra_striping,
     msgpack_path,  # Use msgpack file instead of large dict
     rtype_map,
+    renderer_type=None,
 ):
     # This runs in a separate process, avoiding the GIL
     import logging
     import os
     import tempfile
     import traceback
+    import datetime
+    import msgpack
 
     # Re-initialize logging configuration in the subprocess to ensure logs are captured
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -160,18 +165,14 @@ def _process_single_report_process(
         logging.disable(logging.DEBUG)
 
     from mm_to_json.mm_to_json import MmToJsonConverter
-    from mm_to_json.reporting.extractor import ReportDataExtractor
+    from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
     from mm_to_json.reporting.weasy_renderer import WeasyRenderer
+    from mm_to_json.reporting.extractor import ReportDataExtractor
 
     rtype = rtype_map.get(report_req_type, "psych")
     title = report_req_title
 
-    import datetime
-
     start_time = datetime.datetime.now()
-
-    # Load from msgpack
-    import msgpack
 
     with open(msgpack_path, "rb") as f:
         packed_data = msgpack.unpack(f, raw=False)
@@ -190,7 +191,12 @@ def _process_single_report_process(
 
     try:
         render_start_time = datetime.datetime.now()
-        renderer = WeasyRenderer(temp_path)
+        
+        # Use requested renderer
+        if renderer_type == pb2.RENDERER_TYPE_PLAYWRIGHT:
+            renderer = PlaywrightRenderer(temp_path)
+        else:
+            renderer = WeasyRenderer(temp_path)
 
         if rtype == "psych":
             report_data = extractor.extract_psych_sheet_data(
@@ -480,6 +486,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     raw_data = json.load(f)
                 # Use converter to normalize keys/types even for JSON
                 from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
+from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
                 converter = MmToJsonConverter(table_data=raw_data)
                 cache = converter.export_raw()
@@ -1422,6 +1430,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             }
 
             from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
+from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
             # Convert data once
             converter = MmToJsonConverter(table_data=cache)
@@ -1581,6 +1591,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                                 report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
                                 msgpack_path,
                                 rtype_map,
+                                request.renderer_type if hasattr(request, "renderer_type") else None,
                             )
                         )
 

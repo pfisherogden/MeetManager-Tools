@@ -628,13 +628,23 @@ message GenerateReportResponse {
   optional string html_content = 5;
 }
 
+// RendererType specifies which engine to use for PDF generation.
+enum RendererType {
+  RENDERER_TYPE_UNSPECIFIED = 0;
+  RENDERER_TYPE_WEASYPRINT = 1;
+  RENDERER_TYPE_PLAYWRIGHT = 2;
+}
+
 // GenerateReportBundleRequest specifies a list of reports to generate as a bundle.
 message GenerateReportBundleRequest {
-  // reports is the list of individual report configurations.
+  // reports is the list of reports to include in the bundle.
   repeated GenerateReportRequest reports = 1;
   // bundle_name is the suggested name for the zip file.
   string bundle_name = 2;
+  // renderer_type specifies the engine to use (default: weasyprint).
+  RendererType renderer_type = 3;
 }
+
 
 // GenerateReportBundleResponse contains the generated report bundle.
 message GenerateReportBundleResponse {
