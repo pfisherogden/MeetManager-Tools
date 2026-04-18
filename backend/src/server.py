@@ -53,26 +53,34 @@ MAX_CACHE_SIZE = 3  # Keep only the last 3 users' data in memory
 
 
 class JobManager:
-    """Manages the state of background jobs (e.g., report bundle generation)."""
+    """Manages the state of background jobs using Firestore for persistence."""
 
-    def __init__(self, max_jobs: int = 100):
-        self.jobs: OrderedDict[str, dict[str, Any]] = OrderedDict()
-        self.max_jobs = max_jobs
-        self.lock = threading.Lock()
+    def __init__(self):
+        import firebase_admin
+        from firebase_admin import firestore
+
+        try:
+            self.app = firebase_admin.get_app()
+        except ValueError:
+            self.app = firebase_admin.initialize_app()
+
+        self.db = firestore.client()
+        self.collection = self.db.collection("jobs")
 
     def create_job(self) -> str:
-        job_id = str(uuid.uuid4())
-        with self.lock:
-            # Enforce max jobs (evict oldest)
-            if len(self.jobs) >= self.max_jobs:
-                self.jobs.popitem(last=False)
+        from firebase_admin import firestore
 
-            self.jobs[job_id] = {
+        job_id = str(uuid.uuid4())
+        doc_ref = self.collection.document(job_id)
+        doc_ref.set(
+            {
                 "status": pb2.JOB_STATUS_PENDING,
                 "progress": 0.0,
                 "message": "Job queued",
                 "bundle_url": "",
+                "created_at": firestore.SERVER_TIMESTAMP,
             }
+        )
         return job_id
 
     def update_job(
@@ -82,24 +90,28 @@ class JobManager:
         progress: float | None = None,
         message: str | None = None,
         bundle_url: str | None = None,
-    ):
-        with self.lock:
-            if job_id in self.jobs:
-                job = self.jobs[job_id]
-                if status is not None:
-                    job["status"] = status
-                if progress is not None:
-                    job["progress"] = progress
-                if message is not None:
-                    job["message"] = message
-                if bundle_url is not None:
-                    job["bundle_url"] = bundle_url
-                # Move to end (most recently updated)
-                self.jobs.move_to_end(job_id)
+    ) -> None:
+        from firebase_admin import firestore
 
-    def get_job(self, job_id: str) -> dict | None:
-        with self.lock:
-            return self.jobs.get(job_id)
+        doc_ref = self.collection.document(job_id)
+        updates: dict[str, Any] = {"updated_at": firestore.SERVER_TIMESTAMP}
+        if status is not None:
+            updates["status"] = status
+        if progress is not None:
+            updates["progress"] = progress
+        if message is not None:
+            updates["message"] = message
+        if bundle_url is not None:
+            updates["bundle_url"] = bundle_url
+
+        doc_ref.update(updates)
+
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
+        doc_ref = self.collection.document(job_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            return doc.to_dict()
+        return None
 
 
 def msgpack_encode(obj):
