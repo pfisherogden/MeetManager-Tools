@@ -89,6 +89,12 @@ All agents MUST follow these workflow phases:
   - **Frequency**: Update the chat every 15-20 minutes or at major milestones.
 - **Persistence**: Periodically update the GitHub issue with **Next Steps** to ensure session continuity.
 
+### Technical Integrity & Safety
+- **Mandatory Pre-Commit**: ALWAYS run `just fix` and `just lint` before pushing to `main`. This catches trailing whitespace, formatting, and Mypy issues that break CI.
+- **Artifact Protection**: NEVER commit `.pdf` or `.png` files to the repository. These are large binaries that bloat the git history. Always verify your `.gitignore` is active.
+- **Proto Documentation**: Every new `enum` value or `message` field in `.proto` files MUST have a descriptive comment to satisfy `buf lint`.
+- **E2E Timeout Awareness**: Championship-scale rendering can take up to 400s. Ensure Playwright `timeout` and `actionTimeout` in `playwright.config.ts` are set to at least 10 minutes (600,000ms) for high-load testing.
+
 ### Phase 4: High-Precision Reporting & Persistence
 - **Visual Regression**: ALWAYS generate "Before/After" PDFs using a 20+ page dataset for layout changes. Use Gemini (`generalist`) to verify vertical alignment and gutter spacing. (See `visual-regression` skill).
 - **Persistent State**: NEVER use in-memory dictionaries for background task status in Cloud Run. Use **Firestore** to ensure `job_id` tracking survives instance scaling/rotation.

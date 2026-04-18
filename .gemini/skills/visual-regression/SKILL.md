@@ -27,17 +27,19 @@ Invoke the `generalist` sub-agent to find regressions that human eyes might miss
 
 **Analysis Prompt Template:**
 > Please analyze the differences between `large_before_X.pdf` and `large_after_X.pdf`. 
-> 1. Check vertical alignment of headers ("Lane", "Name", etc.) with data rows.
-> 2. Check for "gutter bleed" (content extending into center margins).
-> 3. Check relay swimmer numbering (1, 2, 3, 4) alignment.
-> 4. Check for DQ line overflow or wrapping.
+> 1. **Content Integrity**: VERIFY that actual data (swimmer names, times, scores) is present. Check for empty tables or repeated placeholder symbols.
+> 2. **Pagination**: Verify that page breaks occur at logical points (e.g., between events or lanes). Ensure headers don't overlap with data from the previous section.
+> 3. **Vertical Alignment**: Are headers ("Lane", "Name", etc.) perfectly aligned with data rows?
+> 4. **Gutter Bleed**: Check for content extending into center or side margins.
+> 5. **DQ Formatting**: Check for DQ line overflow or wrapping.
 
 ## **Step 4: Benchmarking**
 Measure the impact on rendering time. 
-*   **Target**: CSS Table Layout should be ~40% faster than Flexbox.
+*   **Target**: CSS Table Layout should be ~40% faster than Flexbox. Playwright should be ~6x faster than WeasyPrint.
 *   **Verification**: Run a timing-loop benchmark script with 3+ iterations.
 
 ## **Red Flags**
+- **Empty Sections**: If the "After" file size is significantly smaller, check for missing data immediately.
 - **Flexbox in PDF**: WeasyPrint's flex engine is slow and prone to drifting. Use tables.
 - **Small Dataset Success**: Small datasets (8 pages) often hide alignment issues that only appear on page 20+.
 - **Manual "Eyeballing"**: Always use the AI to verify mathematical alignment.
