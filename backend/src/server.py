@@ -1461,6 +1461,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GenerateReportBundle(self, request, context):
         """Asynchronously generates a report bundle."""
+        logging.info("GenerateReportBundle RPC called")
         # Support unauthenticated access for Sample_Data.json (for dev/debug)
         # Otherwise require authentication
         try:
@@ -1496,6 +1497,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Create background job
         job_id = self.job_manager.create_job()
+        logging.info(f"Created background job {job_id}")
 
         # Start background thread for generation
         # Note: In Cloud Run, this thread gets CPU while polling requests are active.
@@ -1622,6 +1624,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def GetJobStatus(self, request, context):
         """Retrieves the status of a background job."""
+        logging.info(f"GetJobStatus RPC called for job_id: {request.job_id}")
         if not request.job_id:
             return pb2.GetJobStatusResponse(status=pb2.JOB_STATUS_FAILED, message="Missing job_id")
 
