@@ -103,6 +103,27 @@ class GCSStorageProvider(StorageProvider):
         self.client = storage.Client()
         self.bucket = self.client.bucket(bucket_name)
 
+        # Get service account email for signing (needed in Cloud Run)
+        try:
+            import google.auth
+
+            _, project_id = google.auth.default()
+            self.service_account_email = getattr(self.client, "service_account_email", None)
+            if not self.service_account_email:
+                # If Client doesn't have it, try metadata server (internal)
+                import requests
+
+                r = requests.get(
+                    "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
+                    headers={"Metadata-Flavor": "Google"},
+                    timeout=2,
+                )
+                if r.status_code == 200:
+                    self.service_account_email = r.text
+        except Exception as e:
+            logger.warning(f"Could not determine service account email: {e}")
+            self.service_account_email = None
+
     def list_files(self, prefix: str) -> list[str]:
         blobs = self.bucket.list_blobs(prefix=prefix)
         return [blob.name for blob in blobs]
@@ -136,7 +157,7 @@ class GCSStorageProvider(StorageProvider):
         try:
             # Try to generate signed URL (requires iam.serviceAccounts.signBlob permission)
             # v4 signing is the modern standard
-            service_account_email = getattr(self.client, "service_account_email", None)
+            service_account_email = self.service_account_email
             url = blob.generate_signed_url(
                 expiration=3600, method="GET", version="v4", service_account_email=service_account_email
             )
