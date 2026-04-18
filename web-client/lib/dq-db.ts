@@ -5,7 +5,11 @@ import * as admin from "firebase-admin";
 // This allows sharing data across processes (e.g. API route vs Server Action)
 class MockFirestore {
 	private getFilePath(): string {
-		return process.env.FIRESTORE_MOCK_PATH || "/tmp/mock_firestore.json";
+		const path = process.env.FIRESTORE_MOCK_PATH || "/tmp/mock_firestore.json";
+		if (Math.random() < 0.01) { // Throttle path logging
+			console.log(`MockFirestore: Using file path: ${path}`);
+		}
+		return path;
 	}
 
 	private readStorage(): Map<string, any> {
@@ -13,14 +17,14 @@ class MockFirestore {
 		try {
 			if (fs.existsSync(filePath)) {
 				const content = fs.readFileSync(filePath, "utf8");
-				console.log(
-					`MockFirestore: Read ${content.length} bytes from ${filePath}`,
-				);
+				console.log(`MockFirestore READ: ${content.length} bytes from ${filePath}`);
 				const data = JSON.parse(content);
 				return new Map(Object.entries(data));
+			} else {
+				console.log(`MockFirestore READ: File does not exist at ${filePath}`);
 			}
-		} catch (e) {
-			console.error(`MockFirestore: Error reading storage file ${filePath}`, e);
+		} catch (e: any) {
+			console.error(`MockFirestore READ ERROR: ${filePath}: ${e.message}`);
 		}
 		return new Map<string, any>();
 	}
@@ -28,14 +32,22 @@ class MockFirestore {
 	private writeStorage(storage: Map<string, any>) {
 		const filePath = this.getFilePath();
 		try {
+			// Ensure directory exists
+			const dir = fs.realpathSync(require("node:path").dirname(filePath));
+			console.log(`MockFirestore WRITE: Directory ${dir} is writable`);
+
 			const data = Object.fromEntries(storage);
 			const content = JSON.stringify(data, null, 2);
 			fs.writeFileSync(filePath, content, "utf8");
-			console.log(
-				`MockFirestore: Wrote ${content.length} bytes to ${filePath}`,
-			);
-		} catch (e) {
-			console.error(`MockFirestore: Error writing storage file ${filePath}`, e);
+			console.log(`MockFirestore WRITE SUCCESS: ${content.length} bytes to ${filePath}`);
+		} catch (e: any) {
+			console.error(`MockFirestore WRITE ERROR: ${filePath}: ${e.message}`);
+			// Fallback to a guaranteed writable location if possible
+			try {
+				const fallback = "/tmp/mock_firestore_fallback.json";
+				fs.writeFileSync(fallback, JSON.stringify(Object.fromEntries(storage)));
+				console.log(`MockFirestore: Wrote to fallback ${fallback}`);
+			} catch (e2) {}
 		}
 	}
 
