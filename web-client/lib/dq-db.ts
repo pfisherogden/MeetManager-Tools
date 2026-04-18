@@ -16,20 +16,29 @@ class MockFirestore {
 
 	private readStorage(): Map<string, any> {
 		const filePath = this.getFilePath();
-		try {
-			if (fs.existsSync(filePath)) {
-				const realPath = fs.realpathSync(filePath);
-				const content = fs.readFileSync(realPath, "utf8");
-				const data = JSON.parse(content);
-				const storageMap = new Map(Object.entries(data));
-				console.log(
-					`MockFirestore READ SUCCESS: ${content.length} bytes from ${realPath}, Keys: ${Array.from(storageMap.keys()).join(", ")}`,
-				);
-				return storageMap;
+		let attempts = 0;
+		while (attempts < 3) {
+			try {
+				if (fs.existsSync(filePath)) {
+					const realPath = fs.realpathSync(filePath);
+					const content = fs.readFileSync(realPath, "utf8");
+					const data = JSON.parse(content);
+					const storageMap = new Map(Object.entries(data));
+					console.log(
+						`MockFirestore READ SUCCESS (attr ${attempts}): ${content.length} bytes from ${realPath}, Keys: ${Array.from(storageMap.keys()).join(", ")}`,
+					);
+					return storageMap;
+				}
+				console.log(`MockFirestore READ: File not found at ${filePath} (attempt ${attempts})`);
+			} catch (e: any) {
+				console.error(`MockFirestore READ ERROR: ${filePath}: ${e.message}`);
 			}
-			console.log(`MockFirestore READ: File not found at ${filePath}`);
-		} catch (e: any) {
-			console.error(`MockFirestore READ ERROR: ${filePath}: ${e.message}`);
+			attempts++;
+			if (attempts < 3) {
+				// Wait 500ms before retry
+				const start = Date.now();
+				while (Date.now() - start < 500) {}
+			}
 		}
 		return new Map<string, any>();
 	}
@@ -39,7 +48,13 @@ class MockFirestore {
 		try {
 			const data = Object.fromEntries(storage);
 			const content = JSON.stringify(data, null, 2);
-			fs.writeFileSync(filePath, content, "utf8");
+			
+			// Use more robust write with sync
+			const fd = fs.openSync(filePath, "w");
+			fs.writeSync(fd, content);
+			fs.fsyncSync(fd);
+			fs.closeSync(fd);
+			
 			const realPath = fs.realpathSync(filePath);
 			console.log(
 				`MockFirestore WRITE SUCCESS: ${content.length} bytes to ${realPath}, Keys: ${Array.from(storage.keys()).join(", ")}`,
