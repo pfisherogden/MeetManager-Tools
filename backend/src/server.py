@@ -1548,6 +1548,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Convert data once in main process
             converter = MmToJsonConverter(table_data=cache)
             full_data = converter.convert()
+            
+            num_events = len(full_data.get("event", []))
+            logging.info(f"Job {job_id}: data conversion complete. {num_events} events found.")
 
             with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
                 msgpack_path = msgpack_tmp.name
@@ -1588,10 +1591,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         res = future.result()
                         if res.get("success"):
                             zip_file.writestr(res["filename"], res["content"])
-                            progress = (i + 1) / total_reports
+                            # Map progress from 0.05 to 0.95 to keep UI "moving"
+                            progress = 0.05 + (0.90 * ((i + 1) / total_reports))
                             self.job_manager.update_job(
-                                job_id, progress=progress, message=f"Generated {i + 1}/{total_reports} reports"
+                                job_id, progress=progress, message=f"Generated {i+1}/{total_reports} reports"
                             )
+                            logging.info(f"Job {job_id}: Report {i+1}/{total_reports} ({res.get('rtype')}) added to bundle")
                         else:
                             raise Exception(
                                 f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
