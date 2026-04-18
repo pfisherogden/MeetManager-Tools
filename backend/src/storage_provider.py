@@ -111,7 +111,7 @@ class GCSStorageProvider(StorageProvider):
             self.service_account_email = getattr(self.client, "service_account_email", None)
             if not self.service_account_email:
                 # If Client doesn't have it, try metadata server (internal)
-                import requests
+                import requests  # type: ignore
 
                 r = requests.get(
                     "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
