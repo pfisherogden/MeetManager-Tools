@@ -60,4 +60,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
 ENV PORT 3000
+ENV USE_MOCK_FIRESTORE=true
+ENV FIRESTORE_MOCK_PATH=/app/tmp/mock_firestore.json
 CMD ["node", "server.js"]

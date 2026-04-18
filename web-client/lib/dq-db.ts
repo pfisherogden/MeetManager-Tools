@@ -108,6 +108,7 @@ const initAdmin = () => {
 					process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mmtools-488404",
 			});
 		}
+		console.log("initAdmin: Returning REAL Firestore client");
 		return admin.firestore();
 	} catch (e) {
 		console.warn("Firestore initialization failed, using file-based mock:", e);

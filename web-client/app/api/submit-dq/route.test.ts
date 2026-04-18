@@ -4,6 +4,10 @@ import * as dqDb from "@/lib/dq-db";
 import client from "@/lib/mm-client";
 import { POST } from "./route";
 
+vi.mock("next/cache", () => ({
+	revalidatePath: vi.fn(),
+}));
+
 vi.mock("@/lib/dq-db", () => ({
 	checkDqExists: vi.fn(),
 	saveDq: vi.fn(),
