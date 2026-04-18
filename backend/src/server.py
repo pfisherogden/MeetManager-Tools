@@ -81,11 +81,13 @@ class JobManager:
                 self.use_firestore = True
                 logging.info("JobManager: Using Firestore for persistent job tracking")
             except Exception as e:
-                logging.warning(f"JobManager: Firestore initialization failed ({e}). Falling back to in-memory tracking.")
+                logging.warning(
+                    f"JobManager: Firestore initialization failed ({e}). Falling back to in-memory tracking."
+                )
 
     def create_job(self) -> str:
         job_id = str(uuid.uuid4())
-        
+
         initial_state = {
             "status": pb2.JOB_STATUS_PENDING,
             "progress": 0.0,
@@ -95,15 +97,18 @@ class JobManager:
 
         if self.use_firestore:
             from firebase_admin import firestore
+
             doc_ref = self.collection.document(job_id)
-            doc_ref.set({
-                **initial_state,
-                "created_at": firestore.SERVER_TIMESTAMP,
-            })
+            doc_ref.set(
+                {
+                    **initial_state,
+                    "created_at": firestore.SERVER_TIMESTAMP,
+                }
+            )
         else:
             with self.lock:
                 self.in_memory_jobs[job_id] = initial_state
-        
+
         return job_id
 
     def update_job(
@@ -116,6 +121,7 @@ class JobManager:
     ) -> None:
         if self.use_firestore:
             from firebase_admin import firestore
+
             doc_ref = self.collection.document(job_id)
             updates: dict[str, Any] = {"updated_at": firestore.SERVER_TIMESTAMP}
             if status is not None:
