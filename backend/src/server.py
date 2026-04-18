@@ -58,34 +58,52 @@ MAX_CACHE_SIZE = 3  # Keep only the last 3 users' data in memory
 
 
 class JobManager:
-    """Manages the state of background jobs using Firestore for persistence."""
+    """Manages the state of background jobs using Firestore if available, otherwise in-memory."""
 
     def __init__(self):
-        import firebase_admin
-        from firebase_admin import firestore
+        self.use_firestore = False
+        self.in_memory_jobs: dict[str, dict[str, Any]] = {}
+        self.lock = threading.Lock()
 
-        try:
-            self.app = firebase_admin.get_app()
-        except ValueError:
-            self.app = firebase_admin.initialize_app()
+        # Check if we should use Firestore (if in production or emulator is explicitly set)
+        if os.getenv("K_SERVICE") or os.getenv("FIRESTORE_EMULATOR_HOST") or os.getenv("USE_FIRESTORE") == "true":
+            try:
+                import firebase_admin
+                from firebase_admin import firestore
 
-        self.db = firestore.client()
-        self.collection = self.db.collection("jobs")
+                try:
+                    self.app = firebase_admin.get_app()
+                except ValueError:
+                    self.app = firebase_admin.initialize_app()
+
+                self.db = firestore.client()
+                self.collection = self.db.collection("jobs")
+                self.use_firestore = True
+                logging.info("JobManager: Using Firestore for persistent job tracking")
+            except Exception as e:
+                logging.warning(f"JobManager: Firestore initialization failed ({e}). Falling back to in-memory tracking.")
 
     def create_job(self) -> str:
-        from firebase_admin import firestore
-
         job_id = str(uuid.uuid4())
-        doc_ref = self.collection.document(job_id)
-        doc_ref.set(
-            {
-                "status": pb2.JOB_STATUS_PENDING,
-                "progress": 0.0,
-                "message": "Job queued",
-                "bundle_url": "",
+        
+        initial_state = {
+            "status": pb2.JOB_STATUS_PENDING,
+            "progress": 0.0,
+            "message": "Job queued",
+            "bundle_url": "",
+        }
+
+        if self.use_firestore:
+            from firebase_admin import firestore
+            doc_ref = self.collection.document(job_id)
+            doc_ref.set({
+                **initial_state,
                 "created_at": firestore.SERVER_TIMESTAMP,
-            }
-        )
+            })
+        else:
+            with self.lock:
+                self.in_memory_jobs[job_id] = initial_state
+        
         return job_id
 
     def update_job(
@@ -96,27 +114,42 @@ class JobManager:
         message: str | None = None,
         bundle_url: str | None = None,
     ) -> None:
-        from firebase_admin import firestore
-
-        doc_ref = self.collection.document(job_id)
-        updates: dict[str, Any] = {"updated_at": firestore.SERVER_TIMESTAMP}
-        if status is not None:
-            updates["status"] = status
-        if progress is not None:
-            updates["progress"] = progress
-        if message is not None:
-            updates["message"] = message
-        if bundle_url is not None:
-            updates["bundle_url"] = bundle_url
-
-        doc_ref.update(updates)
+        if self.use_firestore:
+            from firebase_admin import firestore
+            doc_ref = self.collection.document(job_id)
+            updates: dict[str, Any] = {"updated_at": firestore.SERVER_TIMESTAMP}
+            if status is not None:
+                updates["status"] = status
+            if progress is not None:
+                updates["progress"] = progress
+            if message is not None:
+                updates["message"] = message
+            if bundle_url is not None:
+                updates["bundle_url"] = bundle_url
+            doc_ref.update(updates)
+        else:
+            with self.lock:
+                if job_id in self.in_memory_jobs:
+                    job = self.in_memory_jobs[job_id]
+                    if status is not None:
+                        job["status"] = status
+                    if progress is not None:
+                        job["progress"] = progress
+                    if message is not None:
+                        job["message"] = message
+                    if bundle_url is not None:
+                        job["bundle_url"] = bundle_url
 
     def get_job(self, job_id: str) -> dict[str, Any] | None:
-        doc_ref = self.collection.document(job_id)
-        doc = doc_ref.get()
-        if doc.exists:
-            return doc.to_dict()
-        return None
+        if self.use_firestore:
+            doc_ref = self.collection.document(job_id)
+            doc = doc_ref.get()
+            if doc.exists:
+                return doc.to_dict()
+            return None
+        else:
+            with self.lock:
+                return self.in_memory_jobs.get(job_id)
 
 
 def msgpack_encode(obj):

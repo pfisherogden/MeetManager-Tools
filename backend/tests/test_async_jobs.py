@@ -19,12 +19,7 @@ class TestJobManager(unittest.TestCase):
 
     def test_update_job(self):
         job_id = self.job_manager.create_job()
-        self.job_manager.update_job(
-            job_id, 
-            status=pb2.JOB_STATUS_PROCESSING, 
-            progress=0.5, 
-            message="Halfway there"
-        )
+        self.job_manager.update_job(job_id, status=pb2.JOB_STATUS_PROCESSING, progress=0.5, message="Halfway there")
         job = self.job_manager.get_job(job_id)
         self.assertIsNotNone(job)
         if job:
@@ -32,7 +27,5 @@ class TestJobManager(unittest.TestCase):
             self.assertEqual(job["progress"], 0.5)
             self.assertEqual(job["message"], "Halfway there")
 
-
     if __name__ == "__main__":
         unittest.main()
-
