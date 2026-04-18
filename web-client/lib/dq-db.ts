@@ -20,11 +20,12 @@ class MockFirestore {
 			if (fs.existsSync(filePath)) {
 				const realPath = fs.realpathSync(filePath);
 				const content = fs.readFileSync(realPath, "utf8");
-				console.log(
-					`MockFirestore READ SUCCESS: ${content.length} bytes from ${realPath}`,
-				);
 				const data = JSON.parse(content);
-				return new Map(Object.entries(data));
+				const storageMap = new Map(Object.entries(data));
+				console.log(
+					`MockFirestore READ SUCCESS: ${content.length} bytes from ${realPath}, Keys: ${Array.from(storageMap.keys()).join(", ")}`,
+				);
+				return storageMap;
 			}
 			console.log(`MockFirestore READ: File not found at ${filePath}`);
 		} catch (e: any) {
@@ -41,7 +42,7 @@ class MockFirestore {
 			fs.writeFileSync(filePath, content, "utf8");
 			const realPath = fs.realpathSync(filePath);
 			console.log(
-				`MockFirestore WRITE SUCCESS: ${content.length} bytes to ${realPath}`,
+				`MockFirestore WRITE SUCCESS: ${content.length} bytes to ${realPath}, Keys: ${Array.from(storage.keys()).join(", ")}`,
 			);
 		} catch (e: any) {
 			console.error(`MockFirestore WRITE ERROR: ${filePath}: ${e.message}`);
