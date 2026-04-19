@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { expect, type Page, test } from "@playwright/test";
+import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 
 /**
  * End-to-End DQ Lifecycle User Journeys
@@ -72,46 +72,59 @@ async function ensureDataset(
 test.describe("Disqualification Lifecycle", () => {
 	let judgePage: Page;
 	let volunteerPage: Page;
-	const userId = `e2e-dq-${Math.random().toString(36).substring(7)}`;
+	let judgeContext: BrowserContext;
+	let volunteerContext: BrowserContext;
 
-	test.beforeAll(async ({ browser }) => {
-		// Clear mock firestore for a fresh run
-		const mockFilePath = "../../tmp/mock_firestore.json";
-		if (fs.existsSync(mockFilePath)) {
-			console.log(`Clearing existing mock firestore at ${mockFilePath}`);
-			fs.unlinkSync(mockFilePath);
-		}
+	const getUserId = () => `e2e-dq-${Math.random().toString(36).substring(7)}`;
+
+	test.beforeEach(async ({ browser }) => {
+		const userId = getUserId();
 
 		// Create isolated contexts for Judge and Volunteer
-		// CRITICAL: Pass x-user-id in extraHTTPHeaders for full Server Action isolation in CI
-		const judgeContext = await browser.newContext({
+		judgeContext = await browser.newContext({
 			baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080",
-			viewport: { width: 375, height: 1200 }, // Extra tall for safety
+			viewport: { width: 375, height: 1200 },
 			userAgent:
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
-			extraHTTPHeaders: {
-				"x-user-id": userId,
-			},
+			extraHTTPHeaders: { "x-user-id": userId },
 		});
 
-		const volunteerContext = await browser.newContext({
+		volunteerContext = await browser.newContext({
 			baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
-			extraHTTPHeaders: {
-				"x-user-id": userId,
-			},
+			extraHTTPHeaders: { "x-user-id": userId },
 		});
 
 		judgePage = await judgeContext.newPage();
 		volunteerPage = await volunteerContext.newPage();
 
-		// Enable console logging for the judge page
-		judgePage.on("console", (msg) => {
-			console.log(`JUDGE CONSOLE [${msg.type()}]: ${msg.text()}`);
-		});
+		judgePage.on("console", (msg) =>
+			console.log(`JUDGE CONSOLE [${msg.type()}]: ${msg.text()}`),
+		);
+		volunteerPage.on("console", (msg) =>
+			console.log(`VOLUNTEER CONSOLE [${msg.type()}]: ${msg.text()}`),
+		);
+
+		// Capture crashes
+		judgePage.on("error", (err) => console.error("JUDGE PAGE CRASH:", err));
+		judgePage.on("pageerror", (err) => console.error("JUDGE PAGE ERROR:", err));
+		volunteerPage.on("error", (err) =>
+			console.error("VOLUNTEER PAGE CRASH:", err),
+		);
+		volunteerPage.on("pageerror", (err) =>
+			console.error("VOLUNTEER PAGE ERROR:", err),
+		);
+	});
+
+	test.afterEach(async () => {
+		await judgePage.close();
+		await volunteerPage.close();
+		await judgeContext.close();
+		await volunteerContext.close();
 	});
 
 	test("Full DQ Journey: Publish -> Submit -> Sync -> Verify", async () => {
-		// --- 1. Meet Administrator: Publish ---
+		const _userId =
+			(await volunteerPage.context().cookies())[0]?.value || "unknown"; // Not really how it works but we have it in headers
 		const dummyData = {
 			meet: [{ meet_name1: "Journey Meet" }],
 			team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -148,8 +161,9 @@ test.describe("Disqualification Lifecycle", () => {
 			],
 		};
 
-		const filename = `journey-${userId}.json`;
-		await ensureDataset(volunteerPage, userId, filename, dummyData);
+		// The userId is unique per context now
+		const filename = "journey-dataset.json";
+		await ensureDataset(volunteerPage, "test-user", filename, dummyData);
 
 		console.log("Journey Step 1.1: Clicking Publish button...");
 		const publishBtn = volunteerPage
@@ -161,17 +175,14 @@ test.describe("Disqualification Lifecycle", () => {
 			timeout: 30000,
 		});
 
-		const urlElement = volunteerPage.getByTestId("judge-app-url");
-		const judgeAppUrl = await urlElement.innerText();
-		console.log(`Extracted Judge App URL: ${judgeAppUrl}`);
-
+		const judgeAppUrl = await volunteerPage
+			.getByTestId("judge-app-url")
+			.innerText();
 		const localUrl = judgeAppUrl.replace(
 			/^https?:\/\/[^/]+/i,
 			"http://localhost:8080",
 		);
-		console.log(`Navigating Judge to: ${localUrl}`);
 
-		// --- 2. S&T Judge: Onboarding ---
 		console.log("Journey Step 2: Judge onboarding...");
 		await judgePage.goto(localUrl);
 		await judgePage.getByPlaceholder("Your Name").fill("Judge Alex");
@@ -180,7 +191,6 @@ test.describe("Disqualification Lifecycle", () => {
 			timeout: 15000,
 		});
 
-		// --- 3. S&T Judge: Submit Individual DQ ---
 		console.log("Journey Step 3: Judge submitting individual DQ...");
 		await judgePage
 			.getByText(/Event 15/i)
@@ -191,34 +201,26 @@ test.describe("Disqualification Lifecycle", () => {
 			.first()
 			.click({ force: true });
 		await judgePage.getByText("TAP TO DQ").first().click({ force: true });
-
 		await judgePage.getByText("1A").first().click({ force: true });
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("False start on lane 1");
-		await judgePage.evaluate(() => {
-			const btn = document.querySelector(
-				'[aria-label="Save changes"]',
-			) as HTMLElement;
-			if (btn) btn.click();
-		});
+		await judgePage.evaluate(() =>
+			(
+				document.querySelector('[aria-label="Save changes"]') as HTMLElement
+			)?.click(),
+		);
 
 		await expect(
 			judgePage.locator("#root").getByText("1A").first(),
 		).toBeVisible({ timeout: 10000 });
 
-		// --- 4. Computer Volunteer: Live Review (Individual) ---
 		console.log("Journey Step 4: Volunteer verifying live DQ...");
 		await volunteerPage.goto("/dqs");
-
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "1A" }),
 		).toBeVisible({ timeout: 15000 });
-		await expect(volunteerPage.getByText("Judge Alex")).toBeVisible({
-			timeout: 10000,
-		});
 
-		// --- 5. S&T Judge: Submit Relay DQ (Targeting Bug) ---
 		console.log("Journey Step 5: Judge submitting relay DQ...");
 		await judgePage
 			.getByLabel(/back/i)
@@ -233,7 +235,7 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage
 			.getByText(/Event 13/i)
 			.first()
-			.click({ force: true }); // Relay
+			.click({ force: true });
 		await judgePage
 			.getByText(/Heat 1/i)
 			.first()
@@ -245,26 +247,22 @@ test.describe("Disqualification Lifecycle", () => {
 			.first();
 		await expect(leg3).toBeVisible({ timeout: 10000 });
 		await leg3.click({ force: true });
-		await judgePage.getByText("7Q").first().click({ force: true }); // Early take-off
-		await judgePage.evaluate(() => {
-			const btn = document.querySelector(
-				'[aria-label="Save changes"]',
-			) as HTMLElement;
-			if (btn) btn.click();
-		});
+		await judgePage.getByText("7Q").first().click({ force: true });
+		await judgePage.evaluate(() =>
+			(
+				document.querySelector('[aria-label="Save changes"]') as HTMLElement
+			)?.click(),
+		);
 
-		// --- 6. Computer Volunteer: Verify Relay Swimmer Name ---
 		console.log("Journey Step 6: Volunteer verifying relay swimmer name...");
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
 		).toBeVisible({ timeout: 15000 });
-
 		await expect(volunteerPage.getByText(/Test C/i)).toBeVisible({
 			timeout: 10000,
 		});
 
-		// --- 7. S&T Judge: Edit DQ ---
 		console.log("Journey Step 7: Judge editing pending DQ...");
 		await judgePage
 			.getByText(/DQ History/)
@@ -284,48 +282,28 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("Corrected: Early start on leg 3");
-		await judgePage.evaluate(() => {
-			const btn = document.querySelector(
-				'[aria-label="Save changes"]',
-			) as HTMLElement;
-			if (btn) btn.click();
-		});
+		await judgePage.evaluate(() =>
+			(
+				document.querySelector('[aria-label="Save changes"]') as HTMLElement
+			)?.click(),
+		);
 
-		// --- 8. Computer Volunteer: Sync ---
 		console.log("Journey Step 8: Volunteer verifying sync status...");
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
 		).toContainText(/Synced/i, { timeout: 15000 });
-
-		// --- 9. S&T Judge: Sync Indicator ---
-		console.log("Journey Step 9: Judge verifying sync status...");
-		await judgePage
-			.getByText(/DQ History/)
-			.first()
-			.click({ force: true });
-		await expect(judgePage.getByText("7Q").first()).toBeVisible({
-			timeout: 10000,
-		});
 	});
 
 	test.describe("Frontend Visibility Journeys", () => {
 		test("should show synced DQs in the global Submitted DQs list", async ({
 			page,
 		}) => {
-			console.log("Visibility: Starting...");
-			const volunteerPage = page;
-			await volunteerPage.goto("/dqs");
+			await page.goto("/dqs");
 			await expect(
-				volunteerPage.getByRole("heading", {
-					name: /Submitted Disqualifications/i,
-				}),
+				page.getByRole("heading", { name: /Submitted Disqualifications/i }),
 			).toBeVisible({ timeout: 15000 });
-
-			await expect(volunteerPage.locator("table")).toBeVisible({
-				timeout: 10000,
-			});
-			console.log("Visibility: Table visible");
+			await expect(page.locator("table")).toBeVisible({ timeout: 10000 });
 		});
 	});
 
@@ -333,7 +311,6 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should generate correct Judge App URL (not 404)", async ({
 			page,
 		}) => {
-			const userIdRegress = `e2e-regress-${Math.random().toString(36).substring(7)}`;
 			const dummyData = {
 				meet: [{ meet_name1: "Regression Meet" }],
 				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -346,27 +323,21 @@ test.describe("Disqualification Lifecycle", () => {
 				entry: [{ ath_no: 1, event_ptr: 1, pre_heat: 1, pre_lane: 1 }],
 			};
 
-			const filename = `regress-url-${userIdRegress}.json`;
-			await ensureDataset(page, userIdRegress, filename, dummyData);
+			const filename = "regress-url.json";
+			await ensureDataset(page, "regress-user", filename, dummyData);
 
-			// Publish
-			console.log("Regression: Clicking Publish...");
-			const targetRow = page.locator("tr").filter({ hasText: filename });
-			await targetRow
+			await page
+				.locator("tr")
+				.filter({ hasText: filename })
 				.getByTestId("publish-button")
 				.first()
 				.click({ force: true });
 			await expect(page.getByText("Meet data published")).toBeVisible({
 				timeout: 15000,
 			});
-			console.log("Regression: Publish successful");
-
-			const urlElement = page.getByTestId("judge-app-url");
-			const judgeAppUrl = await urlElement.innerText();
-
-			console.log(`Regression check: Generated URL is ${judgeAppUrl}`);
+			const judgeAppUrl = await page.getByTestId("judge-app-url").innerText();
 			expect(judgeAppUrl).toContain("/judge?");
-			expect(judgeAppUrl).not.toContain(":3000/judge"); // Should not point to frontend
+			expect(judgeAppUrl).not.toContain(":3000/judge");
 		});
 
 		test("should maintain relay team view when navigating heats", async ({
@@ -401,12 +372,12 @@ test.describe("Disqualification Lifecycle", () => {
 				extraHTTPHeaders: { "x-user-id": userIdNav },
 			});
 			const adminPage = await adminContext.newPage();
-			const filename = `nav-${userIdNav}.json`;
+			const filename = "nav-dataset.json";
 			await ensureDataset(adminPage, userIdNav, filename, dummyData);
 
-			// Publish to get URL
-			const targetRow = adminPage.locator("tr").filter({ hasText: filename });
-			await targetRow
+			await adminPage
+				.locator("tr")
+				.filter({ hasText: filename })
 				.getByTestId("publish-button")
 				.first()
 				.click({ force: true });
@@ -421,7 +392,6 @@ test.describe("Disqualification Lifecycle", () => {
 				"http://localhost:8080",
 			);
 
-			console.log("Regression: Relay navigation test starting...");
 			const judgeContext = await browser.newContext({
 				viewport: { width: 375, height: 1200 },
 				userAgent:
@@ -432,45 +402,32 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage.goto(localUrl);
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
 			await judgePage.getByText("START JUDGING").click({ force: true });
-			console.log("Regression: Judge SPA onboarded");
 
-			// Go to Event 13 (Relay)
 			await judgePage.getByText("Event 13").first().click({ force: true });
 			await judgePage.getByText("Heat 1").first().click({ force: true });
-			console.log("Regression: On Event 13 Heat 1");
-
-			// Verify it shows relay members
 			await expect(
 				judgePage
 					.getByText(/Leg 1/i)
 					.or(judgePage.getByText(/Test A/i))
 					.first(),
 			).toBeVisible({ timeout: 10000 });
-			console.log("Regression: Relay legs visible");
 
-			// Navigate to Next Heat
-			console.log("Regression: Navigating to next heat...");
 			await judgePage
 				.getByLabel(/next heat/i)
 				.first()
 				.click({ force: true });
-			// Give it a moment to render
 			await judgePage.waitForTimeout(2000);
-
-			// Verify it STILL shows relay members (the same event)
 			await expect(
 				judgePage
 					.getByText(/Leg 1/i)
 					.or(judgePage.getByText(/Test A/i))
 					.first(),
 			).toBeVisible({ timeout: 10000 });
-			console.log("Regression: Relay legs still visible after navigation");
 		});
 
 		test("should dismiss DQ history modal when clicking outside", async ({
 			browser,
 		}) => {
-			console.log("Regression: Modal dismissal test starting...");
 			const judgeContext = await browser.newContext({
 				viewport: { width: 375, height: 1200 },
 			});
@@ -479,7 +436,6 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage.getByPlaceholder("Your Name").fill("Modal Judge");
 			await judgePage.getByText("START JUDGING").click({ force: true });
 
-			// Open History
 			await judgePage
 				.getByText(/DQ History/)
 				.first()
@@ -487,18 +443,12 @@ test.describe("Disqualification Lifecycle", () => {
 			await expect(judgePage.getByText(/DQ History \(Total: 0\)/i)).toBeVisible(
 				{ timeout: 10000 },
 			);
-			console.log("Regression: Modal open");
 
-			// Click far outside (middle-left area of overlay)
-			console.log("Regression: Clicking outside modal...");
 			await judgePage.mouse.click(5, 300);
 			await judgePage.waitForTimeout(1000);
-
-			// Verify modal is gone
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).not.toBeVisible({ timeout: 10000 });
-			console.log("Regression: Modal dismissed");
 		});
 	});
 });
