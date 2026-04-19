@@ -23,11 +23,17 @@ async function ensureDataset(
 		page.getByRole("heading", { name: /Admin Configuration/i }),
 	).toBeVisible({ timeout: 15000 });
 
-	// Use a more robust check for the publish button
-	const publishBtn = page.getByTestId("publish-button");
+	const row = page.locator("tr").filter({ hasText: filename });
+	const isActive = (await row.getByTestId("active-dataset-badge").count()) > 0;
 
-	if ((await publishBtn.count()) === 0) {
-		console.log(`No active dataset found for ${uid}, uploading...`);
+	if (isActive) {
+		console.log(`Dataset ${filename} is already active for ${uid}`);
+		return;
+	}
+
+	// Not active, check if uploaded
+	if ((await row.count()) === 0) {
+		console.log(`No dataset ${filename} found for ${uid}, uploading...`);
 		const testFilePath = `tests-e2e/${filename}`;
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 		try {
@@ -42,27 +48,25 @@ async function ensureDataset(
 				page.getByText(/Dataset uploaded successfully/i),
 			).toBeVisible({ timeout: 20000 });
 
-			// The DatasetManager should refresh automatically.
-			// Wait for the publish button to appear (which means it's active)
-			// If it doesn't appear in 10s, try setting it active manually.
-			try {
-				await expect(publishBtn.first()).toBeVisible({ timeout: 10000 });
-			} catch (_e) {
-				console.log(
-					"Publish button didn't appear, attempting manual Set Active...",
-				);
-				await page
-					.getByRole("button", { name: /Set Active/i })
-					.first()
-					.click({ force: true });
-				await expect(publishBtn.first()).toBeVisible({ timeout: 15000 });
-			}
+			// Reload after upload to refresh the list
+			await page.reload();
+			await page.waitForTimeout(2000);
 		} finally {
 			if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
 		}
-	} else {
-		console.log(`Active dataset already present for ${uid}`);
 	}
+
+	// Now set it active
+	console.log(`Setting ${filename} active...`);
+	const targetRow = page.locator("tr").filter({ hasText: filename });
+	await targetRow
+		.getByRole("button", { name: /Set Active/i })
+		.first()
+		.click({ force: true });
+	await expect(targetRow.getByTestId("active-dataset-badge")).toBeVisible({
+		timeout: 15000,
+	});
+	console.log(`Dataset ${filename} is now active`);
 }
 
 test.describe("Disqualification Lifecycle", () => {
@@ -79,7 +83,7 @@ test.describe("Disqualification Lifecycle", () => {
 		}
 
 		// Create isolated contexts for Judge and Volunteer
-		// CRITICAL: Pass x-user-id in extraHTTPHeaders for Server Action isolation in CI
+		// CRITICAL: Pass x-user-id in extraHTTPHeaders for full Server Action isolation in CI
 		const judgeContext = await browser.newContext({
 			baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080",
 			viewport: { width: 375, height: 1200 }, // Extra tall for safety
@@ -144,18 +148,15 @@ test.describe("Disqualification Lifecycle", () => {
 			],
 		};
 
-		await ensureDataset(
-			volunteerPage,
-			userId,
-			`journey-${userId}.json`,
-			dummyData,
-		);
+		const filename = `journey-${userId}.json`;
+		await ensureDataset(volunteerPage, userId, filename, dummyData);
 
 		console.log("Journey Step 1.1: Clicking Publish button...");
-		await volunteerPage
-			.getByTestId("publish-button")
-			.first()
-			.click({ force: true });
+		const publishBtn = volunteerPage
+			.locator("tr")
+			.filter({ hasText: filename })
+			.getByTestId("publish-button");
+		await publishBtn.first().click({ force: true });
 		await expect(volunteerPage.getByText("Meet data published")).toBeVisible({
 			timeout: 30000,
 		});
@@ -345,17 +346,16 @@ test.describe("Disqualification Lifecycle", () => {
 				entry: [{ ath_no: 1, event_ptr: 1, pre_heat: 1, pre_lane: 1 }],
 			};
 
-			// Ensure unique x-user-id for regression test too
-			await ensureDataset(
-				page,
-				userIdRegress,
-				`regress-url-${userIdRegress}.json`,
-				dummyData,
-			);
+			const filename = `regress-url-${userIdRegress}.json`;
+			await ensureDataset(page, userIdRegress, filename, dummyData);
 
 			// Publish
 			console.log("Regression: Clicking Publish...");
-			await page.getByTestId("publish-button").first().click({ force: true });
+			const targetRow = page.locator("tr").filter({ hasText: filename });
+			await targetRow
+				.getByTestId("publish-button")
+				.first()
+				.click({ force: true });
 			await expect(page.getByText("Meet data published")).toBeVisible({
 				timeout: 15000,
 			});
@@ -401,15 +401,12 @@ test.describe("Disqualification Lifecycle", () => {
 				extraHTTPHeaders: { "x-user-id": userIdNav },
 			});
 			const adminPage = await adminContext.newPage();
-			await ensureDataset(
-				adminPage,
-				userIdNav,
-				`nav-${userIdNav}.json`,
-				dummyData,
-			);
+			const filename = `nav-${userIdNav}.json`;
+			await ensureDataset(adminPage, userIdNav, filename, dummyData);
 
 			// Publish to get URL
-			await adminPage
+			const targetRow = adminPage.locator("tr").filter({ hasText: filename });
+			await targetRow
 				.getByTestId("publish-button")
 				.first()
 				.click({ force: true });

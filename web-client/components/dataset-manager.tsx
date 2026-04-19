@@ -298,6 +298,7 @@ export function DatasetManager() {
 											<Badge
 												variant="secondary"
 												className="gap-1 bg-green-100 text-green-800 hover:bg-green-100 uppercase text-[10px]"
+												data-testid="active-dataset-badge"
 											>
 												<Check className="h-3 w-3" /> Active
 											</Badge>
