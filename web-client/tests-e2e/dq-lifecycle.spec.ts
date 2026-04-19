@@ -80,18 +80,24 @@ test.describe("Disqualification Lifecycle", () => {
 		const userId = getUserId();
 
 		// Create isolated contexts for Judge and Volunteer
-		// CRITICAL: Pass x-user-id in extraHTTPHeaders for Server Action isolation in CI
+		// CRITICAL: Pass x-user-id and x-e2e-uid in extraHTTPHeaders for Server Action isolation in CI
 		judgeContext = await browser.newContext({
 			baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080",
 			viewport: { width: 375, height: 1200 }, // Extra tall for safety
 			userAgent:
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
-			extraHTTPHeaders: { "x-user-id": userId },
+			extraHTTPHeaders: {
+				"x-user-id": userId,
+				"x-e2e-uid": userId,
+			},
 		});
 
 		volunteerContext = await browser.newContext({
 			baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
-			extraHTTPHeaders: { "x-user-id": userId },
+			extraHTTPHeaders: {
+				"x-user-id": userId,
+				"x-e2e-uid": userId,
+			},
 		});
 
 		judgePage = await judgeContext.newPage();

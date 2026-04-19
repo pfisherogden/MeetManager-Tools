@@ -21,14 +21,18 @@ async function getAuthMetadata() {
 		(process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "1")
 	) {
-		// Try to extract uid from referer URL to maintain shard isolation in CI
-		const referer = headerList.get("referer");
-		if (referer) {
-			try {
-				const refererUrl = new URL(referer);
-				userId = refererUrl.searchParams.get("uid");
-			} catch (_e) {
-				// Invalid URL, ignore
+		// Try to extract uid from headers or referer URL to maintain shard isolation in CI
+		userId = headerList.get("x-e2e-uid");
+
+		if (!userId) {
+			const referer = headerList.get("referer");
+			if (referer) {
+				try {
+					const refererUrl = new URL(referer);
+					userId = refererUrl.searchParams.get("uid");
+				} catch (_e) {
+					// Invalid URL, ignore
+				}
 			}
 		}
 
