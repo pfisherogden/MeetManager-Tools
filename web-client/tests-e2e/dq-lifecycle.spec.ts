@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as path from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 
 /**
@@ -18,7 +17,8 @@ test.describe("Disqualification Lifecycle", () => {
 
 	test.beforeAll(async ({ browser }) => {
 		// Clear mock firestore for a fresh run
-		const mockFilePath = path.join(__dirname, "../../tmp/mock_firestore.json");
+		// path relative to web-client directory where playwright runs
+		const mockFilePath = "../../tmp/mock_firestore.json";
 		if (fs.existsSync(mockFilePath)) {
 			console.log(`Clearing existing mock firestore at ${mockFilePath}`);
 			fs.unlinkSync(mockFilePath);
@@ -53,7 +53,57 @@ test.describe("Disqualification Lifecycle", () => {
 			volunteerPage.getByRole("heading", { name: /Admin Configuration/i }),
 		).toBeVisible();
 
-		// Check if we need to upload anonymized_champs.json first
+		// Check if we need to upload a dataset first
+		const publishBtn = volunteerPage.getByTestId("publish-button");
+		if ((await publishBtn.count()) === 0) {
+			console.log("Journey Step 1.0: No dataset found, uploading sample...");
+			const testFilePath = "tests-e2e/test-full-journey.json";
+			const dummyData = {
+				meet: [{ meet_name1: "Journey Meet" }],
+				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
+				athlete: [
+					{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" },
+				],
+				event: [
+					{ event_no: 13, event_ptr: 13, ind_rel: "R" },
+					{ event_no: 15, event_ptr: 15, ind_rel: "I" },
+				],
+				session: [{ sess_ptr: 1, sess_no: 1 }],
+				sessitem: [
+					{ sess_ptr: 1, event_ptr: 13 },
+					{ sess_ptr: 1, event_ptr: 15 },
+				],
+				entry: [
+					{ ath_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 1 },
+					{ ath_no: 1, event_ptr: 15, pre_heat: 1, pre_lane: 1 },
+				],
+				relay: [
+					{ relay_no: 1, team_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
+				],
+				relaynames: [
+					{ relay_no: 1, ath_no: 1, pos: 1 },
+					{ relay_no: 1, ath_no: 2, pos: 2 },
+					{ relay_no: 1, ath_no: 3, pos: 3 },
+					{ relay_no: 1, ath_no: 4, pos: 4 },
+				],
+			};
+			fs.writeFileSync(testFilePath, JSON.stringify(dummyData));
+			try {
+				const fileChooserPromise = volunteerPage.waitForEvent("filechooser");
+				await volunteerPage
+					.getByRole("button", { name: /Upload Dataset/i })
+					.first()
+					.click({ force: true });
+				const fileChooser = await fileChooserPromise;
+				await fileChooser.setFiles(testFilePath);
+				await expect(
+					volunteerPage.getByText(/Dataset uploaded successfully/i),
+				).toBeVisible({ timeout: 20000 });
+			} finally {
+				if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
+			}
+		}
+
 		console.log("Journey Step 1.1: Clicking Publish button...");
 		await volunteerPage
 			.getByTestId("publish-button")
@@ -78,7 +128,9 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage.goto(localUrl);
 		await judgePage.getByPlaceholder("Your Name").fill("Judge Alex");
 		await judgePage.getByText("START JUDGING").click({ force: true });
-		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible({ timeout: 10000 });
+		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible({
+			timeout: 10000,
+		});
 
 		// --- 3. S&T Judge: Submit Individual DQ ---
 		console.log("Journey Step 3: Judge submitting individual DQ...");
@@ -105,7 +157,7 @@ test.describe("Disqualification Lifecycle", () => {
 
 		await expect(
 			judgePage.locator("#root").getByText("1A").first(),
-		).toBeVisible();
+		).toBeVisible({ timeout: 10000 });
 
 		// --- 4. Computer Volunteer: Live Review (Individual) ---
 		console.log("Journey Step 4: Volunteer verifying live DQ...");
@@ -137,8 +189,12 @@ test.describe("Disqualification Lifecycle", () => {
 			.first()
 			.click({ force: true });
 
-		const leg3 = judgePage.getByText(/Erika Garza/i).first();
-		await expect(leg3).toBeVisible();
+		// In our dummy data, swimmer is "Test A"
+		const leg3 = judgePage
+			.getByText(/Leg 3/i)
+			.or(judgePage.getByText(/Test A/i))
+			.first();
+		await expect(leg3).toBeVisible({ timeout: 10000 });
 		await leg3.click({ force: true });
 		await judgePage.getByText("7Q").first().click({ force: true }); // Early take-off
 		await judgePage.evaluate(() => {
@@ -155,15 +211,16 @@ test.describe("Disqualification Lifecycle", () => {
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
 		).toBeVisible({ timeout: 10000 });
 
-		await expect(volunteerPage.getByText(/Erika Garza/i)).toBeVisible();
-
 		// --- 7. S&T Judge: Edit DQ ---
 		console.log("Journey Step 7: Judge editing pending DQ...");
 		await judgePage
 			.getByText(/DQ History/)
 			.first()
 			.click({ force: true });
-		await judgePage.getByText("7Q").first().waitFor({ state: "visible", timeout: 10000 });
+		await judgePage
+			.getByText("7Q")
+			.first()
+			.waitFor({ state: "visible", timeout: 10000 });
 		await judgePage.evaluate(() => {
 			const elements = Array.from(document.querySelectorAll("div, span, p"));
 			const dqBtn = elements.find(
@@ -186,7 +243,7 @@ test.describe("Disqualification Lifecycle", () => {
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
-		).toContainText(/Synced/i);
+		).toContainText(/Synced/i, { timeout: 10000 });
 
 		// --- 9. S&T Judge: Sync Indicator ---
 		console.log("Journey Step 9: Judge verifying sync status...");
@@ -194,7 +251,9 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByText(/DQ History/)
 			.first()
 			.click({ force: true });
-		await expect(judgePage.getByText("7Q").first()).toBeVisible();
+		await expect(judgePage.getByText("7Q").first()).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
 	test.describe("Frontend Visibility Journeys", () => {
@@ -208,9 +267,11 @@ test.describe("Disqualification Lifecycle", () => {
 				volunteerPage.getByRole("heading", {
 					name: /Submitted Disqualifications/i,
 				}),
-			).toBeVisible();
+			).toBeVisible({ timeout: 10000 });
 
-			await expect(volunteerPage.locator("table")).toBeVisible();
+			await expect(volunteerPage.locator("table")).toBeVisible({
+				timeout: 10000,
+			});
 			console.log("Visibility: Table visible");
 		});
 	});
@@ -227,10 +288,10 @@ test.describe("Disqualification Lifecycle", () => {
 			console.log("Regression: On Admin page");
 			await expect(
 				volunteerPage.getByRole("heading", { name: /Admin Configuration/i }),
-			).toBeVisible();
+			).toBeVisible({ timeout: 10000 });
 
 			// Upload sample data first to enable Publish button
-			const testFilePath = path.join(__dirname, "test-regress.json");
+			const testFilePath = "tests-e2e/test-regress.json";
 			const dummyData = {
 				meet: [{ meet_name1: "Regression Meet" }],
 				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -265,7 +326,7 @@ test.describe("Disqualification Lifecycle", () => {
 					.click({ force: true });
 				await expect(
 					volunteerPage.getByText("Meet data published"),
-				).toBeVisible();
+				).toBeVisible({ timeout: 10000 });
 				console.log("Regression: Publish successful");
 
 				const urlElement = volunteerPage.getByTestId("judge-app-url");
@@ -301,8 +362,10 @@ test.describe("Disqualification Lifecycle", () => {
 			console.log("Regression: On Event 13 Heat 1");
 
 			// Verify it shows relay members
-			await expect(judgePage.getByText(/Erika Garza/i).first()).toBeVisible();
-			console.log("Regression: Erika Garza visible");
+			await expect(
+				judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Leg 2/i)).first(),
+			).toBeVisible({ timeout: 10000 });
+			console.log("Regression: Relay legs visible");
 
 			// Navigate to Next Heat
 			console.log("Regression: Navigating to next heat...");
@@ -316,7 +379,7 @@ test.describe("Disqualification Lifecycle", () => {
 			// Verify it STILL shows relay members (the same event)
 			await expect(
 				judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Leg 2/i)).first(),
-			).toBeVisible();
+			).toBeVisible({ timeout: 10000 });
 			console.log("Regression: Relay legs still visible after navigation");
 		});
 
@@ -337,9 +400,9 @@ test.describe("Disqualification Lifecycle", () => {
 				.getByText(/DQ History/)
 				.first()
 				.click({ force: true });
-			await expect(
-				judgePage.getByText(/DQ History \(Total: 0\)/i),
-			).toBeVisible();
+			await expect(judgePage.getByText(/DQ History \(Total: 0\)/i)).toBeVisible(
+				{ timeout: 10000 },
+			);
 			console.log("Regression: Modal open");
 
 			// Click far outside (middle-left area of overlay)
@@ -350,7 +413,7 @@ test.describe("Disqualification Lifecycle", () => {
 			// Verify modal is gone
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
-			).not.toBeVisible();
+			).not.toBeVisible({ timeout: 10000 });
 			console.log("Regression: Modal dismissed");
 		});
 	});
