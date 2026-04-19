@@ -397,9 +397,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             try:
                 # Allow custom user ID via metadata for E2E test isolation
                 metadata = dict(context.invocation_metadata())
-                if "x-user-id" in metadata:
-                    uid = metadata["x-user-id"]
-                    logging.debug(f"DEBUG: Auth using x-user-id metadata: {uid}")
+                # Metadata keys are lowercase in gRPC
+                uid = metadata.get("x-user-id")
+                if uid:
+                    # logging.debug(f"DEBUG: Auth using x-user-id metadata: {uid}")
                     return uid
             except (AttributeError, TypeError):
                 # Context might be a mock or None-like without invocation_metadata
@@ -407,7 +408,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Allow disabling auth for local dev/testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
-            # logging.debug("DEBUG: Auth disabled or not in production, using dev-user")
             return "dev-user"
 
         if context is None:
@@ -1529,21 +1529,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # Support unauthenticated access for Sample_Data.json (for dev/debug)
         # Otherwise require authentication
         try:
-            # We must NOT use _check_auth here because it aborts immediately.
-            uid = getattr(context, "uid", None)
-            if uid is None and context:
-                # If no uid in context, check for metadata override (E2E)
-                try:
-                    metadata = dict(context.invocation_metadata())
-                    uid = metadata.get("x-user-id")
-                except Exception:
-                    pass
-
-            if uid is None:
-                # Still no UID, check if it's local or auth disabled
-                if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
-                    uid = "dev-user"
-
+            uid = self._check_auth(context)
             if uid:
                 cache, _ = self._load_user_data(context)
             else:
