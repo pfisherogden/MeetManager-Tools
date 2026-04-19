@@ -1083,6 +1083,7 @@ export default function App() {
 										<Text style={styles.modalTitle}>
 											DQ History (Total: {allDQs.length})
 										</Text>
+									</View>
 								{pendingCount > 0 && (
 									<TouchableOpacity
 										onPress={handleClearAll}

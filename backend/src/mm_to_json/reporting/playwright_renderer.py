@@ -83,12 +83,12 @@ class PlaywrightRenderer:
 
     def render_meet_program(self, data: dict[str, Any]):
         html_out = self._render_html(data, "meet_program.j2")
-        self._write_pdf(html_out, data.get("meet_name"), data.get("sub_title"))
+        self._write_pdf(html_out, str(data.get("meet_name") or ""), str(data.get("sub_title") or ""))
         return html_out
 
     def render_entries(self, data: dict[str, Any], template_name: str):
         html_out = self._render_html(data, template_name)
-        self._write_pdf(html_out, data.get("meet_name"), data.get("sub_title"))
+        self._write_pdf(html_out, str(data.get("meet_name") or ""), str(data.get("sub_title") or ""))
         return html_out
 
     def render_to_html(self, data: dict[str, Any], template_name: str = "meet_program.j2") -> str:
