@@ -162,8 +162,8 @@ test.describe("Disqualification Lifecycle", () => {
 		};
 
 		// The userId is unique per context now
-		const filename = "journey-dataset.json";
-		await ensureDataset(volunteerPage, "test-user", filename, dummyData);
+		const filename = `journey-${userId}.json`;
+		await ensureDataset(volunteerPage, userId, filename, dummyData);
 
 		console.log("Journey Step 1.1: Clicking Publish button...");
 		const publishBtn = volunteerPage
@@ -323,8 +323,8 @@ test.describe("Disqualification Lifecycle", () => {
 				entry: [{ ath_no: 1, event_ptr: 1, pre_heat: 1, pre_lane: 1 }],
 			};
 
-			const filename = "regress-url.json";
-			await ensureDataset(page, "regress-user", filename, dummyData);
+			const filename = `regress-url-${userIdRegress}.json`;
+			await ensureDataset(page, userIdRegress, filename, dummyData);
 
 			await page
 				.locator("tr")
