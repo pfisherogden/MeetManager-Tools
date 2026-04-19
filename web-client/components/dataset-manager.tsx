@@ -324,6 +324,7 @@ export function DatasetManager() {
 												onClick={handlePublish}
 												disabled={publishing}
 												className="gap-2"
+												data-testid="publish-button"
 											>
 												{publishing ? (
 													<Loader2 className="h-4 w-4 animate-spin" />

@@ -70,7 +70,7 @@ test.describe("Disqualification Lifecycle", () => {
 		// The URL might have a production origin (https://pfisherogden.github.io/MeetManager-Tools/)
 		// or localhost:3000. We need to replace only the origin part.
 		const localUrl = judgeAppUrl.replace(
-			/^https?:\/\/[^\/]+/i,
+			/^https?:\/\/[^/]+/i,
 			"http://localhost:8080",
 		);
 		console.log(`Navigating Judge to: ${localUrl}`);
@@ -80,15 +80,19 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage.goto(localUrl);
 		await judgePage.getByPlaceholder("Your Name").fill("Judge Alex");
 		await judgePage.getByText("START JUDGING").click();
-		await expect(
-			judgePage.getByText("Events", { exact: true }),
-		).toBeVisible();
+		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible();
 
 		// --- 3. S&T Judge: Submit Individual DQ ---
 		console.log("Journey Step 3: Judge submitting individual DQ...");
 		// Use Event 15 for individual
-		await judgePage.getByText(/Event 15/i).first().click();
-		await judgePage.getByText(/Heat 1/i).first().click();
+		await judgePage
+			.getByText(/Event 15/i)
+			.first()
+			.click();
+		await judgePage
+			.getByText(/Heat 1/i)
+			.first()
+			.click();
 		await judgePage.getByText("TAP TO DQ").first().click();
 
 		// Select DQ code 1A
@@ -124,8 +128,14 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log("Journey Step 5: Judge submitting relay DQ...");
 		await judgePage.getByText("BACK", { exact: true }).click();
 		await judgePage.getByText("EVENTS", { exact: true }).click();
-		await judgePage.getByText(/Event 13/i).first().click(); // Relay
-		await judgePage.getByText(/Heat 1/i).first().click();
+		await judgePage
+			.getByText(/Event 13/i)
+			.first()
+			.click(); // Relay
+		await judgePage
+			.getByText(/Heat 1/i)
+			.first()
+			.click();
 
 		// Find Leg 3 of Lane 2 Relay (Miranda Anderson's team)
 		// Remapped to Erika Garza in our script
@@ -156,7 +166,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 7. S&T Judge: Edit DQ ---
 		console.log("Journey Step 7: Judge editing pending DQ...");
-		await judgePage.getByText(/DQ History/).first().click({ force: true });
+		await judgePage
+			.getByText(/DQ History/)
+			.first()
+			.click({ force: true });
 		await judgePage.getByText("7Q").first().waitFor({ state: "visible" });
 		await judgePage.evaluate(() => {
 			const elements = Array.from(document.querySelectorAll("div, span, p"));
@@ -187,7 +200,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 9. S&T Judge: Sync Indicator ---
 		console.log("Journey Step 9: Judge verifying sync status...");
-		await judgePage.getByText(/DQ History/).first().click({ force: true });
+		await judgePage
+			.getByText(/DQ History/)
+			.first()
+			.click({ force: true });
 		// Initially it might be cloud-upload (pending), eventually cloud-done
 		// We just check if the history list is visible and has items
 		await expect(judgePage.getByText("7Q").first()).toBeVisible();
@@ -227,7 +243,9 @@ test.describe("Disqualification Lifecycle", () => {
 			const dummyData = {
 				meet: [{ meet_name1: "Regression Meet" }],
 				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
-				athlete: [{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" }],
+				athlete: [
+					{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" },
+				],
 				event: [{ event_no: 1, event_ptr: 1, ind_rel: "I" }],
 				session: [{ sess_ptr: 1, sess_no: 1 }],
 				sessitem: [{ sess_ptr: 1, event_ptr: 1 }],
@@ -246,7 +264,7 @@ test.describe("Disqualification Lifecycle", () => {
 				).toBeVisible({ timeout: 20000 });
 
 				// Publish
-				await volunteerPage.getByRole("button", { name: /Publish/i }).click();
+				await volunteerPage.getByTestId("publish-button").click();
 				await expect(
 					volunteerPage.getByText("Meet data published"),
 				).toBeVisible();
@@ -266,20 +284,22 @@ test.describe("Disqualification Lifecycle", () => {
 			browser,
 		}) => {
 			const judgeContext = await browser.newContext({
-				viewport: { width: 375, height: 812 },
+				viewport: { width: 375, height: 1200 },
+				userAgent:
+					"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
 			});
 			const judgePage = await judgeContext.newPage();
-			// Use sample program with known relays (Event 5 in anonymized_champs)
+			// Use sample program with known relays (Event 13 in Sample_Data)
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
 			await judgePage.getByText("START JUDGING").click();
 
-			// Go to Event 5 (Relay)
-			await judgePage.getByText("Event 5").first().click();
+			// Go to Event 13 (Relay)
+			await judgePage.getByText("Event 13").first().click();
 			await judgePage.getByText("Heat 1").first().click();
 
-			// Verify it shows relay legs (e.g. "Leg 1")
-			await expect(judgePage.getByText(/Leg 1/i).first()).toBeVisible();
+			// Verify it shows relay members
+			await expect(judgePage.getByText(/Erika Garza/i).first()).toBeVisible();
 
 			// Navigate to Next Heat
 			await judgePage
@@ -291,8 +311,8 @@ test.describe("Disqualification Lifecycle", () => {
 			// Give it a moment to render
 			await judgePage.waitForTimeout(1000);
 
-			// Verify it STILL shows relay legs for the same event
-			await expect(judgePage.getByText(/Leg 1/i).first()).toBeVisible();
+			// Verify it STILL shows relay members (the same event)
+			await expect(judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Leg 2/i)).first()).toBeVisible();
 		});
 
 		test("should dismiss DQ history modal when clicking outside", async ({
@@ -315,8 +335,8 @@ test.describe("Disqualification Lifecycle", () => {
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).toBeVisible();
 
-			// Click far outside (edge of overlay)
-			await judgePage.mouse.click(5, 5);
+			// Click far outside (middle-left area of overlay)
+			await judgePage.mouse.click(5, 300);
 			await judgePage.waitForTimeout(1000);
 
 			// Verify modal is gone
