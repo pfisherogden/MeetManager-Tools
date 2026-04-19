@@ -23,38 +23,44 @@ async function ensureDataset(
 		page.getByRole("heading", { name: /Admin Configuration/i }),
 	).toBeVisible({ timeout: 15000 });
 
+	// Use a more robust check for the publish button
 	const publishBtn = page.getByTestId("publish-button");
-	if ((await publishBtn.count()) > 0) {
-		console.log(`Dataset already active for ${uid}`);
-		return;
-	}
 
-	const testFilePath = `tests-e2e/${filename}`;
-	fs.writeFileSync(testFilePath, JSON.stringify(data));
-	try {
-		console.log(`Uploading ${testFilePath}...`);
-		const fileChooserPromise = page.waitForEvent("filechooser");
-		await page
-			.getByRole("button", { name: /Upload Dataset/i })
-			.first()
-			.click({ force: true });
-		const fileChooser = await fileChooserPromise;
-		await fileChooser.setFiles(testFilePath);
-		await expect(page.getByText(/Dataset uploaded successfully/i)).toBeVisible({
-			timeout: 20000,
-		});
-
-		// If not already active, set it active
-		if ((await publishBtn.count()) === 0) {
-			console.log("Setting dataset active...");
+	if ((await publishBtn.count()) === 0) {
+		console.log(`No active dataset found for ${uid}, uploading...`);
+		const testFilePath = `tests-e2e/${filename}`;
+		fs.writeFileSync(testFilePath, JSON.stringify(data));
+		try {
+			const fileChooserPromise = page.waitForEvent("filechooser");
 			await page
-				.getByRole("button", { name: /Set Active/i })
+				.getByRole("button", { name: /Upload Dataset/i })
 				.first()
 				.click({ force: true });
-			await expect(publishBtn).toBeVisible({ timeout: 10000 });
+			const fileChooser = await fileChooserPromise;
+			await fileChooser.setFiles(testFilePath);
+			await expect(
+				page.getByText(/Dataset uploaded successfully/i),
+			).toBeVisible({ timeout: 20000 });
+
+			// Reload and wait to ensure the list is updated
+			console.log("Reloading admin page after upload...");
+			await page.reload();
+			await page.waitForTimeout(2000);
+
+			// Check if we need to set it active
+			if ((await publishBtn.count()) === 0) {
+				console.log("Setting dataset active...");
+				await page
+					.getByRole("button", { name: /Set Active/i })
+					.first()
+					.click({ force: true });
+				await expect(publishBtn.first()).toBeVisible({ timeout: 15000 });
+			}
+		} finally {
+			if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
 		}
-	} finally {
-		if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
+	} else {
+		console.log(`Active dataset already present for ${uid}`);
 	}
 }
 
