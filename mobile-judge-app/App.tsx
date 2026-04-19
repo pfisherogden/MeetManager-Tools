@@ -1084,35 +1084,34 @@ export default function App() {
 											DQ History (Total: {allDQs.length})
 										</Text>
 									</View>
-								{pendingCount > 0 && (
-									<TouchableOpacity
-										onPress={handleClearAll}
-										style={{
-											marginLeft: 15,
-											padding: 5,
-											backgroundColor: `${COLORS.danger}22`,
-											borderRadius: 4,
-										}}
-									>
-										<Text
+									{pendingCount > 0 && (
+										<TouchableOpacity
+											onPress={handleClearAll}
 											style={{
-												color: COLORS.danger,
-												fontWeight: "bold",
-												fontSize: 12,
+												marginLeft: 15,
+												padding: 5,
+												backgroundColor: `${COLORS.danger}22`,
+												borderRadius: 4,
 											}}
 										>
-											CLEAR PENDING
-										</Text>
+											<Text
+												style={{
+													color: COLORS.danger,
+													fontWeight: "bold",
+													fontSize: 12,
+												}}
+											>
+												CLEAR PENDING
+											</Text>
+										</TouchableOpacity>
+									)}
+									<TouchableOpacity
+										onPress={() => setOfflineModalVisible(false)}
+										accessibilityLabel="Close history"
+									>
+										<Ionicons name="close" size={24} color={COLORS.accent} />
 									</TouchableOpacity>
-								)}
-							</View>
-							<TouchableOpacity
-								onPress={() => setOfflineModalVisible(false)}
-								accessibilityLabel="Close history"
-							>
-								<Ionicons name="close" size={24} color={COLORS.accent} />
-							</TouchableOpacity>
-						</View>
+								</View>
 						<ScrollView style={{ padding: 15 }}>
 							{allDQs.length === 0 ? (
 								<Text style={styles.emptyText}>No DQs recorded</Text>
