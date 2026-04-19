@@ -312,7 +312,9 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage.waitForTimeout(1000);
 
 			// Verify it STILL shows relay members (the same event)
-			await expect(judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Leg 2/i)).first()).toBeVisible();
+			await expect(
+				judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Leg 2/i)).first(),
+			).toBeVisible();
 		});
 
 		test("should dismiss DQ history modal when clicking outside", async ({

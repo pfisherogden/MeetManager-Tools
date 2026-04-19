@@ -240,8 +240,8 @@ jobs:
           FRONTEND_URL: http://localhost:3000
           MOBILE_APP_URL: http://localhost:8080
 
-      - name: Print Logs on Failure
-        if: failure()
+      - name: Print Logs
+        if: always()
         run: docker compose logs
 
       - name: Upload Playwright Report

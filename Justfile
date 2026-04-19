@@ -140,7 +140,7 @@ test-e2e-reports:
 
 test-e2e-sharded shard total:
     @echo "Running Playwright E2E Tests (Shard {{shard}}/{{total}})..."
-    cd web-client && npx playwright test --workers=1 --shard={{shard}}/{{total}}
+    cd web-client && npx playwright test --workers=1 --shard={{shard}}/{{total}} --verbose
 
 test-local: test-backend-local test-frontend
 
