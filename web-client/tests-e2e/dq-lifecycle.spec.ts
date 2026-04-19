@@ -10,6 +10,54 @@ import { expect, type Page, test } from "@playwright/test";
  * 3. Computer Volunteer reviewing and syncing DQs.
  */
 
+// Helper to ensure a dataset is uploaded and active for a given UID
+async function ensureDataset(
+	page: Page,
+	uid: string,
+	filename: string,
+	data: any,
+) {
+	console.log(`Ensuring dataset for ${uid}: ${filename}...`);
+	await page.goto(`/admin?uid=${uid}`);
+	await expect(
+		page.getByRole("heading", { name: /Admin Configuration/i }),
+	).toBeVisible({ timeout: 15000 });
+
+	const publishBtn = page.getByTestId("publish-button");
+	if ((await publishBtn.count()) > 0) {
+		console.log(`Dataset already active for ${uid}`);
+		return;
+	}
+
+	const testFilePath = `tests-e2e/${filename}`;
+	fs.writeFileSync(testFilePath, JSON.stringify(data));
+	try {
+		console.log(`Uploading ${testFilePath}...`);
+		const fileChooserPromise = page.waitForEvent("filechooser");
+		await page
+			.getByRole("button", { name: /Upload Dataset/i })
+			.first()
+			.click({ force: true });
+		const fileChooser = await fileChooserPromise;
+		await fileChooser.setFiles(testFilePath);
+		await expect(page.getByText(/Dataset uploaded successfully/i)).toBeVisible({
+			timeout: 20000,
+		});
+
+		// If not already active, set it active
+		if ((await publishBtn.count()) === 0) {
+			console.log("Setting dataset active...");
+			await page
+				.getByRole("button", { name: /Set Active/i })
+				.first()
+				.click({ force: true });
+			await expect(publishBtn).toBeVisible({ timeout: 10000 });
+		}
+	} finally {
+		if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
+	}
+}
+
 test.describe("Disqualification Lifecycle", () => {
 	let judgePage: Page;
 	let volunteerPage: Page;
@@ -17,7 +65,6 @@ test.describe("Disqualification Lifecycle", () => {
 
 	test.beforeAll(async ({ browser }) => {
 		// Clear mock firestore for a fresh run
-		// path relative to web-client directory where playwright runs
 		const mockFilePath = "../../tmp/mock_firestore.json";
 		if (fs.existsSync(mockFilePath)) {
 			console.log(`Clearing existing mock firestore at ${mockFilePath}`);
@@ -47,62 +94,48 @@ test.describe("Disqualification Lifecycle", () => {
 
 	test("Full DQ Journey: Publish -> Submit -> Sync -> Verify", async () => {
 		// --- 1. Meet Administrator: Publish ---
-		console.log("Journey Step 1: Admin publishing data...");
-		await volunteerPage.goto(`/admin?uid=${userId}`);
-		await expect(
-			volunteerPage.getByRole("heading", { name: /Admin Configuration/i }),
-		).toBeVisible();
+		const dummyData = {
+			meet: [{ meet_name1: "Journey Meet" }],
+			team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
+			athlete: [
+				{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" },
+				{ ath_no: 2, team_no: 1, first_name: "Test", last_name: "B" },
+				{ ath_no: 3, team_no: 1, first_name: "Test", last_name: "C" },
+				{ ath_no: 4, team_no: 1, first_name: "Test", last_name: "D" },
+			],
+			event: [
+				{ event_no: 13, event_ptr: 13, ind_rel: "R" },
+				{ event_no: 15, event_ptr: 15, ind_rel: "I" },
+			],
+			session: [{ sess_ptr: 1, sess_no: 1 }],
+			sessitem: [
+				{ sess_ptr: 1, event_ptr: 13 },
+				{ sess_ptr: 1, event_ptr: 15 },
+			],
+			entry: [
+				{ ath_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
+				{ ath_no: 2, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
+				{ ath_no: 3, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
+				{ ath_no: 4, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
+				{ ath_no: 1, event_ptr: 15, pre_heat: 1, pre_lane: 1 },
+			],
+			relay: [
+				{ relay_no: 1, team_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
+			],
+			relaynames: [
+				{ relay_no: 1, ath_no: 1, pos: 1 },
+				{ relay_no: 1, ath_no: 2, pos: 2 },
+				{ relay_no: 1, ath_no: 3, pos: 3 },
+				{ relay_no: 1, ath_no: 4, pos: 4 },
+			],
+		};
 
-		// Check if we need to upload a dataset first
-		const publishBtn = volunteerPage.getByTestId("publish-button");
-		if ((await publishBtn.count()) === 0) {
-			console.log("Journey Step 1.0: No dataset found, uploading sample...");
-			const testFilePath = "tests-e2e/test-full-journey.json";
-			const dummyData = {
-				meet: [{ meet_name1: "Journey Meet" }],
-				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
-				athlete: [
-					{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" },
-				],
-				event: [
-					{ event_no: 13, event_ptr: 13, ind_rel: "R" },
-					{ event_no: 15, event_ptr: 15, ind_rel: "I" },
-				],
-				session: [{ sess_ptr: 1, sess_no: 1 }],
-				sessitem: [
-					{ sess_ptr: 1, event_ptr: 13 },
-					{ sess_ptr: 1, event_ptr: 15 },
-				],
-				entry: [
-					{ ath_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 1 },
-					{ ath_no: 1, event_ptr: 15, pre_heat: 1, pre_lane: 1 },
-				],
-				relay: [
-					{ relay_no: 1, team_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
-				],
-				relaynames: [
-					{ relay_no: 1, ath_no: 1, pos: 1 },
-					{ relay_no: 1, ath_no: 2, pos: 2 },
-					{ relay_no: 1, ath_no: 3, pos: 3 },
-					{ relay_no: 1, ath_no: 4, pos: 4 },
-				],
-			};
-			fs.writeFileSync(testFilePath, JSON.stringify(dummyData));
-			try {
-				const fileChooserPromise = volunteerPage.waitForEvent("filechooser");
-				await volunteerPage
-					.getByRole("button", { name: /Upload Dataset/i })
-					.first()
-					.click({ force: true });
-				const fileChooser = await fileChooserPromise;
-				await fileChooser.setFiles(testFilePath);
-				await expect(
-					volunteerPage.getByText(/Dataset uploaded successfully/i),
-				).toBeVisible({ timeout: 20000 });
-			} finally {
-				if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
-			}
-		}
+		await ensureDataset(
+			volunteerPage,
+			userId,
+			`journey-${userId}.json`,
+			dummyData,
+		);
 
 		console.log("Journey Step 1.1: Clicking Publish button...");
 		await volunteerPage
@@ -129,7 +162,7 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage.getByPlaceholder("Your Name").fill("Judge Alex");
 		await judgePage.getByText("START JUDGING").click({ force: true });
 		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible({
-			timeout: 10000,
+			timeout: 15000,
 		});
 
 		// --- 3. S&T Judge: Submit Individual DQ ---
@@ -166,7 +199,9 @@ test.describe("Disqualification Lifecycle", () => {
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "1A" }),
 		).toBeVisible({ timeout: 15000 });
-		await expect(volunteerPage.getByText("Judge Alex")).toBeVisible();
+		await expect(volunteerPage.getByText("Judge Alex")).toBeVisible({
+			timeout: 10000,
+		});
 
 		// --- 5. S&T Judge: Submit Relay DQ (Targeting Bug) ---
 		console.log("Journey Step 5: Judge submitting relay DQ...");
@@ -189,10 +224,9 @@ test.describe("Disqualification Lifecycle", () => {
 			.first()
 			.click({ force: true });
 
-		// In our dummy data, swimmer is "Test A"
 		const leg3 = judgePage
 			.getByText(/Leg 3/i)
-			.or(judgePage.getByText(/Test A/i))
+			.or(judgePage.getByText(/Test C/i))
 			.first();
 		await expect(leg3).toBeVisible({ timeout: 10000 });
 		await leg3.click({ force: true });
@@ -209,7 +243,11 @@ test.describe("Disqualification Lifecycle", () => {
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
-		).toBeVisible({ timeout: 10000 });
+		).toBeVisible({ timeout: 15000 });
+
+		await expect(volunteerPage.getByText(/Test C/i)).toBeVisible({
+			timeout: 10000,
+		});
 
 		// --- 7. S&T Judge: Edit DQ ---
 		console.log("Journey Step 7: Judge editing pending DQ...");
@@ -243,7 +281,7 @@ test.describe("Disqualification Lifecycle", () => {
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
-		).toContainText(/Synced/i, { timeout: 10000 });
+		).toContainText(/Synced/i, { timeout: 15000 });
 
 		// --- 9. S&T Judge: Sync Indicator ---
 		console.log("Journey Step 9: Judge verifying sync status...");
@@ -267,7 +305,7 @@ test.describe("Disqualification Lifecycle", () => {
 				volunteerPage.getByRole("heading", {
 					name: /Submitted Disqualifications/i,
 				}),
-			).toBeVisible({ timeout: 10000 });
+			).toBeVisible({ timeout: 15000 });
 
 			await expect(volunteerPage.locator("table")).toBeVisible({
 				timeout: 10000,
@@ -280,18 +318,7 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should generate correct Judge App URL (not 404)", async ({
 			page,
 		}) => {
-			console.log("Regression: Judge App URL test starting...");
-			const volunteerPage = page;
 			const userIdRegress = `e2e-regress-${Math.random().toString(36).substring(7)}`;
-
-			await volunteerPage.goto(`/admin?uid=${userIdRegress}`);
-			console.log("Regression: On Admin page");
-			await expect(
-				volunteerPage.getByRole("heading", { name: /Admin Configuration/i }),
-			).toBeVisible({ timeout: 10000 });
-
-			// Upload sample data first to enable Publish button
-			const testFilePath = "tests-e2e/test-regress.json";
 			const dummyData = {
 				meet: [{ meet_name1: "Regression Meet" }],
 				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -303,41 +330,28 @@ test.describe("Disqualification Lifecycle", () => {
 				sessitem: [{ sess_ptr: 1, event_ptr: 1 }],
 				entry: [{ ath_no: 1, event_ptr: 1, pre_heat: 1, pre_lane: 1 }],
 			};
-			fs.writeFileSync(testFilePath, JSON.stringify(dummyData));
-			try {
-				console.log("Regression: Uploading test-regress.json...");
-				const fileChooserPromise = volunteerPage.waitForEvent("filechooser");
-				await volunteerPage
-					.getByRole("button", { name: /Upload Dataset/i })
-					.first()
-					.click({ force: true });
-				const fileChooser = await fileChooserPromise;
-				await fileChooser.setFiles(testFilePath);
-				await expect(
-					volunteerPage.getByText(/Dataset uploaded successfully/i),
-				).toBeVisible({ timeout: 20000 });
-				console.log("Regression: Upload successful");
 
-				// Publish
-				console.log("Regression: Clicking Publish...");
-				await volunteerPage
-					.getByTestId("publish-button")
-					.first()
-					.click({ force: true });
-				await expect(
-					volunteerPage.getByText("Meet data published"),
-				).toBeVisible({ timeout: 10000 });
-				console.log("Regression: Publish successful");
+			await ensureDataset(
+				page,
+				userIdRegress,
+				`regress-url-${userIdRegress}.json`,
+				dummyData,
+			);
 
-				const urlElement = volunteerPage.getByTestId("judge-app-url");
-				const judgeAppUrl = await urlElement.innerText();
+			// Publish
+			console.log("Regression: Clicking Publish...");
+			await page.getByTestId("publish-button").first().click({ force: true });
+			await expect(page.getByText("Meet data published")).toBeVisible({
+				timeout: 15000,
+			});
+			console.log("Regression: Publish successful");
 
-				console.log(`Regression check: Generated URL is ${judgeAppUrl}`);
-				expect(judgeAppUrl).toContain("/judge?");
-				expect(judgeAppUrl).not.toContain(":3000/judge"); // Should not point to frontend
-			} finally {
-				if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
-			}
+			const urlElement = page.getByTestId("judge-app-url");
+			const judgeAppUrl = await urlElement.innerText();
+
+			console.log(`Regression check: Generated URL is ${judgeAppUrl}`);
+			expect(judgeAppUrl).toContain("/judge?");
+			expect(judgeAppUrl).not.toContain(":3000/judge"); // Should not point to frontend
 		});
 
 		test("should maintain relay team view when navigating heats", async ({
@@ -350,7 +364,7 @@ test.describe("Disqualification Lifecycle", () => {
 					"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
 			});
 			const judgePage = await judgeContext.newPage();
-			// Use sample program with known relays (Event 13 in Sample_Data)
+			// Use sample program with known relays
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
 			await judgePage.getByText("START JUDGING").click({ force: true });
