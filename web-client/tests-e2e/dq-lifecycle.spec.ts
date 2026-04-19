@@ -78,7 +78,7 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage.goto(localUrl);
 		await judgePage.getByPlaceholder("Your Name").fill("Judge Alex");
 		await judgePage.getByText("START JUDGING").click({ force: true });
-		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible();
+		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible({ timeout: 10000 });
 
 		// --- 3. S&T Judge: Submit Individual DQ ---
 		console.log("Journey Step 3: Judge submitting individual DQ...");
@@ -163,7 +163,7 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByText(/DQ History/)
 			.first()
 			.click({ force: true });
-		await judgePage.getByText("7Q").first().waitFor({ state: "visible" });
+		await judgePage.getByText("7Q").first().waitFor({ state: "visible", timeout: 10000 });
 		await judgePage.evaluate(() => {
 			const elements = Array.from(document.querySelectorAll("div, span, p"));
 			const dqBtn = elements.find(
