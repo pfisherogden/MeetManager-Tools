@@ -21,8 +21,21 @@ async function getAuthMetadata() {
 		(process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "1")
 	) {
-		userId = "e2e-bypass-user";
-		console.log("DEBUG: E2E Auth Bypass triggered in server action");
+		// Try to extract uid from referer URL to maintain shard isolation in CI
+		const referer = headerList.get("referer");
+		if (referer) {
+			try {
+				const refererUrl = new URL(referer);
+				userId = refererUrl.searchParams.get("uid");
+			} catch (_e) {
+				// Invalid URL, ignore
+			}
+		}
+
+		if (!userId) {
+			userId = "e2e-bypass-user";
+		}
+		console.log(`DEBUG: E2E Auth Bypass triggered for user: ${userId}`);
 	}
 
 	if (!userId) {
