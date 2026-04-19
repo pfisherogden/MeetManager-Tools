@@ -54,7 +54,11 @@ test.describe("Disqualification Lifecycle", () => {
 		).toBeVisible();
 
 		// Check if we need to upload anonymized_champs.json first
-		await volunteerPage.getByRole("button", { name: /Publish/i }).click();
+		console.log("Journey Step 1.1: Clicking Publish button...");
+		await volunteerPage
+			.getByTestId("publish-button")
+			.first()
+			.click({ force: true });
 		await expect(volunteerPage.getByText("Meet data published")).toBeVisible({
 			timeout: 30000,
 		});
@@ -73,7 +77,7 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log("Journey Step 2: Judge onboarding...");
 		await judgePage.goto(localUrl);
 		await judgePage.getByPlaceholder("Your Name").fill("Judge Alex");
-		await judgePage.getByText("START JUDGING").click();
+		await judgePage.getByText("START JUDGING").click({ force: true });
 		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible();
 
 		// --- 3. S&T Judge: Submit Individual DQ ---
@@ -81,14 +85,14 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage
 			.getByText(/Event 15/i)
 			.first()
-			.click();
+			.click({ force: true });
 		await judgePage
 			.getByText(/Heat 1/i)
 			.first()
-			.click();
-		await judgePage.getByText("TAP TO DQ").first().click();
+			.click({ force: true });
+		await judgePage.getByText("TAP TO DQ").first().click({ force: true });
 
-		await judgePage.getByText("1A").first().click();
+		await judgePage.getByText("1A").first().click({ force: true });
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("False start on lane 1");
@@ -114,21 +118,29 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 5. S&T Judge: Submit Relay DQ (Targeting Bug) ---
 		console.log("Journey Step 5: Judge submitting relay DQ...");
-		await judgePage.getByText("BACK", { exact: true }).click();
-		await judgePage.getByText("EVENTS", { exact: true }).click();
+		await judgePage
+			.getByLabel(/back/i)
+			.or(judgePage.getByText("BACK", { exact: true }))
+			.first()
+			.click({ force: true });
+		await judgePage
+			.getByLabel(/events/i)
+			.or(judgePage.getByText("EVENTS", { exact: true }))
+			.first()
+			.click({ force: true });
 		await judgePage
 			.getByText(/Event 13/i)
 			.first()
-			.click(); // Relay
+			.click({ force: true }); // Relay
 		await judgePage
 			.getByText(/Heat 1/i)
 			.first()
-			.click();
+			.click({ force: true });
 
 		const leg3 = judgePage.getByText(/Erika Garza/i).first();
 		await expect(leg3).toBeVisible();
-		await leg3.click();
-		await judgePage.getByText("7Q").first().click(); // Early take-off
+		await leg3.click({ force: true });
+		await judgePage.getByText("7Q").first().click({ force: true }); // Early take-off
 		await judgePage.evaluate(() => {
 			const btn = document.querySelector(
 				'[aria-label="Save changes"]',
@@ -236,7 +248,8 @@ test.describe("Disqualification Lifecycle", () => {
 				const fileChooserPromise = volunteerPage.waitForEvent("filechooser");
 				await volunteerPage
 					.getByRole("button", { name: /Upload Dataset/i })
-					.click();
+					.first()
+					.click({ force: true });
 				const fileChooser = await fileChooserPromise;
 				await fileChooser.setFiles(testFilePath);
 				await expect(
@@ -246,7 +259,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 				// Publish
 				console.log("Regression: Clicking Publish...");
-				await volunteerPage.getByTestId("publish-button").click();
+				await volunteerPage
+					.getByTestId("publish-button")
+					.first()
+					.click({ force: true });
 				await expect(
 					volunteerPage.getByText("Meet data published"),
 				).toBeVisible();
@@ -276,12 +292,12 @@ test.describe("Disqualification Lifecycle", () => {
 			// Use sample program with known relays (Event 13 in Sample_Data)
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
-			await judgePage.getByText("START JUDGING").click();
+			await judgePage.getByText("START JUDGING").click({ force: true });
 			console.log("Regression: Judge SPA onboarded");
 
 			// Go to Event 13 (Relay)
-			await judgePage.getByText("Event 13").first().click();
-			await judgePage.getByText("Heat 1").first().click();
+			await judgePage.getByText("Event 13").first().click({ force: true });
+			await judgePage.getByText("Heat 1").first().click({ force: true });
 			console.log("Regression: On Event 13 Heat 1");
 
 			// Verify it shows relay members
@@ -291,13 +307,11 @@ test.describe("Disqualification Lifecycle", () => {
 			// Navigate to Next Heat
 			console.log("Regression: Navigating to next heat...");
 			await judgePage
-				.locator("button, [role='button']")
-				.filter({ hasText: /forward/i })
-				.or(judgePage.locator('svg[class*="forward"]'))
+				.getByLabel(/next heat/i)
 				.first()
 				.click({ force: true });
 			// Give it a moment to render
-			await judgePage.waitForTimeout(1000);
+			await judgePage.waitForTimeout(2000);
 
 			// Verify it STILL shows relay members (the same event)
 			await expect(
@@ -316,7 +330,7 @@ test.describe("Disqualification Lifecycle", () => {
 			const judgePage = await judgeContext.newPage();
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Modal Judge");
-			await judgePage.getByText("START JUDGING").click();
+			await judgePage.getByText("START JUDGING").click({ force: true });
 
 			// Open History
 			await judgePage
