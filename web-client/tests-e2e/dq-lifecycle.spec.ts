@@ -18,8 +18,6 @@ test.describe("Disqualification Lifecycle", () => {
 
 	test.beforeAll(async ({ browser }) => {
 		// Clear mock firestore for a fresh run
-		// path relative to web-client directory where playwright runs
-		// Corrected path to match docker-compose volume mount
 		const mockFilePath = path.join(__dirname, "../../tmp/mock_firestore.json");
 		if (fs.existsSync(mockFilePath)) {
 			console.log(`Clearing existing mock firestore at ${mockFilePath}`);
@@ -56,7 +54,6 @@ test.describe("Disqualification Lifecycle", () => {
 		).toBeVisible();
 
 		// Check if we need to upload anonymized_champs.json first
-		// (In CI it might be already active if we set it as SOURCE_FILE)
 		await volunteerPage.getByRole("button", { name: /Publish/i }).click();
 		await expect(volunteerPage.getByText("Meet data published")).toBeVisible({
 			timeout: 30000,
@@ -66,9 +63,6 @@ test.describe("Disqualification Lifecycle", () => {
 		const judgeAppUrl = await urlElement.innerText();
 		console.log(`Extracted Judge App URL: ${judgeAppUrl}`);
 
-		// Map the URL to localhost:8080 for the E2E environment
-		// The URL might have a production origin (https://pfisherogden.github.io/MeetManager-Tools/)
-		// or localhost:3000. We need to replace only the origin part.
 		const localUrl = judgeAppUrl.replace(
 			/^https?:\/\/[^/]+/i,
 			"http://localhost:8080",
@@ -84,7 +78,6 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 3. S&T Judge: Submit Individual DQ ---
 		console.log("Journey Step 3: Judge submitting individual DQ...");
-		// Use Event 15 for individual
 		await judgePage
 			.getByText(/Event 15/i)
 			.first()
@@ -95,7 +88,6 @@ test.describe("Disqualification Lifecycle", () => {
 			.click();
 		await judgePage.getByText("TAP TO DQ").first().click();
 
-		// Select DQ code 1A
 		await judgePage.getByText("1A").first().click();
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
@@ -107,18 +99,14 @@ test.describe("Disqualification Lifecycle", () => {
 			if (btn) btn.click();
 		});
 
-		// Verify code is shown on the swimmer card
 		await expect(
 			judgePage.locator("#root").getByText("1A").first(),
 		).toBeVisible();
 
 		// --- 4. Computer Volunteer: Live Review (Individual) ---
 		console.log("Journey Step 4: Volunteer verifying live DQ...");
-		// Give more time for the file-based mock firestore to settle and for the volunteer page to load
-		await volunteerPage.waitForTimeout(5000);
 		await volunteerPage.goto("/dqs");
 
-		// Verify the DQ row exists. Increase timeout for polling.
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "1A" }),
 		).toBeVisible({ timeout: 15000 });
@@ -137,8 +125,6 @@ test.describe("Disqualification Lifecycle", () => {
 			.first()
 			.click();
 
-		// Find Leg 3 of Lane 2 Relay (Miranda Anderson's team)
-		// Remapped to Erika Garza in our script
 		const leg3 = judgePage.getByText(/Erika Garza/i).first();
 		await expect(leg3).toBeVisible();
 		await leg3.click();
@@ -152,16 +138,11 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 6. Computer Volunteer: Verify Relay Swimmer Name ---
 		console.log("Journey Step 6: Volunteer verifying relay swimmer name...");
-		// The page polls every 5 seconds, so we wait or reload
-		// Give more time for the file-based mock firestore to settle in CI
-		await volunteerPage.waitForTimeout(5000);
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
 		).toBeVisible({ timeout: 10000 });
 
-		// Verify relay swimmer name logic (The fix we implemented)
-		// Should show "Erika Garza" as Leg 3
 		await expect(volunteerPage.getByText(/Erika Garza/i)).toBeVisible();
 
 		// --- 7. S&T Judge: Edit DQ ---
@@ -190,9 +171,6 @@ test.describe("Disqualification Lifecycle", () => {
 
 		// --- 8. Computer Volunteer: Sync ---
 		console.log("Journey Step 8: Volunteer verifying sync status...");
-		// In our current implementation, sync happens immediately via API trigger
-		// So it should show as "Synced" (CheckCircle2 + Synced text)
-		await volunteerPage.waitForTimeout(5000);
 		await volunteerPage.reload();
 		await expect(
 			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
@@ -204,8 +182,6 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByText(/DQ History/)
 			.first()
 			.click({ force: true });
-		// Initially it might be cloud-upload (pending), eventually cloud-done
-		// We just check if the history list is visible and has items
 		await expect(judgePage.getByText("7Q").first()).toBeVisible();
 	});
 
@@ -213,6 +189,7 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should show synced DQs in the global Submitted DQs list", async ({
 			page,
 		}) => {
+			console.log("Visibility: Starting...");
 			const volunteerPage = page;
 			await volunteerPage.goto("/dqs");
 			await expect(
@@ -221,8 +198,8 @@ test.describe("Disqualification Lifecycle", () => {
 				}),
 			).toBeVisible();
 
-			// The list should render a table
 			await expect(volunteerPage.locator("table")).toBeVisible();
+			console.log("Visibility: Table visible");
 		});
 	});
 
@@ -230,10 +207,12 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should generate correct Judge App URL (not 404)", async ({
 			page,
 		}) => {
+			console.log("Regression: Judge App URL test starting...");
 			const volunteerPage = page;
-			const userId = `e2e-regress-${Math.random().toString(36).substring(7)}`;
+			const userIdRegress = `e2e-regress-${Math.random().toString(36).substring(7)}`;
 
-			await volunteerPage.goto(`/admin?uid=${userId}`);
+			await volunteerPage.goto(`/admin?uid=${userIdRegress}`);
+			console.log("Regression: On Admin page");
 			await expect(
 				volunteerPage.getByRole("heading", { name: /Admin Configuration/i }),
 			).toBeVisible();
@@ -253,6 +232,7 @@ test.describe("Disqualification Lifecycle", () => {
 			};
 			fs.writeFileSync(testFilePath, JSON.stringify(dummyData));
 			try {
+				console.log("Regression: Uploading test-regress.json...");
 				const fileChooserPromise = volunteerPage.waitForEvent("filechooser");
 				await volunteerPage
 					.getByRole("button", { name: /Upload Dataset/i })
@@ -262,12 +242,15 @@ test.describe("Disqualification Lifecycle", () => {
 				await expect(
 					volunteerPage.getByText(/Dataset uploaded successfully/i),
 				).toBeVisible({ timeout: 20000 });
+				console.log("Regression: Upload successful");
 
 				// Publish
+				console.log("Regression: Clicking Publish...");
 				await volunteerPage.getByTestId("publish-button").click();
 				await expect(
 					volunteerPage.getByText("Meet data published"),
 				).toBeVisible();
+				console.log("Regression: Publish successful");
 
 				const urlElement = volunteerPage.getByTestId("judge-app-url");
 				const judgeAppUrl = await urlElement.innerText();
@@ -283,6 +266,7 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should maintain relay team view when navigating heats", async ({
 			browser,
 		}) => {
+			console.log("Regression: Relay navigation test starting...");
 			const judgeContext = await browser.newContext({
 				viewport: { width: 375, height: 1200 },
 				userAgent:
@@ -293,15 +277,19 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
 			await judgePage.getByText("START JUDGING").click();
+			console.log("Regression: Judge SPA onboarded");
 
 			// Go to Event 13 (Relay)
 			await judgePage.getByText("Event 13").first().click();
 			await judgePage.getByText("Heat 1").first().click();
+			console.log("Regression: On Event 13 Heat 1");
 
 			// Verify it shows relay members
 			await expect(judgePage.getByText(/Erika Garza/i).first()).toBeVisible();
+			console.log("Regression: Erika Garza visible");
 
 			// Navigate to Next Heat
+			console.log("Regression: Navigating to next heat...");
 			await judgePage
 				.locator("button, [role='button']")
 				.filter({ hasText: /forward/i })
@@ -315,11 +303,13 @@ test.describe("Disqualification Lifecycle", () => {
 			await expect(
 				judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Leg 2/i)).first(),
 			).toBeVisible();
+			console.log("Regression: Relay legs still visible after navigation");
 		});
 
 		test("should dismiss DQ history modal when clicking outside", async ({
 			browser,
 		}) => {
+			console.log("Regression: Modal dismissal test starting...");
 			const judgeContext = await browser.newContext({
 				viewport: { width: 375, height: 1200 },
 			});
@@ -336,8 +326,10 @@ test.describe("Disqualification Lifecycle", () => {
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).toBeVisible();
+			console.log("Regression: Modal open");
 
 			// Click far outside (middle-left area of overlay)
+			console.log("Regression: Clicking outside modal...");
 			await judgePage.mouse.click(5, 300);
 			await judgePage.waitForTimeout(1000);
 
@@ -345,6 +337,7 @@ test.describe("Disqualification Lifecycle", () => {
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).not.toBeVisible();
+			console.log("Regression: Modal dismissed");
 		});
 	});
 });
