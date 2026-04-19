@@ -16,11 +16,20 @@ async function getAuthMetadata() {
 	}
 
 	// E2E Bypass for automated testing
-	if (!userId && process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+	if (
+		!userId &&
+		(process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
+			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "1")
+	) {
 		userId = "e2e-bypass-user";
+		console.log("DEBUG: E2E Auth Bypass triggered in server action");
 	}
 
 	if (!userId) {
+		const allHeaders = Array.from(headerList.entries())
+			.map(([k, v]) => `${k}: ${v}`)
+			.join(", ");
+		console.error(`DEBUG: Auth failed. Headers present: ${allHeaders}`);
 		throw new Error("Authentication required. Please refresh or log in again.");
 	}
 
