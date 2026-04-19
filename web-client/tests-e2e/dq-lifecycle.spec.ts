@@ -78,15 +78,22 @@ test.describe("Disqualification Lifecycle", () => {
 		}
 
 		// Create isolated contexts for Judge and Volunteer
+		// CRITICAL: Pass x-user-id in extraHTTPHeaders for Server Action isolation in CI
 		const judgeContext = await browser.newContext({
 			baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080",
 			viewport: { width: 375, height: 1200 }, // Extra tall for safety
 			userAgent:
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
+			extraHTTPHeaders: {
+				"x-user-id": userId,
+			},
 		});
 
 		const volunteerContext = await browser.newContext({
 			baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
+			extraHTTPHeaders: {
+				"x-user-id": userId,
+			},
 		});
 
 		judgePage = await judgeContext.newPage();
@@ -337,6 +344,9 @@ test.describe("Disqualification Lifecycle", () => {
 				entry: [{ ath_no: 1, event_ptr: 1, pre_heat: 1, pre_lane: 1 }],
 			};
 
+			// Ensure unique x-user-id for regression test too
+			// We can't easily change extraHTTPHeaders after context creation,
+			// but we can pass uid in metadata via ensureDataset
 			await ensureDataset(
 				page,
 				userIdRegress,
@@ -363,15 +373,67 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should maintain relay team view when navigating heats", async ({
 			browser,
 		}) => {
+			const userIdNav = `e2e-nav-${Math.random().toString(36).substring(7)}`;
+			const dummyData = {
+				meet: [{ meet_name1: "Nav Meet" }],
+				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
+				athlete: [
+					{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" },
+				],
+				event: [{ event_no: 13, event_ptr: 13, ind_rel: "R" }],
+				session: [{ sess_ptr: 1, sess_no: 1 }],
+				sessitem: [{ sess_ptr: 1, event_ptr: 13 }],
+				entry: [
+					{ ath_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 1 },
+					{ ath_no: 1, event_ptr: 13, pre_heat: 2, pre_lane: 1 },
+				],
+				relay: [
+					{ relay_no: 1, team_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 1 },
+					{ relay_no: 2, team_no: 1, event_ptr: 13, pre_heat: 2, pre_lane: 1 },
+				],
+				relaynames: [
+					{ relay_no: 1, ath_no: 1, pos: 1 },
+					{ relay_no: 2, ath_no: 1, pos: 1 },
+				],
+			};
+
+			const adminContext = await browser.newContext({
+				baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
+				extraHTTPHeaders: { "x-user-id": userIdNav },
+			});
+			const adminPage = await adminContext.newPage();
+			await ensureDataset(
+				adminPage,
+				userIdNav,
+				`nav-${userIdNav}.json`,
+				dummyData,
+			);
+
+			// Publish to get URL
+			await adminPage
+				.getByTestId("publish-button")
+				.first()
+				.click({ force: true });
+			await expect(adminPage.getByText("Meet data published")).toBeVisible({
+				timeout: 15000,
+			});
+			const judgeAppUrl = await adminPage
+				.getByTestId("judge-app-url")
+				.innerText();
+			const localUrl = judgeAppUrl.replace(
+				/^https?:\/\/[^/]+/i,
+				"http://localhost:8080",
+			);
+
 			console.log("Regression: Relay navigation test starting...");
 			const judgeContext = await browser.newContext({
 				viewport: { width: 375, height: 1200 },
 				userAgent:
 					"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
+				extraHTTPHeaders: { "x-user-id": userIdNav },
 			});
 			const judgePage = await judgeContext.newPage();
-			// Use sample program with known relays
-			await judgePage.goto("http://localhost:8080/judge");
+			await judgePage.goto(localUrl);
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
 			await judgePage.getByText("START JUDGING").click({ force: true });
 			console.log("Regression: Judge SPA onboarded");
@@ -383,7 +445,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 			// Verify it shows relay members
 			await expect(
-				judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Leg 2/i)).first(),
+				judgePage
+					.getByText(/Leg 1/i)
+					.or(judgePage.getByText(/Test A/i))
+					.first(),
 			).toBeVisible({ timeout: 10000 });
 			console.log("Regression: Relay legs visible");
 
@@ -398,7 +463,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 			// Verify it STILL shows relay members (the same event)
 			await expect(
-				judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Leg 2/i)).first(),
+				judgePage
+					.getByText(/Leg 1/i)
+					.or(judgePage.getByText(/Test A/i))
+					.first(),
 			).toBeVisible({ timeout: 10000 });
 			console.log("Regression: Relay legs still visible after navigation");
 		});
