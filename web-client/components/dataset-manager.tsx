@@ -288,7 +288,10 @@ export function DatasetManager() {
 							</TableRow>
 						) : (
 							datasets.map((dataset) => (
-								<TableRow key={dataset.filename}>
+								<TableRow
+									key={dataset.filename}
+									data-testid={`dataset-row-${dataset.filename}`}
+								>
 									<TableCell className="font-medium flex items-center gap-2">
 										<Database className="h-4 w-4 text-muted-foreground" />
 										{dataset.filename}
