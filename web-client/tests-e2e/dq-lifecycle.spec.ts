@@ -23,6 +23,7 @@ async function ensureDataset(
 		page.getByRole("heading", { name: /Admin Configuration/i }),
 	).toBeVisible({ timeout: 15000 });
 
+	// Use the specific row for this user's dataset if multiple exist
 	const row = page.locator("tr").filter({ hasText: filename });
 	const isActive = (await row.getByTestId("active-dataset-badge").count()) > 0;
 
@@ -81,9 +82,10 @@ test.describe("Disqualification Lifecycle", () => {
 		const userId = getUserId();
 
 		// Create isolated contexts for Judge and Volunteer
+		// CRITICAL: Pass x-user-id in extraHTTPHeaders for Server Action isolation in CI
 		judgeContext = await browser.newContext({
 			baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080",
-			viewport: { width: 375, height: 1200 },
+			viewport: { width: 375, height: 1200 }, // Extra tall for safety
 			userAgent:
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
 			extraHTTPHeaders: { "x-user-id": userId },
@@ -123,8 +125,9 @@ test.describe("Disqualification Lifecycle", () => {
 	});
 
 	test("Full DQ Journey: Publish -> Submit -> Sync -> Verify", async () => {
-		const _userId =
-			(await volunteerPage.context().cookies())[0]?.value || "unknown"; // Not really how it works but we have it in headers
+		const userId =
+			(await volunteerPage.context().request.headers())["x-user-id"] ||
+			"unknown";
 		const dummyData = {
 			meet: [{ meet_name1: "Journey Meet" }],
 			team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -161,7 +164,6 @@ test.describe("Disqualification Lifecycle", () => {
 			],
 		};
 
-		// The userId is unique per context now
 		const filename = `journey-${userId}.json`;
 		await ensureDataset(volunteerPage, userId, filename, dummyData);
 
@@ -311,6 +313,7 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should generate correct Judge App URL (not 404)", async ({
 			page,
 		}) => {
+			const userIdRegress = `e2e-reg-url-${Math.random().toString(36).substring(7)}`;
 			const dummyData = {
 				meet: [{ meet_name1: "Regression Meet" }],
 				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -343,7 +346,7 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should maintain relay team view when navigating heats", async ({
 			browser,
 		}) => {
-			const userIdNav = `e2e-nav-${Math.random().toString(36).substring(7)}`;
+			const userIdNav = `e2e-nav-view-${Math.random().toString(36).substring(7)}`;
 			const dummyData = {
 				meet: [{ meet_name1: "Nav Meet" }],
 				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -372,7 +375,7 @@ test.describe("Disqualification Lifecycle", () => {
 				extraHTTPHeaders: { "x-user-id": userIdNav },
 			});
 			const adminPage = await adminContext.newPage();
-			const filename = "nav-dataset.json";
+			const filename = `nav-view-${userIdNav}.json`;
 			await ensureDataset(adminPage, userIdNav, filename, dummyData);
 
 			await adminPage
@@ -423,6 +426,9 @@ test.describe("Disqualification Lifecycle", () => {
 					.or(judgePage.getByText(/Test A/i))
 					.first(),
 			).toBeVisible({ timeout: 10000 });
+
+			await adminPage.close();
+			await adminContext.close();
 		});
 
 		test("should dismiss DQ history modal when clicking outside", async ({
