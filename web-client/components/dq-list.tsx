@@ -23,6 +23,7 @@ interface DQRecord {
 	lane: number;
 	swimmer: string;
 	infraction_code: string;
+	notes?: string;
 	createdAt: string;
 }
 
@@ -81,6 +82,7 @@ export function DqList() {
 									<TableHead>Swimmer</TableHead>
 									<TableHead>Judge</TableHead>
 									<TableHead>Infraction</TableHead>
+									<TableHead>Notes</TableHead>
 									<TableHead>Submitted At</TableHead>
 									<TableHead className="text-right">Status</TableHead>
 								</TableRow>
@@ -101,6 +103,9 @@ export function DqList() {
 											<code className="bg-muted px-1 py-0.5 rounded text-sm font-bold">
 												{dq.infraction_code}
 											</code>
+										</TableCell>
+										<TableCell className="max-w-[200px] truncate italic text-sm">
+											{dq.notes || "-"}
 										</TableCell>
 										<TableCell className="text-sm text-muted-foreground">
 											{new Date(dq.createdAt).toLocaleString()}

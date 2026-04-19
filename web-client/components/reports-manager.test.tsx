@@ -33,7 +33,7 @@ describe("ReportsManager", () => {
 		fireEvent.click(addButton);
 
 		// Custom Report Pack Builder should show 1 report
-		expect(screen.getByText(/1 Reports Selected/i)).toBeDefined();
+		expect(screen.getByText(/1 Reports/i)).toBeDefined();
 		// Should show the default Psych Sheet in the builder
 		expect(screen.getByDisplayValue("Psych Sheet")).toBeDefined();
 	});
@@ -50,6 +50,6 @@ describe("ReportsManager", () => {
 		fireEvent.click(applyBtn);
 
 		// Check if multiple reports were added (Lineup Sheets adds many)
-		expect(screen.getByText(/12 Reports Selected/i)).toBeDefined();
+		expect(screen.getByText(/12 Reports/i)).toBeDefined();
 	});
 });

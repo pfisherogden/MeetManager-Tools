@@ -813,7 +813,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 
 			<Card id="custom-builder" className="shadow-lg border-primary/30">
 				<CardHeader className="bg-primary/5 border-b rounded-t-xl">
-					<div className="flex items-center justify-between">
+					<div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 						<div className="flex items-center gap-2">
 							<Package className="h-6 w-6 text-primary" />
 							<div>
@@ -824,8 +824,8 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 								</CardDescription>
 							</div>
 						</div>
-						<div className="flex items-center gap-6">
-							<div className="flex flex-col gap-1 min-w-[150px]">
+						<div className="flex flex-wrap items-center gap-4 lg:gap-6">
+							<div className="flex flex-col gap-1 min-w-[140px]">
 								<span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
 									Rendering Engine
 								</span>
@@ -856,48 +856,46 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 									</SelectContent>
 								</Select>
 							</div>
-							{customPack.length > 0 && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={clearPack}
-									className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
-									data-testid="clear-pack-button"
-								>
-									<Trash2 className="h-4 w-4 mr-1" />
-									Clear All
-								</Button>
-							)}
-							<div className="text-right">
-								<p className="text-sm font-medium">
-									{customPack.length} Reports Selected
-								</p>
-								<p className="text-xs text-muted-foreground">
-									{activeJobId
-										? jobMessage
-										: "Will be delivered as a single ZIP file"}
-								</p>
-							</div>
-							<Button
-								onClick={generateCustomPack}
-								disabled={isBundling || customPack.length === 0}
-								size="lg"
-								className="shadow-md min-w-[200px]"
-							>
-								{isBundling ? (
-									<>
-										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-										{activeJobId
-											? `${Math.round(jobProgress)}%`
-											: "Initializing..."}
-									</>
-								) : (
-									<>
-										<Download className="mr-2 h-4 w-4" />
-										Generate Bundle ZIP
-									</>
+							<div className="flex items-center gap-4 flex-1 justify-between lg:justify-end">
+								{customPack.length > 0 && (
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={clearPack}
+										className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 px-2"
+										data-testid="clear-pack-button"
+									>
+										<Trash2 className="h-4 w-4 mr-1" />
+										Clear All
+									</Button>
 								)}
-							</Button>
+								<div className="text-right">
+									<p className="text-sm font-medium">
+										{customPack.length} Reports
+									</p>
+									<p className="text-[10px] text-muted-foreground leading-tight">
+										{activeJobId ? jobMessage : "Bundled as ZIP"}
+									</p>
+								</div>
+								<Button
+									onClick={generateCustomPack}
+									disabled={isBundling || customPack.length === 0}
+									size="sm"
+									className="shadow-md min-w-[150px] lg:min-w-[180px] h-9"
+								>
+									{isBundling ? (
+										<>
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+											{activeJobId ? `${Math.round(jobProgress)}%` : "Wait..."}
+										</>
+									) : (
+										<>
+											<Download className="mr-2 h-4 w-4" />
+											Generate ZIP
+										</>
+									)}
+								</Button>
+							</div>
 						</div>
 					</div>
 				</CardHeader>

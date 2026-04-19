@@ -381,8 +381,15 @@ export default function App() {
 		}
 
 		if (targetHeat && targetEvent) {
+			const isEventChanged = targetEvent.id !== selectedEvent?.id;
 			setSelectedEvent(targetEvent);
 			setSelectedHeat(targetHeat);
+
+			if (isEventChanged) {
+				const nextEventHeats = getHeatsByEvent(targetEvent.id);
+				setHeats(nextEventHeats);
+			}
+
 			if (autoSelectFirstSwimmer) {
 				const newSwimmers = getSwimmersByHeat(targetHeat.id);
 				if (newSwimmers.length > 0) {
@@ -392,6 +399,9 @@ export default function App() {
 				} else {
 					setDqModalVisible(false);
 				}
+			} else {
+				// Even if not auto-selecting swimmer, we MUST refresh the swimmers list for the new heat/event
+				setSwimmers(getSwimmersByHeat(targetHeat.id));
 			}
 		}
 	};
@@ -401,7 +411,7 @@ export default function App() {
 		let targetEvent = selectedEvent;
 		let targetHeat = null;
 
-		if (currentHeatIndex < heats.length - 1) {
+		if (currentHeatIndex < heats.length - 1 && currentHeatIndex !== -1) {
 			targetHeat = heats[currentHeatIndex + 1];
 		} else {
 			const currentEventIndex = events.findIndex(
@@ -417,8 +427,15 @@ export default function App() {
 		}
 
 		if (targetHeat && targetEvent) {
+			const isEventChanged = targetEvent.id !== selectedEvent?.id;
 			setSelectedEvent(targetEvent);
 			setSelectedHeat(targetHeat);
+
+			if (isEventChanged) {
+				const nextEventHeats = getHeatsByEvent(targetEvent.id);
+				setHeats(nextEventHeats);
+			}
+
 			if (autoSelectFirstSwimmer) {
 				const newSwimmers = getSwimmersByHeat(targetHeat.id);
 				if (newSwimmers.length > 0) {
@@ -428,6 +445,9 @@ export default function App() {
 				} else {
 					setDqModalVisible(false);
 				}
+			} else {
+				// Even if not auto-selecting swimmer, we MUST refresh the swimmers list for the new heat/event
+				setSwimmers(getSwimmersByHeat(targetHeat.id));
 			}
 		}
 	};
@@ -754,7 +774,10 @@ export default function App() {
 	const orderedDQCategories = getOrderedDQCategories(currentStroke, dqCodes);
 
 	return (
-		<SafeAreaView style={styles.safeArea}>
+		<SafeAreaView
+			style={styles.safeArea}
+			key={`app-view-${selectedEvent?.id}-${selectedHeat?.id}`}
+		>
 			{/* Judge Name Prompt */}
 			<Modal visible={namePromptVisible} animationType="fade" transparent={true}>
 				<View style={styles.modalOverlay}>
