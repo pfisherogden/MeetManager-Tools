@@ -232,16 +232,18 @@ export const getHeatsByEvent = (eventId: number): Heat[] => {
 };
 
 export const getSwimmersByHeat = (heatId: number): Swimmer[] => {
-	const heat = mockHeats.find((h) => h.id === heatId);
-	const event = heat ? mockEvents.find((e) => e.id === heat.event_id) : null;
+	const heat = mockHeats.find((h) => Number(h.id) === Number(heatId));
+	const event = heat
+		? mockEvents.find((e) => Number(e.id) === Number(heat.event_id))
+		: null;
 	const isRelay = event ? event.isRelay : false;
 
 	const swimmers = mockSwimmers
-		.filter((s) => s.heat_id === heatId)
+		.filter((s) => Number(s.heat_id) === Number(heatId))
 		.sort((a, b) => a.lane - b.lane);
 
 	// Create a map for quick lookup
-	const swimmerMap = new Map(swimmers.map((s) => [s.lane, s]));
+	const swimmerMap = new Map(swimmers.map((s) => [Number(s.lane), s]));
 
 	const result: Swimmer[] = [];
 	// Assume 6 lanes for now
@@ -249,9 +251,11 @@ export const getSwimmersByHeat = (heatId: number): Swimmer[] => {
 		if (swimmerMap.has(lane)) {
 			const s = swimmerMap.get(lane)!;
 
-			const relayDQs = mockDQs.filter((dq) => dq.swimmer_id === s.id && dq.leg);
+			const relayDQs = mockDQs.filter(
+				(dq) => Number(dq.swimmer_id) === Number(s.id) && dq.leg,
+			);
 			const individualDQ = mockDQs.find(
-				(dq) => dq.swimmer_id === s.id && !dq.leg,
+				(dq) => Number(dq.swimmer_id) === Number(s.id) && !dq.leg,
 			);
 
 			result.push({
@@ -263,15 +267,17 @@ export const getSwimmersByHeat = (heatId: number): Swimmer[] => {
 				empty: false,
 			});
 		} else {
-			const emptyId = 10000 + heatId * 10 + lane; // Synthetic numeric ID
-			const individualDQ = mockDQs.find((dq) => dq.swimmer_id === emptyId);
+			const emptyId = 10000 + Number(heatId) * 10 + lane; // Synthetic numeric ID
+			const individualDQ = mockDQs.find(
+				(dq) => Number(dq.swimmer_id) === Number(emptyId),
+			);
 
 			result.push({
 				id: emptyId,
 				lane: lane,
 				name: "Empty",
 				team: "",
-				heat_id: heatId,
+				heat_id: Number(heatId),
 				isRelay: isRelay,
 				members: [],
 				relay_dqs: [],
@@ -285,11 +291,11 @@ export const getSwimmersByHeat = (heatId: number): Swimmer[] => {
 };
 
 export const getEventById = (id: number): Event | null => {
-	return mockEvents.find((e) => e.id === id) || null;
+	return mockEvents.find((e) => Number(e.id) === Number(id)) || null;
 };
 
 export const getHeatById = (id: number): Heat | null => {
-	return mockHeats.find((h) => h.id === id) || null;
+	return mockHeats.find((h) => Number(h.id) === Number(id)) || null;
 };
 
 export const getSwimmerById = (id: number | string): Swimmer | null => {

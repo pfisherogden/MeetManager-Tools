@@ -109,5 +109,13 @@ All agents MUST follow these workflow phases:
 - **2026-04-17**: Optimized WeasyPrint rendering by 2x using **CSS Table Layout** (`display: table`) instead of Flexbox and disabling font subsetting via `optimize_size=('images',)`. This also resolved header and relay alignment regressions. (Issue #349).
 - **2026-04-17**: Found that in-memory job state is lost during Cloud Run rotations; **Firestore** is mandatory for all background task tracking.
 - **2026-04-17**: Identified that 2-column layouts have exactly **255pt** of width per column (letter page). All fixed column widths must sum to this value to prevent gutter overlap.
+- **2026-04-18**: **CI Stability & E2E Reliability**:
+  - **File-based Mocks**: Stateless API routes and Server Actions in Next.js do not share in-memory state. A file-based mock (using `fsync` and retries) is mandatory for consistent data sharing in CI/E2E environments.
+  - **Volume Permissions**: Docker volumes mounted from host to container in GHA often have permission mismatches. Ensure the mount point (e.g. `./tmp`) is world-writable (`chmod 777`) on the host before starting services.
+  - **Dynamic Routing**: E2E tests must support subdirectory paths (e.g. `/MeetManager-Tools/`) to match production/GitHub Pages environments. Use relative origin remapping instead of stripping the entire path.
+  - **Stable IDs**: Always use stable business-logic-based IDs (e.g. `dq-{event}-{swimmer}-{leg}`) for idempotency and to prevent duplicates during sync/edit operations.
+- **2026-04-19**: **Mobile Safari E2E Robustness**:
+  - **Pointer Interception**: Mobile Safari emulation often suffers from pointer-event interception by overlapping or transparent elements. Use `page.evaluate(() => el.click())` for critical buttons to ensure interaction stability.
+  - **Viewport Awareness**: Increase viewport height (e.g. to 1200px) in mobile emulation to prevent the soft keyboard or narrow layouts from pushing critical buttons out of view.
 
 

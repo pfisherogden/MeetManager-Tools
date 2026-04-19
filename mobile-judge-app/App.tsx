@@ -12,6 +12,7 @@ import {
 	TextInput,
 	TouchableOpacity,
 	View,
+	TouchableWithoutFeedback,
 } from "react-native";
 import { ProgramView } from "./src/components/ProgramView";
 import defaultDqCodes from "./src/config/dqCodes.json";
@@ -1069,14 +1070,19 @@ export default function App() {
 				visible={offlineModalVisible}
 				animationType="slide"
 				transparent={true}
+				onRequestClose={() => setOfflineModalVisible(false)}
 			>
-				<View style={styles.modalOverlay}>
-					<View style={[styles.modalContainer, styles.offlineModal]}>
-						<View style={styles.modalHeader}>
-							<View style={{ flexDirection: "row", alignItems: "center" }}>
-								<Text style={styles.modalTitle}>
-									DQ History (Total: {allDQs.length})
-								</Text>
+				<TouchableWithoutFeedback
+					onPress={() => setOfflineModalVisible(false)}
+				>
+					<View style={styles.modalOverlay}>
+						<TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+							<View style={[styles.modalContainer, styles.offlineModal]}>
+								<View style={styles.modalHeader}>
+									<View style={{ flexDirection: "row", alignItems: "center" }}>
+										<Text style={styles.modalTitle}>
+											DQ History (Total: {allDQs.length})
+										</Text>
 								{pendingCount > 0 && (
 									<TouchableOpacity
 										onPress={handleClearAll}
@@ -1165,8 +1171,9 @@ export default function App() {
 							)}
 						</ScrollView>
 					</View>
-				</View>
-			</Modal>
+				</TouchableWithoutFeedback>
+			</TouchableWithoutFeedback>
+		</Modal>
 		</SafeAreaView>
 	);
 }

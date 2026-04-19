@@ -179,14 +179,13 @@ body {
     border-bottom: 0.5pt solid #eee; /* Changed from dotted to solid to shrink PDF size */
 }
 
-.div-relay-swimmers-row {
+.div-relay-row {
     display: table;
     width: 100%;
     max-width: 255pt;
     padding-bottom: 3pt;
     font-size: 8.5pt;
     color: #333;
-    font-style: italic;
     table-layout: fixed;
 }
 

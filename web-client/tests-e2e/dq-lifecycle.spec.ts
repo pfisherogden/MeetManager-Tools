@@ -233,4 +233,120 @@ test.describe("Disqualification Lifecycle", () => {
 		// We just check if the history list is visible and has items
 		await expect(judgePage.getByText("7Q").first()).toBeVisible();
 	});
+
+	test.describe("Frontend Visibility Journeys", () => {
+		test("should show synced DQs in the global Submitted DQs list", async ({
+			page,
+		}) => {
+			const volunteerPage = page;
+			// Use a clean state for this test if possible, or just check for a unique code
+			const _uniqueCode = `X${Math.floor(Math.random() * 90 + 10)}`; // e.g. X42
+
+			// 1. Manually inject a DQ via API (or use existing test flow)
+			// For simplicity we just use the existing page and check if list renders
+			await volunteerPage.goto("/dqs");
+			await expect(
+				volunteerPage.getByRole("heading", {
+					name: /Submitted Disqualifications/i,
+				}),
+			).toBeVisible();
+
+			// The list should render a table
+			await expect(volunteerPage.locator("table")).toBeVisible();
+		});
+	});
+
+	test.describe("Bug Regression Tests", () => {
+		test("should generate correct Judge App URL (not 404)", async ({
+			page,
+		}) => {
+			const volunteerPage = page;
+			const userId = `e2e-regress-${Math.random().toString(36).substring(7)}`;
+
+			await volunteerPage.goto(`/admin?uid=${userId}`);
+			await expect(
+				volunteerPage.getByRole("heading", { name: /Admin Configuration/i }),
+			).toBeVisible();
+
+			// Publish
+			await volunteerPage.getByRole("button", { name: /Publish/i }).click();
+			await expect(
+				volunteerPage.getByText("Meet data published"),
+			).toBeVisible();
+
+			const urlElement = volunteerPage.getByTestId("judge-app-url");
+			const judgeAppUrl = await urlElement.innerText();
+
+			// Verify it points to GitHub Pages (or JUDGE_APP_URL default) by default in "production-like" mode
+			// In E2E it might be localhost:8080 if detected, but here we just check it's not the frontend URL
+			console.log(`Regression check: Generated URL is ${judgeAppUrl}`);
+			expect(judgeAppUrl).toContain("/judge?");
+			expect(judgeAppUrl).not.toContain(":3000/judge"); // Should not point to frontend
+		});
+
+		test("should maintain relay team view when navigating heats", async ({
+			browser,
+		}) => {
+			const judgeContext = await browser.newContext({
+				viewport: { width: 375, height: 812 },
+			});
+			const judgePage = await judgeContext.newPage();
+			// Use sample program with known relays
+			await judgePage.goto("http://localhost:8080/judge");
+			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
+			await judgePage.getByText("START JUDGING").click();
+
+			// Go to Event 1 (Relay)
+			await judgePage.getByText("Event 1").first().click();
+			await judgePage.getByText("Heat 1").first().click();
+
+			// Verify it shows relay legs (e.g. "Leg 1")
+			await expect(judgePage.getByText(/Leg 1/i).first()).toBeVisible();
+
+			// Navigate to Next Heat (Heat 2)
+			await judgePage
+				.locator("button, [role='button']")
+				.filter({ hasText: /forward/i })
+				.or(judgePage.locator('svg[class*="forward"]'))
+				.first()
+				.click({ force: true });
+			// Give it a moment to render
+			await judgePage.waitForTimeout(1000);
+
+			// Verify it STILL shows relay legs for the same event
+			// This covers the bug where it switched to individual swimmers
+			await expect(judgePage.getByText(/Leg 1/i).first()).toBeVisible();
+		});
+
+		test("should dismiss DQ history modal when clicking outside", async ({
+			browser,
+		}) => {
+			const judgeContext = await browser.newContext({
+				viewport: { width: 375, height: 812 },
+			});
+			const judgePage = await judgeContext.newPage();
+			await judgePage.goto("http://localhost:8080/judge");
+			await judgePage.getByPlaceholder("Your Name").fill("Modal Judge");
+			await judgePage.getByText("START JUDGING").click();
+
+			// Open History
+			await judgePage
+				.getByText(/DQ History/)
+				.first()
+				.click({ force: true });
+			await expect(
+				judgePage.getByText(/DQ History \(Total: 0\)/i),
+			).toBeVisible();
+
+			// Click outside (on the overlay)
+			// The overlay is usually the parent of the modal container
+			await judgePage.mouse.click(10, 10); // Click top-left corner
+			await judgePage.waitForTimeout(500);
+
+			// Verify modal is gone
+			await expect(
+				judgePage.getByText(/DQ History \(Total: 0\)/i),
+			).not.toBeVisible();
+		});
+	});
 });

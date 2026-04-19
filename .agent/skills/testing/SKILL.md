@@ -26,6 +26,8 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
 
 ## Reliability Standards (Mandatory)
 - **2-Cycle Verification**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend` or `npm run test-e2e`) **2 times consecutively**. All 2 runs must pass 100% to consider the task complete. This catches flakiness and race conditions efficiently.
+- **Stateless Sharing (Next.js)**: In CI/E2E environments, data shared between API routes and Server Actions MUST use file-based mocks (with `fsync` and retries) instead of in-memory maps, as they run in separate worker processes.
+- **Volume Permissions**: When using Docker volumes in GHA, ensure the mount point on the host is world-writable (`chmod 777`) before starting services to prevent `EACCES` errors in the container.
 
 ## CI Optimization & Browser Testing
 - **E2E Sharding**: Use Playwright sharding (e.g., 4-way) in CI to reduce total runtime. Verify shards pass independently.
@@ -35,6 +37,8 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
 
 ## Robust Playwright Selectors
 - **Ambiguity**: If multiple buttons have the same name (e.g., "Apply to Builder" in a list), use `data-testid` or scoped locators: `page.locator("div", { has: page.getByText("Specific Item") }).getByRole("button")`.
+- **Mobile Interaction**: In mobile Safari emulation, pointer events are frequently intercepted by overlapping elements. Use `page.evaluate(() => el.click())` for critical buttons to ensure interaction stability.
+- **Viewport Height**: Use a tall viewport (e.g., 1200px) in mobile emulation to prevent the soft keyboard from pushing UI elements out of view.
 - **Inputs**: For verifying text inside an `<input>` or `<textarea>`, prefer `getByDisplayValue()` over `getByText()`, as the latter may not find the value of a form field.
 - **Spinners**: To check for loading states, use `toBeVisible()` on the spinner icon (e.g., `.animate-spin`) or `toBeAttached()` if the transition is very fast.
 

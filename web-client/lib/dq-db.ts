@@ -93,7 +93,6 @@ const initAdmin = () => {
 	if (mockDb) return mockDb as any;
 
 	if (process.env.USE_MOCK_FIRESTORE === "true") {
-		console.log("USE_MOCK_FIRESTORE is true, using file-based mock");
 		mockDb = new MockFirestore();
 		return mockDb as any;
 	}

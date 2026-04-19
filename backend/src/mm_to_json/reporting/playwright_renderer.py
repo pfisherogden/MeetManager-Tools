@@ -27,6 +27,7 @@ class PlaywrightRenderer:
         # Add metadata
         render_data = copy.copy(data)
         render_data["css_content"] = css_content
+        render_data["playwright"] = True
         import pytz
 
         tz = pytz.timezone("America/Los_Angeles")
@@ -34,7 +35,7 @@ class PlaywrightRenderer:
 
         return template.render(**render_data)
 
-    def _write_pdf(self, html_content: str):
+    def _write_pdf(self, html_content: str, meet_name: str = "", sub_title: str = ""):
         from playwright.sync_api import sync_playwright
 
         with sync_playwright() as p:
@@ -43,28 +44,51 @@ class PlaywrightRenderer:
             page = browser.new_page()
 
             # Set content and wait for it to be ready
-            page.set_content(html_content, wait_until="networkidle")
+            # Optimized: 'load' is faster than 'networkidle' and sufficient for static content
+            page.set_content(html_content, wait_until="load")
 
-            # Generate PDF
+            # Native Header Template (Chromium specific)
+            # Use data-passed titles or fallback
+            display_meet = meet_name or "Meet Manager Tools"
+            display_sub = sub_title or "Report"
+
+            header_html = f"""
+            <div style="font-family: Helvetica, Arial, sans-serif; font-size: 8pt; width: 100%; margin: 0 0.5in; border-bottom: 0.5pt solid #000; padding-bottom: 3pt;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%;">
+                    <div style="text-align: left;">
+                        <div style="font-weight: bold;">{display_meet}</div>
+                        <div>{display_sub}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div>MM-Tools</div>
+                        <div>Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
+                    </div>
+                </div>
+            </div>
+            """
+
+            # Generate PDF with native header/footer
             page.pdf(
                 path=self.output_path,
                 format="Letter",
                 print_background=True,
                 prefer_css_page_size=True,
-                display_header_footer=False,
-                margin={"top": "0.5in", "bottom": "0.5in", "left": "0.5in", "right": "0.5in"},
+                display_header_footer=True,
+                header_template=header_html,
+                footer_template='<div style="font-size: 8pt; width: 100%; text-align: center; margin: 0 0.5in;"></div>',
+                margin={"top": "0.8in", "bottom": "0.5in", "left": "0.5in", "right": "0.5in"},
             )
 
             browser.close()
 
     def render_meet_program(self, data: dict[str, Any]):
         html_out = self._render_html(data, "meet_program.j2")
-        self._write_pdf(html_out)
+        self._write_pdf(html_out, data.get("meet_name"), data.get("sub_title"))
         return html_out
 
     def render_entries(self, data: dict[str, Any], template_name: str):
         html_out = self._render_html(data, template_name)
-        self._write_pdf(html_out)
+        self._write_pdf(html_out, data.get("meet_name"), data.get("sub_title"))
         return html_out
 
     def render_to_html(self, data: dict[str, Any], template_name: str = "meet_program.j2") -> str:

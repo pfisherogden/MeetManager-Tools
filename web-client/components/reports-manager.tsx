@@ -722,6 +722,36 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 							/>
 						</div>
 
+						<div className="space-y-2">
+							<Label>Rendering Engine</Label>
+							<Select
+								value={rendererType.toString()}
+								onValueChange={(v) =>
+									setRendererType(Number.parseInt(v, 10) as RendererType)
+								}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue placeholder="Select rendering engine" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem
+										value={RendererType.RENDERER_TYPE_PLAYWRIGHT.toString()}
+									>
+										Playwright (Fast, Chromium-based)
+									</SelectItem>
+									<SelectItem
+										value={RendererType.RENDERER_TYPE_WEASYPRINT.toString()}
+									>
+										WeasyPrint (Standard, Python-based)
+									</SelectItem>
+								</SelectContent>
+							</Select>
+							<p className="text-[10px] text-muted-foreground">
+								Playwright is faster for large reports; WeasyPrint generates
+								smaller files.
+							</p>
+						</div>
+
 						<div className="p-4 bg-muted/30 rounded-lg space-y-2">
 							<h4 className="text-sm font-medium flex items-center gap-2">
 								<Download className="h-4 w-4" />
@@ -791,40 +821,32 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 							</div>
 						</div>
 						<div className="flex items-center gap-6">
-							<div className="flex items-center gap-2 border-r pr-6 mr-2">
-								<span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-									Engine:
+							<div className="flex flex-col gap-1 min-w-[150px]">
+								<span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+									Rendering Engine
 								</span>
-								<div className="flex items-center gap-1 bg-muted/50 p-1 rounded-md border">
-									<Button
-										variant={
-											rendererType === RendererType.RENDERER_TYPE_PLAYWRIGHT
-												? "secondary"
-												: "ghost"
-										}
-										size="sm"
-										className="h-7 text-[10px] px-2"
-										onClick={() =>
-											setRendererType(RendererType.RENDERER_TYPE_PLAYWRIGHT)
-										}
-									>
-										Playwright
-									</Button>
-									<Button
-										variant={
-											rendererType === RendererType.RENDERER_TYPE_WEASYPRINT
-												? "secondary"
-												: "ghost"
-										}
-										size="sm"
-										className="h-7 text-[10px] px-2"
-										onClick={() =>
-											setRendererType(RendererType.RENDERER_TYPE_WEASYPRINT)
-										}
-									>
-										WeasyPrint
-									</Button>
-								</div>
+								<Select
+									value={rendererType.toString()}
+									onValueChange={(v) =>
+										setRendererType(Number.parseInt(v, 10) as RendererType)
+									}
+								>
+									<SelectTrigger className="h-8 text-xs">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem
+											value={RendererType.RENDERER_TYPE_PLAYWRIGHT.toString()}
+										>
+											Playwright
+										</SelectItem>
+										<SelectItem
+											value={RendererType.RENDERER_TYPE_WEASYPRINT.toString()}
+										>
+											WeasyPrint
+										</SelectItem>
+									</SelectContent>
+								</Select>
 							</div>
 							{customPack.length > 0 && (
 								<Button

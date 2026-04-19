@@ -229,7 +229,8 @@ export const getHeatById = (id: number): Heat | null => {
 export const getSwimmerById = (id: number | string): Swimmer | null => {
 	if (Platform.OS === "web") return null;
 	const db = getDb();
-	const r = db.getFirstSync("SELECT * FROM swimmers WHERE id = ?", id);
+	const sid = typeof id === "number" ? id : parseInt(id as string, 10);
+	const r = db.getFirstSync("SELECT * FROM swimmers WHERE id = ?", sid);
 	if (r) {
 		const heat = db.getFirstSync("SELECT * FROM heats WHERE id = ?", r.heat_id);
 		const event = heat ? db.getFirstSync("SELECT * FROM events WHERE id = ?", heat.event_id) : null;
@@ -246,7 +247,7 @@ export const getSwimmerById = (id: number | string): Swimmer | null => {
 	}
 
 	// Handle synthetic IDs for empty lanes (10000 + heatId * 10 + lane)
-	const nid = typeof id === "number" ? id : parseInt(id, 10);
+	const nid = typeof id === "number" ? id : parseInt(id as string, 10);
 	if (nid >= 10000) {
 		const heatId = Math.floor((nid - 10000) / 10);
 		const lane = (nid - 10000) % 10;

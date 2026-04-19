@@ -21,6 +21,7 @@
     </style>
 </head>
 <body>
+    {% if not playwright %}
     <div id="header">
         <table class="header-table">
             <tr class="header-top">
@@ -35,6 +36,7 @@
             </tr>
         </table>
     </div>
+    {% endif %}
 
 
     <!-- Main Report Content -->

@@ -1614,8 +1614,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             ctx = multiprocessing.get_context("spawn")
             try:
+                # Store report requests for re-mapping results later
+                report_reqs = list(request.reports)
+
                 with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
-                    for idx, report_req in enumerate(request.reports):
+                    for idx, report_req in enumerate(report_reqs):
                         tasks.append(
                             executor.submit(
                                 _process_single_report_process,
@@ -1634,18 +1637,29 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             )
                         )
 
-                zip_buffer = io.BytesIO()
+                # PROGRESS TRACKING: Update as each task completes (unordered)
+                from concurrent.futures import as_completed
+
                 total_reports = len(tasks)
+                finished_count = 0
+
+                # We still need to wait for all results and gather them
+                # But we can update progress immediately as they finish
+                for _ in as_completed(tasks):
+                    finished_count += 1
+                    progress = 0.05 + (0.90 * (finished_count / total_reports))
+                    self.job_manager.update_job(
+                        job_id, progress=progress, message=f"Generated {finished_count}/{total_reports} reports"
+                    )
+                    logging.info(f"Job {job_id}: Progress update {finished_count}/{total_reports}")
+
+                # BUNDLING: Create ZIP in original order
+                zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     for i, future in enumerate(tasks):
                         res = future.result()
                         if res.get("success"):
                             zip_file.writestr(res["filename"], res["content"])
-                            # Map progress from 0.05 to 0.95 to keep UI "moving"
-                            progress = 0.05 + (0.90 * ((i + 1) / total_reports))
-                            self.job_manager.update_job(
-                                job_id, progress=progress, message=f"Generated {i + 1}/{total_reports} reports"
-                            )
                             logging.info(
                                 f"Job {job_id}: Report {i + 1}/{total_reports} ({res.get('rtype')}) added to bundle"
                             )
@@ -1895,8 +1909,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             encoded_program = urllib.parse.quote(program_url, safe="")
             encoded_sync = urllib.parse.quote(sync_url, safe="")
 
-            base_url = f"{frontend_base}/judge"
-            judge_app_url = f"{base_url}?program_url={encoded_program}&sync_url={encoded_sync}"
+            # Determine Judge App Base URL
+            # Priority:
+            # 1. JUDGE_APP_URL env var
+            # 2. Local fallback if frontend is on localhost (for E2E)
+            # 3. GitHub Pages production fallback
+            judge_app_base = os.getenv("JUDGE_APP_URL")
+            if not judge_app_base:
+                if "localhost" in frontend_base or "127.0.0.1" in frontend_base:
+                    # In local dev/E2E, judge app is served by docker or local server
+                    judge_app_base = "http://localhost:8080/judge"
+                else:
+                    # Production GitHub Pages
+                    judge_app_base = "https://pfisherogden.github.io/MeetManager-Tools/judge"
+
+            judge_app_url = f"{judge_app_base}?program_url={encoded_program}&sync_url={encoded_sync}"
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:
             logging.error(f"Publish failed: {e}")
