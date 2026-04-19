@@ -1598,7 +1598,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             converter = MmToJsonConverter(table_data=cache)
             full_data = converter.convert()
 
-            num_events = len(full_data.get("event", []))
+            num_events = sum(len(s.get("events", [])) for s in full_data.get("sessions", []))
             logging.info(f"Job {job_id}: data conversion complete. {num_events} events found.")
 
             with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
