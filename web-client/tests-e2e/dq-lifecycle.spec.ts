@@ -268,20 +268,44 @@ test.describe("Disqualification Lifecycle", () => {
 				volunteerPage.getByRole("heading", { name: /Admin Configuration/i }),
 			).toBeVisible();
 
-			// Publish
-			await volunteerPage.getByRole("button", { name: /Publish/i }).click();
-			await expect(
-				volunteerPage.getByText("Meet data published"),
-			).toBeVisible();
+			// Upload sample data first to enable Publish button
+			const testFilePath = path.join(__dirname, "test-regress.json");
+			const dummyData = {
+				meet: [{ meet_name1: "Regression Meet" }],
+				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
+				athlete: [{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" }],
+				event: [{ event_no: 1, event_ptr: 1, ind_rel: "I" }],
+				session: [{ sess_ptr: 1, sess_no: 1 }],
+				sessitem: [{ sess_ptr: 1, event_ptr: 1 }],
+				entry: [{ ath_no: 1, event_ptr: 1, pre_heat: 1, pre_lane: 1 }],
+			};
+			fs.writeFileSync(testFilePath, JSON.stringify(dummyData));
+			try {
+				const fileChooserPromise = volunteerPage.waitForEvent("filechooser");
+				await volunteerPage
+					.getByRole("button", { name: /Upload Dataset/i })
+					.click();
+				const fileChooser = await fileChooserPromise;
+				await fileChooser.setFiles(testFilePath);
+				await expect(
+					volunteerPage.getByText(/Dataset uploaded successfully/i),
+				).toBeVisible({ timeout: 20000 });
 
-			const urlElement = volunteerPage.getByTestId("judge-app-url");
-			const judgeAppUrl = await urlElement.innerText();
+				// Publish
+				await volunteerPage.getByRole("button", { name: /Publish/i }).click();
+				await expect(
+					volunteerPage.getByText("Meet data published"),
+				).toBeVisible();
 
-			// Verify it points to GitHub Pages (or JUDGE_APP_URL default) by default in "production-like" mode
-			// In E2E it might be localhost:8080 if detected, but here we just check it's not the frontend URL
-			console.log(`Regression check: Generated URL is ${judgeAppUrl}`);
-			expect(judgeAppUrl).toContain("/judge?");
-			expect(judgeAppUrl).not.toContain(":3000/judge"); // Should not point to frontend
+				const urlElement = volunteerPage.getByTestId("judge-app-url");
+				const judgeAppUrl = await urlElement.innerText();
+
+				console.log(`Regression check: Generated URL is ${judgeAppUrl}`);
+				expect(judgeAppUrl).toContain("/judge?");
+				expect(judgeAppUrl).not.toContain(":3000/judge"); // Should not point to frontend
+			} finally {
+				if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
+			}
 		});
 
 		test("should maintain relay team view when navigating heats", async ({
@@ -291,19 +315,19 @@ test.describe("Disqualification Lifecycle", () => {
 				viewport: { width: 375, height: 812 },
 			});
 			const judgePage = await judgeContext.newPage();
-			// Use sample program with known relays
+			// Use sample program with known relays (Event 13 in our merged Sample_Data)
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
 			await judgePage.getByText("START JUDGING").click();
 
-			// Go to Event 1 (Relay)
-			await judgePage.getByText("Event 1").first().click();
+			// Go to Event 13 (Relay)
+			await judgePage.getByText("Event 13").first().click();
 			await judgePage.getByText("Heat 1").first().click();
 
 			// Verify it shows relay legs (e.g. "Leg 1")
 			await expect(judgePage.getByText(/Leg 1/i).first()).toBeVisible();
 
-			// Navigate to Next Heat (Heat 2)
+			// Navigate to Next Heat
 			await judgePage
 				.locator("button, [role='button']")
 				.filter({ hasText: /forward/i })
@@ -314,7 +338,6 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage.waitForTimeout(1000);
 
 			// Verify it STILL shows relay legs for the same event
-			// This covers the bug where it switched to individual swimmers
 			await expect(judgePage.getByText(/Leg 1/i).first()).toBeVisible();
 		});
 
@@ -338,10 +361,9 @@ test.describe("Disqualification Lifecycle", () => {
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).toBeVisible();
 
-			// Click outside (on the overlay)
-			// The overlay is usually the parent of the modal container
-			await judgePage.mouse.click(10, 10); // Click top-left corner
-			await judgePage.waitForTimeout(500);
+			// Click far outside (edge of overlay)
+			await judgePage.mouse.click(5, 5);
+			await judgePage.waitForTimeout(1000);
 
 			// Verify modal is gone
 			await expect(
