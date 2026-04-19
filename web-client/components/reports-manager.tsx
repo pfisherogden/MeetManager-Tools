@@ -725,7 +725,11 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 						<div className="space-y-2">
 							<Label>Rendering Engine</Label>
 							<Select
-								value={rendererType.toString()}
+								value={
+									rendererType === RendererType.RENDERER_TYPE_UNSPECIFIED
+										? RendererType.RENDERER_TYPE_PLAYWRIGHT.toString()
+										: rendererType.toString()
+								}
 								onValueChange={(v) =>
 									setRendererType(Number.parseInt(v, 10) as RendererType)
 								}
@@ -826,7 +830,11 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 									Rendering Engine
 								</span>
 								<Select
-									value={rendererType.toString()}
+									value={
+										rendererType === RendererType.RENDERER_TYPE_UNSPECIFIED
+											? RendererType.RENDERER_TYPE_PLAYWRIGHT.toString()
+											: rendererType.toString()
+									}
 									onValueChange={(v) =>
 										setRendererType(Number.parseInt(v, 10) as RendererType)
 									}

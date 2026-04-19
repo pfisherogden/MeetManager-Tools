@@ -15,6 +15,11 @@ async function getAuthMetadata() {
 		userId = cookieStore.get("x-user-id")?.value;
 	}
 
+	// E2E Bypass for automated testing
+	if (!userId && process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+		userId = "e2e-bypass-user";
+	}
+
 	if (!userId) {
 		throw new Error("Authentication required. Please refresh or log in again.");
 	}
