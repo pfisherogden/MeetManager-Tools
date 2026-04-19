@@ -42,14 +42,15 @@ async function ensureDataset(
 				page.getByText(/Dataset uploaded successfully/i),
 			).toBeVisible({ timeout: 20000 });
 
-			// Reload and wait to ensure the list is updated
-			console.log("Reloading admin page after upload...");
-			await page.reload();
-			await page.waitForTimeout(2000);
-
-			// Check if we need to set it active
-			if ((await publishBtn.count()) === 0) {
-				console.log("Setting dataset active...");
+			// The DatasetManager should refresh automatically.
+			// Wait for the publish button to appear (which means it's active)
+			// If it doesn't appear in 10s, try setting it active manually.
+			try {
+				await expect(publishBtn.first()).toBeVisible({ timeout: 10000 });
+			} catch (_e) {
+				console.log(
+					"Publish button didn't appear, attempting manual Set Active...",
+				);
 				await page
 					.getByRole("button", { name: /Set Active/i })
 					.first()
@@ -345,8 +346,6 @@ test.describe("Disqualification Lifecycle", () => {
 			};
 
 			// Ensure unique x-user-id for regression test too
-			// We can't easily change extraHTTPHeaders after context creation,
-			// but we can pass uid in metadata via ensureDataset
 			await ensureDataset(
 				page,
 				userIdRegress,
