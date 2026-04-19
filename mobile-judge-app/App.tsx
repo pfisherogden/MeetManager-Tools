@@ -1172,9 +1172,10 @@ export default function App() {
 						</ScrollView>
 					</View>
 				</TouchableWithoutFeedback>
-			</TouchableWithoutFeedback>
-		</Modal>
-		</SafeAreaView>
+			</View>
+		</TouchableWithoutFeedback>
+	</Modal>
+	</SafeAreaView>
 	);
 }
 
