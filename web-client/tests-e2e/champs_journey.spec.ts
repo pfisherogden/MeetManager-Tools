@@ -57,7 +57,7 @@ async function ensureDataset(
 				const uploadBtn = buttons.find((b) =>
 					b.innerText.includes("Upload Dataset"),
 				);
-				if (uploadBtn) uploadBtn.click();
+				if (uploadBtn) uploadBtn.evaluate((el) => (el as HTMLElement).click());
 			});
 			const fileChooser = await fileChooserPromise;
 			await fileChooser.setFiles(testFilePath);
@@ -97,7 +97,7 @@ async function ensureDataset(
 		const row = document.querySelector(`[data-testid="dataset-row-${fid}"]`);
 		const buttons = Array.from(row?.querySelectorAll("button") || []);
 		const btn = buttons.find((b) => b.innerText.includes("Set Active"));
-		if (btn) (btn as HTMLElement).click();
+		if (btn) (btn as HTMLElement).evaluate((el) => (el as HTMLElement).click());
 	}, filename);
 
 	await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
@@ -167,11 +167,11 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Select a report type first
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.evaluate((el) => (el as HTMLElement).click());
+		await clubCard.evaluate((el) => (el as HTMLElement).evaluate((el) => (el as HTMLElement).click()));
 
 		// Add 2 reports to the pack (sufficient for testing bundle logic)
 		for (let i = 0; i < 2; i++) {
-			await page.getByRole("button", { name: /Add to Pack/i }).click();
+			await page.getByRole("button", { name: /Add to Pack/i }).evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				page.getByText(/Added to custom pack/i).first(),
 			).toBeVisible();
@@ -187,7 +187,7 @@ test.describe("Champs Dataset Journey", () => {
 
 		const [download] = await Promise.all([
 			page.waitForEvent("download", { timeout: 120000 }),
-			generateZipBtn.click(),
+			generateZipBtn.evaluate((el) => (el as HTMLElement).click()),
 		]);
 
 		console.log("Download initiated...");

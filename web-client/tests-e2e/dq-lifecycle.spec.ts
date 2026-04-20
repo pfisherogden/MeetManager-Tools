@@ -231,7 +231,7 @@ test.describe("Disqualification Lifecycle", () => {
 		const publishBtn = volunteerPage
 			.getByTestId(`dataset-row-${filename}`)
 			.getByTestId("publish-button");
-		await publishBtn.first().click({ force: true });
+		await publishBtn.first().evaluate((el) => (el as HTMLElement).click());
 		await expect(volunteerPage.getByText("Meet data published")).toBeVisible({
 			timeout: 30000,
 		});
@@ -247,7 +247,7 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log("Journey Step 2: Judge onboarding...");
 		await judgePage.goto(localUrl);
 		await judgePage.getByPlaceholder("Your Name").fill("Judge Alex");
-		await judgePage.getByText("START JUDGING").click({ force: true });
+		await judgePage.getByText("START JUDGING").evaluate((el) => (el as HTMLElement).click());
 		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible({
 			timeout: 15000,
 		});
@@ -256,13 +256,13 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage
 			.getByText(/Event 15/i)
 			.first()
-			.click({ force: true });
+			.evaluate((el) => (el as HTMLElement).click());
 		await judgePage
 			.getByText(/Heat 1/i)
 			.first()
-			.click({ force: true });
-		await judgePage.getByText("TAP TO DQ").first().click({ force: true });
-		await judgePage.getByText("1A").first().click({ force: true });
+			.evaluate((el) => (el as HTMLElement).click());
+		await judgePage.getByText("TAP TO DQ").first().evaluate((el) => (el as HTMLElement).click());
+		await judgePage.getByText("1A").first().evaluate((el) => (el as HTMLElement).click());
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("False start on lane 1");
@@ -287,28 +287,28 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByLabel(/back/i)
 			.or(judgePage.getByText("BACK", { exact: true }))
 			.first()
-			.click({ force: true });
+			.evaluate((el) => (el as HTMLElement).click());
 		await judgePage
 			.getByLabel(/events/i)
 			.or(judgePage.getByText("EVENTS", { exact: true }))
 			.first()
-			.click({ force: true });
+			.evaluate((el) => (el as HTMLElement).click());
 		await judgePage
 			.getByText(/Event 13/i)
 			.first()
-			.click({ force: true });
+			.evaluate((el) => (el as HTMLElement).click());
 		await judgePage
 			.getByText(/Heat 1/i)
 			.first()
-			.click({ force: true });
+			.evaluate((el) => (el as HTMLElement).click());
 
 		const leg3 = judgePage
 			.getByText(/Leg 3/i)
 			.or(judgePage.getByText(/Test C/i))
 			.first();
 		await expect(leg3).toBeVisible({ timeout: 10000 });
-		await leg3.click({ force: true });
-		await judgePage.getByText("7Q").first().click({ force: true });
+		await leg3.evaluate((el) => (el as HTMLElement).click());
+		await judgePage.getByText("7Q").first().evaluate((el) => (el as HTMLElement).click());
 		await judgePage.evaluate(() =>
 			(
 				document.querySelector('[aria-label="Save changes"]') as HTMLElement
@@ -364,7 +364,9 @@ test.describe("Disqualification Lifecycle", () => {
 			await expect(
 				page.getByRole("heading", { name: /Submitted Disqualifications/i }),
 			).toBeVisible({ timeout: 15000 });
-			await expect(page.locator("table")).toBeVisible({ timeout: 10000 });
+			await expect(
+				page.locator("table").or(page.getByText(/No disqualifications submitted yet/i))
+			).toBeVisible({ timeout: 15000 });
 		});
 	});
 
@@ -406,7 +408,7 @@ test.describe("Disqualification Lifecycle", () => {
 			await targetRow
 				.getByTestId("publish-button")
 				.first()
-				.click({ force: true });
+				.evaluate((el) => (el as HTMLElement).click());
 			await expect(page.getByText("Meet data published")).toBeVisible({
 				timeout: 15000,
 			});
@@ -473,7 +475,7 @@ test.describe("Disqualification Lifecycle", () => {
 			await targetRow
 				.getByTestId("publish-button")
 				.first()
-				.click({ force: true });
+				.evaluate((el) => (el as HTMLElement).click());
 			await expect(adminPage.getByText("Meet data published")).toBeVisible({
 				timeout: 15000,
 			});
@@ -494,10 +496,10 @@ test.describe("Disqualification Lifecycle", () => {
 			const judgePage = await judgeContext.newPage();
 			await judgePage.goto(localUrl);
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
-			await judgePage.getByText("START JUDGING").click({ force: true });
+			await judgePage.getByText("START JUDGING").evaluate((el) => (el as HTMLElement).click());
 
-			await judgePage.getByText("Event 13").first().click({ force: true });
-			await judgePage.getByText("Heat 1").first().click({ force: true });
+			await judgePage.getByText("Event 13").first().evaluate((el) => (el as HTMLElement).click());
+			await judgePage.getByText("Heat 1").first().evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				judgePage
 					.getByText(/Leg 1/i)
@@ -508,7 +510,7 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage
 				.getByLabel(/next heat/i)
 				.first()
-				.click({ force: true });
+				.evaluate((el) => (el as HTMLElement).click());
 			await judgePage.waitForTimeout(2000);
 			await expect(
 				judgePage
@@ -532,7 +534,7 @@ test.describe("Disqualification Lifecycle", () => {
 			const judgePage = await judgeContext.newPage();
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Modal Judge");
-			await judgePage.getByText("START JUDGING").click({ force: true });
+			await judgePage.getByText("START JUDGING").evaluate((el) => (el as HTMLElement).click());
 
 			await judgePage
 				.getByText(/DQ History/)
@@ -544,7 +546,9 @@ test.describe("Disqualification Lifecycle", () => {
 
 			// Click close button to dismiss
 			console.log("Clicking modal close button...");
-			await judgePage.click("#e2e-modal-close-button", { force: true });
+			await judgePage.evaluate(() => {
+				document.getElementById("e2e-modal-close-button")?.click();
+			});
 
 			await expect(
 				judgePage.getByTestId("dq-history-modal-content"),

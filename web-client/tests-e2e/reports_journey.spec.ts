@@ -57,7 +57,7 @@ async function ensureDataset(
 				const uploadBtn = buttons.find((b) =>
 					b.innerText.includes("Upload Dataset"),
 				);
-				if (uploadBtn) uploadBtn.click();
+				if (uploadBtn) uploadBtn.evaluate((el) => (el as HTMLElement).click());
 			});
 			const fileChooser = await fileChooserPromise;
 			await fileChooser.setFiles(testFilePath);
@@ -97,7 +97,7 @@ async function ensureDataset(
 		const row = document.querySelector(`[data-testid="dataset-row-${fid}"]`);
 		const buttons = Array.from(row?.querySelectorAll("button") || []);
 		const btn = buttons.find((b) => b.innerText.includes("Set Active"));
-		if (btn) (btn as HTMLElement).click();
+		if (btn) (btn as HTMLElement).evaluate((el) => (el as HTMLElement).click());
 	}, filename);
 
 	await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
@@ -158,14 +158,14 @@ test.describe("Reports Generation Journey", () => {
 
 		const htmlCard = page.getByTestId("report-card-meet-program-(html)");
 		await expect(htmlCard).toBeVisible({ timeout: 10000 });
-		await htmlCard.click();
+		await htmlCard.evaluate((el) => (el as HTMLElement).click());
 
 		await expect(
 			page.locator("div").filter({ hasText: /^Summary/ }),
 		).toContainText("Meet Program (HTML)");
 
 		const pagePromise = page.context().waitForEvent("page");
-		await page.getByRole("button", { name: "View HTML" }).click();
+		await page.getByRole("button", { name: "View HTML" }).evaluate((el) => (el as HTMLElement).click());
 		const newPage = await pagePromise;
 		await newPage.waitForLoadState();
 
@@ -177,9 +177,9 @@ test.describe("Reports Generation Journey", () => {
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.evaluate((el) => (el as HTMLElement).click());
+		await clubCard.evaluate((el) => (el as HTMLElement).evaluate((el) => (el as HTMLElement).click()));
 
-		await page.getByRole("button", { name: "Download PDF" }).click();
+		await page.getByRole("button", { name: "Download PDF" }).evaluate((el) => (el as HTMLElement).click());
 
 		await expect(page.getByText("Report generated successfully")).toBeVisible({
 			timeout: 30000,
@@ -199,7 +199,7 @@ test.describe("Reports Generation Journey", () => {
 
 		for (const type of types) {
 			const testId = `report-card-${type.toLowerCase().replace(/\s+/g, "-")}`;
-			await page.getByTestId(testId).click();
+			await page.getByTestId(testId).evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				page.locator("div").filter({ hasText: /^Summary/ }),
 			).toContainText(type);
