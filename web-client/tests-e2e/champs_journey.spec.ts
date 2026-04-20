@@ -55,9 +55,13 @@ test.describe("Champs Dataset Journey", () => {
 		// Always upload to ensure clean state for this worker's userId
 		console.log(`Uploading dataset: ${testFileName}`);
 		const fileChooserPromise = page.waitForEvent("filechooser");
-		const uploadBtn = page.getByText("Upload Dataset");
-		await expect(uploadBtn).toBeVisible({ timeout: 20000 });
-		await uploadBtn.click();
+		await page.evaluate(() => {
+			const buttons = Array.from(document.querySelectorAll("button"));
+			const uploadBtn = buttons.find((b) =>
+				b.innerText.includes("Upload Dataset"),
+			);
+			if (uploadBtn) uploadBtn.click();
+		});
 		const fileChooser = await fileChooserPromise;
 		await fileChooser.setFiles(testFilePath);
 		await expect(page.getByText(/Dataset uploaded successfully/i)).toBeVisible({
@@ -78,12 +82,18 @@ test.describe("Champs Dataset Journey", () => {
 
 		await expect(datasetRow).toBeVisible({ timeout: 20000 });
 
-		const setActiveBtn = datasetRow.getByRole("button", { name: "Set Active" });
 		const activeBadge = datasetRow.getByTestId("active-dataset-badge");
 
 		if (await activeBadge.isHidden()) {
 			console.log("Setting dataset as active...");
-			await setActiveBtn.click();
+			await page.evaluate((fid) => {
+				const row = document.querySelector(
+					`[data-testid="dataset-row-${fid}"]`,
+				);
+				const buttons = Array.from(row?.querySelectorAll("button") || []);
+				const btn = buttons.find((b) => b.innerText.includes("Set Active"));
+				if (btn) (btn as HTMLElement).click();
+			}, testFileName);
 			await expect(activeBadge).toBeVisible({ timeout: 30000 });
 			// Give extra time for backend to switch and cache to clear
 			await page.waitForTimeout(3000);

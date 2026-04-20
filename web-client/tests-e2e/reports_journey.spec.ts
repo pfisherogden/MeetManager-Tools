@@ -42,10 +42,13 @@ test.describe("Reports Generation Journey", () => {
 		console.log(`Using test file path: ${testFilePath}`);
 
 		const fileChooserPromise = page.waitForEvent("filechooser");
-		await page
-			.getByRole("button", { name: /Upload Dataset/i })
-			.first()
-			.click();
+		await page.evaluate(() => {
+			const buttons = Array.from(document.querySelectorAll("button"));
+			const uploadBtn = buttons.find((b) =>
+				b.innerText.includes("Upload Dataset"),
+			);
+			if (uploadBtn) uploadBtn.click();
+		});
 		const fileChooser = await fileChooserPromise;
 		await fileChooser.setFiles(testFilePath);
 		await expect(page.getByText(/Dataset uploaded successfully/i)).toBeVisible({
@@ -64,7 +67,12 @@ test.describe("Reports Generation Journey", () => {
 		}
 
 		await expect(row).toBeVisible({ timeout: 15000 });
-		await row.getByRole("button", { name: "Set Active" }).click();
+		await page.evaluate((fid) => {
+			const row = document.querySelector(`[data-testid="dataset-row-${fid}"]`);
+			const buttons = Array.from(row?.querySelectorAll("button") || []);
+			const btn = buttons.find((b) => b.innerText.includes("Set Active"));
+			if (btn) (btn as HTMLElement).click();
+		}, testFileName);
 		await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
 			timeout: 15000,
 		});

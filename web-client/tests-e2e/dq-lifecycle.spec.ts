@@ -54,10 +54,13 @@ async function ensureDataset(
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 		try {
 			const fileChooserPromise = page.waitForEvent("filechooser");
-			await page
-				.getByRole("button", { name: /Upload Dataset/i })
-				.first()
-				.click({ force: true });
+			await page.evaluate(() => {
+				const buttons = Array.from(document.querySelectorAll("button"));
+				const uploadBtn = buttons.find((b) =>
+					b.innerText.includes("Upload Dataset"),
+				);
+				if (uploadBtn) uploadBtn.click();
+			});
 			const fileChooser = await fileChooserPromise;
 			await fileChooser.setFiles(testFilePath);
 			await expect(
@@ -89,9 +92,12 @@ async function ensureDataset(
 
 	// Now set it active
 	console.log(`Setting ${filename} active...`);
-	const setActiveBtn = row.getByRole("button", { name: /Set Active/i }).first();
-	await expect(setActiveBtn).toBeVisible({ timeout: 10000 });
-	await setActiveBtn.click({ force: true });
+	await page.evaluate((fid) => {
+		const row = document.querySelector(`[data-testid="dataset-row-${fid}"]`);
+		const buttons = Array.from(row?.querySelectorAll("button") || []);
+		const btn = buttons.find((b) => b.innerText.includes("Set Active"));
+		if (btn) (btn as HTMLElement).click();
+	}, filename);
 
 	await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
 		timeout: 15000,

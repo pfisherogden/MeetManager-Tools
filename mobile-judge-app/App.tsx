@@ -1113,15 +1113,34 @@ export default function App() {
 								shadowRadius: 3.84,
 							}}
 						>
-							<TouchableOpacity
-								onPress={() => setOfflineModalVisible(false)}
-								testID="modal-close-button"
-								style={{ padding: 10 }}
-							>
-								<Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
+							{Platform.OS === "web" ? (
+								<button
+									type="button"
+									onClick={() => setOfflineModalVisible(false)}
+									data-testid="modal-close-button"
+									style={{
+										padding: "10px 20px",
+										backgroundColor: "white",
+										border: "none",
+										cursor: "pointer",
+										fontWeight: "bold",
+										color: COLORS.primary,
+										fontSize: "16px",
+									}}
+								>
 									CLOSE
-								</Text>
-							</TouchableOpacity>
+								</button>
+							) : (
+								<TouchableOpacity
+									onPress={() => setOfflineModalVisible(false)}
+									testID="modal-close-button"
+									style={{ padding: 10 }}
+								>
+									<Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
+										CLOSE
+									</Text>
+								</TouchableOpacity>
+							)}
 						</View>
 
 						<View style={[styles.modalContainer, styles.offlineModal]}>
