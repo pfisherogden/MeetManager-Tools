@@ -8,33 +8,39 @@ class MockFirestore {
 		return process.env.FIRESTORE_MOCK_PATH || "/tmp/mock_firestore.json";
 	}
 
-	private readStorage(): Map<string, any> {
+	private async readStorage(): Promise<Map<string, any>> {
 		const filePath = this.getFilePath();
 		let attempts = 0;
-		while (attempts < 3) {
+		while (attempts < 5) {
 			try {
-				if (fs.existsSync(filePath)) {
-					const realPath = fs.realpathSync(filePath);
-					const content = fs.readFileSync(realPath, "utf8");
-					const data = JSON.parse(content);
-					return new Map(Object.entries(data));
+				if (!fs.existsSync(filePath)) {
+					return new Map<string, any>();
 				}
+				const realPath = fs.realpathSync(filePath);
+				const content = fs.readFileSync(realPath, "utf8");
+				const data = JSON.parse(content);
+				return new Map(Object.entries(data));
 			} catch (e: any) {
 				console.error(`MockFirestore READ ERROR: ${filePath}: ${e.message}`);
 			}
 			attempts++;
-			if (attempts < 3) {
-				// Wait 500ms before retry
-				const start = Date.now();
-				while (Date.now() - start < 500) {}
+			if (attempts < 5) {
+				// Wait 200ms before retry (non-blocking)
+				await new Promise((resolve) => setTimeout(resolve, 200));
 			}
 		}
 		return new Map<string, any>();
 	}
 
-	private writeStorage(storage: Map<string, any>) {
+	private async writeStorage(storage: Map<string, any>) {
 		const filePath = this.getFilePath();
 		try {
+			// Ensure directory exists
+			const dir = filePath.substring(0, filePath.lastIndexOf("/"));
+			if (dir && !fs.existsSync(dir)) {
+				fs.mkdirSync(dir, { recursive: true });
+			}
+
 			const data = Object.fromEntries(storage);
 			const content = JSON.stringify(data, null, 2);
 
@@ -52,7 +58,7 @@ class MockFirestore {
 		return {
 			doc: (id: string) => ({
 				get: async () => {
-					const storage = this.readStorage();
+					const storage = await this.readStorage();
 					const key = `${name}/${id}`;
 					return {
 						exists: storage.has(key),
@@ -60,14 +66,14 @@ class MockFirestore {
 					};
 				},
 				set: async (data: any) => {
-					const storage = this.readStorage();
+					const storage = await this.readStorage();
 					storage.set(`${name}/${id}`, data);
-					this.writeStorage(storage);
+					await this.writeStorage(storage);
 				},
 			}),
 			orderBy: () => ({
 				get: async () => {
-					const storage = this.readStorage();
+					const storage = await this.readStorage();
 					const docs = Array.from(storage.entries())
 						.filter(([key]) => key.startsWith(`${name}/`))
 						.map(([key, value]) => ({

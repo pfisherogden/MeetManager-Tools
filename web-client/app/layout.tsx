@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
@@ -62,7 +61,6 @@ export default function RootLayout({
 						</SidebarProvider>
 					</AuthGuard>
 				</Providers>
-				<Analytics />
 			</body>
 		</html>
 	);
