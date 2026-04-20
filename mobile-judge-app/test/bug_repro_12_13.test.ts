@@ -29,7 +29,7 @@ const mockChampsData = {
 
 describe("Event 12 -> 13 Navigation Bug Reproduction", () => {
   beforeEach(() => {
-    // @ts-ignore - Mock module might not perfectly match types but logic is what matters here
+    // @ts-expect-error - Mock module might not perfectly match types but logic is what matters here
     db.loadFromJSON(mockChampsData);
   });
 
