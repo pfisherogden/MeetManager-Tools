@@ -53,6 +53,17 @@ test.describe("Reports Generation Journey", () => {
 		});
 
 		const row = page.getByTestId(`dataset-row-${testFileName}`);
+
+		// Wait for the row to appear with retries (handle stale lists in CI)
+		console.log(`Waiting for row to appear: dataset-row-${testFileName}...`);
+		for (let i = 0; i < 5; i++) {
+			if ((await row.count()) > 0) break;
+			console.log(`Retry ${i + 1}: Row not found, reloading...`);
+			await page.reload({ waitUntil: "networkidle" });
+			await page.waitForTimeout(2000);
+		}
+
+		await expect(row).toBeVisible({ timeout: 15000 });
 		await row.getByRole("button", { name: "Set Active" }).click();
 		await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
 			timeout: 15000,

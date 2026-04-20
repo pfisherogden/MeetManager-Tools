@@ -1097,6 +1097,33 @@ export default function App() {
 			>
 				<TouchableWithoutFeedback onPress={() => setOfflineModalVisible(false)}>
 					<View style={styles.modalOverlay} testID="modal-overlay">
+						{/* Close button ABOVE the stopPropagation container */}
+						<View
+							style={{
+								position: "absolute",
+								top: 50,
+								right: 20,
+								zIndex: 999,
+								backgroundColor: COLORS.white,
+								borderRadius: 20,
+								elevation: 5,
+								shadowColor: "#000",
+								shadowOffset: { width: 0, height: 2 },
+								shadowOpacity: 0.25,
+								shadowRadius: 3.84,
+							}}
+						>
+							<TouchableOpacity
+								onPress={() => setOfflineModalVisible(false)}
+								testID="modal-close-button"
+								style={{ padding: 10 }}
+							>
+								<Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
+									CLOSE
+								</Text>
+							</TouchableOpacity>
+						</View>
+
 						<TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
 							<View style={[styles.modalContainer, styles.offlineModal]}>
 								<View style={styles.modalHeader}>
@@ -1128,13 +1155,6 @@ export default function App() {
 												</Text>
 											</TouchableOpacity>
 										)}
-										<TouchableOpacity
-											onPress={() => setOfflineModalVisible(false)}
-											testID="modal-close-button"
-											style={{ padding: 5 }}
-										>
-											<Text style={{ color: COLORS.primary, fontWeight: "bold" }}>CLOSE</Text>
-										</TouchableOpacity>
 									</View>
 								</View>
 

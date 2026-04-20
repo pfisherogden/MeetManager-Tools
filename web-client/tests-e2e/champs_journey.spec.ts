@@ -66,6 +66,16 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Set as active
 		const datasetRow = page.getByTestId(`dataset-row-${testFileName}`);
+
+		// Wait for the row to appear with retries (handle stale lists in CI)
+		console.log(`Waiting for row to appear: dataset-row-${testFileName}...`);
+		for (let i = 0; i < 5; i++) {
+			if ((await datasetRow.count()) > 0) break;
+			console.log(`Retry ${i + 1}: Row not found, reloading...`);
+			await page.reload({ waitUntil: "networkidle" });
+			await page.waitForTimeout(2000);
+		}
+
 		await expect(datasetRow).toBeVisible({ timeout: 20000 });
 
 		const setActiveBtn = datasetRow.getByRole("button", { name: "Set Active" });
