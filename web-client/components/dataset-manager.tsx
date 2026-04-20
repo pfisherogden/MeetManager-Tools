@@ -71,9 +71,12 @@ export function DatasetManager() {
 
 	const { googleAccessToken } = useAuth();
 
-	const fetchDatasets = useCallback(async () => {
+	const fetchDatasets = useCallback(async (force = false) => {
 		try {
 			setLoading(true);
+			if (force) {
+				console.log("E2E: Forcing fresh dataset list fetch...");
+			}
 			const res: any = await listDatasets();
 			if (res?.datasets) {
 				setDatasets(res.datasets);
@@ -97,7 +100,7 @@ export function DatasetManager() {
 			try {
 				await uploadDatasetFromDrive(file.id, file.name);
 				toast.success(`Successfully imported ${file.name} from Drive`);
-				fetchDatasets();
+				fetchDatasets(true);
 			} catch (error: unknown) {
 				handleActionError(error, "Drive import failed");
 			} finally {
@@ -120,7 +123,7 @@ export function DatasetManager() {
 		try {
 			await setActiveDataset(filename);
 			toast.success(`Active dataset changed to ${filename}`);
-			fetchDatasets();
+			fetchDatasets(true);
 		} catch (error) {
 			handleActionError(error, "Failed to set active dataset");
 		}
@@ -164,7 +167,7 @@ export function DatasetManager() {
 			if (fileInputRef.current) fileInputRef.current.value = "";
 			// Wait for server to process and then refresh
 			await new Promise((resolve) => setTimeout(resolve, 500));
-			await fetchDatasets();
+			await fetchDatasets(true);
 		} catch (error: unknown) {
 			handleActionError(error, "Upload failed");
 		} finally {

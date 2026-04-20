@@ -819,7 +819,10 @@ export default function App() {
 				</View>
 			</Modal>
 
-			<View style={styles.statusBar}>
+			<View 
+				style={styles.statusBar}
+				pointerEvents={offlineModalVisible ? "none" : "auto"}
+			>
 				<Text style={styles.versionText}>v1.0.4 ({BUILD_TIME})</Text>
 				<TouchableOpacity onPress={() => setOfflineModalVisible(true)}>
 					<Text style={styles.statusText}>DQ History (Pending: {pendingCount})</Text>
@@ -1101,20 +1104,20 @@ export default function App() {
 			>
 				<TouchableWithoutFeedback onPress={() => setOfflineModalVisible(false)}>
 					<View style={styles.modalOverlay} testID="modal-overlay">
-						{/* Close button ABOVE the stopPropagation container */}
+						{/* Close button at BOTTOM RIGHT to avoid overlap with top status bar */}
 						<View
 							style={{
 								position: "absolute",
-								top: 50,
+								bottom: 30,
 								right: 20,
 								zIndex: 999,
 								backgroundColor: COLORS.white,
 								borderRadius: 20,
-								elevation: 5,
+								elevation: 10,
 								shadowColor: "#000",
-								shadowOffset: { width: 0, height: 2 },
-								shadowOpacity: 0.25,
-								shadowRadius: 3.84,
+								shadowOffset: { width: 0, height: 4 },
+								shadowOpacity: 0.3,
+								shadowRadius: 5,
 							}}
 						>
 							{Platform.OS === "web" ? (
@@ -1128,13 +1131,14 @@ export default function App() {
 									}}
 									data-testid="modal-close-button"
 									style={{
-										padding: "10px 20px",
+										padding: "15px 30px",
 										backgroundColor: "white",
-										border: "2px solid red",
+										border: "3px solid red",
+										borderRadius: "10px",
 										cursor: "pointer",
 										fontWeight: "bold",
 										color: COLORS.primary,
-										fontSize: "16px",
+										fontSize: "18px",
 										position: "relative",
 										zIndex: 10000,
 									}}
@@ -1148,7 +1152,7 @@ export default function App() {
 										setOfflineModalVisible(false);
 									}}
 									testID="modal-close-button"
-									style={{ padding: 10 }}
+									style={{ padding: 15 }}
 								>
 									<Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
 										CLOSE
