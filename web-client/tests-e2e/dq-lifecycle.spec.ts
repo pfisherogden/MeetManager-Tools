@@ -32,9 +32,12 @@ async function ensureDataset(
 	console.log(`Initial check for row: dataset-row-${filename}...`);
 	for (let i = 0; i < 5; i++) {
 		if ((await row.count()) > 0) break;
-		console.log(`Retry ${i + 1}: Row not found, reloading...`);
-		await page.reload({ waitUntil: "networkidle" });
-		await page.waitForTimeout(2000);
+		console.log(`Retry ${i + 1}: Row not found, reloading with cache bust...`);
+		// Force cache bust via URL parameter
+		await page.goto(`/admin?uid=${uid}&t=${Date.now()}`, {
+			waitUntil: "networkidle",
+		});
+		await page.waitForTimeout(3000);
 	}
 
 	const rowCount = await row.count();
@@ -76,9 +79,12 @@ async function ensureDataset(
 					rowVisible = true;
 					break;
 				}
-				console.log(`Retry ${i + 1}: Dataset row not found yet, reloading...`);
-				await page.reload({ waitUntil: "networkidle" });
-				await page.waitForTimeout(2000);
+				console.log(`Retry ${i + 1}: Row not found after upload, reloading...`);
+				// Force cache bust via URL parameter
+				await page.goto(`/admin?uid=${uid}&t=${Date.now()}`, {
+					waitUntil: "networkidle",
+				});
+				await page.waitForTimeout(3000);
 			}
 
 			if (!rowVisible) {

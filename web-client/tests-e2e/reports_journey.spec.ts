@@ -61,9 +61,14 @@ test.describe("Reports Generation Journey", () => {
 		console.log(`Waiting for row to appear: dataset-row-${testFileName}...`);
 		for (let i = 0; i < 5; i++) {
 			if ((await row.count()) > 0) break;
-			console.log(`Retry ${i + 1}: Row not found, reloading...`);
-			await page.reload({ waitUntil: "networkidle" });
-			await page.waitForTimeout(2000);
+			console.log(
+				`Retry ${i + 1}: Row not found, reloading with cache bust...`,
+			);
+			// Force cache bust via URL parameter
+			await page.goto(`/admin?t=${Date.now()}`, {
+				waitUntil: "networkidle",
+			});
+			await page.waitForTimeout(3000);
 		}
 
 		await expect(row).toBeVisible({ timeout: 15000 });
