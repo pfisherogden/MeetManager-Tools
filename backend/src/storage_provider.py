@@ -53,7 +53,9 @@ class LocalStorageProvider(StorageProvider):
 
     def list_files(self, prefix: str) -> list[str]:
         full_prefix_path = self._get_full_path(prefix)
+        logger.info(f"LocalStorageProvider: list_files(prefix={prefix}) -> {full_prefix_path}")
         if not os.path.exists(full_prefix_path):
+            logger.info(f"LocalStorageProvider: path does not exist: {full_prefix_path}")
             return []
 
         files = []
@@ -61,25 +63,33 @@ class LocalStorageProvider(StorageProvider):
             for filename in filenames:
                 rel_path = os.path.relpath(os.path.join(root, filename), self.base_dir)
                 files.append(rel_path)
+        logger.info(f"LocalStorageProvider: found {len(files)} files: {files}")
         return files
 
     def upload_file(self, local_path: str, remote_path: str) -> None:
         dest = self._get_full_path(remote_path)
+        logger.info(f"LocalStorageProvider: upload_file(local={local_path}, remote={remote_path}) -> dest={dest}")
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copy2(local_path, dest)
+        logger.info(f"LocalStorageProvider: successfully saved to {dest}")
 
     def download_file(self, remote_path: str, local_path: str) -> None:
         src = self._get_full_path(remote_path)
+        logger.info(f"LocalStorageProvider: download_file(remote={remote_path}, local={local_path}) -> src={src}")
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         shutil.copy2(src, local_path)
 
     def delete_file(self, remote_path: str) -> None:
         path = self._get_full_path(remote_path)
+        logger.info(f"LocalStorageProvider: delete_file(remote={remote_path}) -> {path}")
         if os.path.exists(path):
             os.remove(path)
 
     def exists(self, remote_path: str) -> bool:
-        return os.path.exists(self._get_full_path(remote_path))
+        path = self._get_full_path(remote_path)
+        res = os.path.exists(path)
+        logger.info(f"LocalStorageProvider: exists(remote={remote_path}) -> {path}: {res}")
+        return res
 
     def get_last_modified(self, remote_path: str) -> float:
         path = self._get_full_path(remote_path)

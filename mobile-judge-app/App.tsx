@@ -830,8 +830,14 @@ export default function App() {
 				<Text style={styles.versionText}>v1.0.4 ({BUILD_TIME})</Text>
 				<TouchableOpacity
 					onPress={() => {
-						// Cooldown check for E2E stability
-						if (Date.now() - lastModalCloseTime.current < 500) return;
+						const delta = Date.now() - lastModalCloseTime.current;
+						console.log(
+							`E2E DEBUG: Open modal request. Delta since last close: ${delta}ms`,
+						);
+						if (delta < 500) {
+							console.log("E2E DEBUG: Open modal request REJECTED (cooldown)");
+							return;
+						}
 						setOfflineModalVisible(true);
 					}}
 				>
