@@ -382,26 +382,27 @@ export default function App() {
 
 		if (targetHeat && targetEvent) {
 			const isEventChanged = targetEvent.id !== selectedEvent?.id;
+			
+			// ATOMIC STATE RESET for navigation stability
 			setSelectedEvent(targetEvent);
 			setSelectedHeat(targetHeat);
+			setSelectedLeg(undefined); // ALWAYS clear leg on heat change
+			
+			const hts = isEventChanged ? getHeatsByEvent(targetEvent.id) : heats;
+			if (isEventChanged) setHeats(hts);
+			
+			const newSwimmers = getSwimmersByHeat(targetHeat.id);
+			setSwimmers(newSwimmers);
 
-			if (isEventChanged) {
-				const nextEventHeats = getHeatsByEvent(targetEvent.id);
-				setHeats(nextEventHeats);
-			}
-
-			if (autoSelectFirstSwimmer) {
-				const newSwimmers = getSwimmersByHeat(targetHeat.id);
-				if (newSwimmers.length > 0) {
-					setSelectedSwimmer(newSwimmers[0]);
-					setSelectedLeg(undefined);
-					loadDQState(newSwimmers[0], undefined);
-				} else {
-					setDqModalVisible(false);
-				}
+			if (autoSelectFirstSwimmer && newSwimmers.length > 0) {
+				const firstS = newSwimmers[0];
+				setSelectedSwimmer(firstS);
+				// If it's a relay and we are auto-selecting, we might want to default to leg 1
+				// but based on current UI, we usually start with the team view (leg undefined).
+				loadDQState(firstS, undefined);
 			} else {
-				// Even if not auto-selecting swimmer, we MUST refresh the swimmers list for the new heat/event
-				setSwimmers(getSwimmersByHeat(targetHeat.id));
+				setSelectedSwimmer(null);
+				if (autoSelectFirstSwimmer) setDqModalVisible(false);
 			}
 		}
 	};
@@ -428,26 +429,25 @@ export default function App() {
 
 		if (targetHeat && targetEvent) {
 			const isEventChanged = targetEvent.id !== selectedEvent?.id;
+			
+			// ATOMIC STATE RESET for navigation stability
 			setSelectedEvent(targetEvent);
 			setSelectedHeat(targetHeat);
+			setSelectedLeg(undefined); // ALWAYS clear leg on heat change
+			
+			const hts = isEventChanged ? getHeatsByEvent(targetEvent.id) : heats;
+			if (isEventChanged) setHeats(hts);
 
-			if (isEventChanged) {
-				const nextEventHeats = getHeatsByEvent(targetEvent.id);
-				setHeats(nextEventHeats);
-			}
+			const newSwimmers = getSwimmersByHeat(targetHeat.id);
+			setSwimmers(newSwimmers);
 
-			if (autoSelectFirstSwimmer) {
-				const newSwimmers = getSwimmersByHeat(targetHeat.id);
-				if (newSwimmers.length > 0) {
-					setSelectedSwimmer(newSwimmers[0]);
-					setSelectedLeg(undefined);
-					loadDQState(newSwimmers[0], undefined);
-				} else {
-					setDqModalVisible(false);
-				}
+			if (autoSelectFirstSwimmer && newSwimmers.length > 0) {
+				const firstS = newSwimmers[0];
+				setSelectedSwimmer(firstS);
+				loadDQState(firstS, undefined);
 			} else {
-				// Even if not auto-selecting swimmer, we MUST refresh the swimmers list for the new heat/event
-				setSwimmers(getSwimmersByHeat(targetHeat.id));
+				setSelectedSwimmer(null);
+				if (autoSelectFirstSwimmer) setDqModalVisible(false);
 			}
 		}
 	};

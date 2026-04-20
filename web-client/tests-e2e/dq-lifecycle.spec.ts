@@ -86,12 +86,18 @@ test.describe("Disqualification Lifecycle", () => {
 			viewport: { width: 375, height: 1200 }, // Extra tall for safety
 			userAgent:
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
-			extraHTTPHeaders: { "x-user-id": userId, "x-e2e-uid": userId },
+			extraHTTPHeaders: {
+				"x-user-id": userId,
+				"x-e2e-uid": userId,
+			},
 		});
 
 		volunteerContext = await browser.newContext({
 			baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
-			extraHTTPHeaders: { "x-user-id": userId, "x-e2e-uid": userId },
+			extraHTTPHeaders: {
+				"x-user-id": userId,
+				"x-e2e-uid": userId,
+			},
 		});
 
 		judgePage = await judgeContext.newPage();
@@ -123,8 +129,22 @@ test.describe("Disqualification Lifecycle", () => {
 	});
 
 	test("Full DQ Journey: Publish -> Submit -> Sync -> Verify", async () => {
-		const contextHeaders = await volunteerPage.context().request.headers();
-		const userId = contextHeaders["x-user-id"] || "unknown";
+		// Extract userId from the context setup
+		const _headers =
+			(await volunteerPage.context().cookies()).length > 0 ? {} : {}; // dummy
+		// We know the userId is unique per context because of beforeEach
+		const userId = `e2e-journey-${Math.random().toString(36).substring(7)}`;
+
+		// Update context with this specific test's ID
+		await volunteerPage.context().setExtraHTTPHeaders({
+			"x-user-id": userId,
+			"x-e2e-uid": userId,
+		});
+		await judgePage.context().setExtraHTTPHeaders({
+			"x-user-id": userId,
+			"x-e2e-uid": userId,
+		});
+
 		const dummyData = {
 			meet: [{ meet_name1: "Journey Meet" }],
 			team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -309,8 +329,14 @@ test.describe("Disqualification Lifecycle", () => {
 		test("should generate correct Judge App URL (not 404)", async ({
 			page,
 		}) => {
-			const contextHeaders = await page.context().request.headers();
-			const userIdRegress = contextHeaders["x-user-id"] || "regress-user";
+			const userIdRegress = `e2e-reg-url-${Math.random().toString(36).substring(7)}`;
+
+			// Inject headers for this specific test
+			await page.context().setExtraHTTPHeaders({
+				"x-user-id": userIdRegress,
+				"x-e2e-uid": userIdRegress,
+			});
+
 			const dummyData = {
 				meet: [{ meet_name1: "Regression Meet" }],
 				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -447,7 +473,8 @@ test.describe("Disqualification Lifecycle", () => {
 				{ timeout: 10000 },
 			);
 
-			await judgePage.mouse.click(5, 300);
+			// Click in a specific empty area to ensure modal dismissal
+			await judgePage.mouse.click(10, 10);
 			await judgePage.waitForTimeout(1000);
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),

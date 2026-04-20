@@ -81,6 +81,7 @@ export const triggerSync = async () => {
 				lane: swimmer.lane,
 				swimmer: swimmerDisplay,
 				infraction_code: item.dq_code,
+				notes: item.notes,
 			};
 
 			console.log(`Sending DQ POST to ${targetUrl} for swimmer ${swimmer.name}`);
