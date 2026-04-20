@@ -1115,17 +1115,23 @@ export default function App() {
 						>
 							{Platform.OS === "web" ? (
 								<button
+									id="e2e-modal-close-button"
 									type="button"
-									onClick={() => setOfflineModalVisible(false)}
+									onClick={() => {
+										console.log("E2E: Closing offline modal via HTML button");
+										setOfflineModalVisible(false);
+									}}
 									data-testid="modal-close-button"
 									style={{
 										padding: "10px 20px",
 										backgroundColor: "white",
-										border: "none",
+										border: "2px solid red",
 										cursor: "pointer",
 										fontWeight: "bold",
 										color: COLORS.primary,
 										fontSize: "16px",
+										position: "relative",
+										zIndex: 10000,
 									}}
 								>
 									CLOSE

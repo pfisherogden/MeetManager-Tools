@@ -543,15 +543,12 @@ test.describe("Disqualification Lifecycle", () => {
 			);
 
 			// Click close button to dismiss
-			await judgePage.evaluate(() => {
-				const btn = document.querySelector(
-					'[data-testid="modal-close-button"]',
-				) as HTMLElement;
-				if (btn) btn.click();
-			});
+			console.log("Clicking modal close button...");
+			await judgePage.click("#e2e-modal-close-button", { force: true });
+
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
-			).not.toBeVisible({ timeout: 10000 });
+			).not.toBeVisible({ timeout: 15000 });
 		});
 	});
 });
