@@ -221,26 +221,63 @@ test.describe("Disqualification Lifecycle", () => {
 			],
 			Session: [{ Sess_ptr: "1", Sess_no: "1" }],
 			Entry: [
-				{ Ath_no: "1", Event_ptr: "13", Pre_heat: "1", Pre_lane: "2" },
-				{ Ath_no: "2", Event_ptr: "13", Pre_heat: "1", Pre_lane: "2" },
-				{ Ath_no: "3", Event_ptr: "13", Pre_heat: "1", Pre_lane: "2" },
-				{ Ath_no: "4", Event_ptr: "13", Pre_heat: "1", Pre_lane: "2" },
-				{ Ath_no: "1", Event_ptr: "15", Pre_heat: "1", Pre_lane: "1" },
+				{
+					Ath_no: "1",
+					Event_ptr: "13",
+					Fin_heat: "1",
+					Pre_heat: "1",
+					Fin_lane: "2",
+					Pre_lane: "2",
+				},
+				{
+					Ath_no: "2",
+					Event_ptr: "13",
+					Fin_heat: "1",
+					Pre_heat: "1",
+					Fin_lane: "2",
+					Pre_lane: "2",
+				},
+				{
+					Ath_no: "3",
+					Event_ptr: "13",
+					Fin_heat: "1",
+					Pre_heat: "1",
+					Fin_lane: "2",
+					Pre_lane: "2",
+				},
+				{
+					Ath_no: "4",
+					Event_ptr: "13",
+					Fin_heat: "1",
+					Pre_heat: "1",
+					Fin_lane: "2",
+					Pre_lane: "2",
+				},
+				{
+					Ath_no: "1",
+					Event_ptr: "15",
+					Fin_heat: "1",
+					Pre_heat: "1",
+					Fin_lane: "1",
+					Pre_lane: "1",
+				},
 			],
 			Relay: [
 				{
 					Relay_no: "1",
 					Team_no: "1",
 					Event_ptr: "13",
+					Fin_heat: "1",
 					Pre_heat: "1",
+					Fin_lane: "2",
 					Pre_lane: "2",
 				},
 			],
 			RelayNames: [
-				{ Relay_no: "1", Ath_no: "1", Pos_no: "1" },
-				{ Relay_no: "1", Ath_no: "2", Pos_no: "2" },
-				{ Relay_no: "1", Ath_no: "3", Pos_no: "3" },
-				{ Relay_no: "1", Ath_no: "4", Pos_no: "4" },
+				{ Event_ptr: "13", Relay_no: "1", Ath_no: "1", Pos_no: "1" },
+				{ Event_ptr: "13", Relay_no: "1", Ath_no: "2", Pos_no: "2" },
+				{ Event_ptr: "13", Relay_no: "1", Ath_no: "3", Pos_no: "3" },
+				{ Event_ptr: "13", Relay_no: "1", Ath_no: "4", Pos_no: "4" },
 			],
 		};
 
@@ -441,7 +478,16 @@ test.describe("Disqualification Lifecycle", () => {
 					},
 				],
 				Session: [{ Sess_ptr: "1", Sess_no: "1" }],
-				Entry: [{ Ath_no: "1", Event_ptr: "1", Pre_heat: "1", Pre_lane: "1" }],
+				Entry: [
+					{
+						Ath_no: "1",
+						Event_ptr: "1",
+						Fin_heat: "1",
+						Pre_heat: "1",
+						Fin_lane: "1",
+						Pre_lane: "1",
+					},
+				],
 			};
 
 			const filename = `regress-url-${userIdRegress}.json`;
@@ -481,28 +527,46 @@ test.describe("Disqualification Lifecycle", () => {
 				],
 				Session: [{ Sess_ptr: "1", Sess_no: "1" }],
 				Entry: [
-					{ Ath_no: "1", Event_ptr: "13", Pre_heat: "1", Pre_lane: "1" },
-					{ Ath_no: "1", Event_ptr: "13", Pre_heat: "2", Pre_lane: "1" },
+					{
+						Ath_no: "1",
+						Event_ptr: "13",
+						Fin_heat: "1",
+						Pre_heat: "1",
+						Fin_lane: "1",
+						Pre_lane: "1",
+					},
+					{
+						Ath_no: "1",
+						Event_ptr: "13",
+						Fin_heat: "2",
+						Pre_heat: "2",
+						Fin_lane: "1",
+						Pre_lane: "1",
+					},
 				],
 				Relay: [
 					{
 						Relay_no: "1",
 						Team_no: "1",
 						Event_ptr: "13",
+						Fin_heat: "1",
 						Pre_heat: "1",
+						Fin_lane: "1",
 						Pre_lane: "1",
 					},
 					{
 						Relay_no: "2",
 						Team_no: "1",
 						Event_ptr: "13",
+						Fin_heat: "2",
 						Pre_heat: "2",
+						Fin_lane: "1",
 						Pre_lane: "1",
 					},
 				],
 				RelayNames: [
-					{ Relay_no: "1", Ath_no: "1", Pos_no: "1" },
-					{ Relay_no: "2", Ath_no: "1", Pos_no: "1" },
+					{ Event_ptr: "13", Relay_no: "1", Ath_no: "1", Pos_no: "1" },
+					{ Event_ptr: "13", Relay_no: "2", Ath_no: "1", Pos_no: "1" },
 				],
 			};
 

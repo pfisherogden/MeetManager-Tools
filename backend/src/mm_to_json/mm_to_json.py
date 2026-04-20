@@ -899,9 +899,16 @@ class MmToJsonConverter:
             return athletes
 
         # Filter using lowercase column names
-        mask = (df["event_ptr"] == event_ptr) & (df["team_no"] == team_no) & (df["team_ltr"] == team_ltr)
+        # Use robust filtering to handle missing columns in mock data
+        mask = pd.Series(True, index=df.index)
+        if "event_ptr" in df.columns:
+            mask &= df["event_ptr"] == event_ptr
+        if "team_no" in df.columns:
+            mask &= df["team_no"] == team_no
+        if "team_ltr" in df.columns:
+            mask &= df["team_ltr"] == team_ltr
         if "event_round" in df.columns:
-            mask = mask & (df["event_round"] == round_ltr)
+            mask &= df["event_round"] == round_ltr
 
         rows = df[mask]
         for _, row in rows.iterrows():
