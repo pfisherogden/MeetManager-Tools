@@ -328,7 +328,7 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage
 			.getByText(/DQ History/)
 			.first()
-			.click({ force: true });
+			.evaluate((el) => (el as HTMLElement).click());
 		await judgePage
 			.getByText("7Q")
 			.first()
@@ -537,7 +537,7 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage
 				.getByText(/DQ History/)
 				.first()
-				.click({ force: true });
+				.evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				judgePage.getByTestId("dq-history-modal-content"),
 			).toBeVisible({ timeout: 10000 });

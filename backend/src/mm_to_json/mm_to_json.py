@@ -2,6 +2,7 @@ import argparse
 import datetime
 import json
 import logging
+import math
 import os
 from typing import Any
 
@@ -1184,6 +1185,8 @@ class Event:
 
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
+    if isinstance(obj, float) and math.isnan(obj):
+        return None
     if isinstance(obj, (datetime.datetime, datetime.date)):
         return obj.isoformat()
     if hasattr(obj, "isoformat"):

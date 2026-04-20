@@ -177,7 +177,7 @@ test.describe("Reports Generation Journey", () => {
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.click();
+		await clubCard.evaluate((el) => (el as HTMLElement).click());
 
 		await page.getByRole("button", { name: "Download PDF" }).click();
 

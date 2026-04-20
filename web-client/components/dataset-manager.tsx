@@ -383,7 +383,10 @@ export function DatasetManager() {
 								<QRCodeSVG value={judgeAppUrl} size={256} level="H" />
 							)}
 						</div>
-						<p className="text-xs text-center text-muted-foreground break-all px-4">
+						<p
+							className="text-xs text-center text-muted-foreground break-all px-4"
+							data-testid="judge-app-url"
+						>
 							{judgeAppUrl}
 						</p>
 						<Button asChild variant="outline" className="w-full">
