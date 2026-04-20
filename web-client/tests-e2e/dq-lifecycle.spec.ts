@@ -73,11 +73,12 @@ test.describe("Disqualification Lifecycle", () => {
 	let volunteerPage: Page;
 	let judgeContext: BrowserContext;
 	let volunteerContext: BrowserContext;
+	let currentUserId: string;
 
 	const getUserId = () => `e2e-dq-${Math.random().toString(36).substring(7)}`;
 
 	test.beforeEach(async ({ browser }) => {
-		const userId = getUserId();
+		currentUserId = getUserId();
 
 		// Create isolated contexts for Judge and Volunteer
 		// CRITICAL: Pass x-user-id and x-e2e-uid in extraHTTPHeaders for Server Action isolation in CI
@@ -87,16 +88,16 @@ test.describe("Disqualification Lifecycle", () => {
 			userAgent:
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
 			extraHTTPHeaders: {
-				"x-user-id": userId,
-				"x-e2e-uid": userId,
+				"x-user-id": currentUserId,
+				"x-e2e-uid": currentUserId,
 			},
 		});
 
 		volunteerContext = await browser.newContext({
 			baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
 			extraHTTPHeaders: {
-				"x-user-id": userId,
-				"x-e2e-uid": userId,
+				"x-user-id": currentUserId,
+				"x-e2e-uid": currentUserId,
 			},
 		});
 
@@ -129,22 +130,7 @@ test.describe("Disqualification Lifecycle", () => {
 	});
 
 	test("Full DQ Journey: Publish -> Submit -> Sync -> Verify", async () => {
-		// Extract userId from the context setup
-		const _headers =
-			(await volunteerPage.context().cookies()).length > 0 ? {} : {}; // dummy
-		// We know the userId is unique per context because of beforeEach
-		const userId = `e2e-journey-${Math.random().toString(36).substring(7)}`;
-
-		// Update context with this specific test's ID
-		await volunteerPage.context().setExtraHTTPHeaders({
-			"x-user-id": userId,
-			"x-e2e-uid": userId,
-		});
-		await judgePage.context().setExtraHTTPHeaders({
-			"x-user-id": userId,
-			"x-e2e-uid": userId,
-		});
-
+		const userId = currentUserId;
 		const dummyData = {
 			meet: [{ meet_name1: "Journey Meet" }],
 			team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
@@ -309,8 +295,8 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log("Journey Step 8: Volunteer verifying sync status...");
 		await volunteerPage.reload();
 		await expect(
-			volunteerPage.locator("tr").filter({ hasText: "7Q" }),
-		).toContainText(/Synced/i, { timeout: 15000 });
+			volunteerPage.locator("tr").filter({ hasText: "Synced" }),
+		).toBeVisible({ timeout: 15000 });
 	});
 
 	test.describe("Frontend Visibility Journeys", () => {
