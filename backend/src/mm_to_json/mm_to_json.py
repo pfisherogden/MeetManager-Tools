@@ -880,7 +880,7 @@ class MmToJsonConverter:
             # Fallback to pre-heat/lane if fin-heat is zero (common in E2E mock data)
             info["heat"] = fin_heat if fin_heat != 0 else pre_heat
             info["lane"] = fin_lane if fin_lane != 0 else pre_lane
-            
+
             # Use fin_time if available, otherwise pre_time if we fell back
             actual_time = fin_time if (fin_heat != 0 or not pre_heat) else pre_time
             actual_stat = fin_stat if (fin_heat != 0 or not pre_heat) else pre_stat
@@ -906,7 +906,7 @@ class MmToJsonConverter:
         )
         if "event_round" in df.columns:
             mask = mask & (df["event_round"] == round_ltr)
-            
+
         rows = df[mask]
         for _, row in rows.iterrows():
             ath_no = row.get("ath_no")
