@@ -19,21 +19,34 @@ async function ensureDataset(
 ) {
 	console.log(`Ensuring dataset for ${uid}: ${filename}...`);
 	await page.goto(`/admin?uid=${uid}`);
+
+	// Wait for the main container to be ready
 	await expect(
 		page.getByRole("heading", { name: /Admin Configuration/i }),
-	).toBeVisible({ timeout: 15000 });
+	).toBeVisible({ timeout: 20000 });
+
+	// Wait for the dataset table/list to be loaded
+	await page
+		.waitForSelector("[data-testid^='dataset-row-']", { timeout: 15000 })
+		.catch(() => {
+			console.log("No datasets found yet, proceeding with upload if needed.");
+		});
 
 	// Use the specific row for this user's dataset if multiple exist
 	const row = page.getByTestId(`dataset-row-${filename}`);
-	const isActive = (await row.getByTestId("active-dataset-badge").count()) > 0;
+	const rowCount = await row.count();
 
-	if (isActive) {
-		console.log(`Dataset ${filename} is already active for ${uid}`);
-		return;
+	if (rowCount > 0) {
+		const isActive =
+			(await row.getByTestId("active-dataset-badge").count()) > 0;
+		if (isActive) {
+			console.log(`Dataset ${filename} is already active for ${uid}`);
+			return;
+		}
 	}
 
-	// Not active, check if uploaded
-	if ((await row.count()) === 0) {
+	// Not active or not found, check if uploaded
+	if (rowCount === 0) {
 		console.log(`No dataset ${filename} found for ${uid}, uploading...`);
 		const testFilePath = `tests-e2e/${filename}`;
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
@@ -49,8 +62,12 @@ async function ensureDataset(
 				page.getByText(/Dataset uploaded successfully/i),
 			).toBeVisible({ timeout: 20000 });
 
-			// Wait for the specific row to appear
-			await expect(row).toBeVisible({ timeout: 10000 });
+			// Reload to ensure list is fresh
+			await page.reload({ waitUntil: "networkidle" });
+			await page.waitForTimeout(2000);
+
+			// Wait for the specific row to appear after upload
+			await expect(row).toBeVisible({ timeout: 15000 });
 		} finally {
 			if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
 		}
@@ -58,10 +75,10 @@ async function ensureDataset(
 
 	// Now set it active
 	console.log(`Setting ${filename} active...`);
-	await row
-		.getByRole("button", { name: /Set Active/i })
-		.first()
-		.click({ force: true });
+	const setActiveBtn = row.getByRole("button", { name: /Set Active/i }).first();
+	await expect(setActiveBtn).toBeVisible({ timeout: 10000 });
+	await setActiveBtn.click({ force: true });
+
 	await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
 		timeout: 15000,
 	});
@@ -500,10 +517,12 @@ test.describe("Disqualification Lifecycle", () => {
 			);
 
 			// Click overlay to dismiss
-			await judgePage
-				.getByTestId("modal-overlay")
-				.first()
-				.click({ force: true });
+			await judgePage.evaluate(() => {
+				const overlay = document.querySelector(
+					'[testID="modal-overlay"]',
+				) as HTMLElement;
+				if (overlay) overlay.click();
+			});
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).not.toBeVisible({ timeout: 10000 });

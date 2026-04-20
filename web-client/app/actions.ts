@@ -58,7 +58,14 @@ export async function listDatasets() {
 		const metadata = await getAuthMetadata();
 		const response = await client.listDatasets({}, { metadata });
 		console.log("SERVER ACTION SUCCESS (listDatasets):", response);
-		return response;
+		// Return a plain object to ensure serializability
+		return {
+			datasets: response.datasets.map((d) => ({
+				filename: d.filename,
+				isActive: d.isActive,
+				lastModified: d.lastModified,
+			})),
+		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (listDatasets):", err);
 		if (err instanceof Error) {

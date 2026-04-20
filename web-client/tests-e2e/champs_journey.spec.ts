@@ -37,7 +37,7 @@ test.describe("Champs Dataset Journey", () => {
 		const testFileName = "tiny_champs.json";
 		const testFilePath = process.env.CI
 			? path.join(process.cwd(), "..", "tests", "fixtures", testFileName)
-			: path.resolve(__dirname, `../../../tests/fixtures/${testFileName}`);
+			: path.resolve(__dirname, `../../tests/fixtures/${testFileName}`);
 
 		console.log(`Using test file path: ${testFilePath}`);
 

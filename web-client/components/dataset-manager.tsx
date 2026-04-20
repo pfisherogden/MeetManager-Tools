@@ -162,7 +162,9 @@ export function DatasetManager() {
 			await uploadDataset(formData);
 			toast.success("Dataset uploaded successfully");
 			if (fileInputRef.current) fileInputRef.current.value = "";
-			fetchDatasets();
+			// Wait for server to process and then refresh
+			await new Promise((resolve) => setTimeout(resolve, 500));
+			await fetchDatasets();
 		} catch (error: unknown) {
 			handleActionError(error, "Upload failed");
 		} finally {
