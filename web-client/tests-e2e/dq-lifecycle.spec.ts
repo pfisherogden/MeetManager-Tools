@@ -518,10 +518,13 @@ test.describe("Disqualification Lifecycle", () => {
 
 			// Click overlay to dismiss
 			await judgePage.evaluate(() => {
-				const overlay = document.querySelector(
-					'[data-testid="modal-overlay"]',
+				const overlays = Array.from(
+					document.querySelectorAll('[data-testid="modal-overlay"]'),
+				);
+				const visibleOverlay = overlays.find(
+					(el) => (el as HTMLElement).offsetParent !== null,
 				) as HTMLElement;
-				if (overlay) overlay.click();
+				if (visibleOverlay) visibleOverlay.click();
 			});
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
