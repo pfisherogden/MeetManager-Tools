@@ -780,7 +780,7 @@ export default function App() {
 		>
 			{/* Judge Name Prompt */}
 			<Modal visible={namePromptVisible} animationType="fade" transparent={true}>
-				<View style={styles.modalOverlay}>
+				<View style={styles.modalOverlay} testID="modal-overlay">
 					<View style={[styles.modalContainer, styles.modalPopup, { padding: 25 }]}>
 						<Text style={[styles.mainTitle, { fontSize: 24, marginBottom: 10 }]}>Welcome, Judge</Text>
 						<Text style={{ marginBottom: 20, color: COLORS.secondary }}>
@@ -1098,7 +1098,7 @@ export default function App() {
 				<TouchableWithoutFeedback
 					onPress={() => setOfflineModalVisible(false)}
 				>
-					<View style={styles.modalOverlay}>
+					<View style={styles.modalOverlay} testID="modal-overlay">
 						<TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
 							<View style={[styles.modalContainer, styles.offlineModal]}>
 								<View style={styles.modalHeader}>

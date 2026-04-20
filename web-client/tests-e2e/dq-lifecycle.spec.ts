@@ -132,38 +132,52 @@ test.describe("Disqualification Lifecycle", () => {
 	test("Full DQ Journey: Publish -> Submit -> Sync -> Verify", async () => {
 		const userId = currentUserId;
 		const dummyData = {
-			meet: [{ meet_name1: "Journey Meet" }],
-			team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
-			athlete: [
-				{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" },
-				{ ath_no: 2, team_no: 1, first_name: "Test", last_name: "B" },
-				{ ath_no: 3, team_no: 1, first_name: "Test", last_name: "C" },
-				{ ath_no: 4, team_no: 1, first_name: "Test", last_name: "D" },
+			Meet: [{ Meet_name1: "Tiny Meet" }],
+			Team: [{ Team_no: "1", Team_abbr: "TEST", Team_name: "Test Team" }],
+			Athlete: [
+				{ Ath_no: "1", Team_no: "1", First_name: "Test", Last_name: "A" },
+				{ Ath_no: "2", Team_no: "1", First_name: "Test", Last_name: "B" },
+				{ Ath_no: "3", Team_no: "1", First_name: "Test", Last_name: "C" },
+				{ Ath_no: "4", Team_no: "1", First_name: "Test", Last_name: "D" },
 			],
-			event: [
-				{ event_no: 13, event_ptr: 13, ind_rel: "R" },
-				{ event_no: 15, event_ptr: 15, ind_rel: "I" },
+			Event: [
+				{
+					Event_no: "13",
+					Event_ptr: "13",
+					Ind_rel: "R",
+					Event_dist: "100",
+					Event_stroke: "E",
+				},
+				{
+					Event_no: "15",
+					Event_ptr: "15",
+					Ind_rel: "I",
+					Event_dist: "25",
+					Event_stroke: "A",
+				},
 			],
-			session: [{ sess_ptr: 1, sess_no: 1 }],
-			sessitem: [
-				{ sess_ptr: 1, event_ptr: 13 },
-				{ sess_ptr: 1, event_ptr: 15 },
+			Session: [{ Sess_ptr: "1", Sess_no: "1" }],
+			Entry: [
+				{ Ath_no: "1", Event_ptr: "13", Pre_heat: "1", Pre_lane: "2" },
+				{ Ath_no: "2", Event_ptr: "13", Pre_heat: "1", Pre_lane: "2" },
+				{ Ath_no: "3", Event_ptr: "13", Pre_heat: "1", Pre_lane: "2" },
+				{ Ath_no: "4", Event_ptr: "13", Pre_heat: "1", Pre_lane: "2" },
+				{ Ath_no: "1", Event_ptr: "15", Pre_heat: "1", Pre_lane: "1" },
 			],
-			entry: [
-				{ ath_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
-				{ ath_no: 2, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
-				{ ath_no: 3, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
-				{ ath_no: 4, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
-				{ ath_no: 1, event_ptr: 15, pre_heat: 1, pre_lane: 1 },
+			Relay: [
+				{
+					Relay_no: "1",
+					Team_no: "1",
+					Event_ptr: "13",
+					Pre_heat: "1",
+					Pre_lane: "2",
+				},
 			],
-			relay: [
-				{ relay_no: 1, team_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 2 },
-			],
-			relaynames: [
-				{ relay_no: 1, ath_no: 1, pos: 1 },
-				{ relay_no: 1, ath_no: 2, pos: 2 },
-				{ relay_no: 1, ath_no: 3, pos: 3 },
-				{ relay_no: 1, ath_no: 4, pos: 4 },
+			RelayNames: [
+				{ Relay_no: "1", Ath_no: "1", Pos_no: "1" },
+				{ Relay_no: "1", Ath_no: "2", Pos_no: "2" },
+				{ Relay_no: "1", Ath_no: "3", Pos_no: "3" },
+				{ Relay_no: "1", Ath_no: "4", Pos_no: "4" },
 			],
 		};
 
@@ -324,15 +338,22 @@ test.describe("Disqualification Lifecycle", () => {
 			});
 
 			const dummyData = {
-				meet: [{ meet_name1: "Regression Meet" }],
-				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
-				athlete: [
-					{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" },
+				Meet: [{ Meet_name1: "Regression Meet" }],
+				Team: [{ Team_no: "1", Team_abbr: "TEST", Team_name: "Test Team" }],
+				Athlete: [
+					{ Ath_no: "1", Team_no: "1", First_name: "Test", Last_name: "A" },
 				],
-				event: [{ event_no: 1, event_ptr: 1, ind_rel: "I" }],
-				session: [{ sess_ptr: 1, sess_no: 1 }],
-				sessitem: [{ sess_ptr: 1, event_ptr: 1 }],
-				entry: [{ ath_no: 1, event_ptr: 1, pre_heat: 1, pre_lane: 1 }],
+				Event: [
+					{
+						Event_no: "1",
+						Event_ptr: "1",
+						Ind_rel: "I",
+						Event_dist: "25",
+						Event_stroke: "A",
+					},
+				],
+				Session: [{ Sess_ptr: "1", Sess_no: "1" }],
+				Entry: [{ Ath_no: "1", Event_ptr: "1", Pre_heat: "1", Pre_lane: "1" }],
 			};
 
 			const filename = `regress-url-${userIdRegress}.json`;
@@ -356,25 +377,44 @@ test.describe("Disqualification Lifecycle", () => {
 		}) => {
 			const userIdNav = `e2e-nav-view-${Math.random().toString(36).substring(7)}`;
 			const dummyData = {
-				meet: [{ meet_name1: "Nav Meet" }],
-				team: [{ team_no: 1, team_abbr: "TEST", team_name: "Test Team" }],
-				athlete: [
-					{ ath_no: 1, team_no: 1, first_name: "Test", last_name: "A" },
+				Meet: [{ Meet_name1: "Nav Meet" }],
+				Team: [{ Team_no: "1", Team_abbr: "TEST", Team_name: "Test Team" }],
+				Athlete: [
+					{ Ath_no: "1", Team_no: "1", First_name: "Test", Last_name: "A" },
 				],
-				event: [{ event_no: 13, event_ptr: 13, ind_rel: "R" }],
-				session: [{ sess_ptr: 1, sess_no: 1 }],
-				sessitem: [{ sess_ptr: 1, event_ptr: 13 }],
-				entry: [
-					{ ath_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 1 },
-					{ ath_no: 1, event_ptr: 13, pre_heat: 2, pre_lane: 1 },
+				Event: [
+					{
+						Event_no: "13",
+						Event_ptr: "13",
+						Ind_rel: "R",
+						Event_dist: "100",
+						Event_stroke: "E",
+					},
 				],
-				relay: [
-					{ relay_no: 1, team_no: 1, event_ptr: 13, pre_heat: 1, pre_lane: 1 },
-					{ relay_no: 2, team_no: 1, event_ptr: 13, pre_heat: 2, pre_lane: 1 },
+				Session: [{ Sess_ptr: "1", Sess_no: "1" }],
+				Entry: [
+					{ Ath_no: "1", Event_ptr: "13", Pre_heat: "1", Pre_lane: "1" },
+					{ Ath_no: "1", Event_ptr: "13", Pre_heat: "2", Pre_lane: "1" },
 				],
-				relaynames: [
-					{ relay_no: 1, ath_no: 1, pos: 1 },
-					{ relay_no: 2, ath_no: 1, pos: 1 },
+				Relay: [
+					{
+						Relay_no: "1",
+						Team_no: "1",
+						Event_ptr: "13",
+						Pre_heat: "1",
+						Pre_lane: "1",
+					},
+					{
+						Relay_no: "2",
+						Team_no: "1",
+						Event_ptr: "13",
+						Pre_heat: "2",
+						Pre_lane: "1",
+					},
+				],
+				RelayNames: [
+					{ Relay_no: "1", Ath_no: "1", Pos_no: "1" },
+					{ Relay_no: "2", Ath_no: "1", Pos_no: "1" },
 				],
 			};
 
@@ -459,13 +499,14 @@ test.describe("Disqualification Lifecycle", () => {
 				{ timeout: 10000 },
 			);
 
-			// Click in a specific empty area to ensure modal dismissal
-			await judgePage.mouse.click(10, 10);
-			await judgePage.waitForTimeout(1000);
+			// Click overlay to dismiss
+			await judgePage
+				.getByTestId("modal-overlay")
+				.first()
+				.click({ force: true });
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).not.toBeVisible({ timeout: 10000 });
 		});
 	});
 });
-// Final verification run
