@@ -211,7 +211,11 @@ export async function uploadDataset(formData: FormData) {
 		const response = await client.uploadDataset(uploadRequestGenerator(), {
 			metadata,
 		});
+
+		// Wait for file system stability in CI
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 		revalidatePath("/", "layout");
+
 		return response;
 	} catch (err: unknown) {
 		console.error("SERVER ACTION: Upload Error:", err);
