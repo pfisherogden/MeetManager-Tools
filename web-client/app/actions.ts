@@ -56,8 +56,13 @@ async function getAuthMetadata() {
 export async function listDatasets() {
 	try {
 		const metadata = await getAuthMetadata();
+		const userId = metadata["x-user-id"];
+		console.log(`SERVER ACTION: listDatasets called for user: ${userId}`);
 		const response = await client.listDatasets({}, { metadata });
-		console.log("SERVER ACTION SUCCESS (listDatasets):", response);
+		console.log(
+			`SERVER ACTION SUCCESS (listDatasets) for user: ${userId}:`,
+			response,
+		);
 		// Return a plain object to ensure serializability
 		return {
 			datasets: response.datasets.map((d) => ({
@@ -191,7 +196,9 @@ export async function uploadDatasetFromDrive(fileId: string, filename: string) {
 }
 
 export async function uploadDataset(formData: FormData) {
-	console.log("SERVER ACTION: uploadDataset called");
+	const metadata = await getAuthMetadata();
+	const userId = metadata["x-user-id"];
+	console.log(`SERVER ACTION: uploadDataset called for user: ${userId}`);
 	const file = formData.get("file") as File;
 	if (!file) {
 		throw new Error("No file uploaded");

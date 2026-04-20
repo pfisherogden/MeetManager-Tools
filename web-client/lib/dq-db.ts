@@ -10,6 +10,7 @@ class MockFirestore {
 
 	private async readStorage(): Promise<Map<string, any>> {
 		const filePath = this.getFilePath();
+		console.log(`MockFirestore: READING from ${filePath}`);
 		let attempts = 0;
 		while (attempts < 5) {
 			try {
@@ -34,6 +35,7 @@ class MockFirestore {
 
 	private async writeStorage(storage: Map<string, any>) {
 		const filePath = this.getFilePath();
+		console.log(`MockFirestore: WRITING to ${filePath}`);
 		try {
 			// Ensure directory exists
 			const dir = filePath.substring(0, filePath.lastIndexOf("/"));

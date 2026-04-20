@@ -1121,7 +1121,8 @@ export default function App() {
 								<button
 									id="e2e-modal-close-button"
 									type="button"
-									onClick={() => {
+									onClick={(e) => {
+										e.stopPropagation();
 										console.log("E2E: Closing offline modal via HTML button");
 										setOfflineModalVisible(false);
 									}}
@@ -1142,7 +1143,10 @@ export default function App() {
 								</button>
 							) : (
 								<TouchableOpacity
-									onPress={() => setOfflineModalVisible(false)}
+									onPress={(e) => {
+										e.stopPropagation();
+										setOfflineModalVisible(false);
+									}}
 									testID="modal-close-button"
 									style={{ padding: 10 }}
 								>
