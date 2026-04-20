@@ -8,7 +8,7 @@ export function withCors(response: NextResponse) {
 	);
 	response.headers.set(
 		"Access-Control-Allow-Headers",
-		"Content-Type, Authorization, x-user-id",
+		"Content-Type, Authorization, x-user-id, x-e2e-uid",
 	);
 	response.headers.set("Access-Control-Expose-Headers", "Content-Disposition");
 	return response;
