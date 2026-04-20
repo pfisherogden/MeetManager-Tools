@@ -1,28 +1,35 @@
-import { renderHook, act } from '@testing-library/react-native';
 import * as db from '../src/database/db';
-import React from 'react';
 
-// We'll mock a minimal version of the state management from App.tsx
-// because full component testing with complex navigation and modals is brittle.
-// Instead, we verify the database queries and expected state transitions.
+// Mock the entire db module to avoid environment issues with native SQLite
+jest.mock('../src/database/db', () => {
+  let mockState: any = { events: [], heats: [], swimmers: [] };
+  return {
+    loadFromJSON: jest.fn((data) => { mockState = data; }),
+    getEventById: jest.fn((id) => mockState.events.find((e: any) => e.id === id)),
+    getHeatsByEvent: jest.fn((eventId) => mockState.heats.filter((h: any) => h.event_id === eventId)),
+    getSwimmersByHeat: jest.fn((heatId) => mockState.swimmers.filter((s: any) => s.heat_id === heatId)),
+    getSwimmerById: jest.fn((id) => mockState.swimmers.find((s: any) => s.id === id)),
+  };
+});
 
 const mockChampsData = {
   events: [
-    { id: 12, number: 12, name: "Mixed 15-18 200 Yard Medley Relay", isRelay: true },
-    { id: 13, number: 13, name: "Girls 6 & under 25 Yard Freestyle", isRelay: false }
+    { id: 12, number: 12, name: "Mixed 15-18 200 Yard Medley Relay", isRelay: true, distance: 200, stroke: "Medley" },
+    { id: 13, number: 13, name: "Girls 6 & under 25 Yard Freestyle", isRelay: false, distance: 25, stroke: "Free" }
   ],
   heats: [
     { id: 100, event_id: 12, number: 1 },
     { id: 101, event_id: 13, number: 1 }
   ],
   swimmers: [
-    { id: 2400, heat_id: 100, lane: 1, name: "Team A", isRelay: true, members: ["S1", "S2", "S3", "S4"] },
-    { id: 12800, heat_id: 101, lane: 1, name: "Individual Girl", isRelay: false }
+    { id: 2400, heat_id: 100, lane: 1, name: "Team A", isRelay: true, members: ["S1", "S2", "S3", "S4"], team: "A", relay_dqs: [], notes: "", dq_code: "" },
+    { id: 12800, heat_id: 101, lane: 1, name: "Individual Girl", isRelay: false, team: "A", relay_dqs: [], notes: "", dq_code: "" }
   ]
 };
 
 describe("Event 12 -> 13 Navigation Bug Reproduction", () => {
   beforeEach(() => {
+    // @ts-ignore - Mock module might not perfectly match types but logic is what matters here
     db.loadFromJSON(mockChampsData);
   });
 
