@@ -171,7 +171,9 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Add 2 reports to the pack (sufficient for testing bundle logic)
 		for (let i = 0; i < 2; i++) {
-			await page.getByRole("button", { name: /Add to Pack/i }).evaluate((el) => (el as HTMLElement).click());
+			await page
+				.getByRole("button", { name: /Add to Pack/i })
+				.evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				page.getByText(/Added to custom pack/i).first(),
 			).toBeVisible();

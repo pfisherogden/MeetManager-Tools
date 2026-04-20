@@ -132,16 +132,36 @@ test.describe("Disqualification Lifecycle", () => {
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
 		});
 		await judgeContext.addCookies([
-			{ name: "x-user-id", value: currentUserId, domain: "localhost", path: "/" },
-			{ name: "x-e2e-uid", value: currentUserId, domain: "localhost", path: "/" },
+			{
+				name: "x-user-id",
+				value: currentUserId,
+				domain: "localhost",
+				path: "/",
+			},
+			{
+				name: "x-e2e-uid",
+				value: currentUserId,
+				domain: "localhost",
+				path: "/",
+			},
 		]);
 
 		volunteerContext = await browser.newContext({
 			baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
 		});
 		await volunteerContext.addCookies([
-			{ name: "x-user-id", value: currentUserId, domain: "localhost", path: "/" },
-			{ name: "x-e2e-uid", value: currentUserId, domain: "localhost", path: "/" },
+			{
+				name: "x-user-id",
+				value: currentUserId,
+				domain: "localhost",
+				path: "/",
+			},
+			{
+				name: "x-e2e-uid",
+				value: currentUserId,
+				domain: "localhost",
+				path: "/",
+			},
 		]);
 
 		judgePage = await judgeContext.newPage();
@@ -247,7 +267,9 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log("Journey Step 2: Judge onboarding...");
 		await judgePage.goto(localUrl);
 		await judgePage.getByPlaceholder("Your Name").fill("Judge Alex");
-		await judgePage.getByText("START JUDGING").evaluate((el) => (el as HTMLElement).click());
+		await judgePage
+			.getByText("START JUDGING")
+			.evaluate((el) => (el as HTMLElement).click());
 		await expect(judgePage.getByText("Events", { exact: true })).toBeVisible({
 			timeout: 15000,
 		});
@@ -261,8 +283,14 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByText(/Heat 1/i)
 			.first()
 			.evaluate((el) => (el as HTMLElement).click());
-		await judgePage.getByText("TAP TO DQ").first().evaluate((el) => (el as HTMLElement).click());
-		await judgePage.getByText("1A").first().evaluate((el) => (el as HTMLElement).click());
+		await judgePage
+			.getByText("TAP TO DQ")
+			.first()
+			.evaluate((el) => (el as HTMLElement).click());
+		await judgePage
+			.getByText("1A")
+			.first()
+			.evaluate((el) => (el as HTMLElement).click());
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("False start on lane 1");
@@ -308,7 +336,10 @@ test.describe("Disqualification Lifecycle", () => {
 			.first();
 		await expect(leg3).toBeVisible({ timeout: 10000 });
 		await leg3.evaluate((el) => (el as HTMLElement).click());
-		await judgePage.getByText("7Q").first().evaluate((el) => (el as HTMLElement).click());
+		await judgePage
+			.getByText("7Q")
+			.first()
+			.evaluate((el) => (el as HTMLElement).click());
 		await judgePage.evaluate(() =>
 			(
 				document.querySelector('[aria-label="Save changes"]') as HTMLElement
@@ -365,7 +396,9 @@ test.describe("Disqualification Lifecycle", () => {
 				page.getByRole("heading", { name: /Submitted Disqualifications/i }),
 			).toBeVisible({ timeout: 15000 });
 			await expect(
-				page.locator("table").or(page.getByText(/No disqualifications submitted yet/i))
+				page
+					.locator("table")
+					.or(page.getByText(/No disqualifications submitted yet/i)),
 			).toBeVisible({ timeout: 15000 });
 		});
 	});
@@ -378,8 +411,18 @@ test.describe("Disqualification Lifecycle", () => {
 
 			// Inject cookies for this specific test
 			await page.context().addCookies([
-				{ name: "x-user-id", value: userIdRegress, domain: "localhost", path: "/" },
-				{ name: "x-e2e-uid", value: userIdRegress, domain: "localhost", path: "/" },
+				{
+					name: "x-user-id",
+					value: userIdRegress,
+					domain: "localhost",
+					path: "/",
+				},
+				{
+					name: "x-e2e-uid",
+					value: userIdRegress,
+					domain: "localhost",
+					path: "/",
+				},
 			]);
 
 			const dummyData = {
@@ -502,10 +545,18 @@ test.describe("Disqualification Lifecycle", () => {
 			const judgePage = await judgeContext.newPage();
 			await judgePage.goto(localUrl);
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
-			await judgePage.getByText("START JUDGING").evaluate((el) => (el as HTMLElement).click());
+			await judgePage
+				.getByText("START JUDGING")
+				.evaluate((el) => (el as HTMLElement).click());
 
-			await judgePage.getByText("Event 13").first().evaluate((el) => (el as HTMLElement).click());
-			await judgePage.getByText("Heat 1").first().evaluate((el) => (el as HTMLElement).click());
+			await judgePage
+				.getByText("Event 13")
+				.first()
+				.evaluate((el) => (el as HTMLElement).click());
+			await judgePage
+				.getByText("Heat 1")
+				.first()
+				.evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				judgePage
 					.getByText(/Leg 1/i)
@@ -540,7 +591,9 @@ test.describe("Disqualification Lifecycle", () => {
 			const judgePage = await judgeContext.newPage();
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Modal Judge");
-			await judgePage.getByText("START JUDGING").evaluate((el) => (el as HTMLElement).click());
+			await judgePage
+				.getByText("START JUDGING")
+				.evaluate((el) => (el as HTMLElement).click());
 
 			await judgePage
 				.getByText(/DQ History/)

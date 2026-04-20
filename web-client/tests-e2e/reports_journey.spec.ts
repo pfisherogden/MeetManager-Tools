@@ -165,7 +165,9 @@ test.describe("Reports Generation Journey", () => {
 		).toContainText("Meet Program (HTML)");
 
 		const pagePromise = page.context().waitForEvent("page");
-		await page.getByRole("button", { name: "View HTML" }).evaluate((el) => (el as HTMLElement).click());
+		await page
+			.getByRole("button", { name: "View HTML" })
+			.evaluate((el) => (el as HTMLElement).click());
 		const newPage = await pagePromise;
 		await newPage.waitForLoadState();
 
@@ -179,7 +181,9 @@ test.describe("Reports Generation Journey", () => {
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
 		await clubCard.evaluate((el) => (el as HTMLElement).click());
 
-		await page.getByRole("button", { name: "Download PDF" }).evaluate((el) => (el as HTMLElement).click());
+		await page
+			.getByRole("button", { name: "Download PDF" })
+			.evaluate((el) => (el as HTMLElement).click());
 
 		await expect(page.getByText("Report generated successfully")).toBeVisible({
 			timeout: 30000,
@@ -199,7 +203,9 @@ test.describe("Reports Generation Journey", () => {
 
 		for (const type of types) {
 			const testId = `report-card-${type.toLowerCase().replace(/\s+/g, "-")}`;
-			await page.getByTestId(testId).evaluate((el) => (el as HTMLElement).click());
+			await page
+				.getByTestId(testId)
+				.evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				page.locator("div").filter({ hasText: /^Summary/ }),
 			).toContainText(type);
