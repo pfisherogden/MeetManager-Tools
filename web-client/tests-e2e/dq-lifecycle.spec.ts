@@ -62,11 +62,22 @@ async function ensureDataset(
 				page.getByText(/Dataset uploaded successfully/i),
 			).toBeVisible({ timeout: 20000 });
 
-			// Reload to ensure list is fresh
-			await page.reload({ waitUntil: "networkidle" });
-			await page.waitForTimeout(2000);
+			// Wait for the specific row to appear after upload with retries
+			console.log(`Waiting for row to appear: dataset-row-${filename}...`);
+			let rowVisible = false;
+			for (let i = 0; i < 5; i++) {
+				if ((await row.count()) > 0 && (await row.isVisible())) {
+					rowVisible = true;
+					break;
+				}
+				console.log(`Retry ${i + 1}: Dataset row not found yet, reloading...`);
+				await page.reload({ waitUntil: "networkidle" });
+				await page.waitForTimeout(2000);
+			}
 
-			// Wait for the specific row to appear after upload
+			if (!rowVisible) {
+				console.log("FINAL ATTEMPT: Waiting for row visibility...");
+			}
 			await expect(row).toBeVisible({ timeout: 15000 });
 		} finally {
 			if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
@@ -517,10 +528,12 @@ test.describe("Disqualification Lifecycle", () => {
 			);
 
 			// Click close button to dismiss
-			await judgePage
-				.getByTestId("modal-close-button")
-				.first()
-				.click({ force: true });
+			await judgePage.evaluate(() => {
+				const btn = document.querySelector(
+					'[data-testid="modal-close-button"]',
+				) as HTMLElement;
+				if (btn) btn.click();
+			});
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).not.toBeVisible({ timeout: 10000 });
