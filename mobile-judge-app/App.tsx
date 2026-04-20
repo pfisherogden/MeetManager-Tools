@@ -150,6 +150,10 @@ export default function App() {
 		defaultDqCodes,
 	);
 	const [offlineModalVisible, setOfflineModalVisible] = useState(false); // Issue #83
+
+	useEffect(() => {
+		console.log(`E2E DEBUG: offlineModalVisible changed to ${offlineModalVisible}`);
+	}, [offlineModalVisible]);
 	const [programMode, setProgramMode] = useState(false); // Toggle state
 	const [showEmptyLanes, setShowEmptyLanes] = useState(true); // Issue #140
 	const [refreshCounter, setRefreshCounter] = useState<number>(0);
