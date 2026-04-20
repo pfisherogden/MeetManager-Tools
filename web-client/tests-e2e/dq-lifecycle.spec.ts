@@ -66,7 +66,8 @@ async function ensureDataset(
 			console.log(`Waiting for row to appear: dataset-row-${filename}...`);
 			let rowVisible = false;
 			for (let i = 0; i < 5; i++) {
-				if ((await row.count()) > 0 && (await row.isVisible())) {
+				const count = await row.count();
+				if (count > 0 && (await row.isVisible())) {
 					rowVisible = true;
 					break;
 				}
@@ -542,3 +543,4 @@ test.describe("Disqualification Lifecycle", () => {
 });
 // Final definitive verification run
 // Final definitive verification run 2
+// Final definitive verification run 3
