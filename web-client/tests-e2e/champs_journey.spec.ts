@@ -167,7 +167,7 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Select a report type first
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.evaluate((el) => (el as HTMLElement).evaluate((el) => (el as HTMLElement).click()));
+		await clubCard.evaluate((el) => (el as HTMLElement).click());
 
 		// Add 2 reports to the pack (sufficient for testing bundle logic)
 		for (let i = 0; i < 2; i++) {

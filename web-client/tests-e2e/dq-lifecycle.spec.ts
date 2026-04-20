@@ -124,25 +124,25 @@ test.describe("Disqualification Lifecycle", () => {
 		currentUserId = getUserId();
 
 		// Create isolated contexts for Judge and Volunteer
-		// CRITICAL: Pass x-user-id and x-e2e-uid in extraHTTPHeaders for Server Action isolation in CI
+		// CRITICAL: Pass x-user-id and x-e2e-uid in cookies for Server Action isolation in CI
 		judgeContext = await browser.newContext({
 			baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080",
 			viewport: { width: 375, height: 1200 }, // Extra tall for safety
 			userAgent:
 				"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
-			extraHTTPHeaders: {
-				"x-user-id": currentUserId,
-				"x-e2e-uid": currentUserId,
-			},
 		});
+		await judgeContext.addCookies([
+			{ name: "x-user-id", value: currentUserId, domain: "localhost", path: "/" },
+			{ name: "x-e2e-uid", value: currentUserId, domain: "localhost", path: "/" },
+		]);
 
 		volunteerContext = await browser.newContext({
 			baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
-			extraHTTPHeaders: {
-				"x-user-id": currentUserId,
-				"x-e2e-uid": currentUserId,
-			},
 		});
+		await volunteerContext.addCookies([
+			{ name: "x-user-id", value: currentUserId, domain: "localhost", path: "/" },
+			{ name: "x-e2e-uid", value: currentUserId, domain: "localhost", path: "/" },
+		]);
 
 		judgePage = await judgeContext.newPage();
 		volunteerPage = await volunteerContext.newPage();
@@ -376,11 +376,11 @@ test.describe("Disqualification Lifecycle", () => {
 		}) => {
 			const userIdRegress = `e2e-reg-url-${Math.random().toString(36).substring(7)}`;
 
-			// Inject headers for this specific test
-			await page.context().setExtraHTTPHeaders({
-				"x-user-id": userIdRegress,
-				"x-e2e-uid": userIdRegress,
-			});
+			// Inject cookies for this specific test
+			await page.context().addCookies([
+				{ name: "x-user-id", value: userIdRegress, domain: "localhost", path: "/" },
+				{ name: "x-e2e-uid", value: userIdRegress, domain: "localhost", path: "/" },
+			]);
 
 			const dummyData = {
 				Meet: [{ Meet_name1: "Regression Meet" }],
@@ -465,8 +465,11 @@ test.describe("Disqualification Lifecycle", () => {
 
 			const adminContext = await browser.newContext({
 				baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
-				extraHTTPHeaders: { "x-user-id": userIdNav, "x-e2e-uid": userIdNav },
 			});
+			await adminContext.addCookies([
+				{ name: "x-user-id", value: userIdNav, domain: "localhost", path: "/" },
+				{ name: "x-e2e-uid", value: userIdNav, domain: "localhost", path: "/" },
+			]);
 			const adminPage = await adminContext.newPage();
 			const filename = `nav-view-${userIdNav}.json`;
 			await ensureDataset(adminPage, userIdNav, filename, dummyData);
@@ -491,8 +494,11 @@ test.describe("Disqualification Lifecycle", () => {
 				viewport: { width: 375, height: 1200 },
 				userAgent:
 					"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
-				extraHTTPHeaders: { "x-user-id": userIdNav, "x-e2e-uid": userIdNav },
 			});
+			await judgeContext.addCookies([
+				{ name: "x-user-id", value: userIdNav, domain: "localhost", path: "/" },
+				{ name: "x-e2e-uid", value: userIdNav, domain: "localhost", path: "/" },
+			]);
 			const judgePage = await judgeContext.newPage();
 			await judgePage.goto(localUrl);
 			await judgePage.getByPlaceholder("Your Name").fill("Regression Judge");
