@@ -519,7 +519,7 @@ test.describe("Disqualification Lifecycle", () => {
 			// Click overlay to dismiss
 			await judgePage.evaluate(() => {
 				const overlay = document.querySelector(
-					'[testID="modal-overlay"]',
+					'[data-testid="modal-overlay"]',
 				) as HTMLElement;
 				if (overlay) overlay.click();
 			});
