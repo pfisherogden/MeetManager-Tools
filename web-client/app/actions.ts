@@ -219,10 +219,16 @@ export async function uploadDataset(formData: FormData) {
 			metadata,
 		});
 
-		// Wait for file system stability in CI
-		await new Promise((resolve) => setTimeout(resolve, 1000));
-		revalidatePath("/", "layout");
+		// Wait for file system stability in CI before returning
+		// This ensures subsequent listDatasets calls see the new file
+		if (
+			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
+			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "1"
+		) {
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+		}
 
+		revalidatePath("/", "layout");
 		return response;
 	} catch (err: unknown) {
 		console.error("SERVER ACTION: Upload Error:", err);
