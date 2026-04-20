@@ -612,16 +612,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     file_content.write(request.chunk)
                     total_bytes += chunk_len
 
-            logging.debug(f"DEBUG: UploadDataset received total {total_bytes} bytes for {filename}")
+            logging.info(f"UploadDataset: uid={uid}, received total {total_bytes} bytes for {filename}")
 
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
             # For LocalStorageProvider, print absolute path for debugging
             if hasattr(self.storage, "base_dir"):
                 abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
-                logging.debug(f"DEBUG: UploadDataset saving to {user_path} (abs: {abs_user_path}) for {uid}")
+                logging.info(f"UploadDataset: saving to {user_path} (abs: {abs_user_path}) for {uid}")
             else:
-                logging.debug(f"DEBUG: UploadDataset saving to {user_path} for {uid}")
+                logging.info(f"UploadDataset: saving to {user_path} for {uid}")
 
             suffix = os.path.splitext(filename)[1]
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -921,11 +921,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         config = self._load_user_config(context)
         active_file = config.get("active_dataset", SOURCE_FILE)
 
+        logging.info(f"ListDatasets: uid={uid}, active_file={active_file}")
         datasets = []
         try:
             # List files from users/[uid]/
             user_prefix = os.path.join("users", uid)
             files = self.storage.list_files(user_prefix)
+            logging.info(f"ListDatasets: Found {len(files)} files in {user_prefix}: {files}")
 
             # Also include default Sample_Data.json if it exists and user has no files?
             # For simplicity, let's just list user's files

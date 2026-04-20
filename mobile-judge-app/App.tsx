@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	FlatList,
@@ -150,9 +150,13 @@ export default function App() {
 		defaultDqCodes,
 	);
 	const [offlineModalVisible, setOfflineModalVisible] = useState(false); // Issue #83
+	const lastModalCloseTime = useRef<number>(0);
 
 	useEffect(() => {
 		console.log(`E2E DEBUG: offlineModalVisible changed to ${offlineModalVisible}`);
+		if (!offlineModalVisible) {
+			lastModalCloseTime.current = Date.now();
+		}
 	}, [offlineModalVisible]);
 	const [programMode, setProgramMode] = useState(false); // Toggle state
 	const [showEmptyLanes, setShowEmptyLanes] = useState(true); // Issue #140
@@ -824,7 +828,13 @@ export default function App() {
 				pointerEvents={offlineModalVisible ? "none" : "auto"}
 			>
 				<Text style={styles.versionText}>v1.0.4 ({BUILD_TIME})</Text>
-				<TouchableOpacity onPress={() => setOfflineModalVisible(true)}>
+				<TouchableOpacity
+					onPress={() => {
+						// Cooldown check for E2E stability
+						if (Date.now() - lastModalCloseTime.current < 500) return;
+						setOfflineModalVisible(true);
+					}}
+				>
 					<Text style={styles.statusText}>DQ History (Pending: {pendingCount})</Text>
 				</TouchableOpacity>
 				<View style={{ flexDirection: "row", alignItems: "center" }}>
