@@ -1,6 +1,110 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+async function ensureDataset(
+	page: Page,
+	uid: string,
+	filename: string,
+	data: any,
+) {
+	console.log(`Ensuring dataset for ${uid}: ${filename}...`);
+	await page.goto(`/admin?uid=${uid}`);
+
+	// Wait for the main container to be ready
+	await expect(
+		page.getByRole("heading", { name: /Admin Configuration/i }),
+	).toBeVisible({ timeout: 20000 });
+
+	// Use the specific row for this user's dataset if multiple exist
+	const row = page.getByTestId(`dataset-row-${filename}`);
+
+	// Wait for the row to appear with retries (handle stale lists in CI)
+	console.log(`Initial check for row: dataset-row-${filename}...`);
+	for (let i = 0; i < 5; i++) {
+		if ((await row.count()) > 0) break;
+		console.log(`Retry ${i + 1}: Row not found, reloading with cache bust...`);
+		// Force cache bust via URL parameter
+		await page.goto(`/admin?uid=${uid}&t=${Date.now()}`, {
+			waitUntil: "networkidle",
+		});
+		await page.waitForTimeout(3000);
+	}
+
+	const rowCount = await row.count();
+	if (rowCount > 0) {
+		const isActive =
+			(await row.getByTestId("active-dataset-badge").count()) > 0;
+		if (isActive) {
+			console.log(`Dataset ${filename} is already active for ${uid}`);
+			return;
+		}
+	}
+
+	// Not active or not found, check if uploaded
+	if (rowCount === 0) {
+		console.log(`No dataset ${filename} found for ${uid}, uploading...`);
+		const tempDir = path.join(process.cwd(), "tmp", "e2e-fixtures");
+		if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+		const testFilePath = path.join(tempDir, filename);
+		fs.writeFileSync(testFilePath, JSON.stringify(data));
+
+		try {
+			const fileChooserPromise = page.waitForEvent("filechooser");
+			// Use evaluate click for maximum reliability in CI
+			await page.evaluate(() => {
+				const buttons = Array.from(document.querySelectorAll("button"));
+				const uploadBtn = buttons.find((b) =>
+					b.innerText.includes("Upload Dataset"),
+				);
+				if (uploadBtn) uploadBtn.click();
+			});
+			const fileChooser = await fileChooserPromise;
+			await fileChooser.setFiles(testFilePath);
+			await expect(
+				page.getByText(/Dataset uploaded successfully/i),
+			).toBeVisible({ timeout: 20000 });
+
+			// Wait for the specific row to appear after upload with retries
+			console.log(`Waiting for row to appear: dataset-row-${filename}...`);
+			let rowVisible = false;
+			for (let i = 0; i < 5; i++) {
+				const count = await row.count();
+				if (count > 0 && (await row.isVisible())) {
+					rowVisible = true;
+					break;
+				}
+				console.log(`Retry ${i + 1}: Row not found after upload, reloading...`);
+				// Force cache bust via URL parameter
+				await page.goto(`/admin?uid=${uid}&t=${Date.now()}`, {
+					waitUntil: "networkidle",
+				});
+				await page.waitForTimeout(3000);
+			}
+
+			if (!rowVisible) {
+				console.log("FINAL ATTEMPT: Waiting for row visibility...");
+			}
+			await expect(row).toBeVisible({ timeout: 15000 });
+		} finally {
+			if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
+		}
+	}
+
+	// Now set it active
+	console.log(`Setting ${filename} active...`);
+	await page.evaluate((fid) => {
+		const row = document.querySelector(`[data-testid="dataset-row-${fid}"]`);
+		const buttons = Array.from(row?.querySelectorAll("button") || []);
+		const btn = buttons.find((b) => b.innerText.includes("Set Active"));
+		if (btn) (btn as HTMLElement).click();
+	}, filename);
+
+	await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
+		timeout: 15000,
+	});
+	console.log(`Dataset ${filename} is now active`);
+}
 
 test.describe("Champs Dataset Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
@@ -28,83 +132,21 @@ test.describe("Champs Dataset Journey", () => {
 
 	test("should correctly process and display tiny Champs dataset", async ({
 		page,
-	}, _testInfo) => {
+	}, testInfo) => {
 		// Set reasonable timeout
 		test.setTimeout(180000);
 
-		// 1. Admin: Upload and Set Active
-		await page.goto("/admin", { waitUntil: "networkidle" });
+		// Use helper for robust dataset management in CI
+		const userId = `e2e-champs-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		const testFileName = "tiny_champs.json";
-		const testFilePath = path.resolve(
-			process.cwd(),
-			"..",
-			"tests",
-			"fixtures",
-			testFileName,
+		const tinyChampsData = JSON.parse(
+			fs.readFileSync(
+				path.resolve(process.cwd(), "..", "tests", "fixtures", testFileName),
+				"utf8",
+			),
 		);
 
-		console.log(`Using test file path: ${testFilePath}`);
-
-		// Wait for any heading or the dataset manager card
-		await expect(
-			page.getByRole("heading", {
-				name: /Admin Configuration|Dataset Management/i,
-			}),
-		).toBeVisible({ timeout: 30000 });
-
-		// Always upload to ensure clean state for this worker's userId
-		console.log(`Uploading dataset: ${testFileName}`);
-		const fileChooserPromise = page.waitForEvent("filechooser");
-		await page.evaluate(() => {
-			const buttons = Array.from(document.querySelectorAll("button"));
-			const uploadBtn = buttons.find((b) =>
-				b.innerText.includes("Upload Dataset"),
-			);
-			if (uploadBtn) uploadBtn.click();
-		});
-		const fileChooser = await fileChooserPromise;
-		await fileChooser.setFiles(testFilePath);
-		await expect(page.getByText(/Dataset uploaded successfully/i)).toBeVisible({
-			timeout: 60000,
-		});
-
-		// Set as active
-		const datasetRow = page.getByTestId(`dataset-row-${testFileName}`);
-
-		// Wait for the row to appear with retries (handle stale lists in CI)
-		console.log(`Waiting for row to appear: dataset-row-${testFileName}...`);
-		for (let i = 0; i < 5; i++) {
-			if ((await datasetRow.count()) > 0) break;
-			console.log(
-				`Retry ${i + 1}: Row not found, reloading with cache bust...`,
-			);
-			// Force cache bust via URL parameter
-			await page.goto(`/admin?t=${Date.now()}`, {
-				waitUntil: "networkidle",
-			});
-			await page.waitForTimeout(3000);
-		}
-
-		await expect(datasetRow).toBeVisible({ timeout: 20000 });
-
-		const activeBadge = datasetRow.getByTestId("active-dataset-badge");
-
-		if (await activeBadge.isHidden()) {
-			console.log("Setting dataset as active...");
-			await page.evaluate((fid) => {
-				const row = document.querySelector(
-					`[data-testid="dataset-row-${fid}"]`,
-				);
-				const buttons = Array.from(row?.querySelectorAll("button") || []);
-				const btn = buttons.find((b) => b.innerText.includes("Set Active"));
-				if (btn) (btn as HTMLElement).click();
-			}, testFileName);
-			await expect(activeBadge).toBeVisible({ timeout: 30000 });
-			// Give extra time for backend to switch and cache to clear
-			await page.waitForTimeout(3000);
-		} else {
-			console.log("Dataset already active.");
-		}
+		await ensureDataset(page, userId, testFileName, tinyChampsData);
 
 		// 2. Meets Page: Verify name and location
 		await page.goto("/meets", { waitUntil: "networkidle" });

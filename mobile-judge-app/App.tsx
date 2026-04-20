@@ -1114,165 +1114,181 @@ export default function App() {
 			>
 				<TouchableWithoutFeedback onPress={() => setOfflineModalVisible(false)}>
 					<View style={styles.modalOverlay} testID="modal-overlay">
-						{/* Close button at BOTTOM RIGHT to avoid overlap with top status bar */}
-						<View
-							style={{
-								position: "absolute",
-								bottom: 30,
-								right: 20,
-								zIndex: 999,
-								backgroundColor: COLORS.white,
-								borderRadius: 20,
-								elevation: 10,
-								shadowColor: "#000",
-								shadowOffset: { width: 0, height: 4 },
-								shadowOpacity: 0.3,
-								shadowRadius: 5,
-							}}
-						>
-							{Platform.OS === "web" ? (
-								<button
-									id="e2e-modal-close-button"
-									type="button"
-									onClick={(e) => {
-										e.stopPropagation();
-										console.log("E2E: Closing offline modal via HTML button");
-										setOfflineModalVisible(false);
-									}}
-									data-testid="modal-close-button"
+						{offlineModalVisible && (
+							<>
+								{/* Close button at BOTTOM RIGHT to avoid overlap with top status bar */}
+								<View
 									style={{
-										padding: "15px 30px",
-										backgroundColor: "white",
-										border: "3px solid red",
-										borderRadius: "10px",
-										cursor: "pointer",
-										fontWeight: "bold",
-										color: COLORS.primary,
-										fontSize: "18px",
-										position: "relative",
-										zIndex: 10000,
+										position: "absolute",
+										bottom: 30,
+										right: 20,
+										zIndex: 999,
+										backgroundColor: COLORS.white,
+										borderRadius: 20,
+										elevation: 10,
+										shadowColor: "#000",
+										shadowOffset: { width: 0, height: 4 },
+										shadowOpacity: 0.3,
+										shadowRadius: 5,
 									}}
 								>
-									CLOSE
-								</button>
-							) : (
-								<TouchableOpacity
-									onPress={(e) => {
-										e.stopPropagation();
-										setOfflineModalVisible(false);
-									}}
-									testID="modal-close-button"
-									style={{ padding: 15 }}
-								>
-									<Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
-										CLOSE
-									</Text>
-								</TouchableOpacity>
-							)}
-						</View>
-
-						<View style={[styles.modalContainer, styles.offlineModal]}>
-							<View style={styles.modalHeader}>
-								<View style={{ flexDirection: "row", alignItems: "center" }}>
-									<Text style={styles.modalTitle}>
-										DQ History (Total: {allDQs.length})
-									</Text>
-								</View>
-
-								<View style={{ flexDirection: "row", alignItems: "center" }}>
-									{pendingCount > 0 && (
-										<TouchableOpacity
-											onPress={handleClearAll}
+									{Platform.OS === "web" ? (
+										<button
+											id="e2e-modal-close-button"
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												console.log("E2E: Closing offline modal via HTML button");
+												setOfflineModalVisible(false);
+											}}
+											data-testid="modal-close-button"
 											style={{
-												marginRight: 15,
-												padding: 5,
-												backgroundColor: `${COLORS.danger}22`,
-												borderRadius: 4,
+												padding: "15px 30px",
+												backgroundColor: "white",
+												border: "3px solid red",
+												borderRadius: "10px",
+												cursor: "pointer",
+												fontWeight: "bold",
+												color: COLORS.primary,
+												fontSize: "18px",
+												position: "relative",
+												zIndex: 10000,
 											}}
 										>
-											<Text
-												style={{
-													color: COLORS.danger,
-													fontWeight: "bold",
-													fontSize: 12,
-												}}
-											>
-												CLEAR PENDING
+											CLOSE
+										</button>
+									) : (
+										<TouchableOpacity
+											onPress={(e) => {
+												e.stopPropagation();
+												setOfflineModalVisible(false);
+											}}
+											testID="modal-close-button"
+											style={{ padding: 15 }}
+										>
+											<Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
+												CLOSE
 											</Text>
 										</TouchableOpacity>
 									)}
 								</View>
-							</View>
 
-							<ScrollView style={{ padding: 15 }}>
-								{allDQs.length === 0 ? (
-									<Text style={styles.emptyText}>No DQs recorded</Text>
-								) : (
-									allDQs.map((dq) => {
-										const swimmer = getSwimmerById(dq.swimmer_id);
-										const isSynced = dq.sync_status === "synced";
+								<View 
+									style={[styles.modalContainer, styles.offlineModal]}
+									testID="dq-history-modal-content"
+								>
+									<View style={styles.modalHeader}>
+										<View style={{ flexDirection: "row", alignItems: "center" }}>
+											<Text style={styles.modalTitle}>
+												DQ History (Total: {allDQs.length})
+											</Text>
+										</View>
 
-										// Correct leg name for relays
-										let legInfo = "";
-										if (dq.leg) {
-											const memberName = swimmer?.members?.[dq.leg - 1];
-											legInfo = memberName
-												? ` (${memberName})`
-												: ` (Leg ${dq.leg})`;
-										}
-
-										return (
-											<View
-												key={`${dq.event_id}-${dq.swimmer_id}-${dq.leg}-${dq.timestamp}`}
-												style={styles.pendingCard}
-											>
+										<View style={{ flexDirection: "row", alignItems: "center" }}>
+											{pendingCount > 0 && (
 												<TouchableOpacity
-													onPress={() => handleDeleteDQ(dq.swimmer_id, dq.leg)}
-													style={styles.deletePendingButton}
+													onPress={handleClearAll}
+													style={{
+														marginRight: 15,
+														padding: 5,
+														backgroundColor: `${COLORS.danger}22`,
+														borderRadius: 4,
+													}}
 												>
-													<Ionicons
-														name="trash-outline"
-														size={20}
-														color={COLORS.danger}
-													/>
-												</TouchableOpacity>
-												<TouchableOpacity
-													style={styles.pendingInfo}
-													onPress={() => handleEditDQ(dq)}
-												>
-													<View
+													<Text
 														style={{
-															flexDirection: "row",
-															justifyContent: "space-between",
-															alignItems: "center",
+															color: COLORS.danger,
+															fontWeight: "bold",
+															fontSize: 12,
 														}}
 													>
-														<Text style={styles.pendingText}>
-															Event {dq.event_id} -{" "}
-															{swimmer?.name || `Swimmer ${dq.swimmer_id}`}
-															{legInfo}
-														</Text>
-														<Ionicons
-															name={isSynced ? "cloud-done" : "cloud-offline"}
-															size={18}
-															color={
-																isSynced ? COLORS.success : COLORS.secondary
-															}
-														/>
-													</View>
-													<Text style={styles.pendingCodes}>{dq.dq_code}</Text>
-													{dq.notes ? (
-														<Text style={styles.pendingNote} numberOfLines={1}>
-															{dq.notes}
-														</Text>
-													) : null}
+														CLEAR PENDING
+													</Text>
 												</TouchableOpacity>
-											</View>
-										);
-									})
-								)}
-							</ScrollView>
-						</View>
+											)}
+										</View>
+									</View>
+
+									<ScrollView style={{ padding: 15 }}>
+										{allDQs.length === 0 ? (
+											<Text style={styles.emptyText}>No DQs recorded</Text>
+										) : (
+											allDQs.map((dq) => {
+												const swimmer = getSwimmerById(dq.swimmer_id);
+												const isSynced = dq.sync_status === "synced";
+
+												// Correct leg name for relays
+												let legInfo = "";
+												if (dq.leg) {
+													const memberName = swimmer?.members?.[dq.leg - 1];
+													legInfo = memberName
+														? ` (${memberName})`
+														: ` (Leg ${dq.leg})`;
+												}
+
+												return (
+													<View
+														key={`${dq.event_id}-${dq.swimmer_id}-${dq.leg}-${dq.timestamp}`}
+														style={styles.pendingCard}
+													>
+														<TouchableOpacity
+															onPress={() =>
+																handleDeleteDQ(dq.swimmer_id, dq.leg)
+															}
+															style={styles.deletePendingButton}
+														>
+															<Ionicons
+																name="trash-outline"
+																size={20}
+																color={COLORS.danger}
+															/>
+														</TouchableOpacity>
+														<TouchableOpacity
+															style={styles.pendingInfo}
+															onPress={() => handleEditDQ(dq)}
+														>
+															<View
+																style={{
+																	flexDirection: "row",
+																	justifyContent: "space-between",
+																	alignItems: "center",
+																}}
+															>
+																<Text style={styles.pendingText}>
+																	Event {dq.event_id} -{" "}
+																	{swimmer?.name || `Swimmer ${dq.swimmer_id}`}
+																	{legInfo}
+																</Text>
+																<Ionicons
+																	name={
+																		isSynced ? "cloud-done" : "cloud-offline"
+																	}
+																	size={18}
+																	color={
+																		isSynced ? COLORS.success : COLORS.secondary
+																	}
+																/>
+															</View>
+															<Text style={styles.pendingCodes}>
+																{dq.dq_code}
+															</Text>
+															{dq.notes ? (
+																<Text
+																	style={styles.pendingNote}
+																	numberOfLines={1}
+																>
+																	{dq.notes}
+																</Text>
+															) : null}
+														</TouchableOpacity>
+													</View>
+												);
+											})
+										)}
+									</ScrollView>
+								</View>
+							</>
+						)}
 					</View>
 				</TouchableWithoutFeedback>
 			</Modal>

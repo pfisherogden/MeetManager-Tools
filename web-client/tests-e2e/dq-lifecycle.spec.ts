@@ -538,16 +538,16 @@ test.describe("Disqualification Lifecycle", () => {
 				.getByText(/DQ History/)
 				.first()
 				.click({ force: true });
-			await expect(judgePage.getByText(/DQ History \(Total: 0\)/i)).toBeVisible(
-				{ timeout: 10000 },
-			);
+			await expect(
+				judgePage.getByTestId("dq-history-modal-content"),
+			).toBeVisible({ timeout: 10000 });
 
 			// Click close button to dismiss
 			console.log("Clicking modal close button...");
 			await judgePage.click("#e2e-modal-close-button", { force: true });
 
 			await expect(
-				judgePage.getByText(/DQ History \(Total: 0\)/i),
+				judgePage.getByTestId("dq-history-modal-content"),
 			).not.toBeVisible({ timeout: 15000 });
 		});
 	});
