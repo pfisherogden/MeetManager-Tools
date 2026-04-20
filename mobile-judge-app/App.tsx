@@ -1133,7 +1133,7 @@ export default function App() {
 											testID="modal-close-button"
 											style={{ padding: 5 }}
 										>
-											<Ionicons name="close" size={24} color={COLORS.primary} />
+											<Text style={{ color: COLORS.primary, fontWeight: "bold" }}>CLOSE</Text>
 										</TouchableOpacity>
 									</View>
 								</View>

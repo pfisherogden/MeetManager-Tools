@@ -25,17 +25,19 @@ async function ensureDataset(
 		page.getByRole("heading", { name: /Admin Configuration/i }),
 	).toBeVisible({ timeout: 20000 });
 
-	// Wait for the dataset table/list to be loaded
-	await page
-		.waitForSelector("[data-testid^='dataset-row-']", { timeout: 15000 })
-		.catch(() => {
-			console.log("No datasets found yet, proceeding with upload if needed.");
-		});
-
 	// Use the specific row for this user's dataset if multiple exist
 	const row = page.getByTestId(`dataset-row-${filename}`);
-	const rowCount = await row.count();
 
+	// Wait for the row to appear with retries (handle stale lists in CI)
+	console.log(`Initial check for row: dataset-row-${filename}...`);
+	for (let i = 0; i < 5; i++) {
+		if ((await row.count()) > 0) break;
+		console.log(`Retry ${i + 1}: Row not found, reloading...`);
+		await page.reload({ waitUntil: "networkidle" });
+		await page.waitForTimeout(2000);
+	}
+
+	const rowCount = await row.count();
 	if (rowCount > 0) {
 		const isActive =
 			(await row.getByTestId("active-dataset-badge").count()) > 0;
