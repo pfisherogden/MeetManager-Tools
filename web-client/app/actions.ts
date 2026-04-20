@@ -175,7 +175,7 @@ export async function uploadDatasetFromDrive(fileId: string, filename: string) {
 		// Wait for file system stability in CI before returning
 		// This ensures subsequent listDatasets calls see the new file
 		if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS) {
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await new Promise((resolve) => setTimeout(resolve, 5000));
 		}
 
 		revalidatePath("/", "layout");
@@ -225,7 +225,7 @@ export async function uploadDataset(formData: FormData) {
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "1"
 		) {
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await new Promise((resolve) => setTimeout(resolve, 5000));
 		}
 
 		revalidatePath("/", "layout");
