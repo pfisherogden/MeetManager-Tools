@@ -57,7 +57,7 @@ async function ensureDataset(
 				const uploadBtn = buttons.find((b) =>
 					b.innerText.includes("Upload Dataset"),
 				);
-				if (uploadBtn) uploadBtn.evaluate((el) => (el as HTMLElement).click());
+				if (uploadBtn) uploadBtn.click();
 			});
 			const fileChooser = await fileChooserPromise;
 			await fileChooser.setFiles(testFilePath);
@@ -97,7 +97,7 @@ async function ensureDataset(
 		const row = document.querySelector(`[data-testid="dataset-row-${fid}"]`);
 		const buttons = Array.from(row?.querySelectorAll("button") || []);
 		const btn = buttons.find((b) => b.innerText.includes("Set Active"));
-		if (btn) (btn as HTMLElement).evaluate((el) => (el as HTMLElement).click());
+		if (btn) (btn as HTMLElement).click();
 	}, filename);
 
 	await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
