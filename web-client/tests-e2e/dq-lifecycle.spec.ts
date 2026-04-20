@@ -516,16 +516,11 @@ test.describe("Disqualification Lifecycle", () => {
 				{ timeout: 10000 },
 			);
 
-			// Click overlay to dismiss
-			await judgePage.evaluate(() => {
-				const overlays = Array.from(
-					document.querySelectorAll('[data-testid="modal-overlay"]'),
-				);
-				const visibleOverlay = overlays.find(
-					(el) => (el as HTMLElement).offsetParent !== null,
-				) as HTMLElement;
-				if (visibleOverlay) visibleOverlay.click();
-			});
+			// Click close button to dismiss
+			await judgePage
+				.getByTestId("modal-close-button")
+				.first()
+				.click({ force: true });
 			await expect(
 				judgePage.getByText(/DQ History \(Total: 0\)/i),
 			).not.toBeVisible({ timeout: 10000 });
