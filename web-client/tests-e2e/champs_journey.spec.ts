@@ -35,9 +35,13 @@ test.describe("Champs Dataset Journey", () => {
 		// 1. Admin: Upload and Set Active
 		await page.goto("/admin", { waitUntil: "networkidle" });
 		const testFileName = "tiny_champs.json";
-		const testFilePath = process.env.CI
-			? path.join(process.cwd(), "..", "tests", "fixtures", testFileName)
-			: path.resolve(__dirname, `../../tests/fixtures/${testFileName}`);
+		const testFilePath = path.resolve(
+			process.cwd(),
+			"..",
+			"tests",
+			"fixtures",
+			testFileName,
+		);
 
 		console.log(`Using test file path: ${testFilePath}`);
 

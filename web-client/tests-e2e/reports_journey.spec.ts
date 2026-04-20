@@ -31,9 +31,15 @@ test.describe("Reports Generation Journey", () => {
 		// 1. Go to Admin to upload and activate tiny_meet.json
 		await page.goto("/admin", { waitUntil: "networkidle" });
 		const testFileName = "tiny_meet.json";
-		const testFilePath = process.env.CI
-			? path.join(process.cwd(), "..", "tests", "fixtures", testFileName)
-			: path.resolve(__dirname, `../../../tests/fixtures/${testFileName}`);
+		const testFilePath = path.resolve(
+			process.cwd(),
+			"..",
+			"tests",
+			"fixtures",
+			testFileName,
+		);
+
+		console.log(`Using test file path: ${testFilePath}`);
 
 		const fileChooserPromise = page.waitForEvent("filechooser");
 		await page
