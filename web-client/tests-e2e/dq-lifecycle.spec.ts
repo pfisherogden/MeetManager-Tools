@@ -315,15 +315,34 @@ test.describe("Disqualification Lifecycle", () => {
 		await judgePage
 			.getByText(/Event 15/i)
 			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
+		await judgePage
+			.getByText(/Event 15/i)
+			.first()
 			.evaluate((el) => (el as HTMLElement).click());
+
+		await judgePage
+			.getByText(/Heat 1/i)
+			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
 			.getByText(/Heat 1/i)
 			.first()
 			.evaluate((el) => (el as HTMLElement).click());
+
+		await judgePage
+			.getByText("TAP TO DQ")
+			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
 			.getByText("TAP TO DQ")
 			.first()
 			.evaluate((el) => (el as HTMLElement).click());
+
+		await judgePage
+			.getByText("1A")
+			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
 			.getByText("1A")
 			.first()
@@ -352,16 +371,37 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByLabel(/back/i)
 			.or(judgePage.getByText("BACK", { exact: true }))
 			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
+		await judgePage
+			.getByLabel(/back/i)
+			.or(judgePage.getByText("BACK", { exact: true }))
+			.first()
 			.evaluate((el) => (el as HTMLElement).click());
+
+		await judgePage
+			.getByLabel(/events/i)
+			.or(judgePage.getByText("EVENTS", { exact: true }))
+			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
 			.getByLabel(/events/i)
 			.or(judgePage.getByText("EVENTS", { exact: true }))
 			.first()
 			.evaluate((el) => (el as HTMLElement).click());
+
+		await judgePage
+			.getByText(/Event 13/i)
+			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
 			.getByText(/Event 13/i)
 			.first()
 			.evaluate((el) => (el as HTMLElement).click());
+
+		await judgePage
+			.getByText(/Heat 1/i)
+			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
 			.getByText(/Heat 1/i)
 			.first()
@@ -371,8 +411,13 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByText(/Leg 3/i)
 			.or(judgePage.getByText(/Test C/i))
 			.first();
-		await expect(leg3).toBeVisible({ timeout: 10000 });
+		await leg3.waitFor({ state: "visible", timeout: 15000 });
 		await leg3.evaluate((el) => (el as HTMLElement).click());
+
+		await judgePage
+			.getByText("7Q")
+			.first()
+			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
 			.getByText("7Q")
 			.first()
@@ -616,7 +661,16 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage
 				.getByText("Event 13")
 				.first()
+				.waitFor({ state: "visible", timeout: 15000 });
+			await judgePage
+				.getByText("Event 13")
+				.first()
 				.evaluate((el) => (el as HTMLElement).click());
+
+			await judgePage
+				.getByText("Heat 1")
+				.first()
+				.waitFor({ state: "visible", timeout: 15000 });
 			await judgePage
 				.getByText("Heat 1")
 				.first()
