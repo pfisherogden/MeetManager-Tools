@@ -431,7 +431,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 		console.log("Journey Step 7: Judge editing pending DQ...");
 		await judgePage
-			.getByText(/DQ History/)
+			.getByTestId("dq-history-button")
+			.waitFor({ state: "visible", timeout: 15000 });
+		await judgePage
+			.getByTestId("dq-history-button")
 			.first()
 			.evaluate((el) => (el as HTMLElement).click());
 		await judgePage
@@ -702,7 +705,10 @@ test.describe("Disqualification Lifecycle", () => {
 				.evaluate((el) => (el as HTMLElement).click());
 
 			await judgePage
-				.getByText(/DQ History/)
+				.getByTestId("dq-history-button")
+				.waitFor({ state: "visible", timeout: 15000 });
+			await judgePage
+				.getByTestId("dq-history-button")
 				.first()
 				.evaluate((el) => (el as HTMLElement).click());
 			await expect(

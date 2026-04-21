@@ -850,6 +850,7 @@ export default function App() {
 						}
 						setOfflineModalVisible(true);
 					}}
+					testID="dq-history-button"
 				>
 					<Text style={styles.statusText}>DQ History (Pending: {pendingCount})</Text>
 				</TouchableOpacity>
