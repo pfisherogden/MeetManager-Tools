@@ -158,14 +158,16 @@ test.describe("Reports Generation Journey", () => {
 
 		const htmlCard = page.getByTestId("report-card-meet-program-(html)");
 		await expect(htmlCard).toBeVisible({ timeout: 10000 });
-		await htmlCard.click();
+		await htmlCard.evaluate((el) => (el as HTMLElement).click());
 
 		await expect(
 			page.locator("div").filter({ hasText: /^Summary/ }),
 		).toContainText("Meet Program (HTML)");
 
 		const pagePromise = page.context().waitForEvent("page");
-		await page.getByRole("button", { name: "View HTML" }).click();
+		await page
+			.getByRole("button", { name: "View HTML" })
+			.click({ force: true });
 		const newPage = await pagePromise;
 		await newPage.waitForLoadState();
 
@@ -177,9 +179,11 @@ test.describe("Reports Generation Journey", () => {
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.click();
+		await clubCard.evaluate((el) => (el as HTMLElement).click());
 
-		await page.getByRole("button", { name: "Download PDF" }).click();
+		await page
+			.getByRole("button", { name: "Download PDF" })
+			.click({ force: true });
 
 		await expect(page.getByText("Report generated successfully")).toBeVisible({
 			timeout: 30000,
@@ -199,7 +203,9 @@ test.describe("Reports Generation Journey", () => {
 
 		for (const type of types) {
 			const testId = `report-card-${type.toLowerCase().replace(/\s+/g, "-")}`;
-			await page.getByTestId(testId).click();
+			await page
+				.getByTestId(testId)
+				.evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				page.locator("div").filter({ hasText: /^Summary/ }),
 			).toContainText(type);

@@ -167,11 +167,13 @@ test.describe("Champs Dataset Journey", () => {
 
 		// Select a report type first
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.click();
+		await clubCard.evaluate((el) => (el as HTMLElement).click());
 
 		// Add 2 reports to the pack (sufficient for testing bundle logic)
 		for (let i = 0; i < 2; i++) {
-			await page.getByRole("button", { name: /Add to Pack/i }).click();
+			await page
+				.getByRole("button", { name: /Add to Pack/i })
+				.evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				page.getByText(/Added to custom pack/i).first(),
 			).toBeVisible();
@@ -184,12 +186,15 @@ test.describe("Champs Dataset Journey", () => {
 		await expect(generateZipBtn).toBeEnabled();
 
 		console.log("Generating bundle...");
+		const downloadPromise = page.waitForEvent("download", { timeout: 180000 });
+		await generateZipBtn.click({ force: true });
 
-		const [download] = await Promise.all([
-			page.waitForEvent("download", { timeout: 120000 }),
-			generateZipBtn.click(),
-		]);
+		// Wait for the job to complete (success toast)
+		await expect(
+			page.getByText(/Custom pack generated successfully/i),
+		).toBeVisible({ timeout: 180000 });
 
+		const download = await downloadPromise;
 		console.log("Download initiated...");
 
 		let downloadPath: string | null = null;

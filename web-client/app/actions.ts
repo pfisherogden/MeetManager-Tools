@@ -21,8 +21,14 @@ async function getAuthMetadata() {
 		(process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "1")
 	) {
-		// Try to extract uid from headers or referer URL to maintain shard isolation in CI
+		// Try to extract uid from headers or cookies or referer URL to maintain shard isolation in CI
 		userId = headerList.get("x-e2e-uid");
+
+		if (!userId) {
+			const { cookies } = await import("next/headers");
+			const cookieStore = await cookies();
+			userId = cookieStore.get("x-e2e-uid")?.value;
+		}
 
 		if (!userId) {
 			const referer = headerList.get("referer");
@@ -448,6 +454,7 @@ export async function generateReport(
 				columnsOnPage,
 				showRelaySwimmers,
 				zebraStriping,
+				rendererType: _rendererType,
 			},
 			{ metadata },
 		);
@@ -492,6 +499,7 @@ export async function generateReportBundle(
 					showRelaySwimmers:
 						r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
 					zebraStriping: !!r.zebraStriping,
+					rendererType,
 				})),
 				bundleName,
 				rendererType,

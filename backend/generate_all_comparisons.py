@@ -2,26 +2,26 @@ import json
 import os
 import sys
 import time
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # Add backend/src to path
 sys.path.append(os.path.join(os.getcwd(), "src"))
 
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
-from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
+from mm_to_json.reporting.weasy_renderer import WeasyRenderer
+
 
 def generate_comparisons():
     # Load sample data (Large dataset)
     sample_path = "data/fixtures_root/anonymized_meets/sample_data_champs_2025-aftermeet.json"
     if not os.path.exists(sample_path):
         sample_path = "backend/data/fixtures_root/anonymized_meets/sample_data_champs_2025-aftermeet.json"
-    
-    with open(sample_path, "r") as f:
+
+    with open(sample_path) as f:
         fixture_wrapper = json.load(f)
     cache = fixture_wrapper["data"]
-    
+
     converter = MmToJsonConverter(table_data=cache)
     full_data = converter.convert()
     extractor = ReportDataExtractor(converter, full_data)
@@ -40,7 +40,7 @@ def generate_comparisons():
     for report in reports_to_test:
         print(f"\nProcessing {report['name']}...")
         data = report["method"](**report["args"])
-        
+
         # 1. WeasyPrint
         weasy_path = f"comp_weasy_{report['type']}.pdf"
         weasy = WeasyRenderer(weasy_path)
@@ -76,7 +76,7 @@ def generate_comparisons():
 
         print(f"  WeasyPrint: {weasy_duration:.2f}s")
         print(f"  Playwright: {pw_duration:.2f}s ({weasy_duration/pw_duration:.1f}x speedup)")
-        
+
         results.append({
             "report": report["name"],
             "weasy_time": weasy_duration,

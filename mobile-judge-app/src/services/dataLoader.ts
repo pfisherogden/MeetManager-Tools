@@ -14,7 +14,7 @@ const ALLOWED_HOSTS = [
 const validateUrl = (url: string): boolean => {
 	try {
 		// Use regex to extract hostname safely (stripping port if present)
-		const match = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/im);
+		const match = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:/\n?]+)/im);
 		let hostname = match ? match[1] : "";
 		// Strip port if present
 		if (hostname.includes(":")) {
