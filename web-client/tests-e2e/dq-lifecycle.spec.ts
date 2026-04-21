@@ -313,21 +313,17 @@ test.describe("Disqualification Lifecycle", () => {
 
 		console.log("Journey Step 3: Judge submitting individual DQ...");
 		await judgePage
-			.getByText(/Event 15/i)
-			.first()
+			.getByTestId("event-item-15")
 			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
-			.getByText(/Event 15/i)
-			.first()
+			.getByTestId("event-item-15")
 			.evaluate((el) => (el as HTMLElement).click());
 
 		await judgePage
-			.getByText(/Heat 1/i)
-			.first()
+			.getByTestId("heat-item-1")
 			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
-			.getByText(/Heat 1/i)
-			.first()
+			.getByTestId("heat-item-1")
 			.evaluate((el) => (el as HTMLElement).click());
 
 		await judgePage
@@ -390,21 +386,17 @@ test.describe("Disqualification Lifecycle", () => {
 			.evaluate((el) => (el as HTMLElement).click());
 
 		await judgePage
-			.getByText(/Event 13/i)
-			.first()
+			.getByTestId("event-item-13")
 			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
-			.getByText(/Event 13/i)
-			.first()
+			.getByTestId("event-item-13")
 			.evaluate((el) => (el as HTMLElement).click());
 
 		await judgePage
-			.getByText(/Heat 1/i)
-			.first()
+			.getByTestId("heat-item-1")
 			.waitFor({ state: "visible", timeout: 15000 });
 		await judgePage
-			.getByText(/Heat 1/i)
-			.first()
+			.getByTestId("heat-item-1")
 			.evaluate((el) => (el as HTMLElement).click());
 
 		const leg3 = judgePage
@@ -465,7 +457,7 @@ test.describe("Disqualification Lifecycle", () => {
 		console.log("Journey Step 8: Volunteer verifying sync status...");
 		await volunteerPage.reload();
 		await expect(
-			volunteerPage.locator("tr").filter({ hasText: "Synced" }),
+			volunteerPage.locator("tr").filter({ hasText: "Synced" }).first(),
 		).toBeVisible({ timeout: 15000 });
 	});
 
@@ -657,23 +649,19 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage
 				.getByText("START JUDGING")
 				.evaluate((el) => (el as HTMLElement).click());
-
+			console.log("Navigating to Event 13, Heat 1...");
 			await judgePage
-				.getByText("Event 13")
-				.first()
+				.getByTestId("event-item-13")
 				.waitFor({ state: "visible", timeout: 15000 });
 			await judgePage
-				.getByText("Event 13")
-				.first()
+				.getByTestId("event-item-13")
 				.evaluate((el) => (el as HTMLElement).click());
 
 			await judgePage
-				.getByText("Heat 1")
-				.first()
+				.getByTestId("heat-item-1")
 				.waitFor({ state: "visible", timeout: 15000 });
 			await judgePage
-				.getByText("Heat 1")
-				.first()
+				.getByTestId("heat-item-1")
 				.evaluate((el) => (el as HTMLElement).click());
 			await expect(
 				judgePage

@@ -529,14 +529,22 @@ export default function App() {
 	};
 
 	const renderEventItem = ({ item }: { item: Event }) => (
-		<TouchableOpacity style={styles.listItem} onPress={() => selectEvent(item)}>
+		<TouchableOpacity
+			style={styles.listItem}
+			onPress={() => selectEvent(item)}
+			testID={`event-item-${item.number}`}
+		>
 			<Text style={styles.eventNumber}>Event {item.number}</Text>
 			<Text style={styles.eventTitle}>{item.name}</Text>
 		</TouchableOpacity>
 	);
 
 	const renderHeatItem = ({ item }: { item: Heat }) => (
-		<TouchableOpacity style={styles.listItem} onPress={() => selectHeat(item)}>
+		<TouchableOpacity
+			style={styles.listItem}
+			onPress={() => selectHeat(item)}
+			testID={`heat-item-${item.number}`}
+		>
 			<Text style={styles.title}>Heat {item.number}</Text>
 		</TouchableOpacity>
 	);
