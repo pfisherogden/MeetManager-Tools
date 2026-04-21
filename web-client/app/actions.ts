@@ -454,6 +454,7 @@ export async function generateReport(
 				columnsOnPage,
 				showRelaySwimmers,
 				zebraStriping,
+				rendererType: _rendererType,
 			},
 			{ metadata },
 		);
@@ -497,13 +498,14 @@ export async function generateReportBundle(
 					columnsOnPage: r.columnsOnPage || 2,
 					showRelaySwimmers:
 						r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
-					zebraStriping: !!r.zebraStriping,
-				})),
-				bundleName,
-				rendererType,
-			},
-			{ metadata },
-		);
+						zebraStriping: !!r.zebraStriping,
+						rendererType,
+					})),
+					bundleName,
+					rendererType,
+				},
+				{ metadata },
+			);
 
 		if (!response.success) {
 			throw new Error(response.message);

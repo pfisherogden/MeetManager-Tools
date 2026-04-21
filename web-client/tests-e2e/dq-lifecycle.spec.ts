@@ -135,14 +135,12 @@ test.describe("Disqualification Lifecycle", () => {
 			{
 				name: "x-user-id",
 				value: currentUserId,
-				domain: "localhost",
-				path: "/",
+				url: process.env.MOBILE_APP_URL || "http://localhost:8080",
 			},
 			{
 				name: "x-e2e-uid",
 				value: currentUserId,
-				domain: "localhost",
-				path: "/",
+				url: process.env.MOBILE_APP_URL || "http://localhost:8080",
 			},
 		]);
 
@@ -153,19 +151,31 @@ test.describe("Disqualification Lifecycle", () => {
 			{
 				name: "x-user-id",
 				value: currentUserId,
-				domain: "localhost",
-				path: "/",
+				url: process.env.FRONTEND_URL || "http://localhost:3000",
 			},
 			{
 				name: "x-e2e-uid",
 				value: currentUserId,
-				domain: "localhost",
-				path: "/",
+				url: process.env.FRONTEND_URL || "http://localhost:3000",
 			},
 		]);
 
 		judgePage = await judgeContext.newPage();
 		volunteerPage = await volunteerContext.newPage();
+
+		// Mock Firebase identitytoolkit API to prevent 400 errors from triggering the offline modal
+		await judgeContext.route(
+			"**/*identitytoolkit.googleapis.com*",
+			async (route) => {
+				await route.fulfill({ status: 200, json: {} });
+			},
+		);
+		await volunteerContext.route(
+			"**/*identitytoolkit.googleapis.com*",
+			async (route) => {
+				await route.fulfill({ status: 200, json: {} });
+			},
+		);
 
 		judgePage.on("console", (msg) =>
 			console.log(`JUDGE CONSOLE [${msg.type()}]: ${msg.text()}`),
@@ -289,13 +299,12 @@ test.describe("Disqualification Lifecycle", () => {
 			.getByTestId(`dataset-row-${filename}`)
 			.getByTestId("publish-button");
 		await publishBtn.first().evaluate((el) => (el as HTMLElement).click());
-		await expect(volunteerPage.getByText("Meet data published")).toBeVisible({
-			timeout: 30000,
-		});
 
-		const judgeAppUrl = await volunteerPage
-			.getByTestId("judge-app-url")
-			.innerText();
+		// Wait for the QR dialog to appear
+		const judgeAppUrlLocator = volunteerPage.getByTestId("judge-app-url");
+		await judgeAppUrlLocator.waitFor({ state: "visible", timeout: 30000 });
+
+		const judgeAppUrl = await judgeAppUrlLocator.innerText();
 		const localUrl = judgeAppUrl.replace(
 			/^https?:\/\/[^/]+/i,
 			"http://localhost:8080",
@@ -459,9 +468,10 @@ test.describe("Disqualification Lifecycle", () => {
 
 		console.log("Journey Step 8: Volunteer verifying sync status...");
 		await volunteerPage.reload();
-		await expect(
-			volunteerPage.locator("tr").filter({ hasText: "Synced" }).first(),
-		).toBeVisible({ timeout: 15000 });
+		const targetRow = volunteerPage.locator("tr", { hasText: "Test C" });
+		await expect(targetRow.filter({ hasText: "Synced" }).first()).toBeVisible({
+			timeout: 15000,
+		});
 	});
 
 	test.describe("Frontend Visibility Journeys", () => {
@@ -487,18 +497,21 @@ test.describe("Disqualification Lifecycle", () => {
 			const userIdRegress = `e2e-reg-url-${Math.random().toString(36).substring(7)}`;
 
 			// Inject cookies for this specific test
+			await page
+				.context()
+				.route("**/*identitytoolkit.googleapis.com*", async (route) => {
+					await route.fulfill({ status: 200, json: {} });
+				});
 			await page.context().addCookies([
 				{
 					name: "x-user-id",
 					value: userIdRegress,
-					domain: "localhost",
-					path: "/",
+					url: process.env.FRONTEND_URL || "http://localhost:3000",
 				},
 				{
 					name: "x-e2e-uid",
 					value: userIdRegress,
-					domain: "localhost",
-					path: "/",
+					url: process.env.FRONTEND_URL || "http://localhost:3000",
 				},
 			]);
 
@@ -613,9 +626,23 @@ test.describe("Disqualification Lifecycle", () => {
 			const adminContext = await browser.newContext({
 				baseURL: process.env.FRONTEND_URL || "http://localhost:3000",
 			});
+			await adminContext.route(
+				"**/*identitytoolkit.googleapis.com*",
+				async (route) => {
+					await route.fulfill({ status: 200, json: {} });
+				},
+			);
 			await adminContext.addCookies([
-				{ name: "x-user-id", value: userIdNav, domain: "localhost", path: "/" },
-				{ name: "x-e2e-uid", value: userIdNav, domain: "localhost", path: "/" },
+				{
+					name: "x-user-id",
+					value: userIdNav,
+					url: process.env.FRONTEND_URL || "http://localhost:3000",
+				},
+				{
+					name: "x-e2e-uid",
+					value: userIdNav,
+					url: process.env.FRONTEND_URL || "http://localhost:3000",
+				},
 			]);
 			const adminPage = await adminContext.newPage();
 			const filename = `nav-view-${userIdNav}.json`;
@@ -642,9 +669,23 @@ test.describe("Disqualification Lifecycle", () => {
 				userAgent:
 					"Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
 			});
+			await judgeContext.route(
+				"**/*identitytoolkit.googleapis.com*",
+				async (route) => {
+					await route.fulfill({ status: 200, json: {} });
+				},
+			);
 			await judgeContext.addCookies([
-				{ name: "x-user-id", value: userIdNav, domain: "localhost", path: "/" },
-				{ name: "x-e2e-uid", value: userIdNav, domain: "localhost", path: "/" },
+				{
+					name: "x-user-id",
+					value: userIdNav,
+					url: process.env.MOBILE_APP_URL || "http://localhost:8080",
+				},
+				{
+					name: "x-e2e-uid",
+					value: userIdNav,
+					url: process.env.MOBILE_APP_URL || "http://localhost:8080",
+				},
 			]);
 			const judgePage = await judgeContext.newPage();
 			await judgePage.goto(localUrl);
@@ -697,12 +738,21 @@ test.describe("Disqualification Lifecycle", () => {
 			const judgeContext = await browser.newContext({
 				viewport: { width: 375, height: 1200 },
 			});
+			await judgeContext.route(
+				"**/*identitytoolkit.googleapis.com*",
+				async (route) => {
+					await route.fulfill({ status: 200, json: {} });
+				},
+			);
 			const judgePage = await judgeContext.newPage();
 			await judgePage.goto("http://localhost:8080/judge");
 			await judgePage.getByPlaceholder("Your Name").fill("Modal Judge");
 			await judgePage
 				.getByText("START JUDGING")
 				.evaluate((el) => (el as HTMLElement).click());
+
+			// Wait a bit to avoid the 500ms cooldown on opening the modal
+			await judgePage.waitForTimeout(1000);
 
 			await judgePage
 				.getByTestId("dq-history-button")

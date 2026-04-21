@@ -167,7 +167,7 @@ test.describe("Reports Generation Journey", () => {
 		const pagePromise = page.context().waitForEvent("page");
 		await page
 			.getByRole("button", { name: "View HTML" })
-			.evaluate((el) => (el as HTMLElement).click());
+			.click({ force: true });
 		const newPage = await pagePromise;
 		await newPage.waitForLoadState();
 
@@ -183,7 +183,7 @@ test.describe("Reports Generation Journey", () => {
 
 		await page
 			.getByRole("button", { name: "Download PDF" })
-			.evaluate((el) => (el as HTMLElement).click());
+			.click({ force: true });
 
 		await expect(page.getByText("Report generated successfully")).toBeVisible({
 			timeout: 30000,
