@@ -1274,13 +1274,13 @@ export default function App() {
 																	}
 																	size={16}
 																	color={
-																		isSynced ? COLORS.success : COLORS.warning
+																		isSynced ? COLORS.success : COLORS.secondary
 																	}
 																/>
 															</View>
-															<Text style={styles.pendingDetails}>
-																Heat {dq.heat_number}, Lane {dq.lane_number} -{" "}
-																{dq.dqCode}
+															<Text style={styles.pendingCodes}>
+																Heat {swimmer?.heat_id || "?"}, Lane {swimmer?.lane || "?"} -{" "}
+																{dq.dq_code}
 															</Text>
 														</TouchableOpacity>
 													</View>

@@ -498,14 +498,14 @@ export async function generateReportBundle(
 					columnsOnPage: r.columnsOnPage || 2,
 					showRelaySwimmers:
 						r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
-						zebraStriping: !!r.zebraStriping,
-						rendererType,
-					})),
-					bundleName,
+					zebraStriping: !!r.zebraStriping,
 					rendererType,
-				},
-				{ metadata },
-			);
+				})),
+				bundleName,
+				rendererType,
+			},
+			{ metadata },
+		);
 
 		if (!response.success) {
 			throw new Error(response.message);
