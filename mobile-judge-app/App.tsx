@@ -566,6 +566,7 @@ export default function App() {
 					<TouchableOpacity
 						onPress={() => navigateToPrevHeat(false)}
 						style={styles.heatNavButton}
+						accessibilityLabel="prev heat"
 					>
 						<Ionicons name="play-skip-back" size={24} color={COLORS.primary} />
 					</TouchableOpacity>
@@ -575,6 +576,7 @@ export default function App() {
 					<TouchableOpacity
 						onPress={() => navigateToNextHeat(false)}
 						style={styles.heatNavButton}
+						accessibilityLabel="next heat"
 					>
 						<Ionicons
 							name="play-skip-forward"
