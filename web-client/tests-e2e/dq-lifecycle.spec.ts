@@ -711,19 +711,22 @@ test.describe("Disqualification Lifecycle", () => {
 				.getByTestId("dq-history-button")
 				.first()
 				.evaluate((el) => (el as HTMLElement).click());
-			await expect(
-				judgePage.getByTestId("dq-history-modal-content"),
-			).toBeVisible({ timeout: 10000 });
+
+			// Wait for the modal to be attached to the DOM first, then check visibility
+			const modalContent = judgePage.getByTestId("dq-history-modal-content");
+			await modalContent.waitFor({ state: "attached", timeout: 15000 });
+			await expect(modalContent.first()).toBeVisible({ timeout: 10000 });
 
 			// Click close button to dismiss
 			console.log("Clicking modal close button...");
 			await judgePage.evaluate(() => {
-				document.getElementById("e2e-modal-close-button")?.click();
+				const btn =
+					document.getElementById("e2e-modal-close-button") ||
+					document.querySelector('[data-testid="modal-close-button"]');
+				(btn as HTMLElement)?.click();
 			});
 
-			await expect(
-				judgePage.getByTestId("dq-history-modal-content"),
-			).not.toBeVisible({ timeout: 15000 });
+			await expect(modalContent).not.toBeVisible({ timeout: 15000 });
 		});
 	});
 });
