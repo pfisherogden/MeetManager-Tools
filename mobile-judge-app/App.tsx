@@ -533,6 +533,7 @@ export default function App() {
 			style={styles.listItem}
 			onPress={() => selectEvent(item)}
 			testID={`event-item-${item.number}`}
+			{...(Platform.OS === "web" ? { "data-testid": `event-item-${item.number}` } : {})}
 		>
 			<Text style={styles.eventNumber}>Event {item.number}</Text>
 			<Text style={styles.eventTitle}>{item.name}</Text>
@@ -544,6 +545,7 @@ export default function App() {
 			style={styles.listItem}
 			onPress={() => selectHeat(item)}
 			testID={`heat-item-${item.number}`}
+			{...(Platform.OS === "web" ? { "data-testid": `heat-item-${item.number}` } : {})}
 		>
 			<Text style={styles.title}>Heat {item.number}</Text>
 		</TouchableOpacity>
@@ -851,6 +853,7 @@ export default function App() {
 						setOfflineModalVisible(true);
 					}}
 					testID="dq-history-button"
+					{...(Platform.OS === "web" ? { "data-testid": "dq-history-button" } : {})}
 				>
 					<Text style={styles.statusText}>DQ History (Pending: {pendingCount})</Text>
 				</TouchableOpacity>
@@ -1193,6 +1196,7 @@ export default function App() {
 								<View 
 									style={[styles.modalContainer, styles.offlineModal]}
 									testID="dq-history-modal-content"
+									{...(Platform.OS === "web" ? { "data-testid": "dq-history-modal-content" } : {})}
 								>
 									<View style={styles.modalHeader}>
 										<View style={{ flexDirection: "row", alignItems: "center" }}>
