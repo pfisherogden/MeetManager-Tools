@@ -6,35 +6,45 @@ import argparse
 import tempfile
 import copy
 from datetime import datetime
+import pandas as pd
 
-# Add the backend/src to path for imports
-sys.path.append(os.path.join(os.getcwd(), "MeetManager-Tools", "backend", "src"))
+# Robustly add the backend/src directory to the Python path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+backend_src_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "src"))
+if backend_src_dir not in sys.path:
+    sys.path.append(backend_src_dir)
+sys.path.append(script_dir)
 
 from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.season_transformer import SeasonTransformer
 from mm_to_json.mdb_restorer import restore_db
+from season_transformer import SeasonTransformer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SCHEDULE_2026 = [
-    {"date": "2026-05-30", "name": "FAST vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False},
-    {"date": "2026-06-06", "name": "Del Prado vs Briarhill", "host": "Briarhill Cabana Club", "is_champs": False},
-    {"date": "2026-06-13", "name": "Del Prado vs Meadows", "host": "Pleasanton Meadows", "is_champs": False},
-    {"date": "2026-06-20", "name": "Castlewood vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False},
-    {"date": "2026-06-27", "name": "Bay Club vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False},
+    {"date": "2026-05-30", "name": "FAST vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "FAST"},
+    {"date": "2026-06-06", "name": "Del Prado vs Briarhill", "host": "Briarhill Cabana Club", "is_champs": False, "opponent": "BH"},
+    {"date": "2026-06-13", "name": "Del Prado vs Meadows", "host": "Pleasanton Meadows", "is_champs": False, "opponent": "SHRK"},
+    {"date": "2026-06-20", "name": "Castlewood vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "CW"},
+    {"date": "2026-06-27", "name": "Bay Club vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "BCTW"},
     {"date": "2026-07-01", "name": "TVSL Extra Chance Meet", "host": "Foothill High School", "is_champs": False},
-    {"date": "2026-07-11", "name": "Briarhill vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False},
+    {"date": "2026-07-11", "name": "Briarhill vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "BH"},
     {"date": "2026-07-18", "name": "TVSL Championships", "host": "Foothill High School", "is_champs": True},
 ]
 
-def get_lanes(host):
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "venues.json")
+def load_config():
+    config_path = os.path.join(script_dir, "config", "venues.json")
     if os.path.exists(config_path):
         with open(config_path, "r") as f:
-            config = json.load(f)
-            return config.get("venues", {}).get(host, 6) # Default to 6
-    return 6
+            return json.load(f)
+    return {"venues": {}, "teams": {}}
+
+def get_lanes(host, config):
+    return config.get("venues", {}).get(host, 6) # Default to 6
+
+def get_team_name(abbr, config):
+    return config.get("teams", {}).get(abbr, abbr)
 
 class PandasEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -43,7 +53,6 @@ class PandasEncoder(json.JSONEncoder):
             return str(obj)
         if hasattr(obj, 'isoformat'):
             return obj.isoformat()
-        import pandas as pd
         if isinstance(obj, pd.Timestamp):
             return obj.strftime('%Y-%m-%dT%H:%M:%S')
         if "Timestamp" in str(type(obj)):
@@ -62,7 +71,7 @@ def to_python(obj):
         return [to_python(x) for x in obj]
     return obj
 
-def generate(template_path, output_dir):
+def generate(template_path, output_dir, owner_team="DP"):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -84,7 +93,7 @@ def generate(template_path, output_dir):
         transformer = SeasonTransformer(current_rows)
         
         # 1. Purge data
-        transformer.purge_data()
+        transformer.purge_data(preserve_team_abbr=owner_team)
         
         # 2. Update metadata
         lanes = get_lanes(meet["host"])
@@ -99,8 +108,10 @@ def generate(template_path, output_dir):
         # 3. Sessions
         transformer.consolidate_sessions(is_champs=meet["is_champs"])
         
-        # 4. Ensure Team CW
-        transformer.ensure_team_exists("CW", "Castlewood")
+        # 4. Ensure opponent team exists
+        if "opponent" in meet:
+            opp_name = get_team_name(meet["opponent"], config)
+            transformer.ensure_team_exists(meet["opponent"], opp_name)
 
         # Now put the transformed rows back into the full structure
         output_data = copy.deepcopy(full_template)
@@ -132,6 +143,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--template", required=True, help="Path to blank template MDB")
     parser.add_argument("--output-dir", required=True, help="Directory to save generated MDBs")
+    parser.add_argument("--owner-team", default="DP", help="The abbreviation of the host team to preserve in the MDB (default: DP)")
     args = parser.parse_args()
 
-    generate(args.template, args.output_dir)
+    generate(args.template, args.output_dir, args.owner_team)
