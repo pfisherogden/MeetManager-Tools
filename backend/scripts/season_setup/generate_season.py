@@ -5,7 +5,7 @@ import logging
 import argparse
 import tempfile
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 
 # Robustly add the backend/src directory to the Python path
@@ -46,19 +46,6 @@ def get_lanes(host, config):
 def get_team_name(abbr, config):
     return config.get("teams", {}).get(abbr, abbr)
 
-class PandasEncoder(json.JSONEncoder):
-    def default(self, obj):
-        # Handle Java strings from JPype
-        if "java.lang.String" in str(type(obj)):
-            return str(obj)
-        if hasattr(obj, 'isoformat'):
-            return obj.isoformat()
-        if isinstance(obj, pd.Timestamp):
-            return obj.strftime('%Y-%m-%dT%H:%M:%S')
-        if "Timestamp" in str(type(obj)):
-            return obj.isoformat()
-        return super().default(obj)
-
 def to_python(obj):
     """Recursively convert Java/Pandas objects to standard Python types."""
     if "java.lang.String" in str(type(obj)):
@@ -72,52 +59,96 @@ def to_python(obj):
     return obj
 
 def generate(template_path, output_dir, owner_team="DP"):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # Base folder structure mirroring previous years
+    season_data_dir = os.path.join(output_dir, "2026 Del Prado Data", "Swim Meets")
+    if not os.path.exists(season_data_dir):
+        os.makedirs(season_data_dir)
 
     print(f"Loading template: {template_path}")
     template_conv = MmToJsonConverter(mdb_path=template_path)
     
     # Export full schema including definitions
     full_template = template_conv.export_full_schema()
+    # Normalize keys to Python strings in full_template too
+    full_template["tables"] = {str(k): v for k, v in full_template["tables"].items()}
+    
+    config = load_config()
+
+    first_meet_date = "2026-05-30"
 
     for meet in SCHEDULE_2026:
+        # Create subfolder for each meet
+        meet_dir_name = f"{meet['date']} {meet['name']}"
+        meet_output_dir = os.path.join(season_data_dir, meet_dir_name)
+        if not os.path.exists(meet_output_dir):
+            os.makedirs(meet_output_dir)
+
         print(f"\nGenerating MDB for: {meet['name']} ({meet['date']})")
         
-        # We need to transform the ROWS inside the full_template
-        # Create a simplified table_data for the transformer
+        # We transform the ROWS inside the full_template
         current_rows = {tname: t_def["rows"] for tname, t_def in full_template["tables"].items()}
-        
-        # Deep copy the rows
         current_rows = copy.deepcopy(current_rows)
+        
         transformer = SeasonTransformer(current_rows)
         
         # 1. Purge data
         transformer.purge_data(preserve_team_abbr=owner_team)
         
         # 2. Update metadata
-        lanes = get_lanes(meet["host"])
+        lanes = get_lanes(meet["host"], config)
+        
+        # Date Logic
+        if meet["date"] == first_meet_date:
+            entry_open = "2025-06-01"
+        else:
+            entry_open = first_meet_date
+            
+        meet_dt = datetime.strptime(meet["date"], "%Y-%m-%d")
+        deadline_dt = meet_dt - timedelta(days=4)
+        entry_deadline = deadline_dt.strftime("%Y-%m-%d")
+
         transformer.update_meet(
             name=meet["name"],
             start_date=meet["date"],
             lanes=lanes,
             location=meet["host"],
-            age_up="2026-06-01"
+            age_up="2026-06-01",
+            entry_open=entry_open,
+            entry_deadline=entry_deadline
         )
         
         # 3. Sessions
         transformer.consolidate_sessions(is_champs=meet["is_champs"])
         
-        # 4. Ensure opponent team exists
+        # 4. Scoring and Seeding
+        transformer.setup_scoring_and_seeding()
+        
+        # 5. Ensure opponent team exists
         if "opponent" in meet:
             opp_name = get_team_name(meet["opponent"], config)
             transformer.ensure_team_exists(meet["opponent"], opp_name)
 
-        # Now put the transformed rows back into the full structure
-        output_data = copy.deepcopy(full_template)
-        for tname, rows in current_rows.items():
-            if tname in output_data["tables"]:
-                output_data["tables"][tname]["rows"] = rows
+        # Build output_data with transformed rows
+        output_data = {"tables": {}}
+        
+        # Start with all tables from the transformer (includes newly created ones)
+        for tname, rows in transformer.table_data.items():
+            if tname in full_template["tables"]:
+                # Use existing schema
+                t_def = copy.deepcopy(full_template["tables"][tname])
+                t_def["rows"] = rows
+                output_data["tables"][tname] = t_def
+            else:
+                # Create basic schema for new tables
+                cols = []
+                if rows:
+                    for k in rows[0].keys():
+                        cols.append({"name": k, "type": "TEXT"})
+                output_data["tables"][tname] = {
+                    "columns": cols,
+                    "indexes": [],
+                    "rows": rows
+                }
 
         # Convert entire structure to Python types for JSON
         output_data = to_python(output_data)
@@ -128,8 +159,8 @@ def generate(template_path, output_dir, owner_team="DP"):
             temp_json = tf.name
 
         # Restore to MDB
-        filename = f"{meet['date']}_{meet['name'].replace(' ', '_')}.mdb"
-        target_mdb = os.path.join(output_dir, filename)
+        filename = f"{meet['date']} {meet['name']}.mdb"
+        target_mdb = os.path.join(meet_output_dir, filename)
         
         print(f"Restoring to {target_mdb}...")
         restore_db(temp_json, target_mdb)
@@ -137,7 +168,7 @@ def generate(template_path, output_dir, owner_team="DP"):
         # Cleanup
         os.remove(temp_json)
 
-    print(f"\nDone! All meets generated in {output_dir}")
+    print(f"\nDone! All meets generated in {season_data_dir}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

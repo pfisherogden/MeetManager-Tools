@@ -31,7 +31,8 @@ def restore_db(json_path, target_mdb):
     try:
         tables = dump_data.get("tables", {})
         for table_name, table_def in tables.items():
-            print(f"Creating table {table_name}...")
+            rows = table_def.get("rows", [])
+            print(f"Creating table {table_name} with {len(rows)} rows...")
 
             tb = TableBuilder(table_name)
 
