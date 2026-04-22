@@ -54,7 +54,6 @@ validate-season TEMPLATE +FILES:
     uv run --project MeetManager-Tools python3 backend/scripts/season_setup/validate_historical.py --template {{TEMPLATE}} --historical-files {{FILES}}
 
 codegen-backend:
-
     @echo "Regenerating Backend Protos..."
     cd backend && uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto
 
