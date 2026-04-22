@@ -259,6 +259,43 @@ class MmToJsonConverter:
             rows.append(row_data)
         return rows
 
+    def export_full_schema(self) -> dict[str, Any]:
+        """
+        Exports the entire database including table definitions (columns, types, indexes)
+        and row data in a format compatible with mdb_restorer.py.
+        """
+        data = {"tables": {}}
+        for tname in self.db.getTableNames():
+            table = self.db.getTable(tname)
+            t_def = {"columns": [], "indexes": [], "rows": []}
+
+            # Columns
+            for col in table.getColumns():
+                c_def = {
+                    "name": str(col.getName()),
+                    "type": str(col.getType().name()),
+                    "length": col.getLength(),
+                    "precision": col.getPrecision(),
+                    "scale": col.getScale(),
+                    "auto_number": col.isAutoNumber(),
+                }
+                t_def["columns"].append(c_def)
+
+            # Indexes
+            for idx in table.getIndexes():
+                i_def = {
+                    "name": str(idx.getName()),
+                    "unique": idx.isUnique(),
+                    "columns": [str(c.getName()) for c in idx.getColumns()],
+                }
+                t_def["indexes"].append(i_def)
+
+            # Rows
+            t_def["rows"] = self._read_table_jackcess(tname)
+            data["tables"][tname] = t_def
+
+        return data
+
     def convert(self) -> dict[str, Any]:
         # Print table counts for CI debugging
         for tname, df in self.tables.items():
