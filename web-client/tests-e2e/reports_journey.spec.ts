@@ -51,6 +51,17 @@ async function ensureDataset(page, userId, filename, data) {
 	console.log(`Dataset ${filename} is now active`);
 }
 
+async function ensureTinyMeetActive(page, userId) {
+	const testFileName = "tiny_meet.json";
+	const tinyMeetData = JSON.parse(
+		fs.readFileSync(
+			path.resolve(process.cwd(), "..", "tests", "fixtures", testFileName),
+			"utf8",
+		),
+	);
+	await ensureDataset(page, userId, testFileName, tinyMeetData);
+}
+
 test.describe("Reports Generation Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		// Set a unique user ID for this test to avoid collisions in the backend
@@ -83,15 +94,7 @@ test.describe("Reports Generation Journey", () => {
 		page,
 	}) => {
 		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
-		const testFileName = "tiny_meet.json";
-		const tinyMeetData = JSON.parse(
-			fs.readFileSync(
-				path.resolve(process.cwd(), "..", "tests", "fixtures", testFileName),
-				"utf8",
-			),
-		);
-
-		await ensureDataset(page, userId, testFileName, tinyMeetData);
+		await ensureTinyMeetActive(page, userId);
 
 		// 2. Go to Reports
 		await page.goto("/reports", { waitUntil: "networkidle" });
@@ -101,6 +104,9 @@ test.describe("Reports Generation Journey", () => {
 	});
 
 	test("should generate and preview HTML Meet Program", async ({ page }) => {
+		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		await ensureTinyMeetActive(page, userId);
+
 		// Ensure we have data (from previous test or session)
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
@@ -144,6 +150,9 @@ test.describe("Reports Generation Journey", () => {
 	test("should generate PDF Entries report and verify layout", async ({
 		page,
 	}, testInfo) => {
+		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		await ensureTinyMeetActive(page, userId);
+
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
@@ -190,6 +199,9 @@ test.describe("Reports Generation Journey", () => {
 	test("should generate Lane Timer Sheets and verify repeating headers", async ({
 		page,
 	}) => {
+		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		await ensureTinyMeetActive(page, userId);
+
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
 		const timerCard = page.getByTestId("report-card-lane-timer-sheets");
@@ -244,6 +256,9 @@ test.describe("Reports Generation Journey", () => {
 	});
 
 	test("should verify other report types are selectable", async ({ page }) => {
+		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		await ensureTinyMeetActive(page, userId);
+
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
 		const types = [
