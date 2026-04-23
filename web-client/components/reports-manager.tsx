@@ -713,6 +713,7 @@ export function ReportsManager({
 								className="flex-1 text-xs h-10"
 								onClick={handleGenerate}
 								disabled={isGenerating}
+								data-testid="generate-report-button"
 							>
 								{isGenerating ? (
 									<>
