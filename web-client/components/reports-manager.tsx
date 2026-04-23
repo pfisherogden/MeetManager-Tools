@@ -274,6 +274,11 @@ export function ReportsManager({
 				selectedType,
 				reportTitle,
 				teamFilter,
+				undefined, // genderFilter
+				undefined, // ageGroupFilter
+				2, // columnsOnPage
+				true, // showRelaySwimmers
+				zebraStriping,
 				rendererType,
 				htmlPreviewMode,
 			);
