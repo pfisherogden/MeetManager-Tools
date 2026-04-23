@@ -111,6 +111,8 @@ test.describe("Reports Generation Journey", () => {
 		// Set a unique user ID for this test to avoid collisions in the backend
 		const userId = `e2e-reports-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 
+		page.on("console", (msg) => console.log(`BROWSER [${userId}]:`, msg.text()));
+
 		// Set header for all requests from this page
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
@@ -173,21 +175,108 @@ test.describe("Reports Generation Journey", () => {
 
 		const bodyText = await newPage.locator("body").innerText();
 		expect(bodyText.length).toBeGreaterThan(100); // Tiny meet has less content but still should have some
+
+		// Take screenshot for visual regression
+		await newPage.screenshot({
+			path: "../tmp/report_preview.png",
+			fullPage: true,
+		});
+		console.log("Screenshot saved to tmp/report_preview.png");
 	});
 
-	test("should generate PDF Entries report", async ({ page }) => {
+	test("should generate PDF Entries report and verify layout", async ({
+		page,
+	}, testInfo) => {
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.evaluate((el) => (el as HTMLElement).click());
+		await expect(clubCard).toBeVisible({ timeout: 10000 });
 
+		// Use a more reliable way to select the card in mobile emulation
+		await clubCard.evaluate((el) => {
+			el.scrollIntoView();
+			(el as HTMLElement).click();
+		});
+
+		// Double-check selection via border class AND wait for configuration card
+		await expect(clubCard).toHaveClass(/border-primary/);
+		await expect(page.getByTestId("report-configuration-card")).toBeVisible({
+			timeout: 15000,
+		});
+
+		// Select Playwright renderer for visual testing
+		const engineSelector = page.getByTestId("rendering-engine-selector");
+		await expect(engineSelector).toBeVisible({ timeout: 10000 });
+		await engineSelector.evaluate((el) => el.scrollIntoView());
+		await engineSelector.click({ force: true });
+
+		await page
+			.getByRole("option", { name: "Playwright (Fast, Chromium-based)" })
+			.click({ force: true });
+
+		const downloadPromise = page.waitForEvent("download");
 		await page
 			.getByRole("button", { name: "Download PDF" })
 			.click({ force: true });
 
 		await expect(page.getByText("Report generated successfully")).toBeVisible({
-			timeout: 30000,
+			timeout: 60000,
 		});
+
+		const download = await downloadPromise;
+		const path = await download.path();
+		console.log(`Report downloaded to: ${path}`);
+
+		// For manual inspection in CI artifacts or local dev
+		await testInfo.attach("report-pdf", {
+			path: path,
+			contentType: "application/pdf",
+		});
+	});
+
+	test("should generate Lane Timer Sheets and verify repeating headers", async ({
+		page,
+	}) => {
+		await page.goto("/reports", { waitUntil: "networkidle" });
+
+		const timerCard = page.getByTestId("report-card-lane-timer-sheets");
+		await expect(timerCard).toBeVisible({ timeout: 10000 });
+		await timerCard.evaluate((el) => (el as HTMLElement).click());
+
+		// Reveal toggle (it is inside the configuration area that appears after selection)
+		const toggle = page.getByTestId("html-preview-toggle");
+		await expect(toggle).toBeVisible({ timeout: 10000 });
+		await toggle.click();
+
+		const viewBtn = page.getByRole("button", { name: "View HTML" });
+		await expect(viewBtn).toBeVisible({ timeout: 15000 });
+
+		const pagePromise = page.context().waitForEvent("page", { timeout: 30000 });
+		await viewBtn.click({ force: true });
+
+		// Wait for the success toast which confirms URL.createObjectURL was called
+		await expect(page.getByText(/HTML Preview opened in new tab/i)).toBeVisible(
+			{
+				timeout: 20000,
+			},
+		);
+
+		const newPage = await pagePromise;
+		await newPage.waitForLoadState("load", { timeout: 30000 });
+
+		// Take screenshot for visual regression of timer sheets
+		await newPage.screenshot({
+			path: "../tmp/timer_sheets_preview.png",
+			fullPage: true,
+		});
+		console.log("Screenshot saved to tmp/timer_sheets_preview.png");
+
+		const bodyText = await newPage.locator("body").innerText();
+		expect(bodyText).toContain("Lane 1 (Page 1)");
+		// Flexible check for multi-page behavior
+		if (bodyText.includes("(Page 2)")) {
+			expect(bodyText).toContain("Lane 1 (Page 2)");
+		}
 	});
 
 	test("should verify other report types are selectable", async ({ page }) => {

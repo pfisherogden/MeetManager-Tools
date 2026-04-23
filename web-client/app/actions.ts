@@ -441,6 +441,7 @@ export async function generateReport(
 	showRelaySwimmers: boolean = true,
 	zebraStriping: boolean = false,
 	_rendererType: number = 0,
+	htmlPreview: boolean = false,
 ) {
 	try {
 		const metadata = await getAuthMetadata();
@@ -455,6 +456,7 @@ export async function generateReport(
 				showRelaySwimmers,
 				zebraStriping,
 				rendererType: _rendererType,
+				htmlPreview,
 			},
 			{ metadata },
 		);

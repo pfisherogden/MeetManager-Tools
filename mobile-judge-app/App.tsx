@@ -394,7 +394,10 @@ export default function App() {
 			// ATOMIC STATE RESET for navigation stability
 			setSelectedEvent(targetEvent);
 			setSelectedHeat(targetHeat);
-			setSelectedLeg(undefined); // ALWAYS clear leg on heat change
+			// ONLY clear leg if event changed, otherwise preserve it for relay navigation
+			if (isEventChanged) {
+				setSelectedLeg(undefined);
+			}
 			
 			const hts = isEventChanged ? getHeatsByEvent(targetEvent.id) : heats;
 			if (isEventChanged) setHeats(hts);
@@ -403,11 +406,14 @@ export default function App() {
 			setSwimmers(newSwimmers);
 
 			if (autoSelectFirstSwimmer && newSwimmers.length > 0) {
-				const firstS = newSwimmers[0];
-				setSelectedSwimmer(firstS);
-				// If it's a relay and we are auto-selecting, we might want to default to leg 1
-				// but based on current UI, we usually start with the team view (leg undefined).
-				loadDQState(firstS, undefined);
+				// For relay navigation, try to find the swimmer in the same lane
+				const sameLaneSwimmer = newSwimmers.find(s => s.lane === selectedSwimmer?.lane);
+				const targetS = sameLaneSwimmer || newSwimmers[0];
+				
+				setSelectedSwimmer(targetS);
+				// Pass the PRESERVED leg if we didn't clear it
+				const preservedLeg = isEventChanged ? undefined : selectedLeg;
+				loadDQState(targetS, preservedLeg);
 			} else {
 				setSelectedSwimmer(null);
 				if (autoSelectFirstSwimmer) setDqModalVisible(false);
@@ -441,7 +447,10 @@ export default function App() {
 			// ATOMIC STATE RESET for navigation stability
 			setSelectedEvent(targetEvent);
 			setSelectedHeat(targetHeat);
-			setSelectedLeg(undefined); // ALWAYS clear leg on heat change
+			// ONLY clear leg if event changed, otherwise preserve it for relay navigation
+			if (isEventChanged) {
+				setSelectedLeg(undefined);
+			}
 			
 			const hts = isEventChanged ? getHeatsByEvent(targetEvent.id) : heats;
 			if (isEventChanged) setHeats(hts);
@@ -450,9 +459,14 @@ export default function App() {
 			setSwimmers(newSwimmers);
 
 			if (autoSelectFirstSwimmer && newSwimmers.length > 0) {
-				const firstS = newSwimmers[0];
-				setSelectedSwimmer(firstS);
-				loadDQState(firstS, undefined);
+				// For relay navigation, try to find the swimmer in the same lane
+				const sameLaneSwimmer = newSwimmers.find(s => s.lane === selectedSwimmer?.lane);
+				const targetS = sameLaneSwimmer || newSwimmers[0];
+				
+				setSelectedSwimmer(targetS);
+				// Pass the PRESERVED leg if we didn't clear it
+				const preservedLeg = isEventChanged ? undefined : selectedLeg;
+				loadDQState(targetS, preservedLeg);
 			} else {
 				setSelectedSwimmer(null);
 				if (autoSelectFirstSwimmer) setDqModalVisible(false);

@@ -14,11 +14,8 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-	generateReport,
-	generateReportBundle,
-	getJobStatus,
-} from "@/app/actions";
+import { generateReport, generateReportBundle, getJobStatus, getTeams } from "@/app/actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -52,44 +49,19 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { handleActionError } from "@/lib/error-handler";
-import {
-	JobStatus,
-	RendererType,
-} from "@/lib/proto/meetmanager/v1/meet_manager";
-import type { Team as UITeam } from "@/lib/swim-meet-types";
+import { RendererType } from "@/lib/proto/meetmanager/v1/meet_manager";
 import { cn } from "@/lib/utils";
 
 const reportTypes = [
 	{
-		id: 0,
+		id: 1,
 		name: "Psych Sheet",
 		description: "List of entries by event with seed times.",
 	},
 	{
-		id: 1,
+		id: 2,
 		name: "Meet Entries",
 		description: "Individual and relay entries grouped by team.",
-	},
-	{
-		id: 2,
-		name: "Lineup Sheets",
-		description: "Heat and lane assignments for parent volunteers.",
-	},
-	{
-		id: 3,
-		name: "Meet Results",
-		description: "Final times, places, and points by event.",
-	},
-	{
-		id: 4,
-		name: "Meet Program (PDF)",
-		description: "Traditional 2-column program with heat/lane assignments.",
-	},
-	{
-		id: 5,
-		name: "Meet Program (HTML)",
-		description: "Interactive HTML view of the 2-column meet program.",
 	},
 	{
 		id: 6,
@@ -100,6 +72,21 @@ const reportTypes = [
 		id: 7,
 		name: "Entries (Club Style)",
 		description: "Single-column format optimized for team distribution.",
+	},
+	{
+		id: 3,
+		name: "Lineup Sheets",
+		description: "Heat and lane assignments for parent volunteers.",
+	},
+	{
+		id: 4,
+		name: "Meet Results",
+		description: "Final times, places, and points by event.",
+	},
+	{
+		id: 5,
+		name: "Meet Program (HTML)",
+		description: "Interactive HTML view of the 2-column meet program.",
 	},
 	{
 		id: 8,
@@ -113,7 +100,7 @@ const reportTypes = [
 	},
 ];
 
-type CustomPackItem = {
+interface CustomPackItem {
 	id: string;
 	type: number;
 	title: string;
@@ -121,26 +108,23 @@ type CustomPackItem = {
 	genderFilter: string;
 	ageGroupFilter: string;
 	zebraStriping: boolean;
-};
-
-interface ReportsManagerProps {
-	initialTeams?: UITeam[];
 }
 
-export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
-	const [selectedType, setSelectedType] = useState<number>(0);
+export function ReportsManager() {
+	const [selectedType, setSelectedType] = useState<number | null>(null);
 	const [title, setTitle] = useState("");
 	const [teamFilter, setTeamFilter] = useState("");
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [isBundling, setIsBundling] = useState(false);
 	const [customPack, setCustomPack] = useState<CustomPackItem[]>([]);
 	const [zebraStriping, setZebraStriping] = useState(false);
+	const [htmlPreviewMode, setHtmlPreviewMode] = useState(false);
 	const [presetTeamFilter, setPresetTeamFilter] = useState("All Teams");
 	const [rendererType, setRendererType] = useState<RendererType>(
 		RendererType.RENDERER_TYPE_PLAYWRIGHT,
 	);
 
-	// Async Job State
+	// Multi-step generation state
 	const [activeJobId, setJobId] = useState<string | null>(null);
 	const [jobProgress, setJobProgress] = useState(0);
 	const [jobMessage, setJobMessage] = useState("");
@@ -148,97 +132,54 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 	const downloadTriggered = useRef<string | null>(null);
 
 	// Improved Team Filter State
+	const [initialTeams, setTeams] = useState<{ id: number; name: string }[]>([]);
 	const [teamFilterOpen, setTeamFilterOpen] = useState(false);
 	const [presetTeamOpen, setPresetTeamOpen] = useState(false);
 
-	const addToPack = () => {
-		const reportName =
-			reportTypes.find((r) => r.id === selectedType)?.name || "";
-		const newItem: CustomPackItem = {
-			id: crypto.randomUUID(),
-			type: selectedType,
-			title: title || reportName,
-			teamFilter: teamFilter,
-			genderFilter: "Mixed",
-			ageGroupFilter: "Open",
-			zebraStriping: zebraStriping,
+	useEffect(() => {
+		getTeams().then((res) => {
+			if (res.teams) setTeams(res.teams);
+		});
+	}, []);
+
+	// Clear polling on unmount
+	useEffect(() => {
+		return () => {
+			if (pollingInterval.current) clearInterval(pollingInterval.current);
 		};
-		setCustomPack([...customPack, newItem]);
-		toast.success("Added to custom pack");
-	};
-
-	const removeFromPack = (id: string) => {
-		setCustomPack(customPack.filter((item) => item.id !== id));
-	};
-
-	const clearPack = () => {
-		if (customPack.length === 0) return;
-		setCustomPack([]);
-		toast.success("Cleared custom pack");
-	};
-
-	const updatePackItem = (id: string, updates: Partial<CustomPackItem>) => {
-		setCustomPack(
-			customPack.map((item) =>
-				item.id === id ? { ...item, ...updates } : item,
-			),
-		);
-	};
+	}, []);
 
 	const startPolling = (jobId: string, filename: string) => {
 		setJobId(jobId);
 		setJobProgress(0);
-		setJobMessage("Starting generation...");
-
-		// Reset trigger for new job
-		if (downloadTriggered.current === jobId) {
-			downloadTriggered.current = null;
-		}
+		setJobMessage("Starting...");
+		setIsBundling(true);
 
 		if (pollingInterval.current) clearInterval(pollingInterval.current);
 
 		pollingInterval.current = setInterval(async () => {
 			try {
 				const status = await getJobStatus(jobId);
+				if (status.status === 3) {
+					// COMPLETED
+					setJobProgress(100);
+					setJobMessage("Complete");
+					if (pollingInterval.current) clearInterval(pollingInterval.current);
 
-				// If status check failed or is somehow null, stop
-				if (!status) return;
-
-				setJobProgress(status.progress * 100);
-				setJobMessage(status.message || "Processing...");
-
-				if (status.status === JobStatus.JOB_STATUS_COMPLETED) {
-					// CRITICAL: Clear interval FIRST to prevent re-entry
-					if (pollingInterval.current) {
-						clearInterval(pollingInterval.current);
-						pollingInterval.current = null;
-					}
-
-					// Only trigger download once per jobId
-					if (downloadTriggered.current !== jobId) {
+					if (status.bundleUrl && downloadTriggered.current !== jobId) {
 						downloadTriggered.current = jobId;
-						setJobId(null);
-						setIsBundling(false);
-
-						if (status.bundleUrl) {
-							const downloadUrl = status.bundleUrl.startsWith("http")
-								? status.bundleUrl
-								: `${window.location.origin}${status.bundleUrl}`;
-
-							const a = document.createElement("a");
-							a.href = downloadUrl;
-							a.download = filename;
-							document.body.appendChild(a);
-							a.click();
-							document.body.removeChild(a);
-							toast.success("Custom pack generated successfully");
-						}
+						window.location.href = status.bundleUrl;
+						toast.success("Custom pack generated successfully");
 					}
-				} else if (status.status === JobStatus.JOB_STATUS_FAILED) {
-					if (pollingInterval.current) {
-						clearInterval(pollingInterval.current);
-						pollingInterval.current = null;
-					}
+					setJobId(null);
+					setIsBundling(false);
+				} else if (status.status === 2) {
+					// PROCESSING
+					setJobProgress(status.progress * 100);
+					setJobMessage(status.message || "Processing...");
+				} else if (status.status === 4) {
+					// FAILED
+					if (pollingInterval.current) clearInterval(pollingInterval.current);
 					setJobId(null);
 					setIsBundling(false);
 					toast.error(`Generation failed: ${status.message}`);
@@ -249,46 +190,78 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		}, 3000);
 	};
 
-	useEffect(() => {
-		return () => {
-			if (pollingInterval.current) clearInterval(pollingInterval.current);
+	const handleActionError = (error: unknown, fallbackMessage: string) => {
+		console.error(`${fallbackMessage}:`, error);
+		const message = error instanceof Error ? error.message : fallbackMessage;
+		toast.error(message);
+	};
+
+	const addToPack = () => {
+		if (!selectedType) return;
+
+		const typeInfo = reportTypes.find((r) => r.id === selectedType);
+		const newItem: CustomPackItem = {
+			id: crypto.randomUUID(),
+			type: selectedType,
+			title: title || typeInfo?.name || "Report",
+			teamFilter,
+			genderFilter: "Mixed",
+			ageGroupFilter: "Open",
+			zebraStriping,
 		};
-	}, []);
+
+		setCustomPack([...customPack, newItem]);
+		toast.success("Added to custom pack");
+	};
+
+	const updatePackItem = (id: string, updates: Partial<CustomPackItem>) => {
+		setCustomPack(
+			customPack.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+		);
+	};
+
+	const removeFromPack = (id: string) => {
+		setCustomPack(customPack.filter((item) => item.id !== id));
+	};
+
+	const clearPack = () => {
+		setCustomPack([]);
+	};
+
+	const handleApplyPreset = (preset: any) => {
+		const targetTeam = presetTeamFilter === "All Teams" ? "" : presetTeamFilter;
+		const newItems: CustomPackItem[] = preset.reports.map((r: any) => ({
+			id: crypto.randomUUID(),
+			type: r.type,
+			title: r.title,
+			teamFilter: r.teamFilter || targetTeam,
+			genderFilter: r.genderFilter || "Mixed",
+			ageGroupFilter: r.ageGroupFilter || "Open",
+			zebraStriping: r.zebraStriping || false,
+		}));
+
+		setCustomPack(newItems);
+		toast.success(`Applied ${preset.name} preset`);
+
+		// Scroll to builder
+		const builder = document.getElementById("custom-builder");
+		if (builder) builder.scrollIntoView({ behavior: "smooth" });
+	};
 
 	const generateCustomPack = async () => {
-		if (customPack.length === 0) {
-			toast.error("Pack is empty");
-			return;
-		}
+		if (customPack.length === 0) return;
+
 		setIsBundling(true);
 		try {
-			const timestamp = new Date()
-				.toISOString()
-				.replace(/[:.]/g, "-")
-				.slice(0, 19);
-			const suggestedName = `reports_${timestamp}_${customPack.length}_items.zip`;
 			const result = await generateReportBundle(
 				customPack,
-				suggestedName,
+				"custom_report_pack.zip",
 				rendererType,
 			);
-
 			if (result.success && result.jobId) {
-				startPolling(result.jobId, suggestedName);
-				toast.info("Report generation started in background...");
+				startPolling(result.jobId, "custom_report_pack.zip");
 			} else if (result.success && result.bundleUrl) {
-				// Fallback for immediate success
-				const downloadUrl = result.bundleUrl.startsWith("http")
-					? result.bundleUrl
-					: `${window.location.origin}${result.bundleUrl}`;
-
-				const a = document.createElement("a");
-				a.href = downloadUrl;
-				a.download = result.filename || suggestedName;
-				document.body.appendChild(a);
-				a.click();
-				document.body.removeChild(a);
-				toast.success("Custom pack generated successfully");
+				window.location.href = result.bundleUrl;
 				setIsBundling(false);
 			} else {
 				throw new Error(result.message || "Failed to generate bundle");
@@ -299,141 +272,36 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 		}
 	};
 
-	const reportPresets = [
-		{
-			id: "default_pack",
-			name: "Default Meet Pack",
-			description:
-				"Coaches, S&T Judges, Lane Timers, and Posting/Computer programs.",
-			reports: [
-				{
-					type: 4,
-					title: "Coaches Meet Program",
-					columnsOnPage: 2,
-					showRelaySwimmers: true,
-				},
-				{
-					type: 9,
-					title: "S&T Judge Program",
-					columnsOnPage: 2,
-					showRelaySwimmers: true,
-					zebraStriping: true,
-				},
-				{
-					type: 8,
-					title: "Lane Timer Sheets",
-				},
-				{
-					type: 4,
-					title: "Computer/Posting Program",
-					columnsOnPage: 2,
-					showRelaySwimmers: false,
-				},
-			],
-		},
-		{
-			id: "coaches",
-			name: "Coaches Bundle",
-			description: "Full meet program for all genders/ages (2-column).",
-			reports: [
-				{
-					type: 4,
-					title: "Coaches Meet Program",
-					columnsOnPage: 2,
-					showRelaySwimmers: true,
-				},
-			],
-		},
-		{
-			id: "compact",
-			name: "Compact Program",
-			description: "Single-column program without relay swimmers.",
-			reports: [
-				{
-					type: 4,
-					title: "Compact Meet Program",
-					columnsOnPage: 1,
-					showRelaySwimmers: false,
-				},
-			],
-		},
-		{
-			id: "board",
-			name: "Board Postings",
-			description: "Filtered programs for Girls, Boys (inc Mixed).",
-			reports: [
-				{
-					type: 4,
-					title: "Girls Meet Program for Board",
-					genderFilter: "Girls",
-					columnsOnPage: 2,
-				},
-				{
-					type: 4,
-					title: "Boys & Mixed Meet Program for Board",
-					genderFilter: "Boys",
-					columnsOnPage: 2,
-				},
-			],
-		},
-		{
-			id: "lineups",
-			name: "Lineup Sheets",
-			description: "Single team lineups by age/gender.",
-			reports: ["Girls", "Boys"].flatMap((gender) =>
-				["6 & under", "7-8", "9-10", "11-12", "13-14", "15-18"].map((age) => ({
-					type: 2,
-					title: `Line Up Report - ${gender}, ${age}`,
-					genderFilter: gender,
-					ageGroupFilter: age,
-				})),
-			),
-		},
-	];
-
-	const handleApplyPreset = (preset: (typeof reportPresets)[0]) => {
-		const targetTeam = presetTeamFilter === "All Teams" ? "" : presetTeamFilter;
-		const newItems: CustomPackItem[] = preset.reports.map((r: any) => ({
-			id: crypto.randomUUID(),
-			type: r.type,
-			title: r.title,
-			teamFilter: r.teamFilter || targetTeam,
-			genderFilter: r.genderFilter || "Mixed",
-			ageGroupFilter: r.ageGroupFilter || "Open",
-			zebraStriping: zebraStriping,
-		}));
-		setCustomPack([...customPack, ...newItems]);
-		toast.success(`Applied ${preset.name} to builder`);
-		document
-			.getElementById("custom-builder")
-			?.scrollIntoView({ behavior: "smooth" });
-	};
-
 	const handleGenerate = async () => {
+		if (!selectedType) return;
 		setIsGenerating(true);
+
+		const typeInfo = reportTypes.find((r) => r.id === selectedType);
+		const reportTitle = title || typeInfo?.name || "Report";
+
 		try {
-			const reportName =
-				reportTypes.find((r) => r.id === selectedType)?.name || "Report";
 			const result = await generateReport(
 				selectedType,
-				title || reportName,
+				reportTitle,
 				teamFilter,
-				undefined,
-				undefined,
+				"Mixed",
+				"Open",
 				2,
 				true,
 				zebraStriping,
 				rendererType,
+				htmlPreviewMode,
 			);
 
 			if (result.success) {
-				if (selectedType === 5 && result.htmlContent) {
-					// Open HTML content in a new tab
-					const newTab = window.open("", "_blank");
+				if ((selectedType === 5 || htmlPreviewMode) && result.htmlContent) {
+					// Create a Blob from the HTML content
+					const blob = new Blob([result.htmlContent], { type: "text/html" });
+					const url = URL.createObjectURL(blob);
+					const newTab = window.open(url, "_blank");
+
 					if (newTab) {
-						newTab.document.write(result.htmlContent);
-						newTab.document.close();
-						toast.success("HTML Program opened in new tab");
+						toast.success("HTML Preview opened in new tab");
 					} else {
 						toast.error("Pop-up blocked. Please allow pop-ups for this site.");
 					}
@@ -445,28 +313,19 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 						bytes[i] = binaryString.charCodeAt(i);
 					}
 
-					if (bytes.length === 0) {
-						toast.error("Generated PDF was empty. Please try again.");
-						return;
-					}
-
 					const blob = new Blob([bytes], {
 						type: "application/pdf",
 					});
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement("a");
 					a.href = url;
-					a.download =
-						result.filename ||
-						`${reportName.toLowerCase().replace(/\s+/g, "_")}.pdf`;
+					a.download = result.filename || "report.pdf";
 					document.body.appendChild(a);
 					a.click();
 					document.body.removeChild(a);
 					URL.revokeObjectURL(url);
 					toast.success("Report generated successfully");
 				}
-			} else {
-				throw new Error(result.message || "Failed to generate report");
 			}
 		} catch (error: unknown) {
 			handleActionError(error, "Generation failed");
@@ -474,6 +333,28 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 			setIsGenerating(false);
 		}
 	};
+
+	const reportPresets = [
+		{
+			id: "meet-ready",
+			name: "Default Meet Pack",
+			description: "Program, Timer Sheets, and Judge Sheets",
+			reports: [
+				{ type: 5, title: "Meet Program (HTML)" },
+				{ type: 8, title: "Lane Timer Sheets" },
+				{ type: 9, title: "S&T Judge Sheets" },
+			],
+		},
+		{
+			id: "official-results",
+			name: "Results Pack",
+			description: "Full results and score summaries",
+			reports: [
+				{ type: 4, title: "Official Meet Results" },
+				{ type: 4, title: "Team Scores", zebraStriping: true },
+			],
+		},
+	];
 
 	return (
 		<div className="flex-1 p-6 space-y-8 overflow-y-auto">
@@ -521,20 +402,16 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
-											role="combobox"
-											aria-expanded={presetTeamOpen}
-											className="h-8 w-40 justify-between text-xs"
+											size="sm"
+											className="h-8 min-w-[120px] justify-between"
 										>
 											{presetTeamFilter}
-											<ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+											<ChevronsUpDown className="ml-2 h-3 w-3 opacity-50" />
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className="w-48 p-0">
+									<PopoverContent className="w-[200px] p-0">
 										<Command>
-											<CommandInput
-												placeholder="Search teams..."
-												className="h-8 text-xs"
-											/>
+											<CommandInput placeholder="Filter by team..." />
 											<CommandList>
 												<CommandEmpty>No team found.</CommandEmpty>
 												<CommandGroup>
@@ -546,7 +423,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 													>
 														<Check
 															className={cn(
-																"mr-2 h-3 w-3",
+																"mr-2 h-4 w-4",
 																presetTeamFilter === "All Teams"
 																	? "opacity-100"
 																	: "opacity-0",
@@ -564,7 +441,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 														>
 															<Check
 																className={cn(
-																	"mr-2 h-3 w-3",
+																	"mr-2 h-4 w-4",
 																	presetTeamFilter === team.name
 																		? "opacity-100"
 																		: "opacity-0",
@@ -581,17 +458,16 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 							</div>
 						</div>
 						<CardDescription>
-							Populate the builder with pre-configured bundles
+							Commonly used combinations of reports
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						{reportPresets.map((preset) => (
 							<div
 								key={preset.id}
-								data-testid={`preset-${preset.id}`}
-								className="flex items-center justify-between p-4 border rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors"
+								className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/5 transition-colors"
 							>
-								<div>
+								<div className="space-y-1">
 									<h4 className="font-medium text-sm">{preset.name}</h4>
 									<p className="text-[10px] text-muted-foreground">
 										{preset.description}
@@ -611,7 +487,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 					</CardContent>
 				</Card>
 
-				<Card className="shadow-lg">
+				<Card className="shadow-lg" data-testid="report-configuration-card">
 					<CardHeader>
 						<div className="flex items-center gap-2">
 							<Settings2 className="h-5 w-5 text-primary" />
@@ -734,7 +610,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 									setRendererType(Number.parseInt(v, 10) as RendererType)
 								}
 							>
-								<SelectTrigger className="w-full">
+								<SelectTrigger className="w-full" data-testid="rendering-engine-selector">
 									<SelectValue placeholder="Select rendering engine" />
 								</SelectTrigger>
 								<SelectContent>
@@ -780,6 +656,20 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 								</p>
 							</div>
 						</div>
+
+						<div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/10">
+							<div className="space-y-0.5">
+								<h4 className="text-sm font-medium">Preview Mode</h4>
+								<p className="text-[10px] text-muted-foreground">
+									View as interactive HTML instead of PDF
+								</p>
+							</div>
+							<Switch
+								checked={htmlPreviewMode}
+								onCheckedChange={setHtmlPreviewMode}
+								data-testid="html-preview-toggle"
+							/>
+						</div>
 					</CardContent>
 					<CardFooter className="bg-muted/10 border-t pt-6 gap-4">
 						<Button
@@ -803,7 +693,7 @@ export function ReportsManager({ initialTeams = [] }: ReportsManagerProps) {
 							) : (
 								<>
 									<Download className="mr-2 h-4 w-4" />
-									{selectedType === 5 ? "View HTML" : "Download PDF"}
+									{selectedType === 5 || htmlPreviewMode ? "View HTML" : "Download PDF"}
 								</>
 							)}
 						</Button>

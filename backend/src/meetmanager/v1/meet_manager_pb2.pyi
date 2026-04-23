@@ -557,7 +557,7 @@ class Event(_message.Message):
     def __init__(self, id: _Optional[int] = ..., gender: _Optional[str] = ..., distance: _Optional[int] = ..., stroke: _Optional[str] = ..., low_age: _Optional[int] = ..., high_age: _Optional[int] = ..., session: _Optional[int] = ..., status: _Optional[str] = ..., entry_count: _Optional[int] = ..., age_group: _Optional[str] = ...) -> None: ...
 
 class GenerateReportRequest(_message.Message):
-    __slots__ = ("type", "title", "team_filter", "gender_filter", "age_group_filter", "columns_on_page", "show_relay_swimmers", "zebra_striping", "renderer_type")
+    __slots__ = ("type", "title", "team_filter", "gender_filter", "age_group_filter", "columns_on_page", "show_relay_swimmers", "zebra_striping", "renderer_type", "html_preview")
     TYPE_FIELD_NUMBER: _ClassVar[int]
     TITLE_FIELD_NUMBER: _ClassVar[int]
     TEAM_FILTER_FIELD_NUMBER: _ClassVar[int]
@@ -567,6 +567,7 @@ class GenerateReportRequest(_message.Message):
     SHOW_RELAY_SWIMMERS_FIELD_NUMBER: _ClassVar[int]
     ZEBRA_STRIPING_FIELD_NUMBER: _ClassVar[int]
     RENDERER_TYPE_FIELD_NUMBER: _ClassVar[int]
+    HTML_PREVIEW_FIELD_NUMBER: _ClassVar[int]
     type: ReportType
     title: str
     team_filter: str
@@ -576,7 +577,8 @@ class GenerateReportRequest(_message.Message):
     show_relay_swimmers: bool
     zebra_striping: bool
     renderer_type: RendererType
-    def __init__(self, type: _Optional[_Union[ReportType, str]] = ..., title: _Optional[str] = ..., team_filter: _Optional[str] = ..., gender_filter: _Optional[str] = ..., age_group_filter: _Optional[str] = ..., columns_on_page: _Optional[int] = ..., show_relay_swimmers: bool = ..., zebra_striping: bool = ..., renderer_type: _Optional[_Union[RendererType, str]] = ...) -> None: ...
+    html_preview: bool
+    def __init__(self, type: _Optional[_Union[ReportType, str]] = ..., title: _Optional[str] = ..., team_filter: _Optional[str] = ..., gender_filter: _Optional[str] = ..., age_group_filter: _Optional[str] = ..., columns_on_page: _Optional[int] = ..., show_relay_swimmers: bool = ..., zebra_striping: bool = ..., renderer_type: _Optional[_Union[RendererType, str]] = ..., html_preview: bool = ...) -> None: ...
 
 class GenerateReportResponse(_message.Message):
     __slots__ = ("success", "message", "pdf_content", "filename", "html_content")
