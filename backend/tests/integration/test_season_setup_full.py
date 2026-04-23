@@ -14,6 +14,7 @@ from mm_to_json.mm_to_json import MmToJsonConverter
 
 TEMPLATE_MDB = "../template_unzip/swmeets7/Summer League Meet Template.mdb"
 
+
 @pytest.mark.skipif(not os.path.exists(TEMPLATE_MDB), reason="Template MDB not found")
 def test_full_season_generation_and_load(tmp_path):
     """
@@ -27,15 +28,28 @@ def test_full_season_generation_and_load(tmp_path):
     # We only generate one meet for the test to keep it fast
     # We patch SCHEDULE_2026 inside the test
     from unittest.mock import patch
+
     mock_schedule = [
-        {"date": "2026-05-30", "name": "FAST vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "FAST"}
+        {
+            "date": "2026-05-30",
+            "name": "FAST vs Del Prado",
+            "host": "Del Prado Cabana Club",
+            "is_champs": False,
+            "opponent": "FAST",
+        }
     ]
 
     with patch("generate_season.SCHEDULE_2026", mock_schedule):
         generate(TEMPLATE_MDB, str(output_dir), owner_team="DP")
 
     # Verify file existence
-    generated_file = output_dir / "2026 Del Prado Data" / "Swim Meets" / "2026-05-30 FAST vs Del Prado" / "2026-05-30 FAST vs Del Prado.mdb"
+    generated_file = (
+        output_dir
+        / "2026 Del Prado Data"
+        / "Swim Meets"
+        / "2026-05-30 FAST vs Del Prado"
+        / "2026-05-30 FAST vs Del Prado.mdb"
+    )
     assert generated_file.exists()
 
     # Load it back
