@@ -1,0 +1,19 @@
+{
+  "venues": {
+    "FAST": 8,
+    "Del Prado Cabana Club": 6,
+    "Foothill High School": 8,
+    "Bay Club": 8,
+    "Pleasanton Meadows": 6,
+    "Briarhill Cabana Club": 4,
+    "Castlewood": 6
+  },
+  "teams": {
+    "FAST": "FAST Dolphins",
+    "DP": "Del Prado Stingrays",
+    "SHRK": "Pleasanton Meadows Sharks",
+    "BCTW": "Bay Club Tidal Waves",
+    "BH": "Briarhill Swim Team",
+    "CW": "Castlewood Barracudas"
+  }
+}

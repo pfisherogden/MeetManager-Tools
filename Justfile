@@ -44,6 +44,15 @@ up:
 down:
     docker compose down
 
+# --- Season Setup Automation ---
+generate-season TEMPLATE OUTPUT_DIR OWNER="DP":
+    @echo "Generating 2026 season MDBs..."
+    uv run --project MeetManager-Tools python3 backend/scripts/season_setup/generate_season.py --template {{TEMPLATE}} --output-dir {{OUTPUT_DIR}} --owner-team {{OWNER}}
+
+validate-season TEMPLATE +FILES:
+    @echo "Validating season setup against historical data..."
+    uv run --project MeetManager-Tools python3 backend/scripts/season_setup/validate_historical.py --template {{TEMPLATE}} --historical-files {{FILES}}
+
 codegen-backend:
     @echo "Regenerating Backend Protos..."
     cd backend && uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto
