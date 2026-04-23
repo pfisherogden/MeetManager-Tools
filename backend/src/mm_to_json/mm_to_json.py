@@ -264,10 +264,10 @@ class MmToJsonConverter:
         Exports the entire database including table definitions (columns, types, indexes)
         and row data in a format compatible with mdb_restorer.py.
         """
-        data = {"tables": {}}
+        data: dict[str, Any] = {"tables": {}}
         for tname in self.db.getTableNames():
             table = self.db.getTable(tname)
-            t_def = {"columns": [], "indexes": [], "rows": []}
+            t_def: dict[str, Any] = {"columns": [], "indexes": [], "rows": []}
 
             # Columns
             for col in table.getColumns():
@@ -291,8 +291,8 @@ class MmToJsonConverter:
                 t_def["indexes"].append(i_def)
 
             # Rows
-            t_def["rows"] = self._read_table_jackcess(tname)
-            data["tables"][tname] = t_def
+            t_def["rows"] = self._read_table_jackcess(tname) or []
+            data["tables"][str(tname)] = t_def
 
         return data
 
