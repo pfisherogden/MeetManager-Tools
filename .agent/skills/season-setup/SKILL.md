@@ -25,14 +25,22 @@ Use the `Justfile` targets from the project root:
   just validate-season <template_path> <historical_mdb_path>
   ```
 
-### 3. Verification
+## Verification
 ALWAYS run the hermetic and integration tests after modifying the setup logic:
 ```bash
 uv run --project backend pytest backend/tests/integration/test_season_setup_hermetic.py
 uv run --project backend pytest backend/tests/integration/test_season_setup_full.py
 ```
 
+## Handling Verification Feedback
+If manual verification in the MeetManager Windows application reveals incorrect settings (e.g., scoring rules not applying correctly, or session metadata missing):
+
+1.  **Iterate on Transformation**: Modify the `SeasonTransformer` class in `backend/scripts/season_setup/season_transformer.py`. This is the single source of truth for the JSON-to-JSON transformation.
+2.  **Cross-Check Tables**: Use `inspect_template_sessions.py` or similar scripts to identify the exact internal MDB table/column names that MeetManager expects.
+3.  **Validate Regressions**: Before finalizing a fix, run `just validate-season` against historical MDBs to ensure the change doesn't break known-good configurations from previous years.
+
 ## Best Practices
 - **Mirror Structure**: The generation script automatically creates a layered folder structure mirroring previous years' Google Drive layouts.
+
 - **Hermetic Tests**: Use `mock_mdb_generator.py` to test transformation logic without requiring real MDB files or a full JRE.
 - **Case-Insensitivity**: The `SeasonTransformer` is built to handle inconsistent casing in MDB table and column names (e.g., `Meet` vs `MEET`).

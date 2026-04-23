@@ -64,6 +64,15 @@ This file holds the mapping of pool locations to their number of lanes, as well 
 }
 ```
 
+## Iterating on MDB Configuration
+
+If verification in the MeetManager Windows application reveals incorrect settings (e.g., scoring rules not applying correctly, or session metadata missing):
+
+1.  **Modify `season_transformer.py`**: This class contains the logic for transforming the template JSON. Add or adjust methods here (like `setup_scoring_and_seeding` or `update_meet`) to target the specific tables and columns identified in MeetManager.
+2.  **Use `validate_historical.py`**: Before regenerating the current season, run the validation script against previous years' known-good MDB files to ensure your changes accurately reflect the desired state and don't introduce regressions.
+3.  **Run Hermetic Tests**: Execute `uv run --project backend pytest tests/integration/test_season_setup_hermetic.py` to verify the transformation logic using randomized mock data.
+4.  **Regenerate Season**: Once the logic is verified, run the `generate-season` target to produce fresh 2026 MDB files.
+
 ## Updating the Schedule
 
 To configure a new season, update the `SCHEDULE_2026` array (or rename it appropriately for the current year) inside `generate_season.py`.

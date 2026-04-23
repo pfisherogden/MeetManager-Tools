@@ -119,4 +119,6 @@ All agents MUST follow these workflow phases:
   - **Viewport Awareness**: Increase viewport height (e.g. to 1200px) in mobile emulation to prevent the soft keyboard or narrow layouts from pushing critical buttons out of view.
 
 
-\n### 11. Season Setup Automation\n- **Rule**: Use the `season-setup` skill when configuring MDB files for a new swim season.\n- **Action**: Check `.agent/skills/season-setup/SKILL.md` for execution and configuration details.
+### 11. Season Setup Automation
+- **Rule**: Use the `season-setup` skill when configuring MDB files for a new swim season.
+- **Action**: Check `.agent/skills/season-setup/SKILL.md` for execution and configuration details.
