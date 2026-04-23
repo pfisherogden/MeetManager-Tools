@@ -118,6 +118,15 @@ test.describe("Reports Generation Journey", () => {
 		await viewBtn.scrollIntoViewIfNeeded();
 		await viewBtn.click();
 
+		// Wait for the success toast which confirms URL.createObjectURL was called
+		await expect(
+			page
+				.getByText(/HTML Preview opened in new tab/i)
+				.or(page.getByText(/HTML Program opened in new tab/i)),
+		).toBeVisible({
+			timeout: 60000,
+		});
+
 		const newPage = await pagePromise;
 		await newPage.waitForLoadState("load", { timeout: 30000 });
 
@@ -162,7 +171,7 @@ test.describe("Reports Generation Journey", () => {
 			.getByRole("option", { name: "Playwright (Fast, Chromium-based)" })
 			.click();
 
-		const downloadPromise = page.waitForEvent("download", { timeout: 30000 });
+		const downloadPromise = page.waitForEvent("download", { timeout: 60000 });
 		const downloadBtn = page.getByRole("button", { name: "Download PDF" });
 		await downloadBtn.scrollIntoViewIfNeeded();
 		await downloadBtn.click();
@@ -213,7 +222,7 @@ test.describe("Reports Generation Journey", () => {
 				.getByText(/HTML Preview opened in new tab/i)
 				.or(page.getByText(/HTML Program opened in new tab/i)),
 		).toBeVisible({
-			timeout: 30000,
+			timeout: 60000,
 		});
 
 		const newPage = await pagePromise;

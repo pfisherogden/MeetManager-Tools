@@ -232,7 +232,7 @@ export function ReportsManager({
 					if (downloadTriggered.current !== jobId && status.bundleUrl) {
 						downloadTriggered.current = jobId;
 						window.location.href = status.bundleUrl;
-						toast.success("Report bundle downloaded");
+						toast.success("Custom pack generated successfully");
 					}
 				} else if (status.status === 4) {
 					// FAILED
@@ -257,6 +257,18 @@ export function ReportsManager({
 		const typeInfo = reportTypes.find((r) => r.id === selectedType);
 		const reportTitle = title || typeInfo?.name || "Report";
 
+		// Open blank window synchronously to prevent popup blocking in CI/headless
+		let newTab: Window | null = null;
+		if (selectedType === 5 || htmlPreviewMode) {
+			newTab = window.open("about:blank", "_blank");
+			if (newTab) {
+				newTab.document.write(
+					"<html><body><p>Generating report...</p></body></html>",
+				);
+				newTab.document.close();
+			}
+		}
+
 		try {
 			const result = await generateReport(
 				selectedType,
@@ -268,15 +280,22 @@ export function ReportsManager({
 
 			if (result.success) {
 				if ((selectedType === 5 || htmlPreviewMode) && result.htmlContent) {
-					const newTab = window.open("", "_blank");
 					if (newTab) {
+						newTab.document.open();
 						newTab.document.write(result.htmlContent);
 						newTab.document.close();
 						toast.success("HTML Program opened in new tab");
 					} else {
-						toast.error("Pop-up blocked. Please allow pop-ups.");
+						// Fallback if popup was blocked despite synchronous opening
+						const blob = new Blob([result.htmlContent], { type: "text/html" });
+						const url = URL.createObjectURL(blob);
+						window.open(url, "_blank");
+						toast.success("HTML Program opened in new tab");
 					}
 				} else if (result.pdfContentBase64) {
+					// Close tab if it was opened but we got a PDF
+					if (newTab) newTab.close();
+
 					// Decode base64 to binary
 					const binaryString = window.atob(result.pdfContentBase64);
 					const len = binaryString.length;
@@ -296,12 +315,15 @@ export function ReportsManager({
 					URL.revokeObjectURL(url);
 					toast.success("Report generated successfully");
 				} else {
+					if (newTab) newTab.close();
 					throw new Error("No report content received from server");
 				}
 			} else {
+				if (newTab) newTab.close();
 				throw new Error(result.message || "Failed to generate report");
 			}
 		} catch (error: unknown) {
+			if (newTab) newTab.close();
 			handleActionError(error, "Generation failed");
 		} finally {
 			setIsGenerating(false);
@@ -768,9 +790,10 @@ export function ReportsManager({
 									size="sm"
 									onClick={handleGenerateBundle}
 									disabled={customPack.length === 0 || isBundling}
+									data-testid="generate-bundle-button"
 								>
 									<Download className="mr-2 h-4 w-4" />
-									{isBundling ? "Bundling..." : "Download Zip"}
+									{isBundling ? "Bundling..." : "Generate ZIP"}
 								</Button>
 							</div>
 						</div>

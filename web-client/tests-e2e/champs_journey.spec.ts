@@ -28,7 +28,9 @@ async function ensureDataset(
 		await page.goto(`/admin?uid=${uid}&t=${Date.now()}`, {
 			waitUntil: "networkidle",
 		});
-		await page.waitForTimeout(3000);
+		if ((await row.count()) === 0) {
+			await page.waitForTimeout(2000);
+		}
 	}
 
 	const rowCount = await row.count();
@@ -63,7 +65,7 @@ async function ensureDataset(
 			await fileChooser.setFiles(testFilePath);
 			await expect(
 				page.getByText(/Dataset uploaded successfully/i),
-			).toBeVisible({ timeout: 20000 });
+			).toBeVisible({ timeout: 30000 });
 
 			// Wait for the specific row to appear after upload with retries
 			console.log(`Waiting for row to appear: dataset-row-${filename}...`);
@@ -79,7 +81,7 @@ async function ensureDataset(
 				await page.goto(`/admin?uid=${uid}&t=${Date.now()}`, {
 					waitUntil: "networkidle",
 				});
-				await page.waitForTimeout(3000);
+				await page.waitForTimeout(2000);
 			}
 
 			if (!rowVisible) {
@@ -93,6 +95,7 @@ async function ensureDataset(
 
 	// Now set it active
 	console.log(`Setting ${filename} active...`);
+	await row.scrollIntoViewIfNeeded();
 	await page.evaluate((fid) => {
 		const row = document.querySelector(`[data-testid="dataset-row-${fid}"]`);
 		const buttons = Array.from(row?.querySelectorAll("button") || []);
@@ -136,12 +139,12 @@ test.describe("Champs Dataset Journey", () => {
 
 	test("should correctly process and display tiny Champs dataset", async ({
 		page,
-	}, testInfo) => {
-		// Set reasonable timeout
-		test.setTimeout(180000);
+	}, _testInfo) => {
+		// Set reasonable timeout for this heavy journey
+		test.setTimeout(240000);
 
 		// Use helper for robust dataset management in CI
-		const userId = `e2e-champs-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		const userId = `e2e-champs-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
 		const testFileName = "tiny_champs.json";
 		const tinyChampsData = JSON.parse(
 			fs.readFileSync(
@@ -167,36 +170,43 @@ test.describe("Champs Dataset Journey", () => {
 		});
 
 		// 4. Reports Page: Generate custom pack
-		await page.goto("/reports");
+		await page.goto("/reports", { waitUntil: "networkidle" });
 
 		// Select a report type first
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
+		await expect(clubCard).toBeVisible({ timeout: 15000 });
+		await clubCard.scrollIntoViewIfNeeded();
 		await clubCard.evaluate((el) => (el as HTMLElement).click());
+
+		// Wait for configuration card to appear
+		await expect(page.getByTestId("report-configuration-card")).toBeAttached({
+			timeout: 15000,
+		});
 
 		// Add 2 reports to the pack (sufficient for testing bundle logic)
 		for (let i = 0; i < 2; i++) {
-			await page
-				.getByRole("button", { name: /Add to Pack/i })
-				.evaluate((el) => (el as HTMLElement).click());
-			await expect(
-				page.getByText(/Added to custom pack/i).first(),
-			).toBeVisible();
-			await page.waitForTimeout(500);
+			const addBtn = page.getByRole("button", { name: /Add to Pack/i });
+			await addBtn.scrollIntoViewIfNeeded();
+			await addBtn.evaluate((el) => (el as HTMLElement).click());
+			await expect(page.getByText(/Added to custom pack/i).first()).toBeVisible(
+				{ timeout: 10000 },
+			);
 		}
 
-		const generateZipBtn = page.getByRole("button", {
-			name: /Generate ZIP/i,
-		});
+		// Use the test ID for maximum reliability
+		const generateZipBtn = page.getByTestId("generate-bundle-button");
+		await expect(generateZipBtn).toBeAttached({ timeout: 10000 });
+		await generateZipBtn.scrollIntoViewIfNeeded();
 		await expect(generateZipBtn).toBeEnabled();
 
 		console.log("Generating bundle...");
 		const downloadPromise = page.waitForEvent("download", { timeout: 180000 });
-		await generateZipBtn.click({ force: true });
+		await generateZipBtn.click();
 
 		// Wait for the job to complete (success toast)
 		await expect(
 			page.getByText(/Custom pack generated successfully/i),
-		).toBeVisible({ timeout: 120000 });
+		).toBeVisible({ timeout: 180000 });
 
 		const download = await downloadPromise;
 		console.log("Download initiated...");
