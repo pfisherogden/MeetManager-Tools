@@ -137,7 +137,7 @@ class JobManager:
             with self.lock:
                 if job_id in self.in_memory_jobs:
                     # Perform atomic dict update
-                    updates: dict[str, Any] = {}
+                    updates = {}
                     if status is not None:
                         updates["status"] = status
                     if progress is not None:

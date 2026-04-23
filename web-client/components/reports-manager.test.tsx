@@ -6,6 +6,8 @@ import { ReportsManager } from "./reports-manager";
 vi.mock("@/app/actions", () => ({
 	generateReport: vi.fn(),
 	generateReportBundle: vi.fn(),
+	getJobStatus: vi.fn(),
+	getTeams: vi.fn(() => Promise.resolve({ teams: [] })),
 }));
 
 const mockTeams = [
