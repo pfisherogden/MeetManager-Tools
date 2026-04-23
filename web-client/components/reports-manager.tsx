@@ -268,14 +268,24 @@ export function ReportsManager({
 
 			if (result.success) {
 				if ((selectedType === 5 || htmlPreviewMode) && result.htmlContent) {
-					const blob = new Blob([result.htmlContent], { type: "text/html" });
-					const url = URL.createObjectURL(blob);
-					window.open(url, "_blank");
-					toast.success("HTML Program opened in new tab");
-				} else if (result.pdfContent) {
-					const blob = new Blob([result.pdfContent], {
-						type: "application/pdf",
-					});
+					const newTab = window.open("", "_blank");
+					if (newTab) {
+						newTab.document.write(result.htmlContent);
+						newTab.document.close();
+						toast.success("HTML Program opened in new tab");
+					} else {
+						toast.error("Pop-up blocked. Please allow pop-ups.");
+					}
+				} else if (result.pdfContentBase64) {
+					// Decode base64 to binary
+					const binaryString = window.atob(result.pdfContentBase64);
+					const len = binaryString.length;
+					const bytes = new Uint8Array(len);
+					for (let i = 0; i < len; i++) {
+						bytes[i] = binaryString.charCodeAt(i);
+					}
+
+					const blob = new Blob([bytes], { type: "application/pdf" });
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement("a");
 					a.href = url;
@@ -285,6 +295,8 @@ export function ReportsManager({
 					document.body.removeChild(a);
 					URL.revokeObjectURL(url);
 					toast.success("Report generated successfully");
+				} else {
+					throw new Error("No report content received from server");
 				}
 			} else {
 				throw new Error(result.message || "Failed to generate report");
