@@ -17,7 +17,7 @@ def test_season_transformer_with_mock_generator():
     data = generate_mock_mdb(seed=123)
     transformer = SeasonTransformer(data)
     
-    # Check initial state (transformer.table_data has normalized keys)
+    # Check initial state
     assert len(transformer.table_data.get("athlete", [])) > 0
     assert len(transformer.table_data.get("Session", [])) == 2
     
@@ -42,7 +42,8 @@ def test_season_transformer_with_mock_generator():
     # Find name column (case-insensitive)
     name_val = None
     for k, v in meet.items():
-        if str(k).lower() == "meet_name1": name_val = v
+        if str(k).lower() == "meet_name1":
+            name_val = v
     assert name_val == "2026 Season Opener"
     
     # 3. Consolidate Sessions
@@ -69,25 +70,30 @@ def test_season_transformer_case_insensitivity():
     assert len(transformer.table_data["TEAM"]) == 2
     assert any(str(v).upper() == "CW" for t in transformer.table_data["TEAM"] for k, v in t.items() if str(k).lower() == "tcode")
 
-@patch("mm_to_json.mm_to_json.MmToJsonConverter")
-@patch("mm_to_json.mdb_restorer.restore_db")
-def test_generate_season_logic_hermetic(mock_restore, mock_converter):
+@patch("generate_season.restore_db")
+def test_generate_season_logic_hermetic(mock_restore, tmp_path):
     """Verify the high-level generation logic using mocks and generator."""
     from generate_season import generate
     
-    template_data = generate_mock_mdb()
-    instance = mock_converter.return_value
-    instance.export_full_schema.return_value = {
-        "tables": {
-            tname: {"rows": rows, "columns": [{"name": k, "type": "TEXT"} for k in rows[0].keys()] if rows else [], "indexes": []} 
-            for tname, rows in template_data.items()
-        }
-    }
+    # Create a dummy template file so os.path.exists passes
+    dummy_template = tmp_path / "mock_template.mdb"
+    dummy_template.write_text("dummy")
     
-    import tempfile
-    with tempfile.TemporaryDirectory() as tmpdir:
+    template_data = generate_mock_mdb()
+    
+    # We need to mock MmToJsonConverter and its export_full_schema
+    with patch("generate_season.MmToJsonConverter") as mock_converter:
+        instance = mock_converter.return_value
+        instance.export_full_schema.return_value = {
+            "tables": {
+                tname: {"rows": rows, "columns": [{"name": k, "type": "TEXT"} for k in rows[0].keys()] if rows else [], "indexes": []} 
+                for tname, rows in template_data.items()
+            }
+        }
+        
+        output_dir = tmp_path / "output"
         with patch("generate_season.SCHEDULE_2026", [{"date": "2026-05-30", "name": "FAST vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "FAST"}]):
-            generate("mock_template.mdb", tmpdir, owner_team="DP")
+            generate(str(dummy_template), str(output_dir), owner_team="DP")
     
     assert mock_restore.called
     _, target_path = mock_restore.call_args[0]

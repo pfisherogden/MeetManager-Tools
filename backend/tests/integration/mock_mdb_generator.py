@@ -1,10 +1,11 @@
 import random
-from typing import Any, Dict, List
+from typing import Any
 
-def generate_mock_mdb(seed: int = 42) -> Dict[str, List[Dict[str, Any]]]:
+
+def generate_mock_mdb(seed: int = 42) -> dict[str, list[dict[str, Any]]]:
     """Generates a randomized but structured MDB-like dictionary for testing."""
     random.seed(seed)
-    
+
     # Meet Table
     meet = [{
         "Meet_name1": f"Meet {random.randint(100, 999)}",
@@ -13,20 +14,20 @@ def generate_mock_mdb(seed: int = 42) -> Dict[str, List[Dict[str, Any]]]:
         "Meet_numlanes": 6,
         "Calc_date": "2024-06-01"
     }]
-    
+
     # Teams
     teams = [
         {"TCode": "DP", "TName": "Del Prado Stingrays"},
         {"TCode": "FAST", "TName": "FAST Dolphins"},
         {"TCode": "SHRK", "TName": "Meadows Sharks"}
     ]
-    
+
     # Sessions
     sessions = [
         {"SESSION": 1, "SessName": "Morning", "Day": 1, "StartTime": 480},
         {"SESSION": 2, "SessName": "Afternoon", "Day": 1, "StartTime": 780}
     ]
-    
+
     # Events
     events = []
     sessitems = []
@@ -42,7 +43,7 @@ def generate_mock_mdb(seed: int = 42) -> Dict[str, List[Dict[str, Any]]]:
             "Event_ptr": e_ptr,
             "Sess_order": i
         })
-        
+
     # Athletes & Entries
     athletes = []
     entries = []
@@ -59,7 +60,7 @@ def generate_mock_mdb(seed: int = 42) -> Dict[str, List[Dict[str, Any]]]:
             "Athlete": a_ptr,
             "MtEvent": random.randint(1, 10)
         })
-        
+
     return {
         "Meet": meet,
         "Team": teams,
