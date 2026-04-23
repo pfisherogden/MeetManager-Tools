@@ -39,7 +39,10 @@ export default defineConfig({
 				},
 				{
 					name: "Mobile Safari",
-					use: { ...devices["iPhone 12"] },
+					use: {
+						...devices["iPhone 12"],
+						viewport: { width: 390, height: 1200 },
+					},
 				},
 			]
 		: [
@@ -54,7 +57,10 @@ export default defineConfig({
 				},
 				{
 					name: "Mobile Safari",
-					use: { ...devices["iPhone 12"] },
+					use: {
+						...devices["iPhone 12"],
+						viewport: { width: 390, height: 1200 },
+					},
 				},
 			],
 });

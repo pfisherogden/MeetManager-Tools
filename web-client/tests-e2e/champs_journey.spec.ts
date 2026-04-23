@@ -111,7 +111,9 @@ test.describe("Champs Dataset Journey", () => {
 		// Set a unique user ID for this test to avoid collisions in the backend
 		const userId = `e2e-champs-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 
-		page.on("console", (msg) => console.log(`BROWSER [${userId}]:`, msg.text()));
+		page.on("console", (msg) =>
+			console.log(`BROWSER [${userId}]:`, msg.text()),
+		);
 
 		// Set header for all requests from this page
 		await page.setExtraHTTPHeaders({

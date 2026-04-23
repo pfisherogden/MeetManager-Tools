@@ -632,10 +632,7 @@ test.describe("Disqualification Lifecycle", () => {
 				.getByTestId("heat-item-1")
 				.evaluate((el) => (el as HTMLElement).click());
 			await expect(
-				judgePage
-					.getByText(/Leg 1/i)
-					.or(judgePage.getByText(/Test/i))
-					.first(),
+				judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Test/i)).first(),
 			).toBeVisible({ timeout: 10000 });
 
 			await judgePage
@@ -644,10 +641,7 @@ test.describe("Disqualification Lifecycle", () => {
 				.evaluate((el) => (el as HTMLElement).click());
 			await judgePage.waitForTimeout(2000);
 			await expect(
-				judgePage
-					.getByText(/Leg 1/i)
-					.or(judgePage.getByText(/Test/i))
-					.first(),
+				judgePage.getByText(/Leg 1/i).or(judgePage.getByText(/Test/i)).first(),
 			).toBeVisible({ timeout: 10000 });
 
 			await adminPage.close();

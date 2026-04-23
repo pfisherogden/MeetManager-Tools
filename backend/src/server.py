@@ -230,7 +230,9 @@ def _process_single_report_process(
     converter = MmToJsonConverter(table_data=cache_data)
     extractor = ReportDataExtractor(converter, full_data=full_data)
 
-    with tempfile.NamedTemporaryFile(suffix=".html" if html_preview or rtype == "program_html" else ".pdf", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(
+        suffix=".html" if html_preview or rtype == "program_html" else ".pdf", delete=False
+    ) as tmp:
         temp_path = tmp.name
 
     try:
@@ -1708,10 +1710,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # ensure it's a full URL using FRONTEND_URL.
             is_relative = bundle_url.startswith("/")
             is_unsigned_gcs = "storage.googleapis.com" in bundle_url and "?" not in bundle_url
-            
+
             if is_relative or is_unsigned_gcs:
                 token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
                 import urllib.parse
+
                 safe_bundle_path = urllib.parse.quote(bundle_rel_path)
                 frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3000")
                 bundle_url = f"{frontend_base}/api/data?path={safe_bundle_path}&token={token}"
@@ -1740,7 +1743,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Ensure we return a string for bundle_url
         b_url = job.get("bundle_url") or ""
-        
+
         return pb2.GetJobStatusResponse(
             status=job["status"],
             progress=job["progress"],

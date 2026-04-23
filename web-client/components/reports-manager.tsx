@@ -14,8 +14,12 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { generateReport, generateReportBundle, getJobStatus, getTeams } from "@/app/actions";
-import { Badge } from "@/components/ui/badge";
+import {
+	generateReport,
+	generateReportBundle,
+	getJobStatus,
+	getTeams,
+} from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -149,7 +153,7 @@ export function ReportsManager() {
 		};
 	}, []);
 
-	const startPolling = (jobId: string, filename: string) => {
+	const startPolling = (jobId: string, _filename: string) => {
 		setJobId(jobId);
 		setJobProgress(0);
 		setJobMessage("Starting...");
@@ -216,7 +220,9 @@ export function ReportsManager() {
 
 	const updatePackItem = (id: string, updates: Partial<CustomPackItem>) => {
 		setCustomPack(
-			customPack.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+			customPack.map((item) =>
+				item.id === id ? { ...item, ...updates } : item,
+			),
 		);
 	};
 
@@ -610,7 +616,10 @@ export function ReportsManager() {
 									setRendererType(Number.parseInt(v, 10) as RendererType)
 								}
 							>
-								<SelectTrigger className="w-full" data-testid="rendering-engine-selector">
+								<SelectTrigger
+									className="w-full"
+									data-testid="rendering-engine-selector"
+								>
 									<SelectValue placeholder="Select rendering engine" />
 								</SelectTrigger>
 								<SelectContent>
@@ -693,7 +702,9 @@ export function ReportsManager() {
 							) : (
 								<>
 									<Download className="mr-2 h-4 w-4" />
-									{selectedType === 5 || htmlPreviewMode ? "View HTML" : "Download PDF"}
+									{selectedType === 5 || htmlPreviewMode
+										? "View HTML"
+										: "Download PDF"}
 								</>
 							)}
 						</Button>
