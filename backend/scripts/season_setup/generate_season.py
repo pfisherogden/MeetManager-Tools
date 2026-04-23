@@ -83,6 +83,10 @@ def generate(template_path, output_dir, owner_team="DP"):
         if not os.path.exists(meet_output_dir):
             os.makedirs(meet_output_dir)
 
+        # Create standard subdirectories mirroring previous years
+        for sub in ["reports", "backups", "results"]:
+            os.makedirs(os.path.join(meet_output_dir, sub), exist_ok=True)
+
         print(f"\nGenerating MDB for: {meet['name']} ({meet['date']})")
         
         # We transform the ROWS inside the full_template
