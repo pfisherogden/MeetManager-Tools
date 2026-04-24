@@ -170,12 +170,12 @@ def msgpack_encode(obj):
 
 
 def _process_single_report_process(
-    idx,
     report_req_type,
     report_req_title,
     report_req_team_filter,
     report_req_gender_filter,
     report_req_age_group_filter,
+    user_id,
     columns_on_page,
     show_relay_swimmers,
     zebra_striping,
@@ -230,9 +230,8 @@ def _process_single_report_process(
     converter = MmToJsonConverter(table_data=cache_data)
     extractor = ReportDataExtractor(converter, full_data=full_data)
 
-    with tempfile.NamedTemporaryFile(
-        suffix=".html" if html_preview or rtype == "program_html" else ".pdf", delete=False
-    ) as tmp:
+    is_html = html_preview or rtype == "program_html"
+    with tempfile.NamedTemporaryFile(suffix=".html" if is_html else ".pdf", delete=False) as tmp:
         temp_path = tmp.name
 
     try:
@@ -245,6 +244,9 @@ def _process_single_report_process(
         else:
             renderer = WeasyRenderer(temp_path)
 
+        report_data = None
+        template = "meet_program.j2"
+
         if rtype == "psych":
             report_data = extractor.extract_psych_sheet_data(
                 team_filter=report_req_team_filter,
@@ -252,17 +254,15 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "psych_sheet.j2")
-        elif rtype == "entries":
+            template = "psych_sheet.j2"
+        elif rtype in ["entries", "entries_hytek"]:
             report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
                 report_title=title,
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "entries_hytek.j2")
+            template = "entries_hytek.j2"
         elif rtype == "lineups":
             report_data = extractor.extract_timer_sheets_data(
                 team_filter=report_req_team_filter,
@@ -270,8 +270,7 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "timer_sheets.j2")
+            template = "timer_sheets.j2"
         elif rtype == "results":
             report_data = extractor.extract_results_data(
                 team_filter=report_req_team_filter,
@@ -279,41 +278,7 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "results.j2")
-        elif rtype == "program":
-            program_data = extractor.extract_meet_program_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-                columns_on_page=columns_on_page,
-                show_relay_swimmers=show_relay_swimmers,
-            )
-            program_data["zebra_striping"] = zebra_striping
-            renderer.render_meet_program(program_data)
-        elif rtype == "program_html":
-            program_data = extractor.extract_meet_program_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-                columns_on_page=columns_on_page,
-                show_relay_swimmers=show_relay_swimmers,
-            )
-            program_data["zebra_striping"] = zebra_striping
-            html_content = renderer.render_to_html(program_data)
-            with open(temp_path, "wb") as f:
-                f.write(html_content.encode("utf-8"))
-        elif rtype == "entries_hytek":
-            report_data = extractor.extract_meet_entries_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-            )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "entries_hytek.j2")
+            template = "results.j2"
         elif rtype == "entries_club":
             report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
@@ -321,8 +286,7 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "entries_club.j2")
+            template = "entries_club.j2"
         elif rtype == "lane_timer_sheets":
             report_data = extractor.extract_lane_timer_sheets_data(
                 team_filter=report_req_team_filter,
@@ -330,46 +294,63 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            # Timer sheets always use specific template
-            renderer.render_entries(report_data, "timer_sheets.j2")
-        elif rtype == "judge_sheets":
-            # Judge sheets are meet program with DQ lines
-            program_data = extractor.extract_meet_program_data(
+            template = "timer_sheets.j2"
+        elif rtype in ["program", "program_html", "judge_sheets"]:
+            report_data = extractor.extract_meet_program_data(
                 team_filter=report_req_team_filter,
                 report_title=title,
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
                 columns_on_page=columns_on_page,
                 show_relay_swimmers=show_relay_swimmers,
-                show_dq_lines=True,
+                show_dq_lines=(rtype == "judge_sheets"),
             )
-            program_data["zebra_striping"] = zebra_striping
-            renderer.render_meet_program(program_data)
+            template = "meet_program.j2"
+
+        if report_data:
+            report_data["zebra_striping"] = zebra_striping
+            if is_html:
+                html_content = renderer.render_to_html(report_data, template_name=template)
+                with open(temp_path, "wb") as f:
+                    f.write(html_content.encode("utf-8"))
+            else:
+                if template == "meet_program.j2":
+                    renderer.render_meet_program(report_data)
+                else:
+                    renderer.render_entries(report_data, template)
 
         if os.path.exists(temp_path):
             with open(temp_path, "rb") as f:
-                content = f.read()
-            os.remove(temp_path)
+                pdf_bytes = f.read()
+            os.unlink(temp_path)
+        else:
+            pdf_bytes = b""
 
-            render_end_time = datetime.datetime.now()
-            render_duration = (render_end_time - render_start_time).total_seconds()
-            total_duration = (render_end_time - start_time).total_seconds()
+        render_duration = (datetime.datetime.now() - render_start_time).total_seconds()
 
-            logging.info(
-                f"Worker {idx} finished {rtype}: Load: {load_duration:.2f}s, Render: {render_duration:.2f}s, Total: {total_duration:.2f}s"
-            )
+        # Determine the effective filename
+        ext = ".html" if is_html else ".pdf"
+        final_filename = f"{user_id}_{title}{ext}"
 
-            safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-            ext = ".html" if html_preview or rtype == "program_html" else ".pdf"
-            file_name = f"{idx + 1}_{safe_title}{ext}"
-            return {"success": True, "filename": file_name, "content": content, "rtype": rtype, "idx": idx}
+        # If it was an HTML preview, we also want to return the string for convenience
+        html_str = ""
+        if is_html:
+            html_str = pdf_bytes.decode("utf-8")
 
-        return {"success": False, "error": "Temp file not found"}
+        return {
+            "pdf_bytes": pdf_bytes,
+            "filename": final_filename,
+            "html_content": html_str,
+            "load_duration": load_duration,
+            "render_duration": render_duration,
+        }
+
     except Exception as e:
-        logging.error(f"Process failed: {traceback.format_exc()}")
         if os.path.exists(temp_path):
-            os.remove(temp_path)
-        return {"success": False, "error": str(e), "rtype": rtype, "idx": idx}
+            os.unlink(temp_path)
+        logging.error(f"Error in single report process: {e}")
+        logging.error(traceback.format_exc())
+        raise e
 
 
 class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
