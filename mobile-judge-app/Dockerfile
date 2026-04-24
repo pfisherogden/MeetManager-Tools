@@ -11,6 +11,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Export the app for web
+RUN npm run prebuild-web
 RUN npx expo export --platform web --output-dir dist
 
 # Production stage
