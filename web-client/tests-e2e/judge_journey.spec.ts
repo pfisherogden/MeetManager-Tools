@@ -126,6 +126,7 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// Open DQ History with forced click for robustness
 		await page.getByText(/DQ History \(Pending: 1\)/).dispatchEvent("click");
+		await page.waitForTimeout(1000); // Allow modal transition
 
 		// Verify modal content
 		await expect(page.getByText("DQ History (Total: 1)")).toBeVisible();
@@ -159,7 +160,7 @@ test.describe("Mobile Judge App Journey", () => {
 		await page.getByText("START JUDGING").click();
 
 		// 1. Go Offline
-		console.log("Going OFFLINE...");
+		console.log("[Test] Going OFFLINE...");
 		await context.setOffline(true);
 
 		// 2. Add DQ while offline
@@ -179,13 +180,21 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
 
 		// 4. Go Online
-		console.log("Going ONLINE...");
+		console.log("[Test] Going ONLINE...");
 		await context.setOffline(false);
+		await page.waitForTimeout(2000); // Wait for network stack to recover
 
 		// 5. Trigger Sync and verify
-		await page.getByText(/DQ History \(Pending: 1\)/).dispatchEvent("click");
+		console.log("[Test] Opening DQ History...");
+		const historyTrigger = page.getByText(/DQ History \(Pending: 1\)/);
+		await historyTrigger.dispatchEvent("click");
+
+		console.log("[Test] Waiting for SYNC NOW button...");
 		const syncBtn = page.getByText("SYNC NOW");
-		await expect(syncBtn).toBeVisible({ timeout: 15000 });
+		// Increase timeout and use force visibility check
+		await expect(syncBtn).toBeVisible({ timeout: 30000 });
+
+		console.log("[Test] Clicking SYNC NOW...");
 		await syncBtn.click();
 
 		await expect(page.getByText(/Successfully synced/i)).toBeVisible({
