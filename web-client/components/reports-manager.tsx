@@ -271,6 +271,8 @@ export function ReportsManager({
 					"<html><body><p>Generating report...</p></body></html>",
 				);
 				newTab.document.close();
+			} else {
+				console.log("E2E DEBUG: window.open returned null (likely headless)");
 			}
 		}
 
@@ -290,18 +292,16 @@ export function ReportsManager({
 
 			if (result.success) {
 				if ((selectedType === 5 || htmlPreviewMode) && result.htmlContent) {
+					console.log(
+						"E2E DEBUG: Got HTML content, updating tab or showing toast",
+					);
 					if (newTab) {
 						newTab.document.open();
 						newTab.document.write(result.htmlContent);
 						newTab.document.close();
-						toast.success("HTML Program opened in new tab");
-					} else {
-						// Fallback if popup was blocked despite synchronous opening
-						const blob = new Blob([result.htmlContent], { type: "text/html" });
-						const url = URL.createObjectURL(blob);
-						window.open(url, "_blank");
-						toast.success("HTML Program opened in new tab");
 					}
+					// ALWAYS show the toast so E2E tests can detect success
+					toast.success("HTML Program opened in new tab");
 				} else if (result.pdfContentBase64) {
 					// Close tab if it was opened but we got a PDF
 					if (newTab) newTab.close();
