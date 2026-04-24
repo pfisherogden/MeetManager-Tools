@@ -174,19 +174,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Start Services
+      - name: Pull and Tag Images
         env:
           TAG: ${{ needs.build-images.outputs.tag }}
           IMAGE_PREFIX: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
-          mkdir -p tmp && chmod 777 tmp
-          # Pull the images first to ensure they are available
           docker pull ${IMAGE_PREFIX}/backend:${TAG}
-          docker pull ${IMAGE_PREFIX}/frontend:${TAG}
-          docker pull ${IMAGE_PREFIX}/judge-app:${TAG}
+          docker tag ${IMAGE_PREFIX}/backend:${TAG} mmtools-backend:latest
           
-          # Use the CI-specific docker-compose file
-          docker compose -f docker-compose.ci.yml up -d
+          docker pull ${IMAGE_PREFIX}/frontend:${TAG}
+          docker tag ${IMAGE_PREFIX}/frontend:${TAG} mmtools-frontend:latest
+          
+          docker pull ${IMAGE_PREFIX}/judge-app:${TAG}
+          docker tag ${IMAGE_PREFIX}/judge-app:${TAG} mmtools-judge-app:latest
+
+      - name: Start Services
+        run: |
+          mkdir -p tmp && chmod 777 tmp
+          # Use local tags for docker-compose
+          sed -i "s|image: mmtools-backend|image: mmtools-backend:latest|g" docker-compose.yml
+          sed -i "s|image: mmtools-frontend|image: mmtools-frontend:latest|g" docker-compose.yml
+          sed -i "s|image: mmtools-judge-app|image: mmtools-judge-app:latest|g" docker-compose.yml
+          
+          # Remove build sections to force use of pulled images
+          sed -i '/build:/d' docker-compose.yml
+          sed -i '/context: ./d' docker-compose.yml
+          sed -i '/dockerfile:/d' docker-compose.yml
+          
+          docker compose up -d
 
       - name: Wait for Services
         run: |
@@ -203,8 +218,7 @@ jobs:
           done
           echo "Waiting for judge-app to be ready..."
           for i in {1..30}; do
-            # Note: Judge app is on 8081 in docker-compose.ci.yml
-            if curl -s http://localhost:8081 > /dev/null; then
+            if curl -s http://localhost:8080 > /dev/null; then
               echo "Judge App is ready!"
               break
             fi
@@ -231,12 +245,12 @@ jobs:
           npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           FRONTEND_URL: http://localhost:3000
-          MOBILE_APP_URL: http://localhost:8081
+          MOBILE_APP_URL: http://localhost:8080
           NEXT_PUBLIC_E2E_AUTH_BYPASS: 'true'
 
       - name: Print Logs
         if: always()
-        run: docker compose -f docker-compose.ci.yml logs
+        run: docker compose logs
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v7
@@ -248,4 +262,4 @@ jobs:
 
       - name: Shutdown Services
         if: always()
-        run: docker compose -f docker-compose.ci.yml down
+        run: docker compose down
