@@ -136,15 +136,17 @@ class JobManager:
         else:
             with self.lock:
                 if job_id in self.in_memory_jobs:
-                    job = self.in_memory_jobs[job_id]
+                    # Perform atomic dict update
+                    updates = {}
                     if status is not None:
-                        job["status"] = status
+                        updates["status"] = status
                     if progress is not None:
-                        job["progress"] = progress
+                        updates["progress"] = progress
                     if message is not None:
-                        job["message"] = message
+                        updates["message"] = message
                     if bundle_url is not None:
-                        job["bundle_url"] = bundle_url
+                        updates["bundle_url"] = bundle_url
+                    self.in_memory_jobs[job_id].update(updates)
 
     def get_job(self, job_id: str) -> dict[str, Any] | None:
         if self.use_firestore:
@@ -180,6 +182,7 @@ def _process_single_report_process(
     msgpack_path,  # Use msgpack file instead of large dict
     rtype_map,
     renderer_type=None,
+    html_preview=False,
 ):
     # This runs in a separate process, avoiding the GIL
     import datetime
@@ -227,7 +230,9 @@ def _process_single_report_process(
     converter = MmToJsonConverter(table_data=cache_data)
     extractor = ReportDataExtractor(converter, full_data=full_data)
 
-    with tempfile.NamedTemporaryFile(suffix=".pdf" if rtype != "program_html" else ".html", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(
+        suffix=".html" if html_preview or rtype == "program_html" else ".pdf", delete=False
+    ) as tmp:
         temp_path = tmp.name
 
     try:
@@ -355,7 +360,7 @@ def _process_single_report_process(
             )
 
             safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-            ext = ".html" if rtype == "program_html" else ".pdf"
+            ext = ".html" if html_preview or rtype == "program_html" else ".pdf"
             file_name = f"{idx + 1}_{safe_title}{ext}"
             return {"success": True, "filename": file_name, "content": content, "rtype": rtype, "idx": idx}
 
@@ -1496,6 +1501,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     msgpack_path,
                     rtype_map,
                     request.renderer_type if hasattr(request, "renderer_type") else None,
+                    getattr(request, "html_preview", False),
                 )
             finally:
                 # Cleanup msgpack file
@@ -1655,6 +1661,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             raise Exception(
                                 f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
                             )
+                # BUNDLING: Create ZIP in original order
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    for i, future in enumerate(tasks):
+                        res = future.result()
+                        if res.get("success"):
+                            zip_file.writestr(res["filename"], res["content"])
+                            logging.info(
+                                f"Job {job_id}: Report {i + 1}/{total_reports} ({res.get('rtype')}) added to bundle"
+                            )
+                        else:
+                            raise Exception(
+                                f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
+                            )
             finally:
                 if os.path.exists(msgpack_path):
                     os.remove(msgpack_path)
@@ -1685,16 +1705,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Task C: Use Signed URL if available
             bundle_url = self.storage.get_url(bundle_rel_path)
 
-            # Fallback: If signing failed (returned public URL which is private),
-            # use the proxy API URL instead.
-            if "storage.googleapis.com" in bundle_url and ".zip" in bundle_url and "?" not in bundle_url:
+            # Fallback: If get_url returned a relative path (e.g. /api/data?...)
+            # or if it's a GCS public URL that isn't signed (missing '?'),
+            # ensure it's a full URL using FRONTEND_URL.
+            is_relative = bundle_url.startswith("/")
+            is_unsigned_gcs = "storage.googleapis.com" in bundle_url and "?" not in bundle_url
+
+            if is_relative or is_unsigned_gcs:
                 token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
                 import urllib.parse
 
                 safe_bundle_path = urllib.parse.quote(bundle_rel_path)
-                bundle_url = f"/api/data?path={safe_bundle_path}&token={token}"
-                logging.info(f"Using proxy fallback URL for {bundle_rel_path}")
+                frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3000")
+                bundle_url = f"{frontend_base}/api/data?path={safe_bundle_path}&token={token}"
+                logging.info(f"Using absolute proxy fallback URL: {bundle_url}")
 
+            logging.info(f"Job {job_id}: Final bundle_url: {bundle_url}")
+
+            # ATOMIC UPDATE: Set everything at once to prevent race with poller
             self.job_manager.update_job(
                 job_id, status=pb2.JOB_STATUS_COMPLETED, progress=1.0, message="Complete", bundle_url=bundle_url
             )
@@ -1713,11 +1741,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         if not job:
             return pb2.GetJobStatusResponse(status=pb2.JOB_STATUS_FAILED, message="Job not found")
 
+        # Ensure we return a string for bundle_url
+        b_url = job.get("bundle_url") or ""
+
         return pb2.GetJobStatusResponse(
             status=job["status"],
             progress=job["progress"],
             message=job["message"],
-            bundle_url=job["bundle_url"],
+            bundle_url=b_url,
         )
 
     def GetSessions(self, request, context):
@@ -1906,7 +1937,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if not judge_app_base:
                 if "localhost" in frontend_base or "127.0.0.1" in frontend_base:
                     # In local dev/E2E, judge app is served by docker or local server
-                    judge_app_base = "http://localhost:8080/judge"
+                    judge_app_base = "http://localhost:8080/MeetManager-Tools/judge"
                 else:
                     # Production GitHub Pages
                     judge_app_base = "https://pfisherogden.github.io/MeetManager-Tools/judge"

@@ -614,6 +614,8 @@ message GenerateReportRequest {
   optional bool zebra_striping = 8;
   // renderer_type specifies the engine to use (default: weasyprint).
   RendererType renderer_type = 9;
+  // html_preview indicates if the report should be returned as HTML instead of PDF.
+  bool html_preview = 10;
 }
 
 // GenerateReportResponse contains the generated report data.
