@@ -41,7 +41,9 @@ async function ensureDataset(page, userId, filename, data) {
 
 	// Use evaluate click for more reliability in mobile/scrolling layouts
 	await row.evaluate((el) => {
-		const btn = el.querySelector('button[aria-label*="Set Active"]');
+		const btn =
+			el.querySelector('button[aria-label*="Set Active"]') ||
+			el.querySelector('button[data-testid="set-active-button"]');
 		if (btn) (btn as HTMLElement).click();
 	});
 
