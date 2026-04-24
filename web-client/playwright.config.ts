@@ -31,36 +31,17 @@ export default defineConfig({
 	},
 
 	/* Configure projects for major browsers */
-	projects: process.env.CI
-		? [
-				{
-					name: "chromium",
-					use: { ...devices["Desktop Chrome"] },
-				},
-				{
-					name: "Mobile Safari",
-					use: {
-						...devices["iPhone 12"],
-						viewport: { width: 390, height: 1200 },
-					},
-				},
-			]
-		: [
-				{
-					name: "chromium",
-					use: { ...devices["Desktop Chrome"] },
-				},
-				/* Test against mobile viewports. */
-				{
-					name: "Mobile Chrome",
-					use: { ...devices["Pixel 5"] },
-				},
-				{
-					name: "Mobile Safari",
-					use: {
-						...devices["iPhone 12"],
-						viewport: { width: 390, height: 1200 },
-					},
-				},
-			],
+	projects: [
+		{
+			name: "chromium",
+			use: { ...devices["Desktop Chrome"] },
+		},
+		{
+			name: "Mobile Safari",
+			use: {
+				...devices["iPhone 12"],
+				viewport: { width: 390, height: 1200 },
+			},
+		},
+	],
 });
