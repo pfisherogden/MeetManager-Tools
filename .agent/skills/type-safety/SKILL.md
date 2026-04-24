@@ -18,4 +18,9 @@ description: Best practices for handling Protobuf enums and type safety in Pytho
 ## Tooling & Sync
 - **Refresh Stubs**: Run `just codegen` if `mypy` or `ruff` report errors on recently modified proto definitions.
 - **CI Sequence**: Ensure `codegen` runs before linting or type-checking in all CI pipelines.
+- **Component/Test Sync**: When refactoring component signatures or internal state (e.g., in `ReportsManager`), immediately update corresponding unit tests (Vitest). Ensure that `@/app/actions` mocks in tests accurately reflect the latest exports and return types of the server actions.
+
+## Frontend Safety
+- **Server Action Signature Safety**: Positional arguments in Server Actions are extremely brittle. For any action with more than 4 arguments, you MUST use a single named object/interface (e.g., `generateReport({ type, title, ... })`) instead of positional parameters. This prevents "Ghost Argument" bugs where parameters are misaligned at call sites.
+- **Zod Validation**: Use Zod to validate data returned from Server Actions or parsed from Protobuf if the types are complex or union-based.
 
