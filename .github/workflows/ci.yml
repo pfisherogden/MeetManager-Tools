@@ -40,7 +40,9 @@ jobs:
           python-version-file: "pyproject.toml"
 
       - name: Generate Protos
-        run: just codegen
+        run: |
+          cd backend
+          uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto
 
       - name: Lint Backend
         run: |
@@ -109,7 +111,7 @@ jobs:
       - name: Build and push Backend
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: backend
           file: backend/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ steps.meta.outputs.version }}
@@ -119,7 +121,7 @@ jobs:
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: web-client
           file: web-client/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ steps.meta.outputs.version }}
@@ -131,7 +133,7 @@ jobs:
       - name: Build and push Judge App
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: mobile-judge-app
           file: mobile-judge-app/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/judge-app:${{ steps.meta.outputs.version }}
