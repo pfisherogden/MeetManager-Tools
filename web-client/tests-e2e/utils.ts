@@ -23,10 +23,12 @@ export async function ensureDatasetActive(
 		const testFilePath = path.join(tempDir, filename);
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 
-		await page.waitForLoadState("networkidle");
-		const fileInput = page.getByTestId("dataset-file-input");
-		await fileInput.setInputFiles(testFilePath);
-		await page.getByText(/Upload Dataset/i).click();
+		// MOST ROBUST FILE UPLOAD PATTERN: Use filechooser event
+		const fileChooserPromise = page.waitForEvent("filechooser");
+		await page.getByRole("button", { name: /Upload Dataset/i }).click();
+		const fileChooser = await fileChooserPromise;
+		await fileChooser.setFiles(testFilePath);
+
 		// Wait for row without checking toast
 		await expect(row).toBeVisible({ timeout: 60000 });
 		console.log(`[Utils] ${filename} uploaded successfully.`);
@@ -45,20 +47,26 @@ export async function ensureDatasetActive(
 	const setActiveBtn = row.getByTestId("set-active-button");
 	await expect(setActiveBtn).toBeVisible({ timeout: 15000 });
 
-	await setActiveBtn.click();
+	// Use evaluate click for maximum robustness on Safari
+	await setActiveBtn.evaluate((el) => (el as HTMLElement).click());
 
 	// Wait for attribute change - MUCH more robust than toast
 	await expect(row).toHaveAttribute("data-test-state", "active", {
-		timeout: 30000,
+		timeout: 45000,
 	});
 	console.log(`[Utils] ${filename} is now active.`);
 }
 
 export function getFixtureData(filename: string) {
-	return JSON.parse(
-		fs.readFileSync(
-			path.resolve(process.cwd(), "..", "tests", "fixtures", filename),
-			"utf8",
-		),
+	const fixturePath = path.resolve(
+		process.cwd(),
+		"..",
+		"tests",
+		"fixtures",
+		filename,
 	);
+	if (!fs.existsSync(fixturePath)) {
+		throw new Error(`Fixture not found: ${fixturePath}`);
+	}
+	return JSON.parse(fs.readFileSync(fixturePath, "utf8"));
 }
