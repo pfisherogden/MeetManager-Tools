@@ -8,6 +8,7 @@ import multiprocessing
 import os
 import tempfile
 import threading
+import time
 import uuid
 import zipfile
 from collections import OrderedDict
@@ -912,7 +913,17 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             # List files from users/[uid]/
             user_prefix = os.path.join("users", uid)
-            files = self.storage.list_files(user_prefix)
+
+            # Retry loop for eventual consistency in CI environments
+            files = []
+            for attempt in range(3):
+                files = self.storage.list_files(user_prefix)
+                if files:
+                    break
+                if attempt < 2:
+                    logging.info(f"ListDatasets: No files found for {uid}, retrying in 1s...")
+                    time.sleep(1)
+
             logging.info(f"ListDatasets: Found {len(files)} files in {user_prefix}: {files}")
 
             # Also include default Sample_Data.json if it exists and user has no files?

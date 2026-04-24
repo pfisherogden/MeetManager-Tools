@@ -192,8 +192,18 @@ jobs:
         run: |
           echo "Waiting for services to initialize..."
           sleep 15
+          
+          echo "Waiting for backend to be ready..."
+          for i in {1..60}; do
+            if curl -s http://localhost:8080 > /dev/null; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Waiting... ($i/60)"
+            sleep 5
+          done
+
           echo "Waiting for frontend to be ready..."
-          # Increased loop to 60 iterations (5 mins)
           for i in {1..60}; do
             if curl -s http://localhost:3000 > /dev/null; then
               echo "Frontend is ready!"
@@ -202,9 +212,9 @@ jobs:
             echo "Waiting... ($i/60)"
             sleep 5
           done
+
           echo "Waiting for judge-app to be ready..."
           for i in {1..60}; do
-            # Note: Judge app is on 8081 in docker-compose.ci.yml
             if curl -s http://localhost:8081 > /dev/null; then
               echo "Judge App is ready!"
               break
@@ -224,7 +234,8 @@ jobs:
         run: |
           cd web-client
           npm ci
-          npx playwright install --with-deps chromium
+          # MUST install all browsers to support webkit/safari projects
+          npx playwright install --with-deps
 
       - name: Run Playwright E2E Tests
         run: |
