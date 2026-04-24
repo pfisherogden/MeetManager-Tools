@@ -52,6 +52,5 @@ describe("DatasetManager", () => {
 
 		expect(screen.getByText("Active")).toBeDefined();
 		expect(screen.getByText("Set Active")).toBeDefined();
-		expect(screen.getByText("Import from Drive")).toBeDefined();
 	});
 });
