@@ -8,470 +8,60 @@ async function getAuthMetadata() {
 	const headerList = await headers();
 	let userId = headerList.get("x-user-id");
 
-	if (!userId) {
-		// Fallback to cookie for resilience in some environments
-		const { cookies } = await import("next/headers");
-		const cookieStore = await cookies();
-		userId = cookieStore.get("x-user-id")?.value;
-	}
-
-	// E2E Bypass for automated testing
-	if (
-		!userId &&
-		(process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
-			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "1")
-	) {
-		// Try to extract uid from headers or cookies or referer URL to maintain shard isolation in CI
-		userId = headerList.get("x-e2e-uid");
-
-		if (!userId) {
-			const { cookies } = await import("next/headers");
-			const cookieStore = await cookies();
-			userId = cookieStore.get("x-e2e-uid")?.value;
-		}
-
-		if (!userId) {
-			const referer = headerList.get("referer");
-			if (referer) {
-				try {
-					const refererUrl = new URL(referer);
-					userId = refererUrl.searchParams.get("uid");
-				} catch (_e) {
-					// Invalid URL, ignore
-				}
-			}
-		}
-
-		if (!userId) {
-			userId = "e2e-bypass-user";
-		}
+	// Fallback for local development or E2E bypass
+	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" && !userId) {
+		userId = "e2e-bypass-user";
 		console.log(`DEBUG: E2E Auth Bypass triggered for user: ${userId}`);
 	}
 
 	if (!userId) {
-		const allHeaders = Array.from(headerList.entries())
-			.map(([k, v]) => `${k}: ${v}`)
-			.join(", ");
-		console.error(`DEBUG: Auth failed. Headers present: ${allHeaders}`);
-		throw new Error("Authentication required. Please refresh or log in again.");
+		throw new Error("User ID is required. Please sign in.");
 	}
 
 	return { "x-user-id": userId };
 }
 
-export async function listDatasets() {
-	try {
-		const metadata = await getAuthMetadata();
-		const userId = metadata["x-user-id"];
-		console.log(`SERVER ACTION: listDatasets called for user: ${userId}`);
-		const response = await client.listDatasets({}, { metadata });
-		console.log(
-			`SERVER ACTION SUCCESS (listDatasets) for user: ${userId}:`,
-			response,
-		);
-		// Return a plain object to ensure serializability
-		return {
-			datasets: response.datasets.map((d) => ({
-				filename: d.filename,
-				isActive: d.isActive,
-				lastModified: d.lastModified,
-			})),
-		};
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (listDatasets):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
+// Named configuration object for better parameter safety
+export interface GenerateReportConfig {
+	type: number;
+	title: string;
+	teamFilter?: string;
+	genderFilter?: string;
+	ageGroupFilter?: string;
+	columnsOnPage?: number;
+	showRelaySwimmers?: boolean;
+	zebraStriping?: boolean;
+	rendererType?: number;
+	htmlPreview?: boolean;
 }
 
-export async function setActiveDataset(filename: string) {
-	try {
-		const metadata = await getAuthMetadata();
-		await client.setActiveDataset({ filename }, { metadata });
-		revalidatePath("/", "layout");
-		return true;
-	} catch (err: unknown) {
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function clearDataset(filename: string) {
-	try {
-		const metadata = await getAuthMetadata();
-		await client.clearDataset({ filename }, { metadata });
-		revalidatePath("/", "layout");
-		return true;
-	} catch (err: unknown) {
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function clearAllDatasets() {
-	try {
-		const metadata = await getAuthMetadata();
-		await client.clearAllDatasets({}, { metadata });
-		revalidatePath("/", "layout");
-		return true;
-	} catch (err: unknown) {
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function uploadDatasetFromDrive(fileId: string, filename: string) {
-	// Sanitize fileId to prevent SSRF: Google Drive IDs are alphanumeric, underscores, and hyphens.
-	if (!/^[a-zA-Z0-9_-]+$/.test(fileId)) {
-		throw new Error("Invalid Google Drive file ID format.");
-	}
-
-	console.log(`SERVER ACTION: uploadDatasetFromDrive called for ${filename}`);
-
-	const { cookies: nextCookies } = await import("next/headers");
-	const cookieStore = await nextCookies();
-	const googleAccessToken = cookieStore.get("googleAccessToken")?.value;
-
-	if (!googleAccessToken) {
-		throw new Error("Google access token not found. Please log in again.");
-	}
-
-	async function* _driveUploadGenerator() {
-		yield { filename };
-
-		const response = await fetch(
-			`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-			{
-				headers: {
-					Authorization: `Bearer ${googleAccessToken}`,
-				},
-			},
-		);
-
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Failed to fetch from Google Drive: ${errorText}`);
-		}
-
-		if (!response.body) {
-			throw new Error("Google Drive response body is empty");
-		}
-
-		const reader = response.body.getReader();
-		try {
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				yield { chunk: value };
-			}
-		} finally {
-			reader.releaseLock();
-		}
-	}
-
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.uploadDataset(uploadRequestGenerator(), {
-			metadata,
-		});
-
-		// Wait for file system stability in CI before returning
-		// This ensures subsequent listDatasets calls see the new file
-		if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS) {
-			// Increased to 15s for robust sharded CI environment
-			await new Promise((resolve) => setTimeout(resolve, 15000));
-		}
-
-		revalidatePath("/", "layout");
-		return response;
-	} catch (err: unknown) {
-		console.error("SERVER ACTION: Drive Upload Error:", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function uploadDataset(formData: FormData) {
-	const metadata = await getAuthMetadata();
-	const userId = metadata["x-user-id"];
-	console.log(`SERVER ACTION: uploadDataset called for user: ${userId}`);
-	const file = formData.get("file") as File;
-	if (!file) {
-		throw new Error("No file uploaded");
-	}
-
-	async function* uploadRequestGenerator() {
-		yield { filename: file.name };
-
-		const stream = file.stream();
-		const reader = stream.getReader();
-
-		try {
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				yield { chunk: value };
-			}
-		} finally {
-			reader.releaseLock();
-		}
-	}
-
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.uploadDataset(uploadRequestGenerator(), {
-			metadata,
-		});
-
-		// Wait for file system stability in CI before returning
-		// This ensures subsequent listDatasets calls see the new file
-		if (
-			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
-			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "1"
-		) {
-			// Increased to 15s for robust sharded CI environment
-			await new Promise((resolve) => setTimeout(resolve, 15000));
-		}
-
-		revalidatePath("/", "layout");
-		return response;
-	} catch (err: unknown) {
-		console.error("SERVER ACTION: Upload Error:", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function getSessions() {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getSessions({}, { metadata });
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (getSessions):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function getAdminConfig() {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getAdminConfig({}, { metadata });
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (getAdminConfig):", err);
-		return { meetName: "", meetDescription: "" };
-	}
-}
-
-export async function updateAdminConfig(
-	meetName: string,
-	meetDescription: string,
-) {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.updateAdminConfig(
-			{
-				meetName,
-				meetDescription,
-			},
-			{ metadata },
-		);
-		revalidatePath("/", "layout");
-		return response;
-	} catch (err: unknown) {
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function getEntries(eventId?: string, athleteId?: string) {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getEntries({ eventId, athleteId }, { metadata });
-	} catch (_err) {
-		return { entries: [] };
-	}
-}
-
-export async function getRelays(eventId?: string) {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getRelays({ eventId }, { metadata });
-	} catch (_err) {
-		return { relays: [] };
-	}
-}
-
-export async function getScores() {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getScores({}, { metadata });
-	} catch (_err) {
-		return { scores: [] };
-	}
-}
-
-export async function getEventScores() {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getEventScores({}, { metadata });
-	} catch (_err) {
-		return { eventScores: [] };
-	}
-}
-
-export async function getTeams() {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getTeams({}, { metadata });
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (getTeams):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function getAthletes() {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getAthletes({}, { metadata });
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (getAthletes):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function getEvents() {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getEvents({}, { metadata });
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (getEvents):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function getMeets() {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getMeets({}, { metadata });
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (getMeets):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function getDashboardStats() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getDashboardStats({}, { metadata });
-		return response;
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (getDashboardStats):", err);
-		return {
-			meetCount: 0,
-			teamCount: 0,
-			athleteCount: 0,
-			eventCount: 0,
-		};
-	}
-}
-
-export async function getTeam(id: number) {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getTeam({ id }, { metadata });
-	} catch (err: unknown) {
-		console.error(`SERVER ACTION ERROR (getTeam ${id}):`, err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function getAthlete(id: number) {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getAthlete({ id }, { metadata });
-	} catch (err: unknown) {
-		const safeId = Number.parseInt(String(id), 10);
-		console.error(`SERVER ACTION ERROR (getAthlete ${safeId}):`, err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
-	}
-}
-
-export async function generateReport(
-	type: number,
-	title: string,
-	teamFilter: string = "",
-	genderFilter?: string,
-	ageGroupFilter?: string,
-	columnsOnPage: number = 2,
-	showRelaySwimmers: boolean = true,
-	zebraStriping: boolean = false,
-	_rendererType: number = 0,
-	htmlPreview: boolean = false,
-) {
+export async function generateReport(config: GenerateReportConfig) {
 	try {
 		const metadata = await getAuthMetadata();
 		const response = await client.generateReport(
 			{
-				type,
-				title,
-				teamFilter,
-				genderFilter,
-				ageGroupFilter,
-				columnsOnPage,
-				showRelaySwimmers,
-				zebraStriping,
-				rendererType: _rendererType,
-				htmlPreview,
+				type: config.type,
+				title: config.title,
+				teamFilter: config.teamFilter || "",
+				genderFilter: config.genderFilter || "",
+				ageGroupFilter: config.ageGroupFilter || "",
+				columnsOnPage: config.columnsOnPage || 2,
+				showRelaySwimmers: config.showRelaySwimmers !== false,
+				zebraStriping: config.zebraStriping || false,
+				rendererType: config.rendererType || 0,
+				htmlPreview: config.htmlPreview || false,
 			},
 			{ metadata },
 		);
 
-		if (!response.success) {
-			throw new Error(response.message);
-		}
-
 		return {
-			success: true,
-			pdfContentBase64: Buffer.from(response.pdfContent as Uint8Array).toString(
-				"base64",
-			),
+			success: response.success,
+			message: response.message,
+			pdfContentBase64: response.pdfContent
+				? Buffer.from(response.pdfContent).toString("base64")
+				: null,
+			htmlContent: response.htmlContent || "",
 			filename: response.filename,
-			htmlContent: response.htmlContent,
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (generateReport):", err);
@@ -482,50 +72,166 @@ export async function generateReport(
 	}
 }
 
+export async function getTeams() {
+	try {
+		const metadata = await getAuthMetadata();
+		const response = await client.getTeams({}, { metadata });
+		return {
+			teams: response.teams.map((t) => ({
+				id: t.id,
+				name: t.name,
+				code: t.code,
+				athleteCount: t.athleteCount,
+			})),
+		};
+	} catch (_err) {
+		return { teams: [] };
+	}
+}
+
+export async function getMeets() {
+	try {
+		const metadata = await getAuthMetadata();
+		const response = await client.getMeets({}, { metadata });
+		return {
+			meets: response.meets.map((m) => ({
+				id: m.id,
+				name: m.name,
+				location: m.location,
+				startDate: m.startDate,
+			})),
+		};
+	} catch (_err) {
+		return { meets: [] };
+	}
+}
+
+export async function uploadDataset(formData: FormData) {
+	const file = formData.get("file") as File;
+	const metadata = await getAuthMetadata();
+
+	if (!file) throw new Error("No file provided");
+
+	try {
+		const buffer = await file.arrayBuffer();
+		const uint8Array = new Uint8Array(buffer);
+
+		const response = await client.uploadDataset(
+			{
+				filename: file.name,
+				content: uint8Array,
+			},
+			{ metadata },
+		);
+
+		if (response.success) {
+			// In E2E mode, we sometimes need an artificial delay for filesystem consistency
+			if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+				await new Promise((r) => setTimeout(r, 2000));
+			}
+			revalidatePath("/admin");
+			revalidatePath("/meets");
+			revalidatePath("/teams");
+			revalidatePath("/reports");
+		}
+
+		return {
+			success: response.success,
+			message: response.message,
+		};
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (uploadDataset):", err);
+		throw err;
+	}
+}
+
+export async function listDatasets() {
+	try {
+		const metadata = await getAuthMetadata();
+		const response = await client.listDatasets({}, { metadata });
+		return {
+			datasets: response.datasets.map((d) => ({
+				filename: d.filename,
+				isActive: d.isActive,
+				lastModified: d.lastModified,
+			})),
+		};
+	} catch (_err) {
+		return { datasets: [] };
+	}
+}
+
+export async function setActiveDataset(filename: string) {
+	const metadata = await getAuthMetadata();
+	try {
+		const response = await client.setActiveDataset({ filename }, { metadata });
+		if (response.success) {
+			revalidatePath("/admin");
+			revalidatePath("/meets");
+			revalidatePath("/teams");
+			revalidatePath("/reports");
+		}
+		return {
+			success: response.success,
+			message: response.message,
+		};
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (setActiveDataset):", err);
+		throw err;
+	}
+}
+
+export async function deleteDataset(filename: string) {
+	const metadata = await getAuthMetadata();
+	try {
+		const response = await client.deleteDataset({ filename }, { metadata });
+		if (response.success) {
+			revalidatePath("/admin");
+		}
+		return {
+			success: response.success,
+			message: response.message,
+		};
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (deleteDataset):", err);
+		throw err;
+	}
+}
+
 export async function generateReportBundle(
-	reports: any[],
-	bundleName: string = "bundle.zip",
-	rendererType: number = 0,
+	requests: GenerateReportConfig[],
+	bundleName: string,
 ) {
 	try {
 		const metadata = await getAuthMetadata();
 		const response = await client.generateReportBundle(
 			{
-				reports: reports.map((r) => ({
+				requests: requests.map((r) => ({
 					type: r.type,
 					title: r.title,
 					teamFilter: r.teamFilter || "",
-					genderFilter: r.genderFilter,
-					ageGroupFilter: r.ageGroupFilter,
+					genderFilter: r.genderFilter || "",
+					ageGroupFilter: r.ageGroupFilter || "",
 					columnsOnPage: r.columnsOnPage || 2,
-					showRelaySwimmers:
-						r.showRelaySwimmers !== undefined ? r.showRelaySwimmers : true,
-					zebraStriping: !!r.zebraStriping,
-					rendererType,
+					showRelaySwimmers: r.showRelaySwimmers !== false,
+					zebraStriping: r.zebraStriping || false,
+					rendererType: r.rendererType || 0,
+					htmlPreview: r.htmlPreview || false,
 				})),
 				bundleName,
-				rendererType,
 			},
 			{ metadata },
 		);
 
-		if (!response.success) {
-			throw new Error(response.message);
-		}
-
 		return {
-			success: true,
+			success: response.success,
 			message: response.message,
-			filename: response.filename,
-			bundleUrl: response.bundleUrl,
 			jobId: response.jobId,
+			filename: response.filename,
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (generateReportBundle):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
+		throw err;
 	}
 }
 
@@ -541,42 +247,30 @@ export async function getJobStatus(jobId: string) {
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getJobStatus):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
+		throw err;
 	}
 }
 
-export async function getDisqualifications() {
-	try {
-		const { getDqs } = await import("@/lib/dq-db");
-		return await getDqs();
-	} catch (err: unknown) {
-		console.error("SERVER ACTION ERROR (getDisqualifications):", err);
-		throw new Error("Failed to fetch disqualifications");
-	}
-}
-
-export async function publishMeetData(frontendUrl?: string) {
+export async function getDashboardStats() {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.publishMeetData(
-			{ frontendUrl: frontendUrl || "" },
-			{ metadata },
-		);
-		if (!response.success) {
-			throw new Error(response.message);
-		}
+		return await client.getDashboardStats({}, { metadata });
+	} catch (_err) {
+		return { totalAthletes: 0, totalTeams: 0, totalEvents: 0, totalResults: 0 };
+	}
+}
+
+export async function publishMeetData(filename: string) {
+	try {
+		const metadata = await getAuthMetadata();
+		const response = await client.publishMeetData({ filename }, { metadata });
 		return {
-			success: true,
+			success: response.success,
+			message: response.message,
 			judgeAppUrl: response.judgeAppUrl,
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (publishMeetData):", err);
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		throw new Error("An unknown error occurred");
+		throw err;
 	}
 }
