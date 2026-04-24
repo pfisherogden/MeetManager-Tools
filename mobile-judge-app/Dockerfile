@@ -4,12 +4,11 @@ FROM node:20-alpine as build
 WORKDIR /app
 
 # Copy package files and install dependencies
-# Note: In the CI we build with the root context
-COPY mobile-judge-app/package*.json ./
+COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application
-COPY mobile-judge-app/ .
+COPY . .
 
 # Export the app for web
 RUN npm run prebuild-web

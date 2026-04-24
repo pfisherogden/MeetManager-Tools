@@ -77,9 +77,12 @@ jobs:
 
       - name: Generate Protos
         run: |
-          cd ..
-          just codegen
-          just codegen-frontend
+          # Generate backend protos
+          cd backend
+          uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto
+          # Generate frontend protos
+          cd ../web-client
+          npx buf generate ../protos
 
       - name: Lint and Test
         run: |
