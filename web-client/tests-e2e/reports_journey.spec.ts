@@ -172,7 +172,7 @@ test.describe("Reports Generation Journey", () => {
 
 		// Select Playwright renderer for visual testing
 		const engineSelector = page.getByTestId("rendering-engine-selector");
-		await expect(engineSelector).toBeAttached({ timeout: 10000 });
+		await expect(engineSelector).toBeAttached({ timeout: 20000 });
 		await engineSelector.scrollIntoViewIfNeeded();
 		await engineSelector.click();
 

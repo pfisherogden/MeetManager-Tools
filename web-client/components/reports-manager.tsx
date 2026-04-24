@@ -126,7 +126,7 @@ interface ReportsManagerProps {
 export function ReportsManager({
 	initialTeams: propTeams = [],
 }: ReportsManagerProps) {
-	const [selectedType, setSelectedType] = useState<number | null>(0);
+	const [selectedType, setSelectedType] = useState<number | null>(null);
 	const [title, setTitle] = useState("");
 	const [teamFilter, setTeamFilter] = useState("");
 	const [isGenerating, setIsGenerating] = useState(false);

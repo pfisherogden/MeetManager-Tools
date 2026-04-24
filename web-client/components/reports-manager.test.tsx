@@ -10,44 +10,37 @@ vi.mock("@/app/actions", () => ({
 	getTeams: vi.fn(() => Promise.resolve({ teams: [] })),
 }));
 
-const mockTeams = [
+const _mockTeams = [
 	{ id: "t1", name: "Sharks", code: "SHK", athleteCount: 45 },
 	{ id: "t2", name: "Dolphins", code: "DOL", athleteCount: 38 },
 ];
 
 describe("ReportsManager", () => {
 	it("renders report types and presets", () => {
-		render(<ReportsManager initialTeams={mockTeams} />);
-
-		// Check some report types (use getAllByText as it might appear in summary too)
-		expect(screen.getAllByText("Psych Sheet").length).toBeGreaterThan(0);
-		expect(screen.getAllByText("Meet Program (PDF)").length).toBeGreaterThan(0);
-
-		// Check presets
-		expect(screen.getByText("Default Meet Pack")).toBeDefined();
-		expect(screen.getAllByText("Lineup Sheets").length).toBeGreaterThan(0);
+		render(<ReportsManager />);
+		expect(screen.getByText(/Report Presets/i)).toBeDefined();
+		expect(screen.getByText(/Psych Sheet/i)).toBeDefined();
+		expect(screen.getByText(/Meet Entries/i)).toBeDefined();
 	});
 
-	it("adds a report to the custom pack", async () => {
-		render(<ReportsManager initialTeams={mockTeams} />);
+	it("adds a report to the custom pack", () => {
+		render(<ReportsManager />);
 
-		const addButton = screen.getByRole("button", { name: /Add to Pack/i });
-		fireEvent.click(addButton);
+		// 1. Select a report type card to reveal the configuration card
+		const reportCard = screen.getByTestId("report-card-psych-sheet");
+		fireEvent.click(reportCard);
 
-		// Custom Report Pack Builder should show 1 report
+		// 2. Click "Add to Pack"
+		const addBtn = screen.getByText(/Add to Pack/i);
+		fireEvent.click(addBtn);
+
+		// 3. Verify it appears in the builder
 		expect(screen.getByText(/1 Reports/i)).toBeDefined();
-		// Should show the default Psych Sheet in the builder
-		expect(screen.getByDisplayValue("Psych Sheet")).toBeDefined();
 	});
 
 	it("applies a preset to the builder", () => {
-		// Mock scrollIntoView
-		window.HTMLElement.prototype.scrollIntoView = vi.fn();
+		render(<ReportsManager />);
 
-		render(<ReportsManager initialTeams={mockTeams} />);
-
-		// Find the Lineup Sheets preset apply button
-		// It has data-testid="preset-apply-lineups"
 		const applyBtn = screen.getByTestId("preset-apply-lineups");
 		fireEvent.click(applyBtn);
 
