@@ -30,6 +30,7 @@ RUN /uv/bin/uv pip install --system .
 RUN python -m playwright install --with-deps chromium
 
 # 2. Download Java libraries (layer 2 - depends only on script and config)
+# We copy just the script needed for downloading to avoid invalidating this layer on source changes
 COPY backend/src/mm_to_json/download_libs.py ./src/mm_to_json/
 RUN python3 src/mm_to_json/download_libs.py
 
@@ -40,6 +41,8 @@ RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src 
 # 4. Copy source and data (layer 4)
 COPY backend/src ./src
 COPY backend/data ./data
+COPY tests/fixtures ./data/fixtures_root
+COPY backend/tests ./tests
 
 ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1
