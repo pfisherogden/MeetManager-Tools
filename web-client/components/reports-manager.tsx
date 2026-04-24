@@ -257,9 +257,14 @@ export function ReportsManager({
 		const typeInfo = reportTypes.find((r) => r.id === selectedType);
 		const reportTitle = title || typeInfo?.name || "Report";
 
+		console.log(
+			`E2E DEBUG: handleGenerate called with selectedType=${selectedType}, htmlPreviewMode=${htmlPreviewMode}, rendererType=${rendererType}`,
+		);
+
 		// Open blank window synchronously to prevent popup blocking in CI/headless
 		let newTab: Window | null = null;
 		if (selectedType === 5 || htmlPreviewMode) {
+			console.log("E2E DEBUG: Opening preview window synchronously");
 			newTab = window.open("about:blank", "_blank");
 			if (newTab) {
 				newTab.document.write(
