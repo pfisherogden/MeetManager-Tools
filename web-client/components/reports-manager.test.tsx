@@ -8,6 +8,14 @@ vi.mock("@/app/actions", () => ({
 	generateReportBundle: vi.fn(),
 	getJobStatus: vi.fn(),
 	getTeams: vi.fn(() => Promise.resolve({ teams: [] })),
+	getDashboardStats: vi.fn(() =>
+		Promise.resolve({
+			totalAthletes: 10,
+			totalTeams: 2,
+			totalEvents: 5,
+			totalResults: 0,
+		}),
+	),
 }));
 
 const _mockTeams = [
