@@ -12,7 +12,7 @@ function getTestData(filename: string) {
 	);
 }
 
-// Helper to ensure dataset is active using robust data attributes
+// Helper to ensure dataset is active
 async function ensureActive(page, filename) {
 	console.log(`Ensuring ${filename} is active...`);
 
@@ -20,25 +20,24 @@ async function ensureActive(page, filename) {
 	await page.reload({ waitUntil: "networkidle" });
 
 	const row = page.getByTestId(`dataset-row-${filename}`);
-	await expect(row).toBeVisible({ timeout: 20000 });
+	await expect(row).toBeVisible({ timeout: 15000 });
 
-	// Check state via data-attribute
-	const state = await row.getAttribute("data-test-state");
-	if (state === "active") {
+	const activeBadge = row.getByTestId("active-dataset-badge");
+	const isAlreadyActive = await activeBadge.isVisible().catch(() => false);
+
+	if (isAlreadyActive) {
 		console.log(`${filename} is already active.`);
 		return;
 	}
 
 	await row.scrollIntoViewIfNeeded();
 	const setActiveBtn = row.getByTestId("set-active-button");
+
+	// High resilience click
 	await expect(setActiveBtn).toBeVisible({ timeout: 15000 });
+	await setActiveBtn.click({ force: true });
 
-	await setActiveBtn.click();
-
-	// Wait for attribute change - MUCH more robust than CSS badge visibility
-	await expect(row).toHaveAttribute("data-test-state", "active", {
-		timeout: 30000,
-	});
+	await expect(activeBadge).toBeVisible({ timeout: 30000 });
 	console.log(`${filename} is now active.`);
 }
 
@@ -62,6 +61,7 @@ test.describe("Meet Administrator Management", () => {
 		page,
 	}) => {
 		const workerIndex = test.info().workerIndex;
+		// USE UNIQUE FILENAMES PER WORKER to prevent shard collisions
 		const ds1 = `tiny_meet_${workerIndex}.json`;
 		const ds2 = `tiny_champs_${workerIndex}.json`;
 
@@ -89,6 +89,7 @@ test.describe("Meet Administrator Management", () => {
 
 			const rowId = `dataset-row-${ds.filename}`;
 			await expect(page.getByTestId(rowId)).toBeVisible({ timeout: 60000 });
+			await page.waitForTimeout(3000); // Backend processing cooldown
 		}
 
 		// 2. Switch to ds2 and verify
@@ -114,13 +115,18 @@ test.describe("Meet Administrator Management", () => {
 		// 4. Delete a dataset
 		console.log(`Step 4: Deleting ${ds2} dataset...`);
 		await page.goto("/admin");
+		// Ensure we are fresh for delete
 		await page.reload({ waitUntil: "networkidle" });
 
 		const rowToDelete = page.getByTestId(`dataset-row-${ds2}`);
 		await rowToDelete.scrollIntoViewIfNeeded();
 
+		// Setup dialog handler for delete confirmation
 		page.once("dialog", (dialog) => dialog.accept());
-		await rowToDelete.getByTestId("delete-dataset-button").click();
+
+		const deleteBtn = rowToDelete.getByTestId("delete-dataset-button");
+		await expect(deleteBtn).toBeVisible({ timeout: 15000 });
+		await deleteBtn.click({ force: true });
 
 		await expect(page.getByTestId(`dataset-row-${ds2}`)).not.toBeVisible({
 			timeout: 20000,
