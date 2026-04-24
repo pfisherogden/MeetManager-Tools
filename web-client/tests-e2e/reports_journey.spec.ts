@@ -67,9 +67,12 @@ test.describe("Reports Generation Journey", () => {
 		// Set a unique user ID for this test to avoid collisions in the backend
 		const userId = `e2e-reports-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 
-		page.on("console", (msg) =>
-			console.log(`BROWSER [${userId}]:`, msg.text()),
-		);
+		page.on("console", (msg) => {
+			const text = msg.text();
+			if (text.includes("E2E DEBUG")) {
+				console.log(`BROWSER [${userId}]:`, text);
+			}
+		});
 
 		// Set header for all requests from this page
 		await page.setExtraHTTPHeaders({
