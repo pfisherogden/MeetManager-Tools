@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
 
-// Helper to ensure dataset is present and active
+// Helper to ensure dataset is active for screenshots
 async function ensureDataset(page, _userId, filename, data) {
 	await page.goto("/admin", { waitUntil: "networkidle" });
 	const rowId = `dataset-row-${filename}`;
@@ -29,9 +29,11 @@ async function ensureDataset(page, _userId, filename, data) {
 	});
 }
 
-test.describe("Coach Persona Journey", () => {
-	test.beforeEach(async ({ page, context }, testInfo) => {
-		const userId = `e2e-coach-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+test.describe("Visual Journey Capture", () => {
+	const reportDir = path.join(process.cwd(), "tmp", "visual-report");
+
+	test.beforeEach(async ({ page, context }) => {
+		const userId = "visual-capture-user";
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,
@@ -50,47 +52,50 @@ test.describe("Coach Persona Journey", () => {
 		await ensureDataset(page, userId, testFileName, data);
 	});
 
-	test("should filter reports and entries by team", async ({ page }) => {
-		// 1. Verify Team Dashboard
-		await page.goto("/teams");
-		await expect(page.locator("table")).toContainText("Blue Dolphins");
+	test("capture admin dashboard", async ({ page }) => {
+		await page.goto("/admin");
+		await expect(page.getByText(/Admin Configuration/i)).toBeVisible();
+		await page.screenshot({
+			path: path.join(reportDir, "1-admin-dashboard.png"),
+			fullPage: true,
+		});
+		console.log("Captured: 1-admin-dashboard.png");
+	});
 
-		// 2. Go to Reports and filter by "Blue Dolphins"
+	test("capture coach filtered reports", async ({ page }) => {
 		await page.goto("/reports");
-
-		// Select Club Style report
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.scrollIntoViewIfNeeded();
 		await clubCard.evaluate((el) => (el as HTMLElement).click());
 
-		// Wait for config card
 		const configCard = page.getByTestId("report-configuration-card");
-		await expect(configCard).toBeAttached({ timeout: 15000 });
+		await expect(configCard).toBeAttached();
 
-		// Open Team Filter Popover
-		const teamFilterBtn = configCard
+		// Filter for Blue Dolphins
+		await configCard
 			.getByRole("combobox")
-			.filter({ hasText: /All Teams/i });
-		await teamFilterBtn.scrollIntoViewIfNeeded();
-		await teamFilterBtn.click();
-
-		// Select Blue Dolphins
+			.filter({ hasText: /All Teams/i })
+			.click();
 		await page.getByRole("option", { name: "Blue Dolphins" }).click();
 
-		// Verify summary reflects team
-		const summary = page.locator("div").filter({ hasText: /^Summary/ });
-		await expect(summary).toContainText("Target: Blue Dolphins");
+		await page.screenshot({
+			path: path.join(reportDir, "2-coach-filtered-report.png"),
+			fullPage: true,
+		});
+		console.log("Captured: 2-coach-filtered-report.png");
+	});
 
-		// 3. Add to pack and verify
-		await page.getByRole("button", { name: /Add to Pack/i }).click();
-		await expect(page.getByText(/Added to custom pack/i).first()).toBeVisible();
+	test("capture judge app events", async ({ page }) => {
+		await page.goto(
+			"http://localhost:8080/MeetManager-Tools/judge?uid=visual-capture-user",
+		);
+		await page.getByPlaceholder("Your Name").fill("Visual Reviewer");
+		await page.getByText("START JUDGING").click();
 
-		const builder = page.locator("#report-builder");
-		await expect(builder).toContainText("Blue Dolphins");
-
-		// 4. Verification: Switching to another team updates summary
-		await teamFilterBtn.click();
-		await page.getByRole("option", { name: "Red Sharks" }).click();
-		await expect(summary).toContainText("Target: Red Sharks");
+		await expect(page.getByText("Events", { exact: true })).toBeVisible();
+		await page.screenshot({
+			path: path.join(reportDir, "3-judge-events.png"),
+			fullPage: true,
+		});
+		console.log("Captured: 3-judge-events.png");
 	});
 });

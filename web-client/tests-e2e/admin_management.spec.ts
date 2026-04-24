@@ -15,15 +15,30 @@ function getTestData(filename: string) {
 test.describe("Meet Administrator Management", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		const userId = `e2e-admin-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
-		await page.setExtraHTTPHeaders({ "x-user-id": userId, "x-e2e-uid": userId });
-		await context.addCookies([{ name: "x-user-id", value: userId, domain: "localhost", path: "/" }]);
+		await page.setExtraHTTPHeaders({
+			"x-user-id": userId,
+			"x-e2e-uid": userId,
+		});
+		await context.addCookies([
+			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
+		]);
 		console.log(`Using isolated Admin User ID: ${userId}`);
 	});
 
-	test("should support uploading, switching between, and deleting multiple datasets", async ({ page }) => {
+	test("should support uploading, switching between, and deleting multiple datasets", async ({
+		page,
+	}) => {
 		const datasets = [
-			{ filename: "tiny_meet.json", data: getTestData("tiny_meet.json"), name: "Tiny Meet" },
-			{ filename: "tiny_champs.json", data: getTestData("tiny_champs.json"), name: "TVSL Championship Meet" }
+			{
+				filename: "tiny_meet.json",
+				data: getTestData("tiny_meet.json"),
+				name: "Tiny Meet",
+			},
+			{
+				filename: "tiny_champs.json",
+				data: getTestData("tiny_champs.json"),
+				name: "TVSL Championship Meet",
+			},
 		];
 
 		await page.goto("/admin", { waitUntil: "networkidle" });
@@ -38,7 +53,7 @@ test.describe("Meet Administrator Management", () => {
 
 			await page.setInputFiles('input[type="file"]', testFilePath);
 			await page.getByText(/Upload Dataset/i).click();
-			
+
 			const rowId = `dataset-row-${ds.filename}`;
 			await expect(page.getByTestId(rowId)).toBeVisible({ timeout: 30000 });
 		}
@@ -51,10 +66,14 @@ test.describe("Meet Administrator Management", () => {
 			const btn = el.querySelector('button[aria-label*="Set Active"]');
 			if (btn) (btn as HTMLElement).click();
 		});
-		await expect(champsRow.getByTestId("active-dataset-badge")).toBeVisible({ timeout: 15000 });
+		await expect(champsRow.getByTestId("active-dataset-badge")).toBeVisible({
+			timeout: 15000,
+		});
 
 		await page.goto("/meets");
-		await expect(page.locator("table")).toContainText("TVSL Championship Meet 2025");
+		await expect(page.locator("table")).toContainText(
+			"TVSL Championship Meet 2025",
+		);
 
 		// 3. Switch to Tiny Meet and verify
 		console.log("Switching back to Tiny Meet...");
@@ -65,7 +84,9 @@ test.describe("Meet Administrator Management", () => {
 			const btn = el.querySelector('button[aria-label*="Set Active"]');
 			if (btn) (btn as HTMLElement).click();
 		});
-		await expect(tinyRow.getByTestId("active-dataset-badge")).toBeVisible({ timeout: 15000 });
+		await expect(tinyRow.getByTestId("active-dataset-badge")).toBeVisible({
+			timeout: 15000,
+		});
 
 		await page.goto("/meets");
 		await expect(page.locator("table")).toContainText("Summer Meet 2024");
@@ -75,16 +96,18 @@ test.describe("Meet Administrator Management", () => {
 		await page.goto("/admin");
 		const champsRowToDelete = page.getByTestId("dataset-row-tiny_champs.json");
 		await champsRowToDelete.scrollIntoViewIfNeeded();
-		
+
 		// Setup dialog handler for delete confirmation
-		page.once('dialog', dialog => dialog.accept());
-		
+		page.once("dialog", (dialog) => dialog.accept());
+
 		await champsRowToDelete.evaluate((el) => {
 			const btn = el.querySelector('button[aria-label*="Delete"]');
 			if (btn) (btn as HTMLElement).click();
 		});
 
-		await expect(page.getByTestId("dataset-row-tiny_champs.json")).not.toBeVisible({ timeout: 15000 });
+		await expect(
+			page.getByTestId("dataset-row-tiny_champs.json"),
+		).not.toBeVisible({ timeout: 15000 });
 		console.log("Dataset deleted successfully");
 	});
 });
