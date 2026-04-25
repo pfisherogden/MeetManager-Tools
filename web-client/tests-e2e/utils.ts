@@ -23,11 +23,24 @@ export async function ensureDatasetActive(
 		const testFilePath = path.join(tempDir, filename);
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 
-		// MOST ROBUST FILE UPLOAD PATTERN: Use filechooser event
-		const fileChooserPromise = page.waitForEvent("filechooser");
-		await page.getByRole("button", { name: /Upload Dataset/i }).click();
-		const fileChooser = await fileChooserPromise;
-		await fileChooser.setFiles(testFilePath);
+		// Use direct setInputFiles on the hidden input with a visibility override for Safari
+		const fileInput = page.getByTestId("dataset-file-input");
+		await fileInput.evaluate((el) => {
+			(el as HTMLElement).style.display = "block";
+			(el as HTMLElement).style.visibility = "visible";
+			(el as HTMLElement).style.opacity = "1";
+		});
+
+		await fileInput.setInputFiles(testFilePath);
+
+		// Return visibility to normal
+		await fileInput.evaluate((el) => {
+			(el as HTMLElement).style.display = "none";
+		});
+
+		await page
+			.getByRole("button", { name: /Upload Dataset/i })
+			.click({ force: true });
 
 		// Wait for row without checking toast
 		await expect(row).toBeVisible({ timeout: 60000 });
@@ -47,8 +60,8 @@ export async function ensureDatasetActive(
 	const setActiveBtn = row.getByTestId("set-active-button");
 	await expect(setActiveBtn).toBeVisible({ timeout: 15000 });
 
-	// Use evaluate click for maximum robustness on Safari
-	await setActiveBtn.evaluate((el) => (el as HTMLElement).click());
+	// Use force click instead of evaluate to keep some actionability check
+	await setActiveBtn.click({ force: true });
 
 	// Wait for attribute change - MUCH more robust than toast
 	await expect(row).toHaveAttribute("data-test-state", "active", {

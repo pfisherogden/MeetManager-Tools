@@ -1,9 +1,6 @@
 services:
   backend:
     image: ${IMAGE_PREFIX}/backend:${TAG}
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
     ports:
       - "8080:8080"
     volumes:
@@ -14,11 +11,6 @@ services:
 
   frontend:
     image: ${IMAGE_PREFIX}/frontend:${TAG}
-    build:
-      context: .
-      dockerfile: web-client/Dockerfile
-      args:
-        - NEXT_PUBLIC_E2E_AUTH_BYPASS=true
     ports:
       - "3000:3000"
     environment:
@@ -27,8 +19,5 @@ services:
 
   judge-app:
     image: ${IMAGE_PREFIX}/judge-app:${TAG}
-    build:
-      context: .
-      dockerfile: mobile-judge-app/Dockerfile
     ports:
       - "8081:8080"

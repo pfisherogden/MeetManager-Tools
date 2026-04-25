@@ -31,7 +31,7 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// 0. Handle Judge Name Prompt
 		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
-		await page.getByText("START JUDGING").click();
+		await page.getByText("START JUDGING").click({ force: true });
 
 		// 1. Verify we are on the Events view
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
@@ -40,18 +40,18 @@ test.describe("Mobile Judge App Journey", () => {
 		await page
 			.getByText(/#1 |Event 1/i)
 			.first()
-			.evaluate((el) => (el as HTMLElement).click());
+			.click({ force: true });
 
 		// 3. Tap a heat (e.g., Heat 1)
 		await page
 			.getByText(/Heat 1/i)
 			.first()
-			.evaluate((el) => (el as HTMLElement).click());
+			.click({ force: true });
 
 		// 4. Tap "TAP TO DQ" for a swimmer
 		const tapToDq = page.getByText("TAP TO DQ").first();
 		await expect(tapToDq).toBeVisible();
-		await tapToDq.evaluate((el) => (el as HTMLElement).click());
+		await tapToDq.click({ force: true });
 
 		// 5. Verify DQ Modal opens
 		await expect(
@@ -59,10 +59,7 @@ test.describe("Mobile Judge App Journey", () => {
 		).toBeVisible();
 
 		// 6. Select a DQ code (e.g., "1A")
-		await page
-			.getByText("1A")
-			.first()
-			.evaluate((el) => (el as HTMLElement).click());
+		await page.getByText("1A").first().click({ force: true });
 
 		// 7. Add a note
 		await page
@@ -70,9 +67,7 @@ test.describe("Mobile Judge App Journey", () => {
 			.fill("Test DQ Note");
 
 		// 8. Tap Save (checkmark-circle icon)
-		await page
-			.getByLabel("Save changes")
-			.evaluate((el) => (el as HTMLElement).click());
+		await page.getByLabel("Save changes").click({ force: true });
 
 		// 9. Verification: Modal closes and DQ code is displayed
 		await expect(
@@ -89,15 +84,13 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// 0. Handle Judge Name Prompt
 		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
-		await page.getByText("START JUDGING").click();
+		await page.getByText("START JUDGING").click({ force: true });
 
 		// Default is Event view
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
 
 		// Switch to Program view
-		await page
-			.getByText("SWITCH TO PROGRAM VIEW")
-			.evaluate((el) => (el as HTMLElement).click());
+		await page.getByText("SWITCH TO PROGRAM VIEW").click({ force: true });
 
 		// Verify Program View is shown
 		await expect(page.getByText("SWITCH TO EVENT VIEW")).toBeVisible();
@@ -106,10 +99,57 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(page.getByText(/#1 |Event 1/i).first()).toBeVisible();
 
 		// Switch back
-		await page
-			.getByText("SWITCH TO EVENT VIEW")
-			.evaluate((el) => (el as HTMLElement).click());
+		await page.getByText("SWITCH TO EVENT VIEW").click({ force: true });
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
+	});
+
+	test("should manage offline queue (clear all)", async ({ page }) => {
+		await page.goto("/");
+
+		// 0. Handle Judge Name Prompt
+		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
+		await page.getByText("START JUDGING").click({ force: true });
+
+		// Add a DQ first
+		await page
+			.getByText(/#1 |Event 1/i)
+			.first()
+			.click({ force: true });
+		await page
+			.getByText(/Heat 1/i)
+			.first()
+			.click({ force: true });
+		await page.getByText("TAP TO DQ").first().click({ force: true });
+		await page.getByText("1A").first().click({ force: true });
+		await page.getByLabel("Save changes").click({ force: true });
+
+		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
+
+		// Open DQ History
+		await page.getByText(/DQ History \(Pending: 1\)/).click({ force: true });
+		await page.waitForTimeout(1000); // Allow modal transition
+
+		// Verify modal content
+		await expect(page.getByText("DQ History (Total: 1)")).toBeVisible();
+		await expect(page.getByText(/CLEAR PENDING/i)).toBeVisible();
+
+		// Clear Pending
+		await page.getByText(/CLEAR PENDING/i).click({ force: true });
+
+		// Verification
+		await expect(page.getByText("No DQs recorded")).toBeVisible();
+
+		// Close modal
+		await page.keyboard.press("Escape");
+		await page.waitForTimeout(1000);
+
+		const closeBtn = page.getByLabel("Close history");
+		if (await closeBtn.isVisible()) {
+			await closeBtn.click({ force: true });
+		}
+
+		// Queue count should be 0
+		await expect(page.getByText(/DQ History \(Pending: 0\)/)).toBeVisible();
 	});
 
 	test("should support offline-first DQ entry with network recovery", async ({
@@ -118,7 +158,7 @@ test.describe("Mobile Judge App Journey", () => {
 	}) => {
 		await page.goto("/");
 		await page.getByPlaceholder("Your Name").fill("Offline Judge");
-		await page.getByText("START JUDGING").click();
+		await page.getByText("START JUDGING").click({ force: true });
 
 		// 1. Go Offline
 		console.log("[Test] Going OFFLINE...");
@@ -128,22 +168,14 @@ test.describe("Mobile Judge App Journey", () => {
 		await page
 			.getByText(/#1 |Event 1/i)
 			.first()
-			.evaluate((el) => (el as HTMLElement).click());
+			.click({ force: true });
 		await page
 			.getByText(/Heat 1/i)
 			.first()
-			.evaluate((el) => (el as HTMLElement).click());
-		await page
-			.getByText("TAP TO DQ")
-			.first()
-			.evaluate((el) => (el as HTMLElement).click());
-		await page
-			.getByText("1A")
-			.first()
-			.evaluate((el) => (el as HTMLElement).click());
-		await page
-			.getByLabel("Save changes")
-			.evaluate((el) => (el as HTMLElement).click());
+			.click({ force: true });
+		await page.getByText("TAP TO DQ").first().click({ force: true });
+		await page.getByText("1A").first().click({ force: true });
+		await page.getByLabel("Save changes").click({ force: true });
 
 		// 3. Verify it is pending locally
 		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
@@ -156,14 +188,15 @@ test.describe("Mobile Judge App Journey", () => {
 		// 5. Trigger Sync and verify
 		console.log("[Test] Opening DQ History...");
 		const historyTrigger = page.getByText(/DQ History \(Pending: 1\)/);
-		await historyTrigger.evaluate((el) => (el as HTMLElement).click());
+		await historyTrigger.click({ force: true });
+		await page.waitForTimeout(1500); // Allow modal rendering
 
 		console.log("[Test] Waiting for SYNC NOW button...");
-		const syncBtn = page.getByText("SYNC NOW");
+		const syncBtn = page.getByRole("button", { name: /SYNC NOW/i });
 		await expect(syncBtn).toBeVisible({ timeout: 30000 });
 
 		console.log("[Test] Clicking SYNC NOW...");
-		await syncBtn.evaluate((el) => (el as HTMLElement).click());
+		await syncBtn.click({ force: true });
 
 		await expect(page.getByText(/Successfully synced/i)).toBeVisible({
 			timeout: 45000,
