@@ -944,7 +944,7 @@ export default function App() {
 
 			{!programMode && currentScreen === "judge" && renderJudgeView()}
 
-			<Modal visible={dqModalVisible} animationType="slide" transparent={true}>
+			<Modal visible={dqModalVisible} animationType={Platform.OS === "web" ? "none" : "slide"} transparent={true}>
 				<TouchableOpacity
 					style={styles.modalOverlay}
 					activeOpacity={1}
@@ -1082,7 +1082,7 @@ export default function App() {
 								multiline
 							/>
 						</View>
-						<ScrollView>
+						<ScrollView style={{ flex: 1 }}>
 							{orderedDQCategories.map((category) => (
 								<View key={category} style={styles.dqCategory}>
 									<Text style={styles.categoryTitle}>
@@ -1094,6 +1094,7 @@ export default function App() {
 											return (
 												<TouchableOpacity
 													key={item.code}
+													data-testid={`dq-code-${item.code}`}
 													style={[
 														styles.dqItem,
 														isSelected && styles.selectedDqItem,
@@ -1610,15 +1611,18 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: "rgba(0,0,0,0.5)",
 		justifyContent: "center",
+		alignItems: "center",
 		padding: 20,
 	},
 	modalContainer: {
 		backgroundColor: COLORS.background,
-	},
 	modalPopup: {
 		borderRadius: 10,
 		maxHeight: "90%",
 		width: "100%",
+		maxWidth: 500,
+	},
+		maxWidth: 500,
 	},
 	modalHeader: {
 		padding: 20,

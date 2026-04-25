@@ -23,6 +23,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - GRPC_AUTH_DISABLED=true
+      - LOG_LEVEL=DEBUG
       - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
 
   frontend:

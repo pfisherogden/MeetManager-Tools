@@ -76,8 +76,12 @@ export function DatasetManager() {
 
 	const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
-		if (!file) return;
+		if (!file) {
+			console.log("E2E DEBUG: No file selected in input");
+			return;
+		}
 
+		console.log(`E2E DEBUG: Uploading file: ${file.name}, size: ${file.size}`);
 		setIsUploading(true);
 		const formData = new FormData();
 		formData.append("file", file);
@@ -85,16 +89,19 @@ export function DatasetManager() {
 		try {
 			// Manual upload implementation using a server action
 			const { uploadDataset } = await import("@/app/actions");
+			console.log("E2E DEBUG: Calling uploadDataset server action...");
 			const res = await uploadDataset(formData);
 
 			if (res.success) {
+				console.log("E2E DEBUG: Upload success!");
 				toast.success("Dataset uploaded successfully");
 				await fetchDatasets();
 			} else {
+				console.log(`E2E DEBUG: Upload failed: ${res.message}`);
 				toast.error(res.message || "Upload failed");
 			}
 		} catch (error) {
-			console.error("Upload error:", error);
+			console.error("E2E DEBUG: Upload error:", error);
 			toast.error("An error occurred during upload");
 		} finally {
 			setIsUploading(false);

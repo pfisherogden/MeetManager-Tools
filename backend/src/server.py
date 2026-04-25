@@ -913,9 +913,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             # List files from users/[uid]/
             user_prefix = os.path.join("users", uid)
+            if hasattr(self.storage, "_get_full_path"):
+                full_path = self.storage._get_full_path(user_prefix)
+                logging.info(f"ListDatasets: Checking local path: {full_path}")
 
-            # Retry loop for eventual consistency in CI environments
-            files = []
+            # Retry loop for eventual consistency in CI environments            files = []
             for attempt in range(3):
                 files = self.storage.list_files(user_prefix)
                 if files:

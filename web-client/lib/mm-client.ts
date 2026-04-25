@@ -10,16 +10,26 @@ import {
 } from "./proto/meetmanager/v1/meet_manager";
 
 // Determine host:
-// - Server Side (Docker): use 'backend:50051' (or env var)
-// - Client Side (Browser): use 'localhost:50051'
-// Note: NEXT_PUBLIC_ variables are for browser, but here we check window context
-let defaultHost =
-	typeof window === "undefined"
-		? process.env.BACKEND_INTERNAL_HOST || "localhost:50051"
-		: "localhost:50051";
+// - Server Side (Docker): use 'backend:8080' (or env var)
+// - Client Side (Browser): use 'localhost:8080'
+let rawHost = "backend:8080";
 
-// Strip protocol if present (e.g. from Cloud Run URL)
-defaultHost = defaultHost.replace(/^https?:\/\//, "");
+if (typeof window === "undefined") {
+	// Server-side
+	rawHost =
+		process.env.BACKEND_URL ||
+		process.env.BACKEND_INTERNAL_HOST ||
+		"backend:8080";
+} else {
+	// Client-side
+	rawHost = "localhost:8080";
+}
+
+console.log(`E2E DEBUG: mm-client connecting to rawHost: ${rawHost}`);
+
+// Strip protocol if present (e.g. from http://backend:8080)
+const host = rawHost.replace(/^https?:\/\//, "");
+console.log(`E2E DEBUG: mm-client channel host: ${host}`);
 
 // Create a middleware to add the token to every request
 const authMiddleware = async function* (call: any, options: any) {
@@ -54,14 +64,14 @@ const clientFactory = createClientFactory().use(authMiddleware);
 
 // Use secure credentials if host implies cloud (contains .run.app) or via env var
 const useSsl =
-	defaultHost.includes(".run.app") || process.env.BACKEND_USE_SSL === "true";
+	host.includes(".run.app") || process.env.BACKEND_USE_SSL === "true";
 const credentials = useSsl
 	? ChannelCredentials.createSsl()
 	: ChannelCredentials.createInsecure();
 
 const client: MeetManagerServiceClient = clientFactory.create(
 	MeetManagerServiceDefinition,
-	createChannel(defaultHost, credentials, {
+	createChannel(host, credentials, {
 		"grpc.max_receive_message_length": 50 * 1024 * 1024,
 		"grpc.max_send_message_length": 50 * 1024 * 1024,
 	}),

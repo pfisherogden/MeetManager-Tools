@@ -236,16 +236,34 @@ export async function uploadDataset(formData: FormData) {
 
 	if (!file) throw new Error("No file provided");
 
+	console.log(
+		`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`,
+	);
+
+	// Extra wait for backend stability in local docker environments
+	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+		console.log("E2E DEBUG: Artificial startup delay (10s)...");
+		await new Promise((r) => setTimeout(r, 10000));
+	}
+
 	try {
 		const buffer = await file.arrayBuffer();
 		const uint8Array = new Uint8Array(buffer);
 
-		const response = await client.uploadDataset(
-			{
+		// Fix for client-streaming method: must pass an AsyncIterable
+		async function* requestGenerator() {
+			yield {
 				filename: file.name,
 				content: uint8Array,
-			},
-			{ metadata },
+			};
+		}
+
+		const response = await client.uploadDataset(requestGenerator(), {
+			metadata,
+		});
+
+		console.log(
+			`E2E DEBUG: Server Action: gRPC response: success=${response.success}`,
 		);
 
 		if (response.success) {
@@ -290,6 +308,11 @@ export async function setActiveDataset(filename: string) {
 	try {
 		const response = await client.setActiveDataset({ filename }, { metadata });
 		if (response.success) {
+			// Extraction happens asynchronously in the backend;
+			// add a small delay for filesystem sync in E2E/Local modes
+			if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+				await new Promise((r) => setTimeout(r, 6000));
+			}
 			revalidatePath("/admin");
 			revalidatePath("/meets");
 			revalidatePath("/teams");

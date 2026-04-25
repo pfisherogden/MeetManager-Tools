@@ -41,18 +41,20 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// 2. Tap an individual event (e.g., Event 1)
 		const event1 = page.getByText(/#1 |Event 1/i).first();
-		await event1.scrollIntoViewIfNeeded();
+		await expect(event1).toBeVisible();
+		await event1.scrollIntoViewIfNeeded({ block: "center" });
 		await event1.click({ force: true });
 
 		// 3. Tap a heat (e.g., Heat 1)
 		const heat1 = page.getByText(/Heat 1/i).first();
-		await heat1.scrollIntoViewIfNeeded();
+		await expect(heat1).toBeVisible();
+		await heat1.scrollIntoViewIfNeeded({ block: "center" });
 		await heat1.click({ force: true });
 
 		// 4. Tap "TAP TO DQ" for a swimmer
 		const tapToDq = page.getByText("TAP TO DQ").first();
 		await expect(tapToDq).toBeVisible();
-		await tapToDq.scrollIntoViewIfNeeded();
+		await tapToDq.scrollIntoViewIfNeeded({ block: "center" });
 		await tapToDq.click({ force: true });
 
 		// 5. Verify DQ Modal opens
@@ -60,9 +62,10 @@ test.describe("Mobile Judge App Journey", () => {
 			page.getByPlaceholder("Add notes here (optional)"),
 		).toBeVisible();
 
-		// 6. Select a DQ code (e.g., "1A")
-		const code1A = page.getByText("1A").first();
-		await code1A.scrollIntoViewIfNeeded();
+		// 6. Select a DQ code (e.g., "1A") via new data-testid
+		const code1A = page.getByTestId("dq-code-1A");
+		await expect(code1A).toBeVisible();
+		await code1A.scrollIntoViewIfNeeded({ block: "center" });
 		await code1A.click({ force: true });
 
 		// 7. Add a note
@@ -72,7 +75,8 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// 8. Tap Save (checkmark-circle icon)
 		const saveBtn = page.getByLabel("Save changes");
-		await saveBtn.scrollIntoViewIfNeeded();
+		await expect(saveBtn).toBeVisible();
+		await saveBtn.scrollIntoViewIfNeeded({ block: "center" });
 		await saveBtn.click({ force: true });
 
 		// 9. Verification: Modal closes and DQ code is displayed
@@ -97,7 +101,8 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// Switch to Program view
 		const programBtn = page.getByText("SWITCH TO PROGRAM VIEW");
-		await programBtn.scrollIntoViewIfNeeded();
+		await expect(programBtn).toBeVisible();
+		await programBtn.scrollIntoViewIfNeeded({ block: "center" });
 		await programBtn.click({ force: true });
 
 		// Verify Program View is shown
@@ -108,7 +113,8 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// Switch back
 		const eventViewBtn = page.getByText("SWITCH TO EVENT VIEW");
-		await eventViewBtn.scrollIntoViewIfNeeded();
+		await expect(eventViewBtn).toBeVisible();
+		await eventViewBtn.scrollIntoViewIfNeeded({ block: "center" });
 		await eventViewBtn.click({ force: true });
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
 	});
@@ -130,16 +136,21 @@ test.describe("Mobile Judge App Journey", () => {
 			.first()
 			.click({ force: true });
 		await page.getByText("TAP TO DQ").first().click({ force: true });
-		await page.getByText("1A").first().click({ force: true });
+
+		const code1A = page.getByTestId("dq-code-1A");
+		await expect(code1A).toBeVisible();
+		await code1A.click({ force: true });
+
 		await page.getByLabel("Save changes").click({ force: true });
 
 		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
 
 		// Open DQ History
 		const historyBtn = page.getByText(/DQ History \(Pending: 1\)/);
-		await historyBtn.scrollIntoViewIfNeeded();
+		await expect(historyBtn).toBeVisible();
+		await historyBtn.scrollIntoViewIfNeeded({ block: "center" });
 		await historyBtn.click({ force: true });
-		await page.waitForTimeout(1500); // Allow modal transition
+		await page.waitForTimeout(2000); // Allow modal transition
 
 		// Verify modal content
 		await expect(page.getByText("DQ History (Total: 1)")).toBeVisible();
@@ -186,7 +197,11 @@ test.describe("Mobile Judge App Journey", () => {
 			.first()
 			.click({ force: true });
 		await page.getByText("TAP TO DQ").first().click({ force: true });
-		await page.getByText("1A").first().click({ force: true });
+
+		const code1A = page.getByTestId("dq-code-1A");
+		await expect(code1A).toBeVisible();
+		await code1A.click({ force: true });
+
 		await page.getByLabel("Save changes").click({ force: true });
 
 		// 3. Verify it is pending locally
@@ -195,12 +210,13 @@ test.describe("Mobile Judge App Journey", () => {
 		// 4. Go Online
 		console.log("[Test] Going ONLINE...");
 		await context.setOffline(false);
-		await page.waitForTimeout(3000); // Wait longer for network stack to recover
+		await page.waitForTimeout(4000); // Wait longer for network stack to recover
 
 		// 5. Trigger Sync and verify
 		console.log("[Test] Opening DQ History...");
 		const historyTrigger = page.getByText(/DQ History \(Pending: 1\)/);
-		await historyTrigger.scrollIntoViewIfNeeded();
+		await expect(historyTrigger).toBeVisible();
+		await historyTrigger.scrollIntoViewIfNeeded({ block: "center" });
 		await historyTrigger.click({ force: true });
 		await page.waitForTimeout(2000); // Allow modal rendering
 
@@ -209,7 +225,7 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(syncBtn).toBeVisible({ timeout: 30000 });
 
 		console.log("[Test] Clicking SYNC NOW...");
-		await syncBtn.scrollIntoViewIfNeeded();
+		await syncBtn.scrollIntoViewIfNeeded({ block: "center" });
 		await syncBtn.click({ force: true });
 
 		await expect(page.getByText(/Successfully synced/i)).toBeVisible({
