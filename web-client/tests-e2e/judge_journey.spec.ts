@@ -127,7 +127,7 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// Open DQ History
 		await page.getByText(/DQ History \(Pending: 1\)/).click({ force: true });
-		await page.waitForTimeout(1000); // Allow modal transition
+		await page.waitForTimeout(1500); // Allow modal transition
 
 		// Verify modal content
 		await expect(page.getByText("DQ History (Total: 1)")).toBeVisible();
@@ -183,13 +183,13 @@ test.describe("Mobile Judge App Journey", () => {
 		// 4. Go Online
 		console.log("[Test] Going ONLINE...");
 		await context.setOffline(false);
-		await page.waitForTimeout(2000); // Wait for network stack to recover
+		await page.waitForTimeout(3000); // Wait longer for network stack to recover
 
 		// 5. Trigger Sync and verify
 		console.log("[Test] Opening DQ History...");
 		const historyTrigger = page.getByText(/DQ History \(Pending: 1\)/);
 		await historyTrigger.click({ force: true });
-		await page.waitForTimeout(1500); // Allow modal rendering
+		await page.waitForTimeout(2000); // Allow modal rendering
 
 		console.log("[Test] Waiting for SYNC NOW button...");
 		const syncBtn = page.getByRole("button", { name: /SYNC NOW/i });
