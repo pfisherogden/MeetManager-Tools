@@ -4,11 +4,21 @@
 
 MMTools (formerly MeetManager Tools) is a modern, cloud-native suite of applications designed to augment and streamline the process of managing swimming meets. It bridges the gap between legacy, on-premise Meet Manager database formats (`.mdb`) and modern web and mobile ecosystems. By taking a monolithic desktop-bound process and extending it to the cloud, MMTools enables multi-user collaboration, real-time data dissemination, and specialized volunteer applications—such as the Stroke & Turn Judge mobile app.
 
+This document serves as the comprehensive architectural reference for the MMTools project, detailing the high-level system design, the distinct components, their interactions, deployment strategies, and the security model.
+
 ## 2. High-Level System Architecture
 
-MMTools utilizes a decoupled client-server architecture communicating primarily via gRPC.
+At its core, MMTools utilizes a decoupled client-server architecture communicating via gRPC. 
 
-### 2.1. Component Interaction Diagram
+### 2.1. Core Components
+The system is divided into four primary logical components:
+
+1.  **Frontend (Web Client)**: A Next.js (React) web application serving as the primary interface for Meet Directors and computer team operators. It allows users to upload data, view dashboards, and generate PDF reports.
+2.  **Backend (Python gRPC Server)**: A Python-based server that ingests `.mdb` files, processes swim meet logic, handles PDF generation via WeasyPrint, and serves data via gRPC.
+3.  **Mobile Judge App (React Native/Expo)**: A dedicated Offline-First progressive web app (PWA) / mobile application used by Stroke & Turn Judges on the pool deck to record disqualifications (DQs) and sync them back to the server.
+4.  **Cloud Infrastructure & Storage**: Managed by Terraform, leveraging Google Cloud Run for compute, Google Cloud Storage (GCS) for isolated user data, and Firebase Authentication for identity management.
+
+### 2.2. Component Interaction Diagram
 
 ```mermaid
 flowchart TB
@@ -22,87 +32,138 @@ flowchart TB
     end
 
     subgraph Application Tier
-        FE_SRV[Frontend Service - Next.js SSR/RSC]
+        FE_SRV[Frontend Service - Node.js SSR]
         BE_SRV[Backend Service - Python gRPC]
     end
 
     subgraph Data & Identity Tier
         FA[Firebase Authentication]
-        FS[(Firestore - Job Tracking)]
         GCS[(Google Cloud Storage)]
         MDB_PROC[MDB Processor / Jackcess]
     end
 
-    WD -- gRPC-Web --> LB
-    MA -- HTTPS / REST --> LB
+    WD -- HTTPS / Web API --> LB
+    MA -- HTTPS / REST API --> LB
     
     LB --> FE_SRV
     LB --> BE_SRV
     
-    FE_SRV -- gRPC-Web --> BE_SRV
+    FE_SRV -- gRPC-Web (SSL) --> BE_SRV
     FE_SRV -- Verify Session --> FA
-    MA -- Sync DQs --> FE_SRV
+    MA -- Sync DQs (REST) --> FE_SRV
     
     BE_SRV -- Verify JWT --> FA
-    BE_SRV -- Persistent Jobs --> FS
     BE_SRV -- Read/Write --> GCS
     BE_SRV -- Parse `.mdb` --> MDB_PROC
 ```
 
-## 3. Information Flow
+## 3. Frontend Architecture (Web Client)
 
-The path from raw legacy data to a functional UI follows a strictly defined pipeline:
+The Frontend is built using Next.js 15 utilizing the App Router paradigm. It emphasizes a mix of Server-Side Rendering (SSR) for initial load performance and Client-Side rendering for interactive dashboards.
 
-1.  **Ingestion (.mdb)**: The user uploads a Microsoft Access `.mdb` file via the Web Client.
-2.  **Parsing (Jackcess)**: The Backend reassembles the file and uses the Java-based **Jackcess** library (via `jpype`) to parse the legacy binary format. This is significantly faster and more reliable than traditional ODBC or CLI-based drivers.
-3.  **Normalization (Python)**: Raw database tables are mapped into typed Python objects. Data is normalized (e.g., handling inconsistent casing in names) and cached as optimized JSON.
-4.  **Distribution (gRPC)**: Data is served via gRPC. High-performance Protocol Buffers ensure type safety and low latency between the Backend and Frontend.
-5.  **Consumption (Next.js/UI)**: 
-    *   **Web Client**: Uses React Server Components (RSC) for data fetching or Client Components with `nice-grpc` for interactive elements.
-    *   **Mobile App**: Fetches a pre-processed "Program JSON" from a signed GCS URL for offline usage.
+### 3.1. Technology Stack
+- **Framework**: Next.js 15 (React)
+- **Styling**: Tailwind CSS v4, integrated with Shadcn/UI for accessible component primitives.
+- **State Management**: React Hooks (Context API for global state, such as Authentication).
+- **Communication**: `nice-grpc` and `grpc-web` for communicating with the Python backend.
 
-## 4. State Management & Persistence Tradeoffs
+### 3.2. Authentication Flow (Frontend)
+The Web Client enforces authentication via an `AuthGuard` component wrapping the main application layout.
+1.  User accesses a protected route.
+2.  `AuthGuard` checks the Firebase Auth state via `onAuthStateChanged`.
+3.  If unauthenticated, the user is redirected to `/login`.
+4.  On the `/login` page, the user authenticates via Google OAuth using `signInWithPopup`.
+5.  Upon success, the Firebase client SDK retrieves an ID token.
+6.  The token is stored in a secure cookie (`js-cookie`) and automatically injected into all subsequent gRPC calls via a custom `nice-grpc` middleware.
 
-MMTools manages two types of state: **Long-term Data** (Datasets) and **Transient Task State** (Background Jobs).
+### 3.3. API Routes as Proxies
+While gRPC-Web can be called directly from the browser, certain operations—specifically those originating from the Mobile Judge App which lacks gRPC capabilities—are routed through Next.js Route Handlers (`app/api/...`).
+- **`/api/sync-dqs`**: Receives REST POST requests from the Mobile App containing DQ JSON data, translates them, and forwards them to the backend via the `SyncDQs` gRPC method.
+- **`/api/data`**: Fetches generated JSON program files from the backend via the `GetFile` gRPC method to serve to the Mobile App during the initial "Publish" sync.
 
-### 4.1. Firestore vs. In-memory
-For background job tracking (e.g., PDF generation progress):
--   **In-Memory (Local Dev)**: Used during local development for simplicity. State is lost if the server restarts.
--   **Firestore (Production)**: In Cloud Run, instances are stateless and can rotate or scale to zero. **Firestore** is used to persist job status (`job_id`, `progress`, `status`). 
--   **Tradeoff**: Firestore provides the necessary persistence for a serverless environment, ensuring that a user can poll for a 2-minute PDF generation task even if the specific container instance that started the task has been replaced.
+## 4. Backend Architecture (Python gRPC Server)
 
-## 5. Reporting Engine Tradeoffs
+The Backend is a specialized Python service designed to handle the heavy lifting of parsing legacy Microsoft Access databases (`.mdb`) and generating complex, paginated PDF reports.
 
-MMTools supports two distinct PDF rendering engines to balance quality and performance.
+### 4.1. Technology Stack
+- **Language**: Python 3.11+
+- **API Framework**: `grpcio` and `grpcio-tools`
+- **Data Processing**: `pandas` and custom extraction logic.
+- **Database Parsing**: `jpype` and the Java-based `Jackcess` library. (Provides vastly superior performance compared to CLI wrappers like `mdbtools`).
+- **PDF Generation**: `WeasyPrint`, generating high-quality PDFs from Jinja2 HTML templates.
 
-### 5.1. WeasyPrint vs. Playwright
--   **WeasyPrint (Native Python)**: 
-    *   *Pros*: Lightweight, standard Python library, handles complex CSS/Jinja2 templates well.
-    *   *Cons*: Slower for massive datasets (championship meets).
--   **Playwright (Chromium-based)**:
-    *   *Pros*: 2-4x faster rendering by leveraging the Chromium engine. Ideal for high-volume report generation.
-    *   *Cons*: Requires a full browser installation in the Docker container, significantly increasing image size (~500MB+).
--   **Tradeoff**: The system defaults to WeasyPrint for standard operations but can leverage the `PlaywrightRenderer` for performance-critical batches.
+### 4.2. MDB Ingestion Pipeline
+The ingestion of an `.mdb` file is a critical, performance-sensitive operation.
+1.  The Web Client uploads chunks of the `.mdb` file via a streaming gRPC call (`UploadDataset`).
+2.  The backend reassembles the file into a secure, user-specific temporary location on Google Cloud Storage.
+3.  The `MmToJsonConverter` class initializes a JVM instance via `jpype` and uses the `Jackcess` library to parse the raw Access database tables.
+4.  Data is extracted, normalized (handling various legacy casing conventions), and cached as JSON to prevent redundant, expensive parsing on subsequent requests.
 
-## 6. Mobile Judge App: Offline-First Strategy
+### 4.3. gRPC Service Design
+The `MeetManagerService` defines the contract between the frontend and backend. It utilizes Protocol Buffers (protobuf v3) to ensure strict type safety across the network boundary.
+- **Interceptors**: A custom `FirebaseAuthInterceptor` sits in front of all RPC methods. It intercepts the incoming call, extracts the `Authorization: Bearer <token>` metadata, verifies the token with the Firebase Admin SDK, and injects the resolved `uid` into the context.
 
-The Mobile Judge App is designed for the pool deck, where network connectivity is often intermittent.
+### 4.4. Storage Abstraction Layer
+To support both seamless local development and robust cloud deployment, the backend implements a `StorageProvider` interface.
+- **`LocalStorageProvider`**: Writes to the local filesystem (used when running locally via Docker Compose).
+- **`GCSStorageProvider`**: Interacts with the Google Cloud Storage API.
+- **Sandboxing**: The backend enforces a strict `users/{uid}/` prefix on all storage operations. This guarantees that User A can never accidentally or maliciously access User B's uploaded `.mdb` files, generated JSONs, or DQs.
 
-### 6.1. Synchronization Logic
-1.  **Initialization (QR Code)**: The Meet Director generates a QR code containing the `program_url` (data source) and `sync_url` (destination).
-2.  **Offline Cache**: The app downloads the session program once and stores it in a local database (SQLite on native, `localStorage` on web).
-3.  **Offline Queue**: Recorded DQs are stored locally with a `sync_status = "pending"`.
-4.  **Idempotent Sync**: When connectivity is detected (via `NetInfo`), the app attempts to sync. It uses **Stable IDs** (`dq-{event}-{swimmer}-{leg}`) to ensure that multiple sync attempts of the same DQ do not create duplicates.
+## 5. Cloud Infrastructure & Deployment
 
-## 7. Security Model
+MMTools is deployed to Google Cloud Platform (GCP) using an automated, Infrastructure-as-Code approach.
 
--   **Identity**: Managed via Firebase Authentication (Google Login).
--   **Sandboxing**: All storage operations are prefixed with the user's `uid` (`users/{uid}/...`). This ensures strict data isolation at the storage layer.
--   **Interceptors**: Backend gRPC calls are guarded by a `FirebaseAuthInterceptor` that validates JWTs on every request.
--   **Least Privilege**: Cloud Run services operate under a service account with restricted access only to the necessary GCS buckets.
+### 5.1. Terraform Configuration (`deploy/`)
+Terraform defines the desired state of the cloud resources:
+- **Google Cloud Run**: Two services are provisioned (`mmtools-frontend` and `mmtools-backend`). Cloud Run provides auto-scaling, scaling down to zero when idle to save costs, and scaling up to handle concurrent report generation bursts.
+- **Google Cloud Storage (GCS)**: A single, globally unique bucket (`mmtools-data-[PROJECT_ID]`) is provisioned to hold all user datasets.
+- **Artifact Registry**: A Docker repository (`mmtools`) stores the built container images.
+- **IAM Policies**: A dedicated service account (`mmtools-runner`) is created with least-privilege access, granted only the `roles/storage.objectAdmin` role for the specific GCS bucket. Both Cloud Run services run under this identity.
 
-## 8. Development & Deployment
+### 5.2. Continuous Integration & Continuous Deployment (CI/CD)
+GitHub Actions powers the CI/CD pipeline.
+1.  **CI (`ci.yml`)**: On every Pull Request, the code is linted (Biome for TS, Ruff for Python), type-checked (Mypy), and subjected to a suite of headless integration tests simulating core user journeys within an isolated Docker environment.
+2.  **CD (`deploy-cloud-run.yml`)**: On pushes to the `main` branch, the pipeline:
+    - Authenticates to GCP via Workload Identity Federation or a Service Account JSON key.
+    - Builds the backend Docker image and pushes it to Artifact Registry.
+    - Builds the frontend Docker image, injecting Firebase environment variables via `--build-arg` to ensure they are baked into the static Next.js bundle.
+    - Deploys both images to Cloud Run, dynamically routing the frontend to the newly generated backend URL.
 
--   **Containerization**: Both services are Dockerized. The frontend uses `--build-arg` to bake Firebase config into the static bundle.
--   **macOS Optimization**: In Docker Compose, anonymous volumes are used for `node_modules` and `__pycache__` to prevent "Resource Deadlock" and filesystem slowness on macOS hosts.
--   **Infrastructure as Code**: Managed via Terraform in the `deploy/` directory.
+## 6. Mobile Judge Application
+
+The Mobile Judge App is a specialized satellite application. Its architecture is dictated by the unique constraints of a swimming pool deck: poor Wi-Fi and the need for absolute reliability.
+
+### 6.1. Technology Stack
+- **Framework**: React Native + Expo (Managed Workflow)
+- **Deployment target**: Exported as an Expo Web application (PWA) hosted on GitHub Pages.
+- **State Management**: Local component state and persistent Offline Queues using browser `localStorage` or React Native `AsyncStorage`.
+
+### 6.2. The "Publish and Sync" Workflow
+1.  **Publishing**: The Meet Director (on the Web Client) clicks "Publish". The backend generates a highly optimized JSON file containing only the events, heats, and swimmer data needed for the current session. This JSON is saved to a public GCS URL.
+2.  **QR Code Initialization**: A QR code is generated containing a deeply linked URL to the Judge App, embedding the `program_url` and the `sync_url`.
+3.  **Offline Operation**: The Judge scans the QR code. The app downloads the JSON payload once. The Judge can now operate entirely offline. When a DQ is recorded, it is stored in an internal "Offline Queue".
+4.  **Synchronization**: When the Judge regains network connectivity, they tap "Sync". The app POSTs the queued DQs to the `sync_url` (the Next.js API route), where they are forwarded to the backend and safely stored in the Meet Director's GCS sandbox.
+
+## 7. Development Environment & Performance Considerations
+
+Local development is orchestrated via Docker Compose and a `Justfile`, ensuring parity with the production cloud environment while optimizing for the developer experience on macOS.
+
+### 7.1. macOS File Locking & Colima
+Running Docker on macOS (often via Colima or Docker Desktop) introduces severe filesystem bridging overhead. 
+- **The Problem**: Mounting high-churn directories like `node_modules` or Python's `__pycache__` across the virtualization boundary causes the host machine's Git operations to stall (scanning 70,000+ files) and can cause `OSError: Resource deadlock avoided` when Python attempts to write `.pyc` files.
+- **The Solution**: 
+  - `PYTHONDONTWRITEBYTECODE=1` is set in the backend environment.
+  - **Anonymous Volumes**: The `docker-compose.yml` utilizes "hole punching". It mounts the source code (`- ./web-client:/app`) but then explicitly defines anonymous volumes for the noisy directories (`- /app/node_modules`). This forces the heavy I/O to remain entirely within the fast Linux VM, shielding the macOS host and keeping Git operations lightning fast.
+
+### 7.2. Concurrent Workspace Safety
+To support multiple developers (or AI agents) working on the same physical machine:
+- The `.env` file uses `COMPOSE_PROJECT_NAME` to namespace Docker networks and containers.
+- Dynamic port mapping (`FRONTEND_PORT`, `BACKEND_PORT`) prevents port collision conflicts when spinning up multiple instances of the application stack.
+
+## 8. Security Summary
+
+- **Transport**: All inter-service communication (Frontend -> Backend) and client-server communication occurs over SSL/TLS (HTTPS/gRPC-SSL).
+- **Identity**: Delegated entirely to Google Identity Platform via Firebase. No passwords are stored or managed by MMTools.
+- **Data Isolation**: Strict server-side enforcement of user IDs in all storage path constructions.
+- **Path Traversal Protection**: Backend file handlers utilize `os.path.basename()` and strict directory anchoring to prevent malicious path injection (`../`).
+- **Least Privilege**: Cloud Run instances operate under a dedicated service account that only possesses access to the specific data bucket, mitigating the blast radius of any potential RCE vulnerability.
