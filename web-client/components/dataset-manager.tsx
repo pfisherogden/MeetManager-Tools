@@ -165,10 +165,11 @@ export function DatasetManager() {
 					<div className="flex items-center gap-2">
 						<input
 							type="file"
-							className="hidden"
+							className="absolute w-0 h-0 opacity-0 pointer-events-none"
 							ref={fileInputRef}
 							onChange={handleUpload}
 							accept=".json"
+							data-testid="dataset-file-input"
 						/>
 						<Button
 							onClick={() => fileInputRef.current?.click()}
