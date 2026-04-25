@@ -291,14 +291,14 @@ export function ReportsManager({
 			);
 
 			if (result.success) {
-				if (selectedType === 5 || htmlPreviewMode) {
-					console.log("E2E DEBUG: HTML mode detected, processing preview...");
-					if (result.htmlContent) {
-						if (newTab) {
-							newTab.document.open();
-							newTab.document.write(result.htmlContent);
-							newTab.document.close();
-						}
+				if ((selectedType === 5 || htmlPreviewMode) && result.htmlContent) {
+					console.log(
+						"E2E DEBUG: Got HTML content, updating tab or showing toast",
+					);
+					if (newTab) {
+						newTab.document.open();
+						newTab.document.write(result.htmlContent);
+						newTab.document.close();
 					}
 					// ALWAYS show the toast so E2E tests can detect success
 					toast.success("HTML Program opened in new tab");
