@@ -158,10 +158,7 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(page.getByText(/DQ History \(Pending: 0\)/)).toBeVisible();
 	});
 
-	test("should support offline-first DQ entry with network recovery", async ({
-		page,
-		context,
-	}) => {
+	test("should support offline-first DQ entry with network recovery", async ({ page, context }) => {
 		await page.goto("/");
 		await page.getByPlaceholder("Your Name").fill("Offline Judge");
 		await page.getByText("START JUDGING").click();
@@ -171,14 +168,8 @@ test.describe("Mobile Judge App Journey", () => {
 		await context.setOffline(true);
 
 		// 2. Add DQ while offline
-		await page
-			.getByText(/#1 |Event 1/i)
-			.first()
-			.click();
-		await page
-			.getByText(/Heat 1/i)
-			.first()
-			.click();
+		await page.getByText(/#1 |Event 1/i).first().click();
+		await page.getByText(/Heat 1/i).first().click();
 		await page.getByText("TAP TO DQ").first().click();
 		await page.getByText("1A").first().click();
 		await page.getByLabel("Save changes").click();
@@ -193,7 +184,7 @@ test.describe("Mobile Judge App Journey", () => {
 		// 5. Trigger Sync and verify
 		await page.getByText(/DQ History \(Pending: 1\)/).click();
 		await page.getByText("SYNC NOW").click();
-
+		
 		await expect(page.getByText(/Successfully synced/i)).toBeVisible();
 		await expect(page.getByText(/DQ History \(Pending: 0\)/)).toBeVisible();
 	});

@@ -699,37 +699,24 @@ test.describe("Disqualification Lifecycle", () => {
 	});
 
 	test.describe("Full DQ-to-PDF Lifecycle", () => {
-		test("should reflect a submitted DQ in the final Results PDF", async ({
-			browser,
-		}, testInfo) => {
+		test("should reflect a submitted DQ in the final Results PDF", async ({ browser }, testInfo) => {
 			test.setTimeout(120000);
 			const userId = `e2e-full-dq-${testInfo.workerIndex}`;
 			const adminContext = await browser.newContext();
-			await adminContext.addCookies([
-				{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-			]);
+			await adminContext.addCookies([{ name: "x-user-id", value: userId, domain: "localhost", path: "/" }]);
 			const adminPage = await adminContext.newPage();
-
+			
 			// 1. Setup Dataset
 			const filename = "tiny_meet.json";
-			const dummyData = JSON.parse(
-				fs.readFileSync(
-					path.resolve(process.cwd(), "..", "tests", "fixtures", filename),
-					"utf8",
-				),
-			);
+			const dummyData = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "..", "tests", "fixtures", filename), "utf8"));
 			await ensureDataset(adminPage, userId, filename, dummyData);
 
 			// 2. Submit DQ via Judge App
 			const judgeContext = await browser.newContext();
 			const judgePage = await judgeContext.newPage();
-			await judgePage.goto(
-				`http://localhost:8080/MeetManager-Tools/judge?uid=${userId}`,
-			);
+			await judgePage.goto(`http://localhost:8080/MeetManager-Tools/judge?uid=${userId}`);
 			await judgePage.getByPlaceholder("Your Name").fill("Final Review Judge");
-			await judgePage
-				.getByText("START JUDGING")
-				.evaluate((el) => (el as HTMLElement).click());
+			await judgePage.getByText("START JUDGING").evaluate(el => (el as HTMLElement).click());
 
 			// Event 1, Heat 1, Swimmer 1
 			await judgePage.getByTestId("event-item-1").click();
@@ -737,7 +724,7 @@ test.describe("Disqualification Lifecycle", () => {
 			await judgePage.getByText("TAP TO DQ").first().click();
 			await judgePage.getByText("1A").first().click();
 			await judgePage.getByLabel("Save changes").click();
-
+			
 			// Sync
 			await judgePage.getByTestId("dq-history-button").click();
 			await judgePage.getByText("SYNC NOW").click();
@@ -752,25 +739,21 @@ test.describe("Disqualification Lifecycle", () => {
 			await adminPage.goto("/reports");
 			const resultsCard = adminPage.getByTestId("report-card-meet-results");
 			await resultsCard.scrollIntoViewIfNeeded();
-			await resultsCard.evaluate((el) => (el as HTMLElement).click());
-
-			await expect(
-				adminPage.getByTestId("report-configuration-card"),
-			).toBeAttached();
-
-			const downloadPromise = adminPage.waitForEvent("download", {
-				timeout: 60000,
-			});
+			await resultsCard.evaluate(el => (el as HTMLElement).click());
+			
+			await expect(adminPage.getByTestId("report-configuration-card")).toBeAttached();
+			
+			const downloadPromise = adminPage.waitForEvent("download", { timeout: 60000 });
 			await adminPage.getByTestId("generate-report-button").click();
 			const download = await downloadPromise;
 			const downloadPath = await download.path();
-
-			// Since we can't easily parse PDF text here, we rely on the backend success log
+			
+			// Since we can't easily parse PDF text here, we rely on the backend success log 
 			// and ensure the file exists and is of non-trivial size.
 			expect(downloadPath).toBeTruthy();
 			const stats = fs.statSync(downloadPath!);
 			expect(stats.size).toBeGreaterThan(1000);
-
+			
 			console.log(`Verified DQ in PDF results flow for ${userId}`);
 		});
 	});
