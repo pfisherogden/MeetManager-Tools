@@ -26,17 +26,17 @@ description: Guidelines for running and writing tests in MeetManager-Tools. Use 
 
 ## Reliability Standards (Mandatory)
 - **2-Cycle Verification**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend` or `npm run test-e2e`) **2 times consecutively**. All 2 runs must pass 100% to consider the task complete. This catches flakiness and race conditions efficiently.
-- **E2E Shard Isolation**: Playwright shards tests at the **test case** level. In a sharded CI environment, every individual test case MUST be fully self-contained. This includes ensuring its own dataset is active (e.g., via `ensureDataset`) at the start of the test to prevent data-race conditions where one worker's activation is overwritten by another's.
 - **Stateless Sharing (Next.js)**: In CI/E2E environments, data shared between API routes and Server Actions MUST use file-based mocks (with `fsync` and retries) instead of in-memory maps, as they run in separate worker processes.
 - **Volume Permissions**: When using Docker volumes in GHA, ensure the mount point on the host is world-writable (`chmod 777`) before starting services to prevent `EACCES` errors in the container.
 
 ## CI Optimization & Browser Testing
-- **E2E Sharding**: Use Playwright sharding (e.g., 32-way) in CI to reduce total runtime. Verify shards pass independently.
-- **User Gesture Compliance**: Headless browsers often block actions like `window.open` if not triggered by a direct user gesture. When testing features that open new tabs after an async server action, refactor the code to open a blank tab *synchronously* in the click handler and populate its content once the promise resolves.
+- **E2E Sharding**: Use Playwright sharding (e.g., 4-way) in CI to reduce total runtime. Verify shards pass independently.
+- **Browser Selection**: In CI, limit testing to `chromium` and `Mobile Safari` to maximize speed while maintaining cross-engine coverage. Use all browsers only for local full-suite validation.
+- **Caching**: Ensure `~/.cache/ms-playwright` and `node_modules` are cached using `actions/cache` to skip redundant downloads.
+- **Ready Checks**: Never use `sleep` for service readiness in CI. Use a `curl` or `nc` loop to wait for the frontend (port 3000) and backend (port 8080) to be fully reachable.
 
 ## Robust Playwright Selectors
 - **Ambiguity**: If multiple buttons have the same name (e.g., "Apply to Builder" in a list), use `data-testid` or scoped locators: `page.locator("div", { has: page.getByText("Specific Item") }).getByRole("button")`.
-- **Standardized UI Selectors**: Use `data-testid` exclusively for critical E2E interactions (e.g., `data-testid="generate-report-button"`) to prevent "element not found" errors when button text or roles are changed during design refactors.
 - **Mobile Interaction**: In mobile Safari emulation, pointer events are frequently intercepted by overlapping elements. Use `page.evaluate(() => el.click())` for critical buttons to ensure interaction stability.
 - **Viewport Height**: Use a tall viewport (e.g., 1200px) in mobile emulation to prevent the soft keyboard from pushing UI elements out of view.
 - **Inputs**: For verifying text inside an `<input>` or `<textarea>`, prefer `getByDisplayValue()` over `getByText()`, as the latter may not find the value of a form field.
