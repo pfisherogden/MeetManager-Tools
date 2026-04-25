@@ -89,15 +89,6 @@ export async function getTeams() {
 	}
 }
 
-export async function getTeam(id: number) {
-	try {
-		const metadata = await getAuthMetadata();
-		return await client.getTeam({ id }, { metadata });
-	} catch (_err) {
-		return null;
-	}
-}
-
 export async function getMeets() {
 	try {
 		const metadata = await getAuthMetadata();
@@ -112,121 +103,6 @@ export async function getMeets() {
 		};
 	} catch (_err) {
 		return { meets: [] };
-	}
-}
-
-export async function getAthletes() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getAthletes({}, { metadata });
-		return {
-			athletes: response.athletes.map((a) => ({
-				id: a.id,
-				firstName: a.firstName,
-				lastName: a.lastName,
-				teamId: a.teamId,
-				gender: a.gender,
-				age: a.age,
-			})),
-		};
-	} catch (_err) {
-		return { athletes: [] };
-	}
-}
-
-export async function getEvents() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getEvents({}, { metadata });
-		return {
-			events: response.events.map((e) => ({
-				id: e.id,
-				eventNo: e.eventNo,
-				gender: e.gender,
-				ageGroup: e.ageGroup,
-				distance: e.distance,
-				stroke: e.stroke,
-				isRelay: e.isRelay,
-			})),
-		};
-	} catch (_err) {
-		return { events: [] };
-	}
-}
-
-export async function getSessions() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getSessions({}, { metadata });
-		return {
-			sessions: response.sessions.map((s) => ({
-				id: s.id,
-				sessionNo: s.sessionNo,
-				name: s.name,
-				startTime: s.startTime,
-			})),
-		};
-	} catch (_err) {
-		return { sessions: [] };
-	}
-}
-
-export async function getRelays() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getRelays({}, { metadata });
-		return {
-			relays: response.relays.map((r) => ({
-				id: r.id,
-				eventNo: r.eventNo,
-				teamId: r.teamId,
-				relayLetter: r.relayName,
-				swimmers: r.swimmers.map((s) => ({
-					id: s.id,
-					firstName: s.firstName,
-					lastName: s.lastName,
-				})),
-			})),
-		};
-	} catch (_err) {
-		return { relays: [] };
-	}
-}
-
-export async function getScores() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getScores({}, { metadata });
-		return {
-			teamScores: response.teamScores.map((ts) => ({
-				teamId: ts.teamId,
-				teamName: ts.teamName,
-				score: ts.score,
-				rank: ts.rank,
-			})),
-		};
-	} catch (_err) {
-		return { teamScores: [] };
-	}
-}
-
-export async function getEventScores() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getEventScores({}, { metadata });
-		return {
-			eventScores: response.eventScores.map((es) => ({
-				eventId: es.eventId,
-				teamScores: es.teamScores.map((ts) => ({
-					teamId: ts.teamId,
-					teamName: ts.teamName,
-					score: ts.score,
-					rank: ts.rank,
-				})),
-			})),
-		};
-	} catch (_err) {
-		return { eventScores: [] };
 	}
 }
 
@@ -396,39 +272,5 @@ export async function publishMeetData(filename: string) {
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (publishMeetData):", err);
 		throw err;
-	}
-}
-
-export async function getAdminConfig() {
-	return { meetName: "MMTools", logoUrl: "" };
-}
-
-export async function getAthlete(id: number) {
-	const metadata = await getAuthMetadata();
-	return await client.getAthlete({ id }, { metadata });
-}
-
-export async function getEntries() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getEntries({}, { metadata });
-		return { entries: response.entries || [] };
-	} catch (_err) {
-		return { entries: [] };
-	}
-}
-
-export async function updateAdminConfig(_config: any) {
-	// Legacy placeholder to satisfy imports during build
-	return { success: true };
-}
-
-export async function getDisqualifications() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getDisqualifications({}, { metadata });
-		return { disqualifications: response.disqualifications || [] };
-	} catch (_err) {
-		return { disqualifications: [] };
 	}
 }
