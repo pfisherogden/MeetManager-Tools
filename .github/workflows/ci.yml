@@ -179,7 +179,7 @@ jobs:
           TAG: ${{ needs.build-images.outputs.tag }}
           IMAGE_PREFIX: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
-          mkdir -p tmp && chmod -R 777 tmp
+          mkdir -p tmp && chmod 777 tmp
           # Pull the images first to ensure they are available
           docker pull ${IMAGE_PREFIX}/backend:${TAG}
           docker pull ${IMAGE_PREFIX}/frontend:${TAG}
@@ -193,23 +193,22 @@ jobs:
           echo "Waiting for services to initialize..."
           sleep 15
           echo "Waiting for frontend to be ready..."
-          # Increased loop to 60 iterations (5 mins)
-          for i in {1..60}; do
+          for i in {1..30}; do
             if curl -s http://localhost:3000 > /dev/null; then
               echo "Frontend is ready!"
               break
             fi
-            echo "Waiting... ($i/60)"
+            echo "Waiting... ($i/30)"
             sleep 5
           done
           echo "Waiting for judge-app to be ready..."
-          for i in {1..60}; do
+          for i in {1..30}; do
             # Note: Judge app is on 8081 in docker-compose.ci.yml
             if curl -s http://localhost:8081 > /dev/null; then
               echo "Judge App is ready!"
               break
             fi
-            echo "Waiting... ($i/60)"
+            echo "Waiting... ($i/30)"
             sleep 5
           done
 

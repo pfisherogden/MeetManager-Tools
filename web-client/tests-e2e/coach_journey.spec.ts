@@ -1,5 +1,33 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { expect, test } from "@playwright/test";
-import { ensureDatasetActive, getFixtureData } from "./utils";
+
+// Helper to ensure dataset is present and active
+async function ensureDataset(page, _userId, filename, data) {
+	await page.goto("/admin", { waitUntil: "networkidle" });
+	const rowId = `dataset-row-${filename}`;
+	const isPresent = (await page.getByTestId(rowId).count()) > 0;
+
+	if (!isPresent) {
+		const tempDir = path.join(process.cwd(), "tmp", "e2e-fixtures");
+		if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+		const testFilePath = path.join(tempDir, filename);
+		fs.writeFileSync(testFilePath, JSON.stringify(data));
+		await page.setInputFiles('input[type="file"]', testFilePath);
+		await page.getByText(/Upload Dataset/i).click();
+		await expect(page.getByTestId(rowId)).toBeVisible({ timeout: 45000 });
+	}
+
+	const row = page.getByTestId(rowId);
+	await row.scrollIntoViewIfNeeded();
+	await row.evaluate((el) => {
+		const btn = el.querySelector('button[aria-label*="Set Active"]');
+		if (btn) (btn as HTMLElement).click();
+	});
+	await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
+		timeout: 15000,
+	});
+}
 
 test.describe("Coach Persona Journey", () => {
 	test.describe.configure({ mode: "serial" });
@@ -16,16 +44,19 @@ test.describe("Coach Persona Journey", () => {
 		]);
 
 		const testFileName = "tiny_champs.json";
-		const data = getFixtureData(testFileName);
-		await ensureDatasetActive(page, userId, testFileName, data);
+		const data = JSON.parse(
+			fs.readFileSync(
+				path.resolve(process.cwd(), "..", "tests", "fixtures", testFileName),
+				"utf8",
+			),
+		);
+		await ensureDataset(page, userId, testFileName, data);
 	});
 
 	test("should filter reports and entries by team", async ({ page }) => {
 		// 1. Verify Team Dashboard
 		await page.goto("/teams");
-		await expect(page.locator("table")).toContainText("Blue Dolphins", {
-			timeout: 20000,
-		});
+		await expect(page.locator("table")).toContainText("Blue Dolphins");
 
 		// 2. Go to Reports and filter by "Blue Dolphins"
 		await page.goto("/reports");
@@ -33,7 +64,7 @@ test.describe("Coach Persona Journey", () => {
 		// Select Club Style report
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
 		await clubCard.scrollIntoViewIfNeeded();
-		await clubCard.click();
+		await clubCard.evaluate((el) => (el as HTMLElement).click());
 
 		// Wait for config card
 		const configCard = page.getByTestId("report-configuration-card");
@@ -51,13 +82,12 @@ test.describe("Coach Persona Journey", () => {
 
 		// Verify summary reflects team
 		const summary = page.locator("div").filter({ hasText: /^Summary/ });
-		await expect(summary).toContainText("Target: Blue Dolphins", {
-			timeout: 15000,
-		});
+		await expect(summary).toContainText("Target: Blue Dolphins");
 
 		// 3. Add to pack and verify
 		await page.getByRole("button", { name: /Add to Pack/i }).click();
-		// No toast check - verify side effect in builder
+		await expect(page.getByText(/Added to custom pack/i).first()).toBeVisible();
+
 		await page.waitForTimeout(1000); // Allow list to update
 
 		const builder = page.locator("#report-builder");
@@ -66,8 +96,6 @@ test.describe("Coach Persona Journey", () => {
 		// 4. Verification: Switching to another team updates summary
 		await teamFilterBtn.click();
 		await page.getByRole("option", { name: "Red Sharks" }).click();
-		await expect(summary).toContainText("Target: Red Sharks", {
-			timeout: 15000,
-		});
+		await expect(summary).toContainText("Target: Red Sharks");
 	});
 });
