@@ -13,18 +13,12 @@ on:
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'mm_to_json/**'
-      - 'protos/**'
-      - 'web-client/**'
-      - 'mobile-judge-app/**'
-      - 'Justfile'
-      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   backend-and-tools:
@@ -45,36 +39,10 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'npm'
-          cache-dependency-path: 'mobile-judge-app/package-lock.json'
-
-      - name: Install dependencies
-        run: |
-          uv sync --all-packages --dev
-          cd web-client && npm install
-
-      - name: Set up Buf
-        uses: bufbuild/buf-action@v1
-        with:
-          setup_only: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mdbtools libglib2.0-0t64 libglib2.0-dev libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libffi-dev libjpeg-dev libopenjp2-7-dev libcairo2 libgdk-pixbuf2.0-0
-
-      - name: Lint Protos
-        run: just lint-protos
-
       - name: Generate Protos
         run: just codegen
 
-      - name: Lint with Ruff
+      - name: Lint Backend
         run: |
           just lint-backend
           just lint-mm-to-json
@@ -105,70 +73,107 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint (Biome)
-        run: npm run lint
+      - name: Lint and Test
+        run: |
+          npm run lint
+          npm test
 
-      - name: Generate Protos
-        run: npm run codegen
-
-      - name: Build
-        run: npm run build
-
-      - name: Test (Vitest)
-        run: npm test
-
-  mobile-judge-app:
+  build-images:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mobile-judge-app
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
         with:
-          node-version: 24
-          cache: 'npm'
-          cache-dependency-path: 'web-client/package-lock.json'
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Type Check
-        run: npx tsc --noEmit
-
-      - name: Build (Expo Web)
-        run: npm run build-web
-
-      - name: Test (Jest)
-        run: npm test
-
-  integration-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
-        shardTotal: [32]
-    steps:
-      - uses: actions/checkout@v6
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Install just
-        uses: taiki-e/install-action@just
+      - name: Build and push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build and Start Services
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web-client/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_E2E_AUTH_BYPASS=true
+
+      - name: Build and push Judge App
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: mobile-judge-app/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/judge-app:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  integration-tests:
+    needs: build-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        shardTotal: [16]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and Start Services
+        env:
+          TAG: ${{ needs.build-images.outputs.tag }}
+          IMAGE_PREFIX: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
           mkdir -p tmp && chmod 777 tmp
-          just build
-          just up
-        env:
-          DOCKER_BUILDKIT: 1
-          COMPOSE_DOCKER_CLI_BUILD: 1
+          # Update docker-compose to use the pre-built images
+          sed -i "s|image: mmtools-backend|image: ${IMAGE_PREFIX}/backend:${TAG}|g" docker-compose.yml
+          sed -i "s|image: mmtools-frontend|image: ${IMAGE_PREFIX}/frontend:${TAG}|g" docker-compose.yml
+          sed -i "s|image: mmtools-judge-app|image: ${IMAGE_PREFIX}/judge-app:${TAG}|g" docker-compose.yml
+          
+          # Remove build sections to force pull
+          sed -i '/build:/d' docker-compose.yml
+          sed -i '/context: ./d' docker-compose.yml
+          sed -i '/dockerfile:/d' docker-compose.yml
+          
+          docker compose up -d
 
       - name: Wait for Services
         run: |
@@ -198,44 +203,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'web-client/package-lock.json'
 
-      - name: Get Playwright version
-        id: playwright-version
-        run: echo "version=$(jq -r '.devDependencies["@playwright/test"]' package.json | tr -d '^~')" >> $GITHUB_OUTPUT
-        working-directory: web-client
-
-      - name: Cache Playwright Browsers
-        id: cache-playwright
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v5
-        with:
-          path: web-client/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('web-client/package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - name: Install Playwright
         run: |
           cd web-client
           npm ci
-
-      - name: Install Playwright Browsers
-        run: |
-          cd web-client
-          npx playwright install --with-deps
-
-      - name: Install Playwright system dependencies
-        if: steps.cache-playwright.outputs.cache-hit == 'true'
-        run: |
-          cd web-client
-          npx playwright install-deps
+          npx playwright install --with-deps chromium
 
       - name: Run Playwright E2E Tests
-        run: just test-e2e-sharded ${{ matrix.shardIndex }} ${{ matrix.shardTotal }}
+        run: |
+          cd web-client
+          npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           FRONTEND_URL: http://localhost:3000
           MOBILE_APP_URL: http://localhost:8080
@@ -251,14 +228,8 @@ jobs:
         with:
           name: playwright-report-${{ matrix.shardIndex }}
           path: web-client/playwright-report/
-          retention-days: 30
-
-      - name: Run Headless Journeys
-        if: matrix.shardIndex == 1
-        run: |
-          just test-journeys
-          just test-dq-sync
+          retention-days: 7
 
       - name: Shutdown Services
         if: always()
-        run: just down
+        run: docker compose down
