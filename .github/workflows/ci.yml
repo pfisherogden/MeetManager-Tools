@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, fix/e2e-robustness-final ]
     paths:
       - 'backend/**'
       - 'mm_to_json/**'
