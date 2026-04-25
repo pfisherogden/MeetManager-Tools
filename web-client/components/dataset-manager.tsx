@@ -348,7 +348,6 @@ export function DatasetManager() {
 												variant="outline"
 												size="sm"
 												onClick={() => handleSetActive(dataset.filename)}
-												data-testid="set-active-button"
 											>
 												Set Active
 											</Button>
@@ -358,7 +357,6 @@ export function DatasetManager() {
 											size="icon"
 											className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
 											onClick={() => handleDelete(dataset.filename)}
-											data-testid="delete-dataset-button"
 										>
 											<Trash2 className="h-4 w-4" />
 										</Button>

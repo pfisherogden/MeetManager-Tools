@@ -481,7 +481,7 @@ test.describe("Disqualification Lifecycle", () => {
 				timeout: 15000,
 			});
 			const judgeAppUrl = await page.getByTestId("judge-app-url").innerText();
-			expect(judgeAppUrl).toContain("/judge");
+			expect(judgeAppUrl).toContain("/MeetManager-Tools/judge");
 		});
 
 		test("should maintain relay team view when navigating heats", async ({
@@ -740,12 +740,8 @@ test.describe("Disqualification Lifecycle", () => {
 
 			// Sync
 			await judgePage.getByTestId("dq-history-button").click();
-			const syncBtn = judgePage.getByText("SYNC NOW");
-			await expect(syncBtn).toBeVisible({ timeout: 15000 });
-			await syncBtn.click();
-			await expect(judgePage.getByText(/Successfully synced/i)).toBeVisible({
-				timeout: 45000,
-			});
+			await judgePage.getByText("SYNC NOW").click();
+			await expect(judgePage.getByText(/Successfully synced/i)).toBeVisible();
 
 			// 3. Verify in Admin Dashboard
 			await adminPage.goto("/admin");

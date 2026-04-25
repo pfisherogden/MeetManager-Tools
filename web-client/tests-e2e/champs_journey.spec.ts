@@ -178,9 +178,6 @@ test.describe("Champs Dataset Journey", () => {
 		await clubCard.scrollIntoViewIfNeeded();
 		await clubCard.evaluate((el) => (el as HTMLElement).click());
 
-		// Wait for React state to update and render the configuration card
-		await page.waitForTimeout(1000);
-
 		// Wait for configuration card to appear
 		await expect(page.getByTestId("report-configuration-card")).toBeAttached({
 			timeout: 15000,

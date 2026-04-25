@@ -30,10 +30,7 @@ async function ensureDataset(page, _userId, filename, data) {
 }
 
 test.describe("Coach Persona Journey", () => {
-	test.describe.configure({ mode: "serial" });
-
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		test.setTimeout(300000); // 5 mins
 		const userId = `e2e-coach-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
@@ -88,10 +85,8 @@ test.describe("Coach Persona Journey", () => {
 		await page.getByRole("button", { name: /Add to Pack/i }).click();
 		await expect(page.getByText(/Added to custom pack/i).first()).toBeVisible();
 
-		await page.waitForTimeout(1000); // Allow list to update
-
 		const builder = page.locator("#report-builder");
-		await expect(builder).toContainText("Blue Dolphins", { timeout: 15000 });
+		await expect(builder).toContainText("Blue Dolphins");
 
 		// 4. Verification: Switching to another team updates summary
 		await teamFilterBtn.click();

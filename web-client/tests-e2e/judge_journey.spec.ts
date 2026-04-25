@@ -192,13 +192,9 @@ test.describe("Mobile Judge App Journey", () => {
 
 		// 5. Trigger Sync and verify
 		await page.getByText(/DQ History \(Pending: 1\)/).click();
-		const syncBtn = page.getByText("SYNC NOW");
-		await expect(syncBtn).toBeVisible({ timeout: 15000 });
-		await syncBtn.click();
+		await page.getByText("SYNC NOW").click();
 
-		await expect(page.getByText(/Successfully synced/i)).toBeVisible({
-			timeout: 45000,
-		});
+		await expect(page.getByText(/Successfully synced/i)).toBeVisible();
 		await expect(page.getByText(/DQ History \(Pending: 0\)/)).toBeVisible();
 	});
 });
