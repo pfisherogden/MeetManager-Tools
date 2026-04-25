@@ -380,11 +380,9 @@ export function ReportsManager({
 		setCustomPack([...customPack, ...newItems]);
 		toast.success(`Applied ${preset.name} to builder`);
 
-		// Scroll builder into view (if available in environment)
+		// Scroll builder into view
 		const builder = document.getElementById("report-builder");
-		if (builder && typeof builder.scrollIntoView === "function") {
-			builder.scrollIntoView({ behavior: "smooth" });
-		}
+		builder?.scrollIntoView({ behavior: "smooth" });
 	};
 
 	const reportPresets = [
