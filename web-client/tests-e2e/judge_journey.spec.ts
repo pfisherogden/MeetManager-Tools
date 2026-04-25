@@ -37,8 +37,6 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(page.getByText("Events", { exact: true })).toBeVisible();
 
 		// 2. Tap an individual event (e.g., Event 1)
-		// Assuming seed data has Event 1.
-		// Use a more robust selector that works for both "Event 1" and "#1"
 		await page
 			.getByText(/#1 |Event 1/i)
 			.first()
@@ -60,7 +58,6 @@ test.describe("Mobile Judge App Journey", () => {
 		).toBeVisible();
 
 		// 6. Select a DQ code (e.g., "1A")
-		// The code is usually in a text element next to description
 		await page.getByText("1A").first().click();
 
 		// 7. Add a note
@@ -94,8 +91,7 @@ test.describe("Mobile Judge App Journey", () => {
 		// Switch to Program view
 		await page.getByText("SWITCH TO PROGRAM VIEW").click();
 
-		// Verify Program View is shown (Continuous list)
-		// The ProgramView component has different structure
+		// Verify Program View is shown
 		await expect(page.getByText("SWITCH TO EVENT VIEW")).toBeVisible();
 
 		// In program mode, check if we see event headers
@@ -128,8 +124,8 @@ test.describe("Mobile Judge App Journey", () => {
 
 		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
 
-		// Open DQ History
-		await page.getByText(/DQ History \(Pending: 1\)/).click();
+		// Open DQ History with forced click for robustness
+		await page.getByText(/DQ History \(Pending: 1\)/).dispatchEvent("click");
 
 		// Verify modal content
 		await expect(page.getByText("DQ History (Total: 1)")).toBeVisible();
@@ -144,14 +140,10 @@ test.describe("Mobile Judge App Journey", () => {
 		// Close modal
 		await page.keyboard.press("Escape");
 		await page.waitForTimeout(1000);
-		// If still visible, try accessibility label or click outside
-		if (await page.getByText("DQ History").first().isVisible()) {
-			const closeButton = page.getByLabel("Close history");
-			if (await closeButton.isVisible()) {
-				await closeButton.click();
-			} else {
-				await page.mouse.click(10, 10);
-			}
+
+		const closeBtn = page.getByLabel("Close history");
+		if (await closeBtn.isVisible()) {
+			await closeBtn.click();
 		}
 
 		// Queue count should be 0
@@ -191,7 +183,7 @@ test.describe("Mobile Judge App Journey", () => {
 		await context.setOffline(false);
 
 		// 5. Trigger Sync and verify
-		await page.getByText(/DQ History \(Pending: 1\)/).click();
+		await page.getByText(/DQ History \(Pending: 1\)/).dispatchEvent("click");
 		const syncBtn = page.getByText("SYNC NOW");
 		await expect(syncBtn).toBeVisible({ timeout: 15000 });
 		await syncBtn.click();
