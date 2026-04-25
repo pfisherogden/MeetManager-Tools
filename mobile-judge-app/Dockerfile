@@ -20,7 +20,7 @@ FROM nginx:stable-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy a simple nginx config to handle client-side routing
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY mobile-judge-app/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080
 

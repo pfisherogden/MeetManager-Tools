@@ -16,6 +16,7 @@ vi.mock("@/app/actions", () => ({
 			totalResults: 0,
 		}),
 	),
+	getDisqualifications: vi.fn(() => Promise.resolve({ disqualifications: [] })),
 }));
 
 const _mockTeams = [
