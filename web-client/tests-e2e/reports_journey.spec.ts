@@ -118,16 +118,6 @@ test.describe("Reports Generation Journey", () => {
 		const htmlCard = page.getByTestId("report-card-meet-program-(html)");
 		await expect(htmlCard).toBeVisible({ timeout: 10000 });
 		await htmlCard.scrollIntoViewIfNeeded();
-
-		// Robust toast detection: Start expecting BEFORE clicking the card
-		const toastPromise = expect(
-			page
-				.getByText(/HTML Preview opened in new tab/i)
-				.or(page.getByText(/HTML Program opened in new tab/i)),
-		).toBeVisible({
-			timeout: 90000,
-		});
-
 		await htmlCard.evaluate((el) => (el as HTMLElement).click());
 
 		// Wait for React state
@@ -140,6 +130,15 @@ test.describe("Reports Generation Journey", () => {
 		const viewBtn = page.getByRole("button", { name: "View HTML" });
 		await viewBtn.scrollIntoViewIfNeeded();
 
+		// Robust toast detection: Start expecting BEFORE clicking
+		const toastPromise = expect(
+			page
+				.getByText(/HTML Preview opened in new tab/i)
+				.or(page.getByText(/HTML Program opened in new tab/i)),
+		).toBeVisible({
+			timeout: 60000,
+		});
+
 		await viewBtn.click();
 		await toastPromise;
 
@@ -150,6 +149,7 @@ test.describe("Reports Generation Journey", () => {
 		});
 		expect(bodyText).toBe("Success");
 	});
+
 	test("should generate PDF Entries report and verify layout", async ({
 		page,
 	}, testInfo) => {
@@ -239,19 +239,20 @@ test.describe("Reports Generation Journey", () => {
 		await expect(viewBtn).toBeVisible({ timeout: 15000 });
 		await expect(viewBtn).toHaveText(/View HTML/i, { timeout: 15000 });
 
-		// Robust toast detection: Start expecting BEFORE clicking the button
+		// Robust toast detection: Start expecting BEFORE clicking
 		const toastPromise = expect(
 			page
 				.getByText(/HTML Preview opened in new tab/i)
 				.or(page.getByText(/HTML Program opened in new tab/i)),
 		).toBeVisible({
-			timeout: 90000,
+			timeout: 60000,
 		});
 
 		await viewBtn.scrollIntoViewIfNeeded();
 		await viewBtn.click();
 		await toastPromise;
 	});
+
 	test("should verify other report types are selectable", async ({ page }) => {
 		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
 		await ensureTinyMeetActive(page, userId);
