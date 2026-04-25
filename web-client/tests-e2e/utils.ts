@@ -23,10 +23,9 @@ export async function ensureDatasetActive(
 		const testFilePath = path.join(tempDir, filename);
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 
-		await page.waitForLoadState("networkidle");
-		const fileInput = page.getByTestId("dataset-file-input");
-		await fileInput.setInputFiles(testFilePath);
+		await page.setInputFiles('input[type="file"]', testFilePath);
 		await page.getByText(/Upload Dataset/i).click();
+
 		// Wait for row without checking toast
 		await expect(row).toBeVisible({ timeout: 60000 });
 		console.log(`[Utils] ${filename} uploaded successfully.`);
