@@ -277,16 +277,18 @@ export function ReportsManager({
 		}
 
 		try {
-			const result = await generateReport({
-				type: selectedType,
-				title: reportTitle,
-				teamFilter: teamFilter,
-				columnsOnPage: 2,
-				showRelaySwimmers: true,
-				zebraStriping: zebraStriping,
-				rendererType: rendererType,
-				htmlPreview: htmlPreviewMode,
-			});
+			const result = await generateReport(
+				selectedType,
+				reportTitle,
+				teamFilter,
+				undefined, // genderFilter
+				undefined, // ageGroupFilter
+				2, // columnsOnPage
+				true, // showRelaySwimmers
+				zebraStriping,
+				rendererType,
+				htmlPreviewMode,
+			);
 
 			if (result.success) {
 				if (selectedType === 5 || htmlPreviewMode) {
@@ -573,13 +575,7 @@ export function ReportsManager({
 				</Card>
 
 				{selectedType !== null && (
-					<Card
-						data-testid="report-configuration-card"
-						data-report-status={
-							isGenerating ? "generating" : isBundling ? "bundling" : "idle"
-						}
-						className="shadow-lg"
-					>
+					<Card data-testid="report-configuration-card" className="shadow-lg">
 						<CardHeader>
 							<div className="flex items-center gap-2">
 								<Settings2 className="h-5 w-5 text-primary" />
