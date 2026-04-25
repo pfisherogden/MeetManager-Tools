@@ -165,7 +165,7 @@ export function DatasetManager() {
 					<div className="flex items-center gap-2">
 						<input
 							type="file"
-							className="absolute w-0 h-0 opacity-0 pointer-events-none"
+							className="absolute w-px h-px opacity-0"
 							ref={fileInputRef}
 							onChange={handleUpload}
 							accept=".json"
@@ -175,6 +175,7 @@ export function DatasetManager() {
 							onClick={() => fileInputRef.current?.click()}
 							disabled={isUploading}
 							className="bg-primary hover:bg-primary/90"
+							data-testid="upload-dataset-button"
 						>
 							{isUploading ? (
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />

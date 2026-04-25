@@ -38,9 +38,7 @@ export async function ensureDatasetActive(
 			(el as HTMLElement).style.display = "none";
 		});
 
-		await page
-			.getByRole("button", { name: /Upload Dataset/i })
-			.click({ force: true });
+		await page.getByTestId("upload-dataset-button").click({ force: true });
 
 		// Wait for row without checking toast
 		await expect(row).toBeVisible({ timeout: 60000 });

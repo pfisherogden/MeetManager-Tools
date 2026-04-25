@@ -1617,7 +1617,8 @@ const styles = StyleSheet.create({
 	},
 	modalPopup: {
 		borderRadius: 10,
-		maxHeight: "80%",
+		maxHeight: "90%",
+		width: "100%",
 	},
 	modalHeader: {
 		padding: 20,

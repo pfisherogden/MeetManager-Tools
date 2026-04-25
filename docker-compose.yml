@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "${BACKEND_PORT:-8081}:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     volumes:
       # - ./backend/data:/app/data # Removed to fix locking issues on macOS
       - ./backend/src:/app/src
@@ -48,7 +48,7 @@ services:
 
   judge-app:
     build:
-      context: mobile-judge-app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: mobile-judge-app/Dockerfile
     ports:
-      - "${MOBILE_APP_PORT:-8080}:8080"
+      - "${MOBILE_APP_PORT:-8082}:8080"
