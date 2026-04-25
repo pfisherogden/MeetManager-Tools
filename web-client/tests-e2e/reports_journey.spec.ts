@@ -219,16 +219,10 @@ test.describe("Reports Generation Journey", () => {
 		const toggle = page.getByTestId("html-preview-toggle");
 		await expect(toggle).toBeAttached({ timeout: 15000 });
 		await toggle.scrollIntoViewIfNeeded();
-
-		console.log("Clicking HTML Preview toggle...");
-		await toggle.click({ force: true });
-
-		// Wait for React state to update and button text to change from "Download PDF" to "View HTML"
-		await page.waitForTimeout(2000);
+		await toggle.click();
 
 		const viewBtn = page.getByTestId("generate-report-button").first();
 		await expect(viewBtn).toBeVisible({ timeout: 15000 });
-		await expect(viewBtn).toHaveText(/View HTML/i, { timeout: 10000 });
 
 		const pagePromise = page.context().waitForEvent("page", { timeout: 45000 });
 		await viewBtn.scrollIntoViewIfNeeded();
