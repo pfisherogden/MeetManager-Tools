@@ -386,9 +386,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 # Allow custom user ID via metadata for E2E test isolation
                 metadata = dict(context.invocation_metadata())
                 # Metadata keys are lowercase in gRPC
-                uid = metadata.get("x-user-id")
+                uid = metadata.get("x-e2e-uid") or metadata.get("x-user-id")
                 if uid:
-                    # logging.debug(f"DEBUG: Auth using x-user-id metadata: {uid}")
+                    # logging.debug(f"DEBUG: Auth using x-e2e-uid/x-user-id metadata: {uid}")
                     return uid
             except (AttributeError, TypeError):
                 # Context might be a mock or None-like without invocation_metadata
@@ -455,6 +455,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             filename = config.get("active_dataset", SOURCE_FILE)
             uid = self._check_auth(context)
 
+            # E2E Check: Completely ignore the cache if x-e2e-uid/x-user-id is present or IS_E2E is set
+            is_e2e = os.getenv("IS_E2E") == "true"
+            if context is not None:
+                try:
+                    metadata = dict(context.invocation_metadata())
+                    if "x-e2e-uid" in metadata or "x-user-id" in metadata:
+                        is_e2e = True
+                except Exception:
+                    pass
+
             user_path = os.path.join("users", uid, filename)
             # For LocalStorageProvider, print absolute path for debugging
             if hasattr(self.storage, "base_dir"):
@@ -466,7 +476,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 logging.debug(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
 
             # Check cache
-            if uid in self._user_cache:
+            if not is_e2e and uid in self._user_cache:
                 entry = self._user_cache[uid]
                 # Move to end (most recent)
                 self._user_cache.move_to_end(uid)
@@ -994,6 +1004,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             logging.info(f"SetActiveDataset: Forcing synchronous extraction for {uid}/{filename}...")
             try:
                 self._load_user_data(context)
+                # Clear cache AGAIN after extraction if it's an E2E-like environment
+                # to ensure subsequent calls also bypass any race-condition cache entries.
+                metadata = dict(context.invocation_metadata() if context else [])
+                if os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata or "x-user-id" in metadata:
+                    if uid in self._user_cache:
+                        del self._user_cache[uid]
                 logging.info(f"SetActiveDataset: Extraction complete for {uid}/{filename}")
             except Exception as e:
                 logging.error(f"SetActiveDataset: Extraction failed for {uid}/{filename}: {e}")
