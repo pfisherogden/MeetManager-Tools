@@ -30,22 +30,11 @@ export async function ensureDatasetActive(
 		const testFilePath = path.join(tempDir, filename);
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 
-		// Use direct setInputFiles on the hidden input with a visibility override for Safari
-		const fileInput = page.getByTestId("dataset-file-input");
-		await fileInput.evaluate((el) => {
-			(el as HTMLElement).style.display = "block";
-			(el as HTMLElement).style.visibility = "visible";
-			(el as HTMLElement).style.opacity = "1";
-		});
-
-		await fileInput.setInputFiles(testFilePath);
-
-		// Return visibility to normal
-		await fileInput.evaluate((el) => {
-			(el as HTMLElement).style.display = "none";
-		});
-
+		// Use filechooser event to avoid Safari visibility quirks with hidden inputs
+		const fileChooserPromise = page.waitForEvent("filechooser");
 		await robustClick(page.getByTestId("upload-dataset-button"));
+		const fileChooser = await fileChooserPromise;
+		await fileChooser.setFiles(testFilePath);
 
 		// Wait for row without checking toast
 		await expect(row).toBeVisible({ timeout: 60000 });
