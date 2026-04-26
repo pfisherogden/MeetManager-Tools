@@ -8,10 +8,7 @@ import {
 test.describe("Champs Dataset Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		const { userId } = getE2ETestContext(testInfo);
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-			"x-e2e-uid": userId,
-		});
+		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);

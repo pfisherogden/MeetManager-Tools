@@ -1,17 +1,14 @@
 import { expect, test } from "@playwright/test";
-import { ensureDatasetActive, getFixtureData } from "./utils";
+import {
+	ensureDatasetActive,
+	getE2ETestContext,
+	getFixtureData,
+} from "./utils";
 
 test.describe("DQ Lifecycle Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		const shardIndex = process.env.SHARD_INDEX || "0";
-		const userId =
-			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}-${testInfo.retry}`
-				: `e2e-dq-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-			"x-e2e-uid": userId,
-		});
+		const { userId } = getE2ETestContext(testInfo);
+		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);
@@ -20,11 +17,10 @@ test.describe("DQ Lifecycle Journey", () => {
 	test("should process DQ from Judge app to Results PDF", async ({
 		page,
 		context,
-	}) => {
+	}, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const workerIndex = test.info().workerIndex;
-		const userId = `e2e-dq-${workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
-		const testFileName = `tiny_dq_${workerIndex}.json`;
+		const { userId, getFilename } = getE2ETestContext(testInfo);
+		const testFileName = getFilename("dq_lifecycle.json");
 		const data = getFixtureData("tiny_meet.json");
 
 		// 1. Ensure dataset is active

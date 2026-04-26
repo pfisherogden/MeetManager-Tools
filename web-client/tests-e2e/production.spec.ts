@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { getE2ETestContext } from "./utils";
 
 /**
  * Production Validation Suite
@@ -12,18 +13,15 @@ import { expect, test } from "@playwright/test";
 const authFile = path.join(__dirname, "../../auth.json");
 
 test.describe("Production Smoke Tests", () => {
-	test.beforeEach(async ({ page, context }) => {
-		const shardIndex = process.env.SHARD_INDEX || "0";
-		const userId = `${process.env.PROD_VERIFY_USER_ID || "prod-verify-user"}-${shardIndex}`;
+	test.beforeEach(async ({ page, context }, testInfo) => {
+		const { userId } = getE2ETestContext(testInfo);
 		const domain = new URL(process.env.BASE_URL || "http://localhost:3000")
 			.hostname;
 
 		// If auth.json exists, we don't need to manually set headers
 		if (!fs.existsSync(authFile)) {
 			// Set header for gRPC authentication bypass/routing
-			await page.setExtraHTTPHeaders({
-				"x-user-id": userId,
-			});
+			await page.setExtraHTTPHeaders({ "x-user-id": userId });
 
 			// Set cookie for Next.js middleware and consistency
 			await context.addCookies([

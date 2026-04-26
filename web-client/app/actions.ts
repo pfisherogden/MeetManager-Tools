@@ -245,22 +245,18 @@ export async function uploadDataset(formData: FormData) {
 		`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`,
 	);
 
-	// Extra wait for backend stability in local docker environments
-	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
-		console.log("E2E DEBUG: Artificial startup delay (10s)...");
-		await new Promise((r) => setTimeout(r, 10000));
-	}
-
 	try {
 		const buffer = await file.arrayBuffer();
 		const uint8Array = new Uint8Array(buffer);
 
 		// Fix for client-streaming method: must pass an AsyncIterable
+		// Must respect 'oneof data' in UploadDatasetRequest (filename OR chunk)
 		async function* requestGenerator() {
-			yield {
-				filename: file.name,
-				content: uint8Array,
-			};
+			// First message: filename
+			yield { filename: file.name };
+
+			// Subsequent messages: chunks (single chunk for now)
+			yield { chunk: uint8Array };
 		}
 
 		const response = await client.uploadDataset(requestGenerator(), {

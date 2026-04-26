@@ -6,21 +6,14 @@ test.describe("Coach Persona Journey", () => {
 
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const shardIndex = process.env.SHARD_INDEX || "0";
-		const userId =
-			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}-${testInfo.retry}`
-				: `e2e-coach-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-			"x-e2e-uid": userId,
-		});
+		const { userId, getFilename } = getE2ETestContext(testInfo);
+		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);
 
-		const testFileName = "tiny_champs.json";
-		const data = getFixtureData(testFileName);
+		const testFileName = getFilename("tiny_champs.json");
+		const data = getFixtureData("tiny_champs.json");
 		await ensureDatasetActive(page, userId, testFileName, data);
 	});
 

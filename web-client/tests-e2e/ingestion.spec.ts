@@ -1,37 +1,22 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
+import { getE2ETestContext } from "./utils";
 
 test.describe("Ingestion and Admin Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		// Set a unique user ID for this test to avoid collisions in the backend
-		const shardIndex = process.env.SHARD_INDEX || "0";
-		const userId =
-			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}-${testInfo.retry}`
-				: `e2e-ingestion-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
-
-		// Set header for all requests from this page
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-		});
-
-		// Set cookie for additional resilience
+		const { userId } = getE2ETestContext(testInfo);
+		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
-			{
-				name: "x-user-id",
-				value: userId,
-				domain: "localhost",
-				path: "/",
-			},
+			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);
-
 		console.log(`Using isolated User ID: ${userId}`);
 	});
 
 	test("should allow navigating to Admin and uploading a dataset", async ({
 		page,
 	}, testInfo) => {
+		const { getFilename } = getE2ETestContext(testInfo);
 		await page.goto("/admin");
 
 		await expect(
@@ -40,7 +25,7 @@ test.describe("Ingestion and Admin Journey", () => {
 		await expect(page.getByText("Dataset Management")).toBeVisible();
 
 		// Create a dummy .json file for upload testing with a unique name per worker
-		const testFileName = `test-ingestion-${testInfo.workerIndex}.json`;
+		const testFileName = getFilename("test-ingestion.json");
 		const testFilePath = path.join(__dirname, testFileName);
 		const dummyData = {
 			meet: [

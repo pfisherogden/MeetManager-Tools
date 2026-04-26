@@ -1,29 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { getE2ETestContext } from "./utils";
 
 test.describe("Dashboard Smoke Test", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		// Set a unique user ID for this test to avoid collisions in the backend
-		const shardIndex = process.env.SHARD_INDEX || "0";
-		const userId =
-			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}-${testInfo.retry}`
-				: `e2e-smoke-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
-
-		// Set header for all requests from this page
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-		});
-
-		// Set cookie for additional resilience
+		const { userId } = getE2ETestContext(testInfo);
+		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
-			{
-				name: "x-user-id",
-				value: userId,
-				domain: "localhost",
-				path: "/",
-			},
+			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);
-
 		console.log(`Using isolated User ID: ${userId}`);
 	});
 

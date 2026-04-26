@@ -683,23 +683,43 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         ]
         return palette[team_id % len(palette)]
 
+    def _get_table(self, cache, name):
+        """Helper to retrieve a table from cache with case-insensitive key lookup."""
+        if not cache:
+            return []
+
+        # Try direct lookup first (most common)
+        if name in cache:
+            return cache[name]
+
+        # Try lowercase lookup (normalized by MmToJsonConverter)
+        lower_name = name.lower()
+        if lower_name in cache:
+            return cache[lower_name]
+
+        # Exhaustive case-insensitive search
+        for actual_key in cache.keys():
+            if actual_key.lower() == lower_name:
+                return cache[actual_key]
+
+        return []
+
     def GetMeets(self, request, context):
         request = request or pb2.GetMeetsRequest()
         cache, _ = self._load_user_data(context)
         uid = self._check_auth(context)
 
-        # Robust case-insensitive lookup
-        data = cache.get("meet") or cache.get("Meet") or cache.get("MEET") or []
+        data = self._get_table(cache, "meet")
 
         if not data and cache:
             logging.warning(f"GetMeets: No 'meet' table found for {uid}. Available tables: {list(cache.keys())}")
 
         meets = []
         for item in data:
-            logging.debug(f"DEBUG: Meet item keys: {list(item.keys())}")
-
             # Universal case-insensitive field lookup
             def get_field(d, keys):
+                if not d:
+                    return None
                 for k in keys:
                     if k in d:
                         return d[k]
@@ -732,9 +752,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         uid = self._check_auth(context)
         cache, _ = self._load_user_data(context)
 
-        # Robust case-insensitive lookup
-        data = cache.get("team") or cache.get("Team") or cache.get("TEAM") or []
-        athletes = cache.get("athlete") or cache.get("Athlete") or cache.get("ATHLETE") or []
+        data = self._get_table(cache, "team")
+        athletes = self._get_table(cache, "athlete")
 
         logging.debug(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams")
 
@@ -748,6 +767,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         for item in data:
             # Universal case-insensitive field lookup
             def get_field(d, keys):
+                if not d:
+                    return None
                 for k in keys:
                     if k in d:
                         return d[k]
@@ -865,19 +886,19 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetEvents(self, request, context):
         request = request or pb2.GetEventsRequest()
         cache, _ = self._load_user_data(context)
-        data = cache.get("event", [])
+        data = self._get_table(cache, "event")
         events = []
         stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breaststroke", "D": "Butterfly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
         entry_counts: dict[str, int] = {}
-        entries = cache.get("entry", [])
+        entries = self._get_table(cache, "entry")
         for e in entries:
             evt_ptr = e.get("event_ptr")
             if evt_ptr:
                 entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
 
-        relays = cache.get("relay", [])
+        relays = self._get_table(cache, "relay")
         for r in relays:
             evt_ptr = r.get("event_ptr")
             if evt_ptr:
@@ -885,8 +906,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Build session mapping from Sessitem (Linking Event_ptr to Session No)
         sess_map = {}
-        sessitem_table = cache.get("sessitem", [])
-        session_table = cache.get("session", [])
+        sessitem_table = self._get_table(cache, "sessitem")
+        session_table = self._get_table(cache, "session")
 
         # ptr_to_no: Sess_ptr -> Sess_no
         ptr_to_no = {s.get("sess_ptr"): self._safe_int(s.get("sess_no", 1)) for s in session_table if s.get("sess_ptr")}
@@ -898,38 +919,137 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 sess_map[e_ptr] = ptr_to_no.get(s_ptr, 1)
 
         for item in data:
-            raw_stroke = item.get("event_stroke", "").upper().strip()
+            # Universal case-insensitive field lookup
+            def get_field(d, keys):
+                if not d:
+                    return None
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            raw_stroke = str(get_field(item, ["event_stroke"]) or "").upper().strip()
             stroke_desc = stroke_map.get(raw_stroke, raw_stroke)
 
-            is_relay = item.get("ind_rel", "").upper().strip() == "R"
+            is_relay = str(get_field(item, ["ind_rel"]) or "").upper().strip() == "R"
             if raw_stroke == "E" and is_relay:
                 stroke_desc = "Medley Relay"
             elif is_relay and stroke_desc != raw_stroke:
                 stroke_desc += " Relay"
 
-            raw_gender = item.get("event_sex", "").upper().strip()
+            raw_gender = str(get_field(item, ["event_sex"]) or "").upper().strip()
             gender_desc = gender_map.get(raw_gender, raw_gender)
 
-            # Map Session: Use Sessitem map if Event.Sess_no is missing
-            e_ptr = item.get("event_ptr") or item.get("event_no")
-            sess_no = self._safe_int(item.get("sess_no"))
-            if not sess_no and e_ptr:
-                sess_no = sess_map.get(e_ptr, 1)
+            evt_ptr = str(get_field(item, ["event_ptr"]) or "")
+            evt_no = self._safe_int(get_field(item, ["event_no"]))
+            dist = self._safe_int(get_field(item, ["event_dist"]))
+
+            low_age = self._safe_int(get_field(item, ["low_age"]))
+            high_age = self._safe_int(get_field(item, ["high_age"]))
+            age_group = self._format_age(low_age, high_age)
 
             events.append(
                 pb2.Event(
-                    id=self._safe_int(item.get("event_no", 0)),
-                    gender=str(gender_desc or ""),
-                    distance=self._safe_int(item.get("event_dist", 0)),
-                    stroke=str(stroke_desc or ""),
-                    low_age=self._safe_int(item.get("low_age", 0)),
-                    high_age=self._safe_int(item.get("high_age", 0)),
-                    session=max(1, sess_no),
-                    entry_count=entry_counts.get(item.get("event_no") or item.get("event_ptr"), 0),
-                    age_group=str(self._format_age(item.get("low_age"), item.get("high_age")) or ""),
+                    id=evt_ptr,
+                    event_no=evt_no,
+                    name=f"{gender_desc} {age_group} {dist} {stroke_desc}",
+                    distance=dist,
+                    stroke=stroke_desc,
+                    gender=gender_desc,
+                    age_group=age_group,
+                    is_relay=is_relay,
+                    entry_count=entry_counts.get(evt_ptr, 0),
+                    session_id=sess_map.get(evt_ptr, 1),
                 )
             )
         return pb2.GetEventsResponse(events=events)
+
+    def GetEntries(self, request, context):
+        request = request or pb2.GetEntriesRequest()
+        cache, _ = self._load_user_data(context)
+        entries_data = self._get_table(cache, "entry")
+
+        athletes = {self._safe_int(a.get("ath_no")): a for a in self._get_table(cache, "athlete")}
+        teams = {self._safe_int(t.get("team_no")): t.get("team_name") for t in self._get_table(cache, "team")}
+        events_map = {}
+        stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
+        gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
+
+        for e in self._get_table(cache, "event"):
+            e_no = e.get("event_no") or e.get("event_ptr")
+            if e_no:
+                # Universal case-insensitive field lookup
+                def get_field(d, keys):
+                    if not d:
+                        return None
+                    for k in keys:
+                        if k in d:
+                            return d[k]
+                        for actual_key in d.keys():
+                            if actual_key.lower() == k.lower():
+                                return d[actual_key]
+                    return None
+
+                g = gender_map.get(str(get_field(e, ["event_sex"]) or "").strip(), "")
+                d = get_field(e, ["event_dist"]) or ""
+                s = stroke_map.get(str(get_field(e, ["event_stroke"]) or "").strip(), "")
+                low = self._safe_int(get_field(e, ["low_age"]))
+                high = self._safe_int(get_field(e, ["high_age"]))
+                age_group = self._format_age(low, high)
+                name = f"{g} {age_group} {d} {s}"
+                events_map[e_no] = name
+
+        result = []
+        for idx, item in enumerate(entries_data):
+            ath_id = self._safe_int(item.get("ath_no", 0))
+            if request and request.athlete_id and str(ath_id) != request.athlete_id:
+                continue
+
+            athlete = athletes.get(ath_id, {})
+
+            # Universal case-insensitive field lookup
+            def get_field(d, keys):
+                if not d:
+                    return None
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            t_id = self._safe_int(get_field(athlete, ["team_no", "team_no"]))
+            event_id = get_field(item, ["event_ptr"])
+            if request and request.event_id and str(event_id) != request.event_id:
+                continue
+
+            seed = (
+                get_field(item, ["actualseed_time", "actualseed_time"])
+                or get_field(item, ["convseed_time", "convseed_time"])
+                or get_field(item, ["seed_time", "seed_time"])
+            )
+
+            entry_id_val = get_field(item, ["entry_no"])
+            final_id = self._safe_int(entry_id_val) if entry_id_val else idx
+
+            result.append(
+                pb2.Entry(
+                    id=final_id,
+                    athlete_id=str(ath_id),
+                    event_id=str(event_id or ""),
+                    team_id=t_id,
+                    seed_time=str(seed or ""),
+                    event_name=events_map.get(event_id, "Unknown Event"),
+                    athlete_name=f"{athlete.get('first_name', '')} {athlete.get('last_name', '')}".strip()
+                    or "Unknown Athlete",
+                    team_name=str(teams.get(t_id, "") or ""),
+                )
+            )
+        return pb2.GetEntriesResponse(entries=result)
 
     def ListDatasets(self, request, context):
         request = request or pb2.ListDatasetsRequest()
@@ -1187,53 +1307,74 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetScoresRequest()
         cache, config = self._load_user_data(context)
 
-        teams_data = cache.get("team", [])
-        teams = {t.get("team_no"): {"name": t.get("team_name"), "id": t.get("team_no")} for t in teams_data}
+        # Universal case-insensitive field lookup helper
+        def get_field(d, keys):
+            if not d:
+                return None
+            for k in keys:
+                if k in d:
+                    return d[k]
+                for actual_key in d.keys():
+                    if actual_key.lower() == k.lower():
+                        return d[actual_key]
+            return None
+
+        teams_data = self._get_table(cache, "team")
+        teams = {
+            self._safe_int(get_field(t, ["team_no"])): {
+                "name": str(get_field(t, ["team_name", "tname", "Team_name"]) or "Unknown"),
+                "id": self._safe_int(get_field(t, ["team_no"])),
+            }
+            for t in teams_data
+        }
         scores = {t_id: {"ind": 0.0, "rel": 0.0} for t_id in teams}
 
-        entries_data = cache.get("entry", [])
-        athletes = {a.get("ath_no"): a for a in cache.get("athlete", [])}
+        entries_data = self._get_table(cache, "entry")
+        athletes = {self._safe_int(get_field(a, ["ath_no"])): a for a in self._get_table(cache, "athlete")}
         events_sex_map = {
-            e.get("event_no") or e.get("event_ptr"): e.get("event_sex", "M") for e in cache.get("event", [])
+            str(get_field(e, ["event_no"]) or get_field(e, ["event_ptr"]) or ""): str(
+                get_field(e, ["event_sex"]) or "M"
+            ).strip()
+            for e in self._get_table(cache, "event")
         }
 
         if entries_data:
             for e in entries_data:
-                ath_id = e.get("ath_no")
+                ath_id = self._safe_int(get_field(e, ["ath_no"]))
                 ath = athletes.get(ath_id)
                 if ath:
-                    t_id = ath.get("team_no")
+                    t_id = self._safe_int(get_field(ath, ["team_no"]))
                     if t_id in scores:
-                        e_id = e.get("event_ptr")
-                        sex = events_sex_map.get(e_id, ath.get("ath_sex", "M"))
+                        e_id = str(get_field(e, ["event_ptr"]) or "")
+                        sex = events_sex_map.get(e_id, str(get_field(ath, ["ath_sex"]) or "M"))
                         val = self._calculate_points(e, sex, False, cache)
                         scores[t_id]["ind"] += val
 
-        relays_data = cache.get("relay", [])
+        relays_data = self._get_table(cache, "relay")
         if relays_data:
             for r in relays_data:
-                t_id = r.get("team_no")
+                t_id = self._safe_int(get_field(r, ["team_no"]))
                 if not t_id or t_id == "0":
-                    t_id = r.get("team_ptr")
+                    t_id = self._safe_int(get_field(r, ["team_ptr"]))
 
                 if t_id in scores:
-                    e_id = r.get("event_ptr")
-                    sex = events_sex_map.get(e_id, r.get("rel_sex", "X"))
+                    e_id = str(get_field(r, ["event_ptr"]) or "")
+                    sex = events_sex_map.get(e_id, str(get_field(r, ["rel_sex"]) or "X"))
                     val = self._calculate_points(r, sex, True, cache)
                     scores[t_id]["rel"] += val
 
-        meets = cache.get("meet", [])
+        meets = self._get_table(cache, "meet")
         meet_name = config.get("meet_name")
         if not meet_name and meets:
             m = meets[0]
-            meet_name = m.get("meet_name1") or m.get("meet_name") or m.get("mname")
+            meet_name = get_field(m, ["meet_name1", "meet_name", "mname"])
 
         result = []
         for t_id, s in scores.items():
             total = s["ind"] + s["rel"]
             result.append(
                 pb2.Score(
-                    team_id=self._safe_int(t_id),
+                    team_id=t_id,
                     team_name=teams[t_id]["name"],
                     individual_points=s["ind"],
                     relay_points=s["rel"],
@@ -1249,65 +1390,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 r.rank = i + 1
 
         return pb2.GetScoresResponse(scores=result)
-
-    def GetEntries(self, request, context):
-        request = request or pb2.GetEntriesRequest()
-        cache, _ = self._load_user_data(context)
-        entries_data = cache.get("entry", [])
-
-        athletes = {self._safe_int(a.get("ath_no")): a for a in cache.get("athlete", [])}
-        teams = {self._safe_int(t.get("team_no")): t.get("team_name") for t in cache.get("team", [])}
-        events_map = {}
-        stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
-        gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
-
-        for e in cache.get("event", []):
-            e_no = e.get("event_no") or e.get("event_ptr")
-            if e_no:
-                g = gender_map.get(e.get("event_sex", "").strip(), e.get("event_sex", ""))
-                d = e.get("event_dist", "")
-                s = stroke_map.get(e.get("event_stroke", "").strip(), e.get("event_stroke", ""))
-                age_group = self._format_age(e.get("low_age"), e.get("high_age"))
-                name = f"{g} {age_group} {d} {s}"
-                events_map[e_no] = name
-
-        result = []
-        for idx, item in enumerate(entries_data):
-            ath_id = self._safe_int(item.get("ath_no", 0))
-            if request and request.athlete_id and str(ath_id) != request.athlete_id:
-                continue
-
-            athlete = athletes.get(ath_id, {})
-            t_id = self._safe_int(athlete.get("team_no", 0))
-            event_id = item.get("event_ptr")
-            if request and request.event_id and str(event_id) != request.event_id:
-                continue
-
-            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
-
-            entry_id_val = item.get("entry_no")
-            final_id = self._safe_int(entry_id_val) if entry_id_val else idx
-
-            result.append(
-                pb2.Entry(
-                    id=final_id,
-                    event_id=self._safe_int(event_id),
-                    athlete_id=self._safe_int(ath_id),
-                    athlete_name=str(f"{athlete.get('first_name', '')} {athlete.get('last_name', '')}" or ""),
-                    team_id=self._safe_int(t_id),
-                    team_name=str(teams.get(t_id, "Unknown") or "Unknown"),
-                    seed_time=self._format_time(seed),
-                    final_time=self._format_time(item.get("fin_time")),
-                    place=self._safe_int(item.get("fin_place") or item.get("place")),
-                    event_name=str(events_map.get(event_id, f"Event {event_id}") or ""),
-                    heat=self._safe_int(item.get("fin_heat") or item.get("pre_heat") or 0),
-                    lane=self._safe_int(item.get("fin_lane") or item.get("pre_lane") or 0),
-                    points=self._safe_float(item.get("ev_score", 0.0)),
-                    team_color=self._get_team_color(t_id),
-                    status=str(item.get("fin_stat") or item.get("pre_stat") or ""),
-                )
-            )
-        return pb2.GetEntriesResponse(entries=result)
 
     def _get_scoring_map(self, cache):
         scoring_data = cache.get("scoring", [])
@@ -1363,10 +1445,22 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetEventScores(self, request, context):
         request = request or pb2.GetEventScoresRequest()
         cache, _ = self._load_user_data(context)
-        entries = cache.get("entry", [])
-        relays = cache.get("relay", [])
-        athletes_map = {self._safe_int(a.get("ath_no")): a for a in cache.get("athlete", [])}
-        teams_map = {self._safe_int(t.get("team_no")): t.get("team_name") for t in cache.get("team", [])}
+        entries = self._get_table(cache, "entry")
+        relays = self._get_table(cache, "relay")
+        athletes_map = {self._safe_int(a.get("ath_no")): a for a in self._get_table(cache, "athlete")}
+        teams_map = {self._safe_int(t.get("team_no")): t.get("team_name") for t in self._get_table(cache, "team")}
+
+        # Universal case-insensitive field lookup helper
+        def get_field(d, keys):
+            if not d:
+                return None
+            for k in keys:
+                if k in d:
+                    return d[k]
+                for actual_key in d.keys():
+                    if actual_key.lower() == k.lower():
+                        return d[actual_key]
+            return None
 
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
@@ -1375,57 +1469,57 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         event_dict: dict[str, dict[str, Any]] = {}
         event_raw_map = {}
 
-        for e in cache.get("event", []):
-            e_no = e.get("event_no") or e.get("event_ptr")
+        for e in self._get_table(cache, "event"):
+            e_no = get_field(e, ["event_no"]) or get_field(e, ["event_ptr"])
             if not e_no:
                 continue
 
-            event_raw_map[e_no] = e
-            g = gender_map.get(e.get("event_sex", "").strip(), e.get("event_sex", ""))
-            d = e.get("event_dist", "")
-            s_raw = e.get("event_stroke", "").strip()
+            event_raw_map[str(e_no)] = e
+            g = gender_map.get(str(get_field(e, ["event_sex"]) or "").strip(), "")
+            d = get_field(e, ["event_dist"]) or ""
+            s_raw = str(get_field(e, ["event_stroke"]) or "").strip()
             s = stroke_map.get(s_raw, s_raw)
 
-            is_relay = e.get("ind_rel", "").upper().strip() == "R"
+            is_relay = str(get_field(e, ["ind_rel"]) or "").upper().strip() == "R"
             if s_raw == "E" and is_relay:
                 s = "Medley Relay"
             elif is_relay and s != s_raw:
                 s += " Relay"
 
-            low = e.get("low_age", "")
-            high = e.get("high_age", "")
+            low = get_field(e, ["low_age"])
+            high = get_field(e, ["high_age"])
             age_group = self._format_age(low, high)
             name = f"{g} {age_group} {d} {s}"
-            events_map[e_no] = name
-            event_dict[e_no] = {"id": self._safe_int(e_no), "name": name, "entries": []}
+            events_map[str(e_no)] = name
+            event_dict[str(e_no)] = {"id": self._safe_int(e_no), "name": name, "entries": []}
 
         for item in entries:
-            e_id = item.get("event_ptr")
+            e_id = str(get_field(item, ["event_ptr"]) or "")
             if e_id not in event_dict:
                 continue
 
-            ath_id = self._safe_int(item.get("ath_no"))
+            ath_id = self._safe_int(get_field(item, ["ath_no"]))
             ath = athletes_map.get(ath_id)
-            t_id = self._safe_int(ath.get("team_no", 0)) if ath else 0
-            place = self._safe_int(item.get("fin_place", item.get("place", 0)))
+            t_id = self._safe_int(get_field(ath, ["team_no"])) if ath else 0
+            place = self._safe_int(get_field(item, ["fin_place", "place"]))
 
             ev_raw = event_raw_map.get(e_id, {})
-            points = self._calculate_points(item, ev_raw.get("event_sex", "M"), False, cache)
+            points = self._calculate_points(item, str(get_field(ev_raw, ["event_sex"]) or "M"), False, cache)
 
-            if not item.get("fin_time") and place <= 0:
+            if not get_field(item, ["fin_time"]) and place <= 0:
                 continue
 
-            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
+            seed = get_field(item, ["actualseed_time", "convseed_time", "seed_time"])
 
             entry_obj = pb2.Entry(
                 id=0,
                 event_id=self._safe_int(e_id),
-                athlete_id=ath_id,
+                athlete_id=str(ath_id),
                 athlete_name=f"{ath.get('first_name', '')} {ath.get('last_name', '')}" if ath else "Unknown",
                 team_id=t_id,
-                team_name=teams_map.get(t_id, "Unknown"),
+                team_name=str(teams_map.get(t_id, "Unknown")),
                 seed_time=self._format_time(seed),
-                final_time=self._format_time(item.get("fin_time")),
+                final_time=self._format_time(get_field(item, ["fin_time"])),
                 place=place,
                 points=points,
                 event_name=events_map.get(e_id, ""),
@@ -1433,16 +1527,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             event_dict[e_id]["entries"].append(entry_obj)
 
         for item in relays:
-            e_id = item.get("event_ptr")
+            e_id = str(get_field(item, ["event_ptr"]) or "")
             if e_id not in event_dict:
                 continue
 
-            t_id = self._safe_int(item.get("team_ptr") or item.get("team_no"))
-            place = self._safe_int(item.get("fin_place", item.get("place", 0)))
-            rel_ltr = item.get("team_ltr", "")
+            t_id = self._safe_int(get_field(item, ["team_ptr", "team_no"]))
+            place = self._safe_int(get_field(item, ["fin_place", "place"]))
+            rel_ltr = get_field(item, ["team_ltr"]) or ""
 
             ev_raw = event_raw_map.get(e_id, {})
-            points = self._calculate_points(item, ev_raw.get("event_sex", "X"), True, cache)
+            points = self._calculate_points(item, str(get_field(ev_raw, ["event_sex"]) or "X"), True, cache)
 
             if not item.get("fin_time") and place <= 0:
                 continue
@@ -1980,8 +2074,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             judge_app_base = os.getenv("JUDGE_APP_URL")
             if not judge_app_base:
                 if "localhost" in frontend_base or "127.0.0.1" in frontend_base:
-                    # In local dev/E2E, judge app is served by docker or local server
-                    judge_app_base = "http://localhost:8080/MeetManager-Tools/judge"
+                    # In local dev/E2E, judge app is served by frontend on port 3000
+                    # or via mobile-judge-app container on port 8081.
+                    # We prefer port 3000 as it's the primary entry point.
+                    judge_app_base = "http://localhost:3000/judge"
                 else:
                     # Production GitHub Pages
                     judge_app_base = "https://pfisherogden.github.io/MeetManager-Tools/judge"

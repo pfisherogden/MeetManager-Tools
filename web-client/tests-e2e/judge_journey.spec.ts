@@ -3,24 +3,11 @@ import { getE2ETestContext, robustClick } from "./utils";
 
 test.describe("Mobile Judge App Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		// Set a unique user ID for this test to avoid collisions in the backend
 		const { userId } = getE2ETestContext(testInfo);
-
-		// Set header for all requests from this page
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-		});
-
-		// Set cookie for additional resilience
+		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
-			{
-				name: "x-user-id",
-				value: userId,
-				domain: "localhost",
-				path: "/",
-			},
+			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);
-
 		console.log(`Using isolated Judge User ID: ${userId}`);
 	});
 

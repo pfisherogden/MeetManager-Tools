@@ -1,55 +1,24 @@
-import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
-
-// Helper to ensure dataset is active for screenshots
-async function ensureDataset(page, _userId, filename, data) {
-	await page.goto("/admin", { waitUntil: "networkidle" });
-	const rowId = `dataset-row-${filename}`;
-	const isPresent = (await page.getByTestId(rowId).count()) > 0;
-
-	if (!isPresent) {
-		const tempDir = path.join(process.cwd(), "tmp", "e2e-fixtures");
-		if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-		const testFilePath = path.join(tempDir, filename);
-		fs.writeFileSync(testFilePath, JSON.stringify(data));
-		await page.setInputFiles('input[type="file"]', testFilePath);
-		await page.getByText(/Upload Dataset/i).click();
-		await expect(page.getByTestId(rowId)).toBeVisible({ timeout: 45000 });
-	}
-
-	const row = page.getByTestId(rowId);
-	await row.scrollIntoViewIfNeeded();
-	await row.evaluate((el) => {
-		const btn = el.querySelector('button[aria-label*="Set Active"]');
-		if (btn) (btn as HTMLElement).click();
-	});
-	await expect(row.getByTestId("active-dataset-badge")).toBeVisible({
-		timeout: 15000,
-	});
-}
+import {
+	ensureDatasetActive,
+	getE2ETestContext,
+	getFixtureData,
+} from "./utils";
 
 test.describe("Visual Journey Capture", () => {
 	const reportDir = path.join(process.cwd(), "tmp", "visual-report");
 
-	test.beforeEach(async ({ page, context }) => {
-		const userId = "visual-capture-user";
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-			"x-e2e-uid": userId,
-		});
+	test.beforeEach(async ({ page, context }, testInfo) => {
+		const { userId, getFilename } = getE2ETestContext(testInfo);
+		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);
 
-		const testFileName = "tiny_champs.json";
-		const data = JSON.parse(
-			fs.readFileSync(
-				path.resolve(process.cwd(), "..", "tests", "fixtures", testFileName),
-				"utf8",
-			),
-		);
-		await ensureDataset(page, userId, testFileName, data);
+		const testFileName = getFilename("tiny_champs.json");
+		const data = getFixtureData("tiny_champs.json");
+		await ensureDatasetActive(page, userId, testFileName, data);
 	});
 
 	test("capture admin dashboard", async ({ page }) => {
@@ -84,10 +53,11 @@ test.describe("Visual Journey Capture", () => {
 		console.log("Captured: 2-coach-filtered-report.png");
 	});
 
-	test("capture judge app events", async ({ page }) => {
-		await page.goto(
-			"http://localhost:8080/MeetManager-Tools/judge?uid=visual-capture-user",
-		);
+	test("capture judge app events", async ({ page }, testInfo) => {
+		const { userId } = getE2ETestContext(testInfo);
+		const judgeBase =
+			process.env.MOBILE_APP_URL || "http://localhost:3000/judge";
+		await page.goto(`${judgeBase}?uid=${userId}`);
 		await page.getByPlaceholder("Your Name").fill("Visual Reviewer");
 		await page.getByText("START JUDGING").click();
 
