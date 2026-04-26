@@ -30,24 +30,18 @@ export async function ensureDatasetActive(
 		const testFilePath = path.join(tempDir, filename);
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 
-		// Use direct setInputFiles on the hidden input with a visibility override for Safari
+		// Wait for the upload button to be visible, ensuring the component has rendered.
+		// This is more robust than just networkidle for slow mobile emulators.
+		await expect(page.getByTestId("upload-dataset-button")).toBeVisible({
+			timeout: 30000,
+		});
+
 		const fileInput = page.getByTestId("dataset-file-input");
 
-		// Force visibility for Safari actionability
-		await fileInput.evaluate((el) => {
-			(el as HTMLElement).style.display = "block";
-			(el as HTMLElement).style.visibility = "visible";
-			(el as HTMLElement).style.opacity = "1";
-			(el as HTMLElement).style.width = "100px";
-			(el as HTMLElement).style.height = "100px";
-		});
-
+		// Wait for the file input to be attached to the DOM.
+		// setInputFiles works on hidden inputs, so visibility hacks are unnecessary.
+		await fileInput.waitFor({ state: "attached", timeout: 15000 });
 		await fileInput.setInputFiles(testFilePath);
-
-		// Return visibility to normal
-		await fileInput.evaluate((el) => {
-			(el as HTMLElement).style.display = "none";
-		});
 
 		// Wait for row without checking toast
 		await expect(row).toBeVisible({ timeout: 60000 });
