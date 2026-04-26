@@ -1,13 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Metadata } from "nice-grpc";
 import client from "@/lib/mm-client";
 
 async function getAuthMetadata() {
 	const headerList = await headers();
-	let userId = headerList.get("x-user-id");
+	const cookieStore = await cookies();
+	let userId =
+		headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
 
 	// Fallback for local development or E2E bypass
 	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" && !userId) {

@@ -47,8 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		if (isAuthDisabled) {
 			// Mock local user for development or E2E testing
+			// Prioritize the UID from cookies if set by the E2E test for isolation
+			const storedUid = Cookies.get("x-user-id");
 			const mockUser = {
-				uid: "e2e-bypass-user",
+				uid: storedUid || "e2e-bypass-user",
 				email: "dev@local.host",
 				displayName: "E2E Bypass User",
 			} as User;
