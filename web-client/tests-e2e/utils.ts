@@ -78,23 +78,23 @@ export async function ensureDatasetActive(
 	// This bypasses all caching and race conditions between backend extraction and frontend revalidation.
 	console.log("[Utils] Polling /meets for data readiness...");
 	let isPopulated = false;
-	for (let i = 0; i < 15; i++) {
+	for (let i = 0; i < 30; i++) {
 		await page.goto("/meets", { waitUntil: "networkidle" });
 		const tableText = await page.locator("table").textContent();
 		if (tableText && !tableText.includes("No data available")) {
 			isPopulated = true;
-			console.log(
-				`[Utils] Data confirmed ready on /meets after ${i + 1} retries.`,
-			);
+			console.log(`[Utils] Data confirmed ready on /meets after ${i + 1} retries.`);
 			break;
 		}
-		console.log(`[Utils] Data not ready, retrying (${i + 1}/15)...`);
+		console.log(`[Utils] Data not ready, retrying (${i + 1}/30)...`);
 		await page.waitForTimeout(2000);
 	}
 
 	if (!isPopulated) {
 		throw new Error(
-			`[Utils] Data failed to populate for ${filename} after 30s of polling.`,
+			`[Utils] Data failed to populate for ${filename} after 60s of polling.`,
+		);
+	}
 		);
 	}
 

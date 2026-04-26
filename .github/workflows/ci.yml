@@ -245,6 +245,7 @@ jobs:
           FRONTEND_URL: http://localhost:3000
           MOBILE_APP_URL: http://localhost:8081
           NEXT_PUBLIC_E2E_AUTH_BYPASS: 'true'
+          SHARD_INDEX: ${{ matrix.shardIndex }}
 
       - name: Print Logs
         if: always()

@@ -5,10 +5,11 @@ test.describe("Mobile Judge App Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		// Set a unique user ID for this test to avoid collisions in the backend
 		// UNLESS we are in auth bypass mode, then we MUST use the fixed UID.
+		const shardIndex = process.env.SHARD_INDEX || "0";
 		const userId =
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? "e2e-bypass-user"
-				: `e2e-judge-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+				? `e2e-bypass-user-${shardIndex}`
+				: `e2e-judge-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 
 		// Set header for all requests from this page
 		await page.setExtraHTTPHeaders({

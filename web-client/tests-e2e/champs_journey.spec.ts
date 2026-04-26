@@ -3,7 +3,8 @@ import { ensureDatasetActive, getFixtureData } from "./utils";
 
 test.describe("Champs Dataset Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		const userId = `e2e-champs-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId = `e2e-champs-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,
@@ -17,8 +18,9 @@ test.describe("Champs Dataset Journey", () => {
 		page,
 	}) => {
 		test.setTimeout(300000); // 5 mins
+		const shardIndex = process.env.SHARD_INDEX || "0";
 		const workerIndex = test.info().workerIndex;
-		const userId = `e2e-champs-${workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		const userId = `e2e-champs-${shardIndex}-${workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
 		const testFileName = `tiny_champs_${workerIndex}.json`;
 		const data = getFixtureData("tiny_champs.json");
 

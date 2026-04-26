@@ -3,7 +3,11 @@ import { ensureDatasetActive, getFixtureData } from "./utils";
 
 test.describe("DQ Lifecycle Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		const userId = `e2e-dq-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId =
+			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
+				? `e2e-bypass-user-${shardIndex}`
+				: `e2e-dq-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,

@@ -13,7 +13,8 @@ const authFile = path.join(__dirname, "../../auth.json");
 
 test.describe("Production Smoke Tests", () => {
 	test.beforeEach(async ({ page, context }) => {
-		const userId = process.env.PROD_VERIFY_USER_ID || "prod-verify-user";
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId = `${process.env.PROD_VERIFY_USER_ID || "prod-verify-user"}-${shardIndex}`;
 		const domain = new URL(process.env.BASE_URL || "http://localhost:3000")
 			.hostname;
 

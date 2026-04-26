@@ -4,7 +4,11 @@ import { ensureDatasetActive, getFixtureData } from "./utils";
 test.describe("Reports Generation Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const userId = `e2e-reports-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId =
+			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
+				? `e2e-bypass-user-${shardIndex}`
+				: `e2e-reports-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,
@@ -24,7 +28,11 @@ test.describe("Reports Generation Journey", () => {
 	test("should ensure tiny_meet.json is active and navigate to Reports", async ({
 		page,
 	}) => {
-		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId =
+			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
+				? `e2e-bypass-user-${shardIndex}`
+				: `e2e-reports-${shardIndex}-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
 		await ensureTinyMeetActive(page, userId);
 		await page.goto("/reports", { waitUntil: "networkidle" });
 		await expect(
@@ -33,7 +41,8 @@ test.describe("Reports Generation Journey", () => {
 	});
 
 	test("should generate and preview HTML Meet Program", async ({ page }) => {
-		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId = `e2e-reports-${shardIndex}-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
 		await ensureTinyMeetActive(page, userId);
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
@@ -57,7 +66,8 @@ test.describe("Reports Generation Journey", () => {
 	test("should generate PDF Entries report and verify layout", async ({
 		page,
 	}) => {
-		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId = `e2e-reports-${shardIndex}-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
 		await ensureTinyMeetActive(page, userId);
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
@@ -84,7 +94,8 @@ test.describe("Reports Generation Journey", () => {
 	test("should generate Lane Timer Sheets and verify status", async ({
 		page,
 	}) => {
-		const userId = `e2e-reports-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId = `e2e-reports-${shardIndex}-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
 		await ensureTinyMeetActive(page, userId);
 		await page.goto("/reports", { waitUntil: "networkidle" });
 

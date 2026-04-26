@@ -3,7 +3,11 @@ import { expect, test } from "@playwright/test";
 test.describe("Dashboard Smoke Test", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		// Set a unique user ID for this test to avoid collisions in the backend
-		const userId = `e2e-smoke-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		const shardIndex = process.env.SHARD_INDEX || "0";
+		const userId =
+			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
+				? `e2e-bypass-user-${shardIndex}`
+				: `e2e-smoke-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 
 		// Set header for all requests from this page
 		await page.setExtraHTTPHeaders({
