@@ -10,6 +10,7 @@ on:
       - 'web-client/**'
       - 'mobile-judge-app/**'
       - 'Justfile'
+      - 'docker-compose*'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
