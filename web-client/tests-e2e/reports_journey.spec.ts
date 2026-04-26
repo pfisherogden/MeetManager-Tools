@@ -19,7 +19,11 @@ test.describe("Reports Generation Journey", () => {
 		console.log(`Using isolated User ID: ${userId}`);
 	});
 
-	async function ensureTinyMeetActive(page, userId, testInfo) {
+	async function ensureTinyMeetActive(
+		page: any,
+		userId: string,
+		testInfo: any,
+	) {
 		const { getFilename } = getE2ETestContext(testInfo);
 		const testFileName = getFilename("tiny_meet.json");
 		const data = getFixtureData("tiny_meet.json");

@@ -143,8 +143,9 @@ export async function robustClick(
 		// Attempt standard click
 		await locator.click({ timeout });
 	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.log(
-			`[Utils] Standard click failed, falling back to evaluate-click: ${error.message}`,
+			`[Utils] Standard click failed, falling back to evaluate-click: ${errorMessage}`,
 		);
 		// Fallback to JS click which bypasses pointer-events: none and occlusion
 		await locator.evaluate((el) => (el as HTMLElement).click());

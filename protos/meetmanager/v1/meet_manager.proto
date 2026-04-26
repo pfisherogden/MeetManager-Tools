@@ -552,24 +552,30 @@ message Athlete {
 message Event {
   // id is the unique identifier of the event.
   int32 id = 1;
+  // event_no is the human-readable event number (e.g. 1, 2A).
+  int32 event_no = 2;
+  // name is the full descriptive name of the event.
+  string name = 3;
   // gender is the gender category for the event.
-  string gender = 2;
+  string gender = 4;
   // distance is the length of the race in meters or yards.
-  int32 distance = 3;
+  int32 distance = 5;
   // stroke is the swimming stroke for the event.
-  string stroke = 4;
+  string stroke = 6;
   // low_age is the minimum age for this event.
-  int32 low_age = 5;
+  int32 low_age = 7;
   // high_age is the maximum age for this event.
-  int32 high_age = 6;
+  int32 high_age = 8;
   // session is the session number this event belongs to.
-  int32 session = 7;
+  int32 session = 9;
   // status is the current status of the event.
-  string status = 8;
+  string status = 10;
   // entry_count is the number of entries in this event.
-  int32 entry_count = 9;
+  int32 entry_count = 11;
   // age_group is the formatted age range for this event.
-  string age_group = 10;
+  string age_group = 12;
+  // is_relay indicates if this is a relay event.
+  bool is_relay = 13;
 }
 
 // ReportType specifies the kind of report to generate.

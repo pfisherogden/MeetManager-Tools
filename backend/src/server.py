@@ -896,13 +896,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         for e in entries:
             evt_ptr = e.get("event_ptr")
             if evt_ptr:
-                entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
+                entry_counts[str(evt_ptr)] = entry_counts.get(str(evt_ptr), 0) + 1
 
         relays = self._get_table(cache, "relay")
         for r in relays:
             evt_ptr = r.get("event_ptr")
             if evt_ptr:
-                entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
+                entry_counts[str(evt_ptr)] = entry_counts.get(str(evt_ptr), 0) + 1
 
         # Build session mapping from Sessitem (Linking Event_ptr to Session No)
         sess_map = {}
@@ -916,7 +916,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             e_ptr = si.get("event_ptr")
             s_ptr = si.get("sess_ptr")
             if e_ptr and s_ptr:
-                sess_map[e_ptr] = ptr_to_no.get(s_ptr, 1)
+                sess_map[str(e_ptr)] = ptr_to_no.get(s_ptr, 1)
 
         for item in data:
             # Universal case-insensitive field lookup
@@ -943,7 +943,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             raw_gender = str(get_field(item, ["event_sex"]) or "").upper().strip()
             gender_desc = gender_map.get(raw_gender, raw_gender)
 
-            evt_ptr = str(get_field(item, ["event_ptr"]) or "")
+            evt_ptr_val = get_field(item, ["event_ptr"]) or "0"
             evt_no = self._safe_int(get_field(item, ["event_no"]))
             dist = self._safe_int(get_field(item, ["event_dist"]))
 
@@ -953,7 +953,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             events.append(
                 pb2.Event(
-                    id=evt_ptr,
+                    id=self._safe_int(evt_ptr_val),
                     event_no=evt_no,
                     name=f"{gender_desc} {age_group} {dist} {stroke_desc}",
                     distance=dist,
@@ -961,8 +961,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     gender=gender_desc,
                     age_group=age_group,
                     is_relay=is_relay,
-                    entry_count=entry_counts.get(evt_ptr, 0),
-                    session_id=sess_map.get(evt_ptr, 1),
+                    entry_count=entry_counts.get(str(evt_ptr_val), 0),
+                    session=sess_map.get(str(evt_ptr_val), 1),
                 )
             )
         return pb2.GetEventsResponse(events=events)
@@ -979,10 +979,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
         for e in self._get_table(cache, "event"):
-            e_no = e.get("event_no") or e.get("event_ptr")
-            if e_no:
+            e_ptr = e.get("event_ptr") or e.get("event_no")
+            if e_ptr:
                 # Universal case-insensitive field lookup
-                def get_field(d, keys):
+                def get_field_inner(d, keys):
                     if not d:
                         return None
                     for k in keys:
@@ -993,25 +993,19 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                                 return d[actual_key]
                     return None
 
-                g = gender_map.get(str(get_field(e, ["event_sex"]) or "").strip(), "")
-                d = get_field(e, ["event_dist"]) or ""
-                s = stroke_map.get(str(get_field(e, ["event_stroke"]) or "").strip(), "")
-                low = self._safe_int(get_field(e, ["low_age"]))
-                high = self._safe_int(get_field(e, ["high_age"]))
+                g = gender_map.get(str(get_field_inner(e, ["event_sex"]) or "").strip(), "")
+                d = get_field_inner(e, ["event_dist"]) or ""
+                s = stroke_map.get(str(get_field_inner(e, ["event_stroke"]) or "").strip(), "")
+                low = self._safe_int(get_field_inner(e, ["low_age"]))
+                high = self._safe_int(get_field_inner(e, ["high_age"]))
                 age_group = self._format_age(low, high)
                 name = f"{g} {age_group} {d} {s}"
-                events_map[e_no] = name
+                events_map[str(e_ptr)] = name
 
         result = []
         for idx, item in enumerate(entries_data):
-            ath_id = self._safe_int(item.get("ath_no", 0))
-            if request and request.athlete_id and str(ath_id) != request.athlete_id:
-                continue
-
-            athlete = athletes.get(ath_id, {})
-
             # Universal case-insensitive field lookup
-            def get_field(d, keys):
+            def get_field_inner(d, keys):
                 if not d:
                     return None
                 for k in keys:
@@ -1022,28 +1016,29 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             return d[actual_key]
                 return None
 
-            t_id = self._safe_int(get_field(athlete, ["team_no", "team_no"]))
-            event_id = get_field(item, ["event_ptr"])
-            if request and request.event_id and str(event_id) != request.event_id:
+            ath_id = self._safe_int(get_field_inner(item, ["ath_no"]))
+            if request and request.athlete_id and str(ath_id) != request.athlete_id:
                 continue
 
-            seed = (
-                get_field(item, ["actualseed_time", "actualseed_time"])
-                or get_field(item, ["convseed_time", "convseed_time"])
-                or get_field(item, ["seed_time", "seed_time"])
-            )
+            athlete = athletes.get(ath_id, {})
+            t_id = self._safe_int(get_field_inner(athlete, ["team_no", "team_no"]))
+            event_id_val = get_field_inner(item, ["event_ptr"])
+            if request and request.event_id and str(event_id_val) != request.event_id:
+                continue
 
-            entry_id_val = get_field(item, ["entry_no"])
+            seed = get_field_inner(item, ["actualseed_time", "convseed_time", "seed_time"])
+
+            entry_id_val = get_field_inner(item, ["entry_no"])
             final_id = self._safe_int(entry_id_val) if entry_id_val else idx
 
             result.append(
                 pb2.Entry(
                     id=final_id,
-                    athlete_id=str(ath_id),
-                    event_id=str(event_id or ""),
+                    athlete_id=ath_id,
+                    event_id=self._safe_int(event_id_val),
                     team_id=t_id,
                     seed_time=str(seed or ""),
-                    event_name=events_map.get(event_id, "Unknown Event"),
+                    event_name=events_map.get(str(event_id_val), "Unknown Event"),
                     athlete_name=f"{athlete.get('first_name', '')} {athlete.get('last_name', '')}".strip()
                     or "Unknown Athlete",
                     team_name=str(teams.get(t_id, "") or ""),
@@ -1514,7 +1509,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             entry_obj = pb2.Entry(
                 id=0,
                 event_id=self._safe_int(e_id),
-                athlete_id=str(ath_id),
+                athlete_id=ath_id,
                 athlete_name=f"{ath.get('first_name', '')} {ath.get('last_name', '')}" if ath else "Unknown",
                 team_id=t_id,
                 team_name=str(teams_map.get(t_id, "Unknown")),

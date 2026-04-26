@@ -535,8 +535,10 @@ class Athlete(_message.Message):
     def __init__(self, id: _Optional[int] = ..., first_name: _Optional[str] = ..., last_name: _Optional[str] = ..., gender: _Optional[str] = ..., age: _Optional[int] = ..., team_id: _Optional[int] = ..., team_name: _Optional[str] = ..., school_year: _Optional[str] = ..., reg_no: _Optional[str] = ..., date_of_birth: _Optional[str] = ...) -> None: ...
 
 class Event(_message.Message):
-    __slots__ = ("id", "gender", "distance", "stroke", "low_age", "high_age", "session", "status", "entry_count", "age_group")
+    __slots__ = ("id", "event_no", "name", "gender", "distance", "stroke", "low_age", "high_age", "session", "status", "entry_count", "age_group", "is_relay")
     ID_FIELD_NUMBER: _ClassVar[int]
+    EVENT_NO_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
     GENDER_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     STROKE_FIELD_NUMBER: _ClassVar[int]
@@ -546,7 +548,10 @@ class Event(_message.Message):
     STATUS_FIELD_NUMBER: _ClassVar[int]
     ENTRY_COUNT_FIELD_NUMBER: _ClassVar[int]
     AGE_GROUP_FIELD_NUMBER: _ClassVar[int]
+    IS_RELAY_FIELD_NUMBER: _ClassVar[int]
     id: int
+    event_no: int
+    name: str
     gender: str
     distance: int
     stroke: str
@@ -556,7 +561,8 @@ class Event(_message.Message):
     status: str
     entry_count: int
     age_group: str
-    def __init__(self, id: _Optional[int] = ..., gender: _Optional[str] = ..., distance: _Optional[int] = ..., stroke: _Optional[str] = ..., low_age: _Optional[int] = ..., high_age: _Optional[int] = ..., session: _Optional[int] = ..., status: _Optional[str] = ..., entry_count: _Optional[int] = ..., age_group: _Optional[str] = ...) -> None: ...
+    is_relay: bool
+    def __init__(self, id: _Optional[int] = ..., event_no: _Optional[int] = ..., name: _Optional[str] = ..., gender: _Optional[str] = ..., distance: _Optional[int] = ..., stroke: _Optional[str] = ..., low_age: _Optional[int] = ..., high_age: _Optional[int] = ..., session: _Optional[int] = ..., status: _Optional[str] = ..., entry_count: _Optional[int] = ..., age_group: _Optional[str] = ..., is_relay: bool = ...) -> None: ...
 
 class GenerateReportRequest(_message.Message):
     __slots__ = ("type", "title", "team_filter", "gender_filter", "age_group_filter", "columns_on_page", "show_relay_swimmers", "zebra_striping", "renderer_type", "html_preview")

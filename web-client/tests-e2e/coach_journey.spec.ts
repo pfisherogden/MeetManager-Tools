@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { ensureDatasetActive, getFixtureData } from "./utils";
+import {
+	ensureDatasetActive,
+	getE2ETestContext,
+	getFixtureData,
+} from "./utils";
 
 test.describe("Coach Persona Journey", () => {
 	test.describe.configure({ mode: "serial" });
