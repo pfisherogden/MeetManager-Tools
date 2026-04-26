@@ -473,20 +473,22 @@ class Session(_message.Message):
     def __init__(self, id: _Optional[str] = ..., meet_id: _Optional[str] = ..., name: _Optional[str] = ..., date: _Optional[str] = ..., warm_up_time: _Optional[str] = ..., start_time: _Optional[str] = ..., event_count: _Optional[int] = ..., session_num: _Optional[int] = ..., day: _Optional[int] = ...) -> None: ...
 
 class Meet(_message.Message):
-    __slots__ = ("id", "name", "location", "start_date", "end_date", "status")
+    __slots__ = ("id", "name", "location", "start_date", "end_date", "course", "status")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     LOCATION_FIELD_NUMBER: _ClassVar[int]
     START_DATE_FIELD_NUMBER: _ClassVar[int]
     END_DATE_FIELD_NUMBER: _ClassVar[int]
+    COURSE_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     id: str
     name: str
     location: str
     start_date: str
     end_date: str
+    course: str
     status: str
-    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., location: _Optional[str] = ..., start_date: _Optional[str] = ..., end_date: _Optional[str] = ..., status: _Optional[str] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., location: _Optional[str] = ..., start_date: _Optional[str] = ..., end_date: _Optional[str] = ..., course: _Optional[str] = ..., status: _Optional[str] = ...) -> None: ...
 
 class Team(_message.Message):
     __slots__ = ("id", "name", "code", "lsc", "city", "state", "athlete_count", "color")

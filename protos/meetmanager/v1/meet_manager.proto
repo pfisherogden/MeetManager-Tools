@@ -498,8 +498,10 @@ message Meet {
   string start_date = 4;
   // end_date is when the meet ends.
   string end_date = 5;
+  // course is the pool length (e.g., "Y", "L", "S").
+  string course = 6;
   // status is the current status of the meet.
-  string status = 6;
+  string status = 7;
 }
 
 // Team represents a swim team participating in the meet.
