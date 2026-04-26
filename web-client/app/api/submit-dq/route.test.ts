@@ -177,14 +177,18 @@ describe("POST /api/submit-dq", () => {
 		expect(json.message).toBe("DQ submitted successfully");
 
 		expect(dqDb.saveDq).toHaveBeenCalledTimes(1);
-		expect(dqDb.saveDq).toHaveBeenCalledWith("dq-124", {
-			client_id: "Unknown",
-			event: 1,
-			heat: 1,
-			lane: 1,
-			swimmer: 1,
-			infraction_code: "1A",
-		});
+		expect(dqDb.saveDq).toHaveBeenCalledWith(
+			"dq-124",
+			{
+				client_id: "Unknown",
+				event: 1,
+				heat: 1,
+				lane: 1,
+				swimmer: 1,
+				infraction_code: "1A",
+			},
+			"test-uid",
+		);
 
 		expect(client.syncDQs).toHaveBeenCalledTimes(1);
 		const syncCall = vi.mocked(client.syncDQs).mock.calls[0][0];
