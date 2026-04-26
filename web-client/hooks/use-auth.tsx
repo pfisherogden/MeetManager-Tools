@@ -37,18 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	);
 	const [loading, setLoading] = useState(true);
 
-	const isAuthDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
+	const isAuthDisabled =
+		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
+		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
 
 	useEffect(() => {
 		const token = Cookies.get("googleAccessToken");
 		if (token) setGoogleAccessToken(token);
 
 		if (isAuthDisabled) {
-			// Mock local user
+			// Mock local user for development or E2E testing
 			const mockUser = {
-				uid: "dev-user",
+				uid: "e2e-bypass-user",
 				email: "dev@local.host",
-				displayName: "Local Developer",
+				displayName: "E2E Bypass User",
 			} as User;
 			setUser(mockUser);
 			Cookies.set("idToken", "dev-token", {
