@@ -74,20 +74,31 @@ export async function ensureDatasetActive(
 	// Use robust click
 	await robustClick(setActiveBtn);
 
-	// Backend SetActiveDataset is now synchronous, but Next.js need a momento to refresh.
-	await page.waitForTimeout(2000);
+	// NUCLEAR: Poll /meets until data is actually populated and reflected in the UI.
+	// This bypasses all caching and race conditions between backend extraction and frontend revalidation.
+	console.log("[Utils] Polling /meets for data readiness...");
+	let isPopulated = false;
+	for (let i = 0; i < 15; i++) {
+		await page.goto("/meets", { waitUntil: "networkidle" });
+		const tableText = await page.locator("table").textContent();
+		if (tableText && !tableText.includes("No data available")) {
+			isPopulated = true;
+			console.log(
+				`[Utils] Data confirmed ready on /meets after ${i + 1} retries.`,
+			);
+			break;
+		}
+		console.log(`[Utils] Data not ready, retrying (${i + 1}/15)...`);
+		await page.waitForTimeout(2000);
+	}
 
-	// Verify on meets page that data is loaded
-	await page.goto("/meets", { waitUntil: "networkidle" });
-	await expect(page.getByTestId("meet-count")).toBeVisible({ timeout: 15000 });
-	const count = await page.getByTestId("meet-count").getAttribute("data-count");
-	if (!count || parseInt(count, 10) === 0) {
+	if (!isPopulated) {
 		throw new Error(
-			`[Utils] Data failed to populate for ${filename} after activation.`,
+			`[Utils] Data failed to populate for ${filename} after 30s of polling.`,
 		);
 	}
 
-	// Go back to admin to confirm attribute change
+	// Go back to admin to confirm attribute change and finish utility
 	await page.goto("/admin", { waitUntil: "networkidle" });
 	await expect(row).toHaveAttribute("data-test-state", "active", {
 		timeout: 20000,
