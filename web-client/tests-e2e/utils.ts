@@ -30,18 +30,11 @@ export async function ensureDatasetActive(
 		const testFilePath = path.join(tempDir, filename);
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 
-		// Wait for the upload button to be visible, ensuring the component has rendered.
-		// This is more robust than just networkidle for slow mobile emulators.
-		await expect(page.getByTestId("upload-dataset-button")).toBeVisible({
-			timeout: 30000,
-		});
-
 		const fileInput = page.getByTestId("dataset-file-input");
 
-		// Wait for the file input to be attached to the DOM.
-		// setInputFiles works on hidden inputs, so visibility hacks are unnecessary.
-		await fileInput.waitFor({ state: "attached", timeout: 15000 });
-		await fileInput.setInputFiles(testFilePath);
+		// setInputFiles natively waits for the element to exist and handles hidden inputs
+		console.log(`[Utils] Setting input files for ${filename}...`);
+		await fileInput.setInputFiles(testFilePath, { timeout: 30000 });
 
 		// Wait for row without checking toast
 		await expect(row).toBeVisible({ timeout: 60000 });
