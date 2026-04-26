@@ -29,7 +29,7 @@ test.describe("Meet Administrator Management", () => {
 			{
 				filename: ds1,
 				fixture: "tiny_meet.json",
-				expectedText: "Del Prado at Pleasanton Cup",
+				expectedText: "Time Trials - RED",
 			},
 			{
 				filename: ds2,

@@ -40,11 +40,18 @@ test.describe("Champs Dataset Journey", () => {
 
 		// 4. Reports Page: Verify generation
 		await page.goto("/reports");
-		const configCard = page.getByTestId("config-card-results");
+
+		// Select "Meet Results" card
+		const resultsCard = page.getByTestId("report-card-meet-results");
+		await expect(resultsCard).toBeVisible();
+		await resultsCard.click();
+
+		// Configure and Generate
+		const configCard = page.getByTestId("report-configuration-card");
 		await expect(configCard).toBeVisible();
 
 		// Start generation
-		const generateBtn = configCard.getByTestId("generate-button");
+		const generateBtn = configCard.getByTestId("generate-report-button");
 		await generateBtn.click();
 
 		// Wait for completion and download

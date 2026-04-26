@@ -46,11 +46,16 @@ test.describe("Reports Generation Journey", () => {
 		await ensureTinyMeetActive(page, userId, testInfo);
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
-		const configCard = page.getByTestId("config-card-results");
+		// Select "Meet Results" card
+		const resultsCard = page.getByTestId("report-card-meet-results");
+		await expect(resultsCard).toBeVisible();
+		await resultsCard.click();
+
+		const configCard = page.getByTestId("report-configuration-card");
 		await expect(configCard).toBeVisible();
 
 		// Start generation
-		const generateBtn = configCard.getByTestId("generate-button");
+		const generateBtn = configCard.getByTestId("generate-report-button");
 		await generateBtn.click();
 
 		// Wait for completion and download
@@ -65,18 +70,21 @@ test.describe("Reports Generation Journey", () => {
 		expect(await download.path()).toBeTruthy();
 	});
 
-	test("should generate Individual Awards Report", async ({
-		page,
-	}, testInfo) => {
+	test("should generate Psych Sheet Report", async ({ page }, testInfo) => {
 		const { userId } = getE2ETestContext(testInfo);
 		await ensureTinyMeetActive(page, userId, testInfo);
 		await page.goto("/reports", { waitUntil: "networkidle" });
 
-		const configCard = page.getByTestId("config-card-awards");
+		// Select "Psych Sheet" card
+		const psychCard = page.getByTestId("report-card-psych-sheet");
+		await expect(psychCard).toBeVisible();
+		await psychCard.click();
+
+		const configCard = page.getByTestId("report-configuration-card");
 		await expect(configCard).toBeVisible();
 
 		// Start generation
-		const generateBtn = configCard.getByTestId("generate-button");
+		const generateBtn = configCard.getByTestId("generate-report-button");
 		await generateBtn.click();
 
 		// Wait for completion and download

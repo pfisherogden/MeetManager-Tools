@@ -35,9 +35,10 @@ console.log(
 const host = rawHost.replace(/^https?:\/\//, "");
 console.log(`E2E DEBUG: mm-client channel host: ${host}`);
 
-// Create a middleware to add the token to every request
+// Create a middleware to add the token and x-user-id to every request
 const authMiddleware = async function* (call: any, options: any) {
 	let token: string | undefined;
+	let userId: string | undefined;
 
 	if (typeof window === "undefined") {
 		// Server-side: Import dynamically to avoid client-side bundling issues
@@ -45,21 +46,26 @@ const authMiddleware = async function* (call: any, options: any) {
 			const { cookies } = await import("next/headers");
 			const cookieStore = await cookies();
 			token = cookieStore.get("idToken")?.value;
+			userId = cookieStore.get("x-user-id")?.value;
 		} catch (e) {
 			console.warn("Could not retrieve cookies on server", e);
 		}
 	} else {
 		// Client-side: use js-cookie if needed, or simple regex
-		const match = document.cookie.match(/idToken=([^;]+)/);
-		if (match) token = match[1];
+		const idTokenMatch = document.cookie.match(/idToken=([^;]+)/);
+		if (idTokenMatch) token = idTokenMatch[1];
+
+		const userIdMatch = document.cookie.match(/x-user-id=([^;]+)/);
+		if (userIdMatch) userId = userIdMatch[1];
 	}
+
+	let metadata = Metadata(options.metadata);
+	if (token) metadata = metadata.set("Authorization", `Bearer ${token}`);
+	if (userId) metadata = metadata.set("x-user-id", userId);
 
 	return yield* call.next(call.request, {
 		...options,
-		metadata: Metadata(options.metadata).set(
-			"Authorization",
-			token ? `Bearer ${token}` : "",
-		),
+		metadata,
 	});
 };
 

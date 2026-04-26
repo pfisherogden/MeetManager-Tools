@@ -411,17 +411,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             except (AttributeError, TypeError) as e:
                 logging.debug(f"DEBUG: Auth metadata extraction failed: {e}")
 
+        uid = getattr(context, "uid", None)
+        if uid is not None:
+            return uid
+
         # Fallback for local development or testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
             return "dev-user"
 
-        if context is None:
-            raise ValueError("Context is required for authentication")
-
-        uid = getattr(context, "uid", None)
-        if uid is None:
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Authentication required")
-        return uid
+        context.abort(grpc.StatusCode.UNAUTHENTICATED, "Authentication required")
+        return "unauthenticated"  # Should not reach here due to abort
 
     def _load_user_config(self, context):
         with self._lock:
