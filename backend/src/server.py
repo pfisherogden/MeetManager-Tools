@@ -521,9 +521,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 else:
                     with open(tmp_path) as f:
                         raw_data = json.load(f)
-                    # Use converter to normalize keys/types even for JSON
-                    from mm_to_json.mm_to_json import MmToJsonConverter
 
+                    # Use converter to normalize keys/types even for JSON
+                    # This ensures table names (Meet -> meet) and column names are normalized
                     converter = MmToJsonConverter(table_data=raw_data)
                     cache = converter.export_raw()
 
@@ -544,7 +544,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
                 return cache, config
             except Exception as e:
-                logging.debug(f"DEBUG: Error loading data from {user_path}: {e}")
+                logging.error(f"DEBUG: Error loading data from {user_path}: {e}")
                 return {}, config
             finally:
                 if os.path.exists(tmp_path):
@@ -565,17 +565,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     dst.write(chunk)
 
             converter = MmToJsonConverter(mdb_path=tmp_path)
-            # MmToJsonConverter loads data into self.tables (dict of DataFrames)
-            cache = {}
-            for table_name, df in converter.tables.items():
-                # Convert DataFrame to list of dicts, ensuring all values are strings/primitives
-                # The existing server logic expects strings for most things, but MmToJsonConverter
-                # might produce ints/floats.
-                # We'll convert to dicts and let Python handle types, but be aware of mismatch.
-                records = df.to_dict("records")
-                cache[table_name] = records
-
-            return cache
+            # Use export_raw for consistent normalization with JSON loading
+            return converter.export_raw()
         except Exception as e:
             logging.error(f"Error loading MDB: {e}")
             return {}
@@ -686,8 +677,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetMeets(self, request, context):
         request = request or pb2.GetMeetsRequest()
         cache, _ = self._load_user_data(context)
-        logging.debug(f"DEBUG: Cache tables: {list(cache.keys())}")
-        data = cache.get("meet", [])
+        uid = self._check_auth(context)
+
+        # Robust case-insensitive lookup
+        data = cache.get("meet") or cache.get("Meet") or cache.get("MEET") or []
+
+        if not data and cache:
+            logging.warning(f"GetMeets: No 'meet' table found for {uid}. Available tables: {list(cache.keys())}")
+
         meets = []
         for item in data:
             logging.debug(f"DEBUG: Meet item keys: {list(item.keys())}")
@@ -724,12 +721,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetTeamsRequest()
         uid = self._check_auth(context)
         cache, _ = self._load_user_data(context)
-        data = cache.get("team", [])
-        logging.debug(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams in cache['team']")
-        if len(data) > 0:
-            logging.debug(f"DEBUG: First team in cache: {data[0].get('team_name')}")
 
-        athletes = cache.get("athlete", [])
+        # Robust case-insensitive lookup
+        data = cache.get("team") or cache.get("Team") or cache.get("TEAM") or []
+        athletes = cache.get("athlete") or cache.get("Athlete") or cache.get("ATHLETE") or []
+
+        logging.debug(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams")
 
         # Count athletes per team
         ath_counts: dict[int, int] = {}
