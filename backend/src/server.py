@@ -888,7 +888,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         cache, _ = self._load_user_data(context)
         data = self._get_table(cache, "event")
         events = []
-        stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breaststroke", "D": "Butterfly", "E": "IM"}
+        stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breast", "D": "Butterfly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
         entry_counts: dict[str, int] = {}
@@ -943,7 +943,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             raw_gender = str(get_field(item, ["event_sex"]) or "").upper().strip()
             gender_desc = gender_map.get(raw_gender, raw_gender)
 
-            evt_ptr_val = get_field(item, ["event_ptr"]) or "0"
+            evt_ptr_val = get_field(item, ["event_ptr"]) or get_field(item, ["event_no"]) or "0"
+            evt_ptr_int = self._safe_int(evt_ptr_val)
             evt_no = self._safe_int(get_field(item, ["event_no"]))
             dist = self._safe_int(get_field(item, ["event_dist"]))
 
@@ -953,7 +954,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             events.append(
                 pb2.Event(
-                    id=self._safe_int(evt_ptr_val),
+                    id=evt_ptr_int,
                     event_no=evt_no,
                     name=f"{gender_desc} {age_group} {dist} {stroke_desc}",
                     distance=dist,
@@ -973,26 +974,26 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         entries_data = self._get_table(cache, "entry")
 
         athletes = {self._safe_int(a.get("ath_no")): a for a in self._get_table(cache, "athlete")}
-        teams = {self._safe_int(t.get("team_no")): t.get("team_name") for t in self._get_table(cache, "team")}
+        teams = {self._safe_int(t.get("team_no")): t for t in self._get_table(cache, "team")}
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
         for e in self._get_table(cache, "event"):
-            e_ptr = e.get("event_ptr") or e.get("event_no")
-            if e_ptr:
-                # Universal case-insensitive field lookup
-                def get_field_inner(d, keys):
-                    if not d:
-                        return None
-                    for k in keys:
-                        if k in d:
-                            return d[k]
-                        for actual_key in d.keys():
-                            if actual_key.lower() == k.lower():
-                                return d[actual_key]
+            # Universal case-insensitive field lookup
+            def get_field_inner(d, keys):
+                if not d:
                     return None
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
 
+            e_ptr = get_field_inner(e, ["event_ptr"]) or get_field_inner(e, ["event_no"])
+            if e_ptr:
                 g = gender_map.get(str(get_field_inner(e, ["event_sex"]) or "").strip(), "")
                 d = get_field_inner(e, ["event_dist"]) or ""
                 s = stroke_map.get(str(get_field_inner(e, ["event_stroke"]) or "").strip(), "")
@@ -1022,7 +1023,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             athlete = athletes.get(ath_id, {})
             t_id = self._safe_int(get_field_inner(athlete, ["team_no", "team_no"]))
-            event_id_val = get_field_inner(item, ["event_ptr"])
+            team_obj = teams.get(t_id, {})
+
+            event_id_val = get_field_inner(item, ["event_ptr"]) or get_field_inner(item, ["event_no"])
+            event_id_int = self._safe_int(event_id_val)
             if request and request.event_id and str(event_id_val) != request.event_id:
                 continue
 
@@ -1035,13 +1039,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.Entry(
                     id=final_id,
                     athlete_id=ath_id,
-                    event_id=self._safe_int(event_id_val),
+                    event_id=event_id_int,
                     team_id=t_id,
-                    seed_time=str(seed or ""),
-                    event_name=events_map.get(str(event_id_val), "Unknown Event"),
+                    seed_time=self._format_time(seed),
+                    final_time=self._format_time(get_field_inner(item, ["fin_time", "pre_time"])),
+                    place=self._safe_int(get_field_inner(item, ["fin_place", "place"])),
+                    event_name=events_map.get(str(event_id_val), f"Event {event_id_val}"),
                     athlete_name=f"{athlete.get('first_name', '')} {athlete.get('last_name', '')}".strip()
                     or "Unknown Athlete",
-                    team_name=str(teams.get(t_id, "") or ""),
+                    team_name=str(get_field_inner(team_obj, ["team_name", "tname"]) or ""),
+                    heat=self._safe_int(get_field_inner(item, ["fin_heat", "pre_heat"])),
+                    lane=self._safe_int(get_field_inner(item, ["fin_lane", "pre_lane"])),
+                    points=self._safe_float(get_field_inner(item, ["ev_score"])),
+                    team_color=self._get_team_color(t_id),
+                    status=str(get_field_inner(item, ["fin_stat", "pre_stat"]) or ""),
                 )
             )
         return pb2.GetEntriesResponse(entries=result)
