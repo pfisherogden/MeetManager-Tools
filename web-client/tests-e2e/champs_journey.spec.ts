@@ -1,10 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { ensureDatasetActive, getFixtureData } from "./utils";
+import {
+	ensureDatasetActive,
+	getE2ETestContext,
+	getFixtureData,
+} from "./utils";
 
 test.describe("Champs Dataset Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		const shardIndex = process.env.SHARD_INDEX || "0";
-		const userId = `e2e-champs-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		const { userId } = getE2ETestContext(testInfo);
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,
@@ -16,13 +19,10 @@ test.describe("Champs Dataset Journey", () => {
 
 	test("should correctly process and display tiny Champs dataset", async ({
 		page,
-	}) => {
+	}, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const shardIndex = process.env.SHARD_INDEX || "0";
-		const workerIndex = test.info().workerIndex;
-		const retry = test.info().retry;
-		const userId = `e2e-champs-${shardIndex}-${workerIndex}-${retry}-${test.info().project.name.replace(/\s+/g, "-")}`;
-		const testFileName = `tiny_champs_${shardIndex}_${workerIndex}_${retry}.json`;
+		const { userId, getFilename } = getE2ETestContext(testInfo);
+		const testFileName = getFilename("tiny_champs.json");
 		const data = getFixtureData("tiny_champs.json");
 
 		// 1. Ensure dataset is active
@@ -41,32 +41,19 @@ test.describe("Champs Dataset Journey", () => {
 			timeout: 20000,
 		});
 
-		// 4. Reports Page: Generate bundle
-		await page.goto("/reports", { waitUntil: "networkidle" });
+		// 4. Reports Page: Verify generation
+		await page.goto("/reports");
+		const configCard = page.getByTestId("config-card-results");
+		await expect(configCard).toBeVisible();
 
-		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.scrollIntoViewIfNeeded();
-		await clubCard.click();
+		// Start generation
+		const generateBtn = configCard.getByTestId("generate-button");
+		await generateBtn.click();
 
-		const configCard = page.getByTestId("report-configuration-card");
-		await expect(configCard).toBeAttached({ timeout: 15000 });
+		// Wait for completion and download
+		const downloadPromise = page.waitForEvent("download");
 
-		// Add 2 reports to pack
-		for (let i = 0; i < 2; i++) {
-			const addBtn = page.getByRole("button", { name: /Add to Pack/i });
-			await addBtn.scrollIntoViewIfNeeded();
-			await addBtn.click();
-			// No toast check needed, just wait for React cycle
-			await page.waitForTimeout(500);
-		}
-
-		const generateZipBtn = page.getByTestId("generate-bundle-button");
-		await expect(generateZipBtn).toBeEnabled({ timeout: 10000 });
-
-		const downloadPromise = page.waitForEvent("download", { timeout: 180000 });
-		await generateZipBtn.click();
-
-		// Wait for bundle generation to finish via state attribute
+		// Poll for finish via state attribute
 		await expect(configCard).toHaveAttribute("data-report-status", "idle", {
 			timeout: 180000,
 		});

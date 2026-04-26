@@ -1,6 +1,39 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { expect, type Locator, type Page } from "@playwright/test";
+import {
+	expect,
+	type Locator,
+	type Page,
+	type TestInfo,
+} from "@playwright/test";
+
+/**
+ * Generates a consistent test context including isolated UID and filenames.
+ * This ensures that shard, worker, and retry indices are identical across all hooks and test cases.
+ */
+export function getE2ETestContext(testInfo: TestInfo) {
+	const shardIndex = process.env.SHARD_INDEX || "0";
+	const workerIndex = testInfo.workerIndex;
+	const retry = testInfo.retry;
+	const projectName = testInfo.project.name.replace(/\s+/g, "-");
+
+	// Isolated User ID for the entire shard+worker+retry combination
+	const userId =
+		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
+			? `e2e-bypass-${shardIndex}-${workerIndex}-${retry}`
+			: `e2e-user-${shardIndex}-${workerIndex}-${retry}-${projectName}`;
+
+	return {
+		userId,
+		shardIndex,
+		workerIndex,
+		retry,
+		projectName,
+		// Generate unique filenames to prevent shard collision on shared filesystems
+		getFilename: (base: string) =>
+			`${base.split(".")[0]}_${shardIndex}_${workerIndex}_${retry}.json`,
+	};
+}
 
 export async function ensureDatasetActive(
 	page: Page,
@@ -8,12 +41,7 @@ export async function ensureDatasetActive(
 	filename: string,
 	data: any,
 ) {
-	// Shard Isolation: Always use the unique userId provided by the test
-	// to avoid collisions on shared runners.
-	const effectiveUserId = userId;
-	console.log(
-		`[Utils] Ensuring ${filename} is active for ${effectiveUserId}...`,
-	);
+	console.log(`[Utils] Ensuring ${filename} is active for ${userId}...`);
 
 	await page.goto("/admin", { waitUntil: "networkidle" });
 
@@ -37,11 +65,6 @@ export async function ensureDatasetActive(
 		throw e;
 	}
 
-	// NUCLEAR: Always trigger activation in E2E to ensure database state is fresh and correct.
-	// This removes the "already active" optimization which was causing race conditions and stale data errors.
-	console.log(
-		`[Utils] Dataset ${filename} activation triggered for ${effectiveUserId}...`,
-	);
 	const row = page.getByTestId(`dataset-row-${filename}`);
 	const isPresent = (await row.count()) > 0;
 
@@ -53,27 +76,26 @@ export async function ensureDatasetActive(
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 
 		const fileInput = page.locator(fileInputSelector);
-
-		// setInputFiles natively waits for the element to exist and handles hidden inputs
 		console.log(`[Utils] Setting input files for ${filename}...`);
 		await fileInput.setInputFiles(testFilePath, { timeout: 30000 });
 
-		// Wait for row without checking toast
+		// Wait for row to appear
 		await expect(row).toBeVisible({ timeout: 60000 });
 		console.log(`[Utils] ${filename} uploaded successfully.`);
 	}
 
-	// 3. Set active
-	console.log(`[Utils] Setting ${filename} active...`);
-	await row.scrollIntoViewIfNeeded();
-	const setActiveBtn = row.getByTestId("set-active-button");
-	await expect(setActiveBtn).toBeVisible({ timeout: 15000 });
-
-	// Use robust click
-	await robustClick(setActiveBtn);
+	// Check if already active
+	const state = await row.getAttribute("data-test-state");
+	if (state !== "active") {
+		console.log(`[Utils] Setting ${filename} active...`);
+		const setActiveBtn = row.getByTestId("set-active-button");
+		await expect(setActiveBtn).toBeVisible({ timeout: 15000 });
+		await robustClick(setActiveBtn);
+	} else {
+		console.log(`[Utils] ${filename} is already active.`);
+	}
 
 	// NUCLEAR: Poll /meets until data is actually populated and reflected in the UI.
-	// This bypasses all caching and race conditions between backend extraction and frontend revalidation.
 	console.log("[Utils] Polling /meets for data readiness...");
 	let isPopulated = false;
 	for (let i = 0; i < 30; i++) {
@@ -96,7 +118,7 @@ export async function ensureDatasetActive(
 		);
 	}
 
-	// Go back to admin to confirm attribute change and finish utility
+	// Go back to admin to confirm final state
 	await page.goto("/admin", { waitUntil: "networkidle" });
 	await expect(row).toHaveAttribute("data-test-state", "active", {
 		timeout: 20000,
@@ -114,30 +136,20 @@ export async function robustClick(
 	options: { timeout?: number } = {},
 ) {
 	const timeout = options.timeout || 10000;
-
 	try {
-		// 1. Try standard click with forced visibility check
-		await locator.scrollIntoViewIfNeeded();
-		await locator.click({ force: true, timeout: timeout / 2 });
-	} catch (e) {
-		console.warn(
-			`[Utils] Standard click failed, falling back to evaluate-click: ${e.message}`,
+		// Attempt standard click
+		await locator.click({ timeout });
+	} catch (error) {
+		console.log(
+			`[Utils] Standard click failed, falling back to evaluate-click: ${error.message}`,
 		);
-
-		// 2. Fallback: Direct DOM click via evaluate
-		// This bypasses Playwright's "is it visible/clickable" logic which
-		// can be flaky with complex nested scroll views.
-		await locator.evaluate((el) => {
-			if (el instanceof HTMLElement) {
-				el.scrollIntoView({ block: "center", inline: "center" });
-				el.click();
-			}
-		});
+		// Fallback to JS click which bypasses pointer-events: none and occlusion
+		await locator.evaluate((el) => (el as HTMLElement).click());
 	}
 }
 
 export function getFixtureData(filename: string) {
-	const fixturePath = path.resolve(
+	const fixturePath = path.join(
 		process.cwd(),
 		"..",
 		"tests",
