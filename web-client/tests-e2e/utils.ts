@@ -19,7 +19,27 @@ export async function ensureDatasetActive(
 
 	await page.goto("/admin", { waitUntil: "networkidle" });
 
-	// 1. Check if row exists, if not upload
+	// 1. Defensively check for login redirect (common in Safari)
+	if (page.url().includes("/login")) {
+		console.warn(
+			`[Utils] Detected redirect to login on Safari. Waiting for auth redirect back...`,
+		);
+		await page.waitForURL("**/admin", { timeout: 20000 });
+	}
+
+	// 2. Use a robust wait for the input element
+	const fileInputSelector = 'input[data-testid="dataset-file-input"]';
+	try {
+		await page.waitForSelector(fileInputSelector, {
+			state: "attached",
+			timeout: 15000,
+		});
+	} catch (e) {
+		console.error(`[Utils] File input not found. Current URL: ${page.url()}`);
+		throw e;
+	}
+
+	// 3. Check if row exists, if not upload
 	const row = page.getByTestId(`dataset-row-${filename}`);
 	const isPresent = (await row.count()) > 0;
 
@@ -30,7 +50,7 @@ export async function ensureDatasetActive(
 		const testFilePath = path.join(tempDir, filename);
 		fs.writeFileSync(testFilePath, JSON.stringify(data));
 
-		const fileInput = page.getByTestId("dataset-file-input");
+		const fileInput = page.locator(fileInputSelector);
 
 		// setInputFiles natively waits for the element to exist and handles hidden inputs
 		console.log(`[Utils] Setting input files for ${filename}...`);
@@ -40,7 +60,6 @@ export async function ensureDatasetActive(
 		await expect(row).toBeVisible({ timeout: 60000 });
 		console.log(`[Utils] ${filename} uploaded successfully.`);
 	}
-
 	// 2. Check if active via data-attribute
 	const state = await row.getAttribute("data-test-state");
 	if (state === "active") {
