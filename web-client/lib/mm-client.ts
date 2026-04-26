@@ -11,21 +11,25 @@ import {
 
 // Determine host:
 // - Server Side (Docker): use 'backend:8080' (or env var)
-// - Client Side (Browser): use 'localhost:8080'
+// - Client Side (Browser): use 'localhost:8081' (or env var for CI/Tunnels)
 let rawHost = "backend:8080";
 
 if (typeof window === "undefined") {
-	// Server-side
+	// Server-side: hit the backend service directly on its internal port
 	rawHost =
 		process.env.BACKEND_URL ||
 		process.env.BACKEND_INTERNAL_HOST ||
 		"backend:8080";
 } else {
-	// Client-side
-	rawHost = "localhost:8080";
+	// Client-side (Browser): hit the backend through the host-mapped port
+	// Use NEXT_PUBLIC_BACKEND_PORT if provided (defaults to 8081 for local dev/ssh-tunnel bypass)
+	const port = process.env.NEXT_PUBLIC_BACKEND_PORT || "8081";
+	rawHost = `localhost:${port}`;
 }
 
-console.log(`E2E DEBUG: mm-client connecting to rawHost: ${rawHost}`);
+console.log(
+	`E2E DEBUG: mm-client connecting to rawHost: ${rawHost} (Mode: ${typeof window === "undefined" ? "Server" : "Client"})`,
+);
 
 // Strip protocol if present (e.g. from http://backend:8080)
 const host = rawHost.replace(/^https?:\/\//, "");

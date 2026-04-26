@@ -6,7 +6,10 @@ test.describe("Meet Administrator Management", () => {
 
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const userId = `e2e-admin-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		const userId =
+			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
+				? "e2e-bypass-user"
+				: `e2e-admin-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,

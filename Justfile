@@ -229,7 +229,9 @@ test-entries:
 # Build the mobile judge app web version
 build-mobile:
     @echo "Building mobile judge app web bundle..."
-    cd mobile-judge-app && npm run build-web
+    cd mobile-judge-app && APP_BASE_URL=/judge npm run build-web
+    mkdir -p web-client/public/judge
+    cp -r mobile-judge-app/dist/* web-client/public/judge/
 
 # Run the mobile judge app in Docker
 up-mobile:

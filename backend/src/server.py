@@ -918,13 +918,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 logging.info(f"ListDatasets: Checking local path: {full_path}")
 
             # Retry loop for eventual consistency in CI environments            files = []
-            for attempt in range(3):
+            for attempt in range(5):
                 files = self.storage.list_files(user_prefix)
                 if files:
                     break
-                if attempt < 2:
-                    logging.info(f"ListDatasets: No files found for {uid}, retrying in 1s...")
-                    time.sleep(1)
+                if attempt < 4:
+                    logging.info(f"ListDatasets: No files found for {uid}, retrying in 2s...")
+                    time.sleep(2)
 
             logging.info(f"ListDatasets: Found {len(files)} files in {user_prefix}: {files}")
 
@@ -980,6 +980,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         # Invalidate cache to force reload
         if uid in self._user_cache:
             del self._user_cache[uid]
+
+        # FORCE SYNCHRONOUS EXTRACTION:
+        # This ensures the database is fully populated before returning to the caller.
+        # Critical for E2E/CI reliability.
+        logging.info(f"SetActiveDataset: Forcing synchronous extraction for {uid}/{filename}...")
+        try:
+            self._load_user_data(context)
+            logging.info(f"SetActiveDataset: Extraction complete for {uid}/{filename}")
+        except Exception as e:
+            logging.error(f"SetActiveDataset: Extraction failed for {uid}/{filename}: {e}")
 
         return pb2.SetActiveDatasetResponse()
 
@@ -2143,7 +2153,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
 
 def serve():
-    port = os.getenv("PORT", "50051")
+    port = os.getenv("PORT", "8080")
     interceptors = [FirebaseAuthInterceptor()]
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10),

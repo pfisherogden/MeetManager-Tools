@@ -19,6 +19,9 @@ import { Label } from "@/components/ui/label";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export default function AdminPage() {
 	const { meetName: initialMeetName, meetDescription: initialMeetDesc } =
 		useConfig();

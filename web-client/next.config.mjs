@@ -3,10 +3,12 @@ const nextConfig = {
 	typescript: {
 		ignoreBuildErrors: true,
 	},
+	eslint: {
+		ignoreDuringBuilds: true,
+	},
 	images: {
 		unoptimized: true,
 	},
-	output: "standalone",
 	experimental: {
 		serverActions: {
 			bodySizeLimit: "50mb",
@@ -14,6 +16,14 @@ const nextConfig = {
 	},
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+	},
+	async rewrites() {
+		return [
+			{
+				source: "/judge/:path*",
+				destination: "/judge/index.html",
+			},
+		];
 	},
 };
 

@@ -9,28 +9,36 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
-	const { searchParams } = new URL(request.url);
-	const token = searchParams.get("token");
-	const uid = searchParams.get("uid");
-
-	console.log(
-		`API SUBMIT-DQ: Received request. UID: ${uid}, Token Provided: ${token ? "YES" : "NO"}`,
-	);
-
-	// Basic security check
-	const configuredToken = process.env.DATA_ACCESS_TOKEN;
-	const isTokenConfigured =
-		configuredToken !== undefined && configuredToken !== "";
-	const isAuthorized = !isTokenConfigured || token === configuredToken;
-
-	if (!isAuthorized) {
-		console.warn(`API SUBMIT-DQ: Unauthorized access attempt. UID: ${uid}`);
-		return withCors(
-			NextResponse.json({ error: "Unauthorized access" }, { status: 403 }),
-		);
-	}
-
 	try {
+		const { searchParams } = new URL(request.url);
+		const token =
+			request.headers.get("x-data-access-token") ||
+			searchParams.get("token") ||
+			"";
+
+		const headerUserId = request.headers.get("x-user-id");
+		const paramUid = searchParams.get("uid");
+		const userId = headerUserId || paramUid || "e2e-bypass-user";
+
+		console.log(
+			`API SUBMIT-DQ: Received request. UserID: ${userId}, Token Provided: ${token ? "YES" : "NO"}`,
+		);
+
+		// Basic security check
+		const configuredToken = process.env.DATA_ACCESS_TOKEN;
+		const isTokenConfigured =
+			configuredToken !== undefined && configuredToken !== "";
+		const isAuthorized = !isTokenConfigured || token === configuredToken;
+
+		if (!isAuthorized) {
+			console.warn(
+				`API SUBMIT-DQ: Unauthorized access attempt. UserID: ${userId}`,
+			);
+			return withCors(
+				NextResponse.json({ error: "Unauthorized access" }, { status: 403 }),
+			);
+		}
+
 		const payload = await request.json();
 		const {
 			clientDqId,
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
 		} = payload;
 
 		console.log(
-			`API SUBMIT-DQ: Processing payload for clientDqId: ${clientDqId}, Judge: ${client_id}`,
+			`API SUBMIT-DQ: Processing payload for clientDqId: ${clientDqId}, Judge: ${client_id}, UserID: ${userId}`,
 		);
 
 		if (!clientDqId) {
@@ -66,7 +74,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Idempotency check
-		const exists = await checkDqExists(clientDqId);
+		const exists = await checkDqExists(clientDqId, userId);
 		if (exists) {
 			return withCors(
 				NextResponse.json(
@@ -77,14 +85,18 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Save the new DQ to Firestore (Stateless storage)
-		await saveDq(clientDqId, {
-			client_id: client_id || "Unknown",
-			event,
-			heat,
-			lane,
-			swimmer,
-			infraction_code,
-		});
+		await saveDq(
+			clientDqId,
+			{
+				client_id: client_id || "Unknown",
+				event,
+				heat,
+				lane,
+				swimmer,
+				infraction_code,
+			},
+			userId,
+		);
 
 		// Ensure the volunteer page is revalidated
 		revalidatePath("/dqs");
@@ -93,7 +105,7 @@ export async function POST(request: NextRequest) {
 		try {
 			await client.syncDQs({
 				dqsJson: JSON.stringify([payload]),
-				uid: uid || "",
+				uid: userId || "",
 				accessToken: token || "",
 			});
 		} catch (syncError) {

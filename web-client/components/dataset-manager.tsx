@@ -114,7 +114,8 @@ export function DatasetManager() {
 			const res = await setActiveDataset(filename);
 			if (res.success) {
 				toast.success(`Active dataset set to: ${filename}`);
-				await fetchDatasets();
+				// NUCLEAR: Force full page reload to ensure revalidated data is shown
+				window.location.href = "/admin";
 			} else {
 				toast.error(res.message || "Failed to set active dataset");
 			}

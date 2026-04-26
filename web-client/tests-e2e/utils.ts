@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export async function ensureDatasetActive(
 	page: Page,
@@ -8,7 +8,14 @@ export async function ensureDatasetActive(
 	filename: string,
 	data: any,
 ) {
-	console.log(`[Utils] Ensuring ${filename} is active for ${userId}...`);
+	// If auth bypass is enabled, frontend uses a fixed UID. We must match it here.
+	const effectiveUserId =
+		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
+			? "e2e-bypass-user"
+			: userId;
+	console.log(
+		`[Utils] Ensuring ${filename} is active for ${effectiveUserId}...`,
+	);
 
 	await page.goto("/admin", { waitUntil: "networkidle" });
 
@@ -38,7 +45,7 @@ export async function ensureDatasetActive(
 			(el as HTMLElement).style.display = "none";
 		});
 
-		await page.getByTestId("upload-dataset-button").click({ force: true });
+		await robustClick(page.getByTestId("upload-dataset-button"));
 
 		// Wait for row without checking toast
 		await expect(row).toBeVisible({ timeout: 60000 });
@@ -58,14 +65,60 @@ export async function ensureDatasetActive(
 	const setActiveBtn = row.getByTestId("set-active-button");
 	await expect(setActiveBtn).toBeVisible({ timeout: 15000 });
 
-	// Use force click instead of evaluate to keep some actionability check
-	await setActiveBtn.click({ force: true });
+	// Use robust click
+	await robustClick(setActiveBtn);
 
-	// Wait for attribute change - MUCH more robust than toast
+	// Backend SetActiveDataset is now synchronous, but Next.js need a momento to refresh.
+	await page.waitForTimeout(2000);
+
+	// Verify on meets page that data is loaded
+	await page.goto("/meets", { waitUntil: "networkidle" });
+	await expect(page.getByTestId("meet-count")).toBeVisible({ timeout: 15000 });
+	const count = await page.getByTestId("meet-count").getAttribute("data-count");
+	if (!count || parseInt(count, 10) === 0) {
+		throw new Error(
+			`[Utils] Data failed to populate for ${filename} after activation.`,
+		);
+	}
+
+	// Go back to admin to confirm attribute change
+	await page.goto("/admin", { waitUntil: "networkidle" });
 	await expect(row).toHaveAttribute("data-test-state", "active", {
-		timeout: 45000,
+		timeout: 20000,
 	});
-	console.log(`[Utils] ${filename} is now active.`);
+	console.log(`[Utils] ${filename} is now active and verified.`);
+}
+
+/**
+ * A highly robust click helper that tries standard click first,
+ * then falls back to evaluate(click) to bypass pointer-event interception
+ * or layout-related visibility issues (common in React Native Web / Expo).
+ */
+export async function robustClick(
+	locator: Locator,
+	options: { timeout?: number } = {},
+) {
+	const timeout = options.timeout || 10000;
+
+	try {
+		// 1. Try standard click with forced visibility check
+		await locator.scrollIntoViewIfNeeded();
+		await locator.click({ force: true, timeout: timeout / 2 });
+	} catch (e) {
+		console.warn(
+			`[Utils] Standard click failed, falling back to evaluate-click: ${e.message}`,
+		);
+
+		// 2. Fallback: Direct DOM click via evaluate
+		// This bypasses Playwright's "is it visible/clickable" logic which
+		// can be flaky with complex nested scroll views.
+		await locator.evaluate((el) => {
+			if (el instanceof HTMLElement) {
+				el.scrollIntoView({ block: "center", inline: "center" });
+				el.click();
+			}
+		});
+	}
 }
 
 export function getFixtureData(filename: string) {

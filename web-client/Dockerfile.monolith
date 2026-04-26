@@ -1,0 +1,67 @@
+# Build stage for Judge App
+FROM node:20-alpine AS judge-builder
+WORKDIR /app
+COPY mobile-judge-app/package.json mobile-judge-app/package-lock.json* ./
+RUN npm ci --legacy-peer-deps
+COPY mobile-judge-app/ .
+RUN APP_BASE_URL=/judge npm run build-web
+
+# Build stage for Main Frontend
+FROM node:20-alpine AS builder
+RUN apk add --no-cache libc6-compat protobuf
+WORKDIR /app
+COPY web-client/package.json web-client/package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+COPY protos/ /protos/
+RUN mkdir -p lib/proto && \
+  ./node_modules/.bin/grpc_tools_node_protoc \
+  --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
+  --ts_proto_out=./lib/proto \
+  --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,esModuleInterop=true \
+  -I/protos \
+  /protos/meetmanager/v1/meet_manager.proto
+COPY web-client/ .
+# Copy built judge app assets into public/judge
+COPY --from=judge-builder /app/dist ./public/judge
+# Production build
+ARG NEXT_PUBLIC_AUTH_DISABLED
+ARG NEXT_PUBLIC_E2E_AUTH_BYPASS
+ARG NEXT_PUBLIC_BACKEND_PORT
+ENV NEXT_PUBLIC_AUTH_DISABLED=$NEXT_PUBLIC_AUTH_DISABLED
+ENV NEXT_PUBLIC_E2E_AUTH_BYPASS=$NEXT_PUBLIC_E2E_AUTH_BYPASS
+ENV NEXT_PUBLIC_BACKEND_PORT=$NEXT_PUBLIC_BACKEND_PORT
+RUN npm run build
+
+# Monolith E2E image
+FROM python:3.11-slim
+WORKDIR /app
+
+# Install Node.js and system dependencies
+RUN apt-get update && apt-get install -y curl gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs mdbtools openjdk-21-jre-headless libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libglib2.0-0 libffi-dev libjpeg-dev libopenjp2-7-dev procps netcat-openbsd && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install backend dependencies
+COPY backend/pyproject.toml backend/uv.lock* ./
+RUN pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache . && \
+    python -m playwright install --with-deps chromium
+
+# Copy Backend Source
+COPY backend/src ./src
+COPY backend/data ./data
+COPY protos ./protos
+RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src --pyi_out=src protos/meetmanager/v1/meet_manager.proto
+
+# Copy Frontend Build
+COPY --from=builder /app ./frontend
+
+EXPOSE 3000
+EXPOSE 8080
+
+ENV DATA_ACCESS_TOKEN=mmtools-default-secret-2024
+ENV USE_MOCK_FIRESTORE=true
+ENV FIRESTORE_MOCK_PATH=/app/tmp/mock_firestore.json
+
+CMD ["sh", "-c", "python src/server.py & cd frontend && npm start"]

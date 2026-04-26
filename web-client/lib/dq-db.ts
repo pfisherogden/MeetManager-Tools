@@ -1,16 +1,28 @@
 import * as fs from "node:fs";
 import * as admin from "firebase-admin";
 
-// File-based mock for local/CI development when Firestore is unavailable
-// This allows sharing data across processes (e.g. API route vs Server Action)
+// File-based mock for local/CI development when Firestore is unavailable.
+// This version supports per-user isolation to prevent E2E test collisions.
 class MockFirestore {
+	private readonly userId: string | null;
+
+	constructor(userId: string | null = null) {
+		this.userId = userId;
+	}
+
 	private getFilePath(): string {
-		return process.env.FIRESTORE_MOCK_PATH || "/tmp/mock_firestore.json";
+		const basepath =
+			process.env.FIRESTORE_MOCK_PATH || "/app/tmp/mock_firestore.json";
+		if (this.userId) {
+			const dir = basepath.substring(0, basepath.lastIndexOf("/"));
+			return `${dir}/mock_firestore_${this.userId}.json`;
+		}
+		return basepath;
 	}
 
 	private async readStorage(): Promise<Map<string, any>> {
 		const filePath = this.getFilePath();
-		console.log(`MockFirestore: READING from ${filePath}`);
+		// No logging in read to reduce noise
 		let attempts = 0;
 		while (attempts < 5) {
 			try {
@@ -19,14 +31,16 @@ class MockFirestore {
 				}
 				const realPath = fs.realpathSync(filePath);
 				const content = fs.readFileSync(realPath, "utf8");
+				if (content.trim() === "") {
+					return new Map<string, any>();
+				}
 				const data = JSON.parse(content);
 				return new Map(Object.entries(data));
-			} catch (e: any) {
-				console.error(`MockFirestore READ ERROR: ${filePath}: ${e.message}`);
+			} catch (_e: any) {
+				// console.error(`MockFirestore READ ERROR: ${filePath}: ${e.message}`);
 			}
 			attempts++;
 			if (attempts < 5) {
-				// Wait 200ms before retry (non-blocking)
 				await new Promise((resolve) => setTimeout(resolve, 200));
 			}
 		}
@@ -35,9 +49,8 @@ class MockFirestore {
 
 	private async writeStorage(storage: Map<string, any>) {
 		const filePath = this.getFilePath();
-		console.log(`MockFirestore: WRITING to ${filePath}`);
+		// console.log(`MockFirestore: WRITING to ${filePath}`);
 		try {
-			// Ensure directory exists
 			const dir = filePath.substring(0, filePath.lastIndexOf("/"));
 			if (dir && !fs.existsSync(dir)) {
 				fs.mkdirSync(dir, { recursive: true });
@@ -46,11 +59,13 @@ class MockFirestore {
 			const data = Object.fromEntries(storage);
 			const content = JSON.stringify(data, null, 2);
 
-			// Use more robust write with sync
-			const fd = fs.openSync(filePath, "w");
+			const tempPath = `${filePath}.tmp.${Date.now()}`;
+			const fd = fs.openSync(tempPath, "w");
 			fs.writeSync(fd, content);
 			fs.fsyncSync(fd);
 			fs.closeSync(fd);
+
+			fs.renameSync(tempPath, filePath);
 		} catch (e: any) {
 			console.error(`MockFirestore WRITE ERROR: ${filePath}: ${e.message}`);
 		}
@@ -82,7 +97,6 @@ class MockFirestore {
 							id: key.split("/")[1],
 							data: () => value,
 						}));
-					// Simplified sorting by createdAt if it exists in data
 					docs.sort((a, b) => {
 						const dateA = a.data().createdAt || "";
 						const dateB = b.data().createdAt || "";
@@ -95,19 +109,14 @@ class MockFirestore {
 	}
 }
 
-let mockDb: MockFirestore | null = null;
-
-const initAdmin = () => {
-	if (mockDb) return mockDb as any;
-
+const initAdmin = (userId?: string | null) => {
 	if (process.env.USE_MOCK_FIRESTORE === "true") {
-		mockDb = new MockFirestore();
-		return mockDb as any;
+		// Return a new instance for each user context to ensure isolation
+		return new MockFirestore(userId || "shared") as any;
 	}
 
 	try {
 		if (admin.apps.length === 0) {
-			// Try to get credentials, if this fails it will throw
 			const credential = admin.credential.applicationDefault();
 			admin.initializeApp({
 				credential,
@@ -117,17 +126,26 @@ const initAdmin = () => {
 		}
 		return admin.firestore();
 	} catch (e) {
-		console.warn("Firestore initialization failed, using file-based mock:", e);
-		if (!mockDb) mockDb = new MockFirestore();
-		return mockDb as any;
+		console.warn(
+			"Firestore initialization failed, using file-based mock:",
+			(e as Error).message,
+		);
+		return new MockFirestore(userId || "shared") as any;
 	}
 };
 
-export async function checkDqExists(clientDqId: string): Promise<boolean> {
+export function getDb(userId?: string | null) {
+	return initAdmin(userId);
+}
+
+export async function checkDqExists(
+	clientDqId: string,
+	userId?: string | null,
+): Promise<boolean> {
 	if (!clientDqId) return false;
 
 	try {
-		const db = initAdmin();
+		const db = getDb(userId);
 		const dqRef = db.collection("disqualifications").doc(clientDqId);
 		const dqSnap = await dqRef.get();
 		return dqSnap.exists;
@@ -140,9 +158,13 @@ export async function checkDqExists(clientDqId: string): Promise<boolean> {
 	}
 }
 
-export async function saveDq(clientDqId: string, data: any) {
+export async function saveDq(
+	clientDqId: string,
+	data: any,
+	userId?: string | null,
+) {
 	try {
-		const db = initAdmin();
+		const db = getDb(userId);
 		const dqRef = db.collection("disqualifications").doc(clientDqId);
 		await dqRef.set({
 			...data,
@@ -157,9 +179,9 @@ export async function saveDq(clientDqId: string, data: any) {
 	}
 }
 
-export async function getDqs(): Promise<any[]> {
+export async function getDqs(userId?: string | null): Promise<any[]> {
 	try {
-		const db = initAdmin();
+		const db = getDb(userId);
 		const snapshot = await db
 			.collection("disqualifications")
 			.orderBy("createdAt", "desc")

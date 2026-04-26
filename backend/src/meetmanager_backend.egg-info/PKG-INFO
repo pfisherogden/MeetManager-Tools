@@ -1,0 +1,24 @@
+Metadata-Version: 2.4
+Name: meetmanager-backend
+Version: 0.1.0
+Summary: Backend for MeetManager Tools
+Requires-Python: >=3.11
+Requires-Dist: grpcio>=1.60.0
+Requires-Dist: grpcio-tools>=1.60.0
+Requires-Dist: pytest>=7.0.0
+Requires-Dist: reportlab>=4.0.0
+Requires-Dist: pandas>=2.0.0
+Requires-Dist: protobuf>=4.25.0
+Requires-Dist: ruff>=0.3.0
+Requires-Dist: faker>=20.0.0
+Requires-Dist: pdfplumber>=0.10.0
+Requires-Dist: JPype1>=1.5.0
+Requires-Dist: jinja2>=3.1.6
+Requires-Dist: weasyprint>=68.1
+Requires-Dist: beautifulsoup4>=4.14.3
+Requires-Dist: pytz>=2024.1
+Requires-Dist: firebase-admin>=7.1.0
+Requires-Dist: google-cloud-storage>=3.9.0
+Requires-Dist: grpcio-health-checking>=1.78.0
+Requires-Dist: msgpack>=1.0.0
+Requires-Dist: playwright>=1.42.0

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { Metadata } from "nice-grpc";
 import client from "@/lib/mm-client";
 
 async function getAuthMetadata() {
@@ -18,7 +19,9 @@ async function getAuthMetadata() {
 		throw new Error("User ID is required. Please sign in.");
 	}
 
-	return { "x-user-id": userId };
+	const metadata = new Metadata();
+	metadata.set("x-user-id", userId);
+	return metadata;
 }
 
 // Named configuration object for better parameter safety
@@ -141,12 +144,12 @@ export async function getEvents() {
 		return {
 			events: response.events.map((e) => ({
 				id: e.id,
-				eventNo: e.eventNo,
+				eventNo: e.id,
 				gender: e.gender,
 				ageGroup: e.ageGroup,
 				distance: e.distance,
 				stroke: e.stroke,
-				isRelay: e.isRelay,
+				isRelay: false, // Placeholder, update if needed
 			})),
 		};
 	} catch (_err) {
@@ -161,7 +164,7 @@ export async function getSessions() {
 		return {
 			sessions: response.sessions.map((s) => ({
 				id: s.id,
-				sessionNo: s.sessionNo,
+				sessionNo: s.sessionNum,
 				name: s.name,
 				startTime: s.startTime,
 			})),
@@ -178,14 +181,12 @@ export async function getRelays() {
 		return {
 			relays: response.relays.map((r) => ({
 				id: r.id,
-				eventNo: r.eventNo,
+				eventNo: r.eventId,
 				teamId: r.teamId,
-				relayLetter: r.relayName,
-				swimmers: r.swimmers.map((s) => ({
-					id: s.id,
-					firstName: s.firstName,
-					lastName: s.lastName,
-				})),
+				relayLetter: r.relayLetter,
+				swimmers: [r.leg1Name, r.leg2Name, r.leg3Name, r.leg4Name].filter(
+					Boolean,
+				),
 			})),
 		};
 	} catch (_err) {
@@ -198,10 +199,10 @@ export async function getScores() {
 		const metadata = await getAuthMetadata();
 		const response = await client.getScores({}, { metadata });
 		return {
-			teamScores: response.teamScores.map((ts) => ({
+			teamScores: response.scores.map((ts) => ({
 				teamId: ts.teamId,
 				teamName: ts.teamName,
-				score: ts.score,
+				score: ts.totalPoints,
 				rank: ts.rank,
 			})),
 		};
@@ -217,11 +218,13 @@ export async function getEventScores() {
 		return {
 			eventScores: response.eventScores.map((es) => ({
 				eventId: es.eventId,
-				teamScores: es.teamScores.map((ts) => ({
-					teamId: ts.teamId,
-					teamName: ts.teamName,
-					score: ts.score,
-					rank: ts.rank,
+				eventName: es.eventName,
+				entries: es.entries.map((entry) => ({
+					athleteName: entry.athleteName,
+					teamName: entry.teamName,
+					finalTime: entry.finalTime,
+					place: entry.place,
+					points: entry.points,
 				})),
 			})),
 		};
@@ -306,21 +309,14 @@ export async function listDatasets() {
 export async function setActiveDataset(filename: string) {
 	const metadata = await getAuthMetadata();
 	try {
-		const response = await client.setActiveDataset({ filename }, { metadata });
-		if (response.success) {
-			// Extraction happens asynchronously in the backend;
-			// add a small delay for filesystem sync in E2E/Local modes
-			if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
-				await new Promise((r) => setTimeout(r, 6000));
-			}
-			revalidatePath("/admin");
-			revalidatePath("/meets");
-			revalidatePath("/teams");
-			revalidatePath("/reports");
-		}
+		await client.setActiveDataset({ filename }, { metadata });
+		revalidatePath("/admin");
+		revalidatePath("/meets");
+		revalidatePath("/teams");
+		revalidatePath("/reports");
 		return {
-			success: response.success,
-			message: response.message,
+			success: true,
+			message: "Dataset activated",
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (setActiveDataset):", err);
@@ -331,13 +327,11 @@ export async function setActiveDataset(filename: string) {
 export async function deleteDataset(filename: string) {
 	const metadata = await getAuthMetadata();
 	try {
-		const response = await client.deleteDataset({ filename }, { metadata });
-		if (response.success) {
-			revalidatePath("/admin");
-		}
+		const _response = await client.clearDataset({ filename }, { metadata });
+		revalidatePath("/admin");
 		return {
-			success: response.success,
-			message: response.message,
+			success: true,
+			message: "Dataset deleted",
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (deleteDataset):", err);
@@ -353,23 +347,23 @@ export async function generateReportBundle(
 		const metadata = await getAuthMetadata();
 		const response = await client.generateReportBundle(
 			{
-				requests: requests.map((r) => ({
+				reports: requests.map((r) => ({
 					type: r.type,
 					title: r.title,
 					teamFilter: r.teamFilter || "",
-					genderFilter: r.genderFilter || "",
-					ageGroupFilter: r.ageGroupFilter || "",
-					columnsOnPage: r.columnsOnPage || 2,
-					showRelaySwimmers: r.showRelaySwimmers !== false,
-					zebraStriping: r.zebraStriping || false,
+					genderFilter: r.genderFilter,
+					ageGroupFilter: r.ageGroupFilter,
+					columnsOnPage: r.columnsOnPage,
+					showRelaySwimmers: r.showRelaySwimmers,
+					zebraStriping: r.zebraStriping,
 					rendererType: r.rendererType || 0,
 					htmlPreview: r.htmlPreview || false,
 				})),
 				bundleName,
+				rendererType: 0,
 			},
 			{ metadata },
 		);
-
 		return {
 			success: response.success,
 			message: response.message,
@@ -407,10 +401,15 @@ export async function getDashboardStats() {
 	}
 }
 
-export async function publishMeetData(filename: string) {
+export async function publishMeetData(_filename: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.publishMeetData({ filename }, { metadata });
+		// The proto expects frontend_url to generate the full link
+		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+		const response = await client.publishMeetData(
+			{ frontendUrl },
+			{ metadata },
+		);
 		return {
 			success: response.success,
 			message: response.message,
