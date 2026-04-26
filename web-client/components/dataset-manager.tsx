@@ -256,16 +256,14 @@ export function DatasetManager() {
 												: "-"}
 										</TableCell>
 										<TableCell className="text-right flex items-center justify-end gap-2">
-											{!dataset.isActive && (
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => handleSetActive(dataset.filename)}
-													data-testid="set-active-button"
-												>
-													Set Active
-												</Button>
-											)}
+											<Button
+												variant={dataset.isActive ? "secondary" : "outline"}
+												size="sm"
+												onClick={() => handleSetActive(dataset.filename)}
+												data-testid="set-active-button"
+											>
+												{dataset.isActive ? "Re-activate" : "Set Active"}
+											</Button>
 											<Button
 												variant="outline"
 												size="sm"

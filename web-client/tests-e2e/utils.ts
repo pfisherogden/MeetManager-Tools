@@ -84,22 +84,25 @@ export async function ensureDatasetActive(
 		console.log(`[Utils] ${filename} uploaded successfully.`);
 	}
 
-	// Check if already active
-	const state = await row.getAttribute("data-test-state");
-	if (state !== "active") {
-		console.log(`[Utils] Setting ${filename} active...`);
-		const setActiveBtn = row.getByTestId("set-active-button");
-		await expect(setActiveBtn).toBeVisible({ timeout: 15000 });
-		await robustClick(setActiveBtn);
-	} else {
-		console.log(`[Utils] ${filename} is already active.`);
-	}
+	// ALWAYS trigger activation to ensure backend cache is fresh and extraction is complete.
+	console.log(`[Utils] Triggering activation for ${filename}...`);
+	const setActiveBtn = row.getByTestId("set-active-button");
+	await expect(setActiveBtn).toBeVisible({ timeout: 15000 });
+	await robustClick(setActiveBtn);
+
+	// NUCLEAR: Wait for navigation/reload after clicking Set Active
+	// The UI does window.location.href = "/admin" on success.
+	console.log("[Utils] Waiting for admin page reload after activation...");
+	await page.waitForURL("**/admin", { timeout: 30000 });
 
 	// NUCLEAR: Poll /meets until data is actually populated and reflected in the UI.
 	console.log("[Utils] Polling /meets for data readiness...");
 	let isPopulated = false;
 	for (let i = 0; i < 30; i++) {
+		// Reload the page each time to bypass any Next.js client-side caching
 		await page.goto("/meets", { waitUntil: "networkidle" });
+		await page.reload({ waitUntil: "networkidle" });
+
 		const tableText = await page.locator("table").textContent();
 		if (tableText && !tableText.includes("No data available")) {
 			isPopulated = true;

@@ -370,6 +370,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         self._user_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.current_file = SOURCE_FILE
         self.job_manager = JobManager()
+        self._lock = threading.RLock()
         # Note: We don't load data in __init__ anymore because it's per-user
         # self._load_data()
         # self._load_config()
@@ -406,141 +407,138 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return uid
 
     def _load_user_config(self, context):
-        uid = self._check_auth(context)
-        config_path = os.path.join("users", uid, CONFIG_FILE)
-        # For LocalStorageProvider, print absolute path for debugging
-        if hasattr(self.storage, "base_dir"):
-            abs_path = os.path.abspath(os.path.join(self.storage.base_dir, config_path))
-            logging.debug(f"DEBUG: Checking for config at {config_path} (abs: {abs_path}, uid: {uid})")
-        else:
-            logging.debug(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
+        with self._lock:
+            uid = self._check_auth(context)
+            config_path = os.path.join("users", uid, CONFIG_FILE)
+            if self.storage.exists(config_path):
+                tmp_path = ""
+                with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+                    tmp_path = tmp.name
+                    tmp.close()
 
-        if self.storage.exists(config_path):
-            # ... rest of the method unchanged ...
-            with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+                try:
+                    self.storage.download_file(config_path, tmp_path)
+                    with open(tmp_path) as f:
+                        config = json.load(f)
+                        return config
+                except Exception as e:
+                    logging.debug(f"DEBUG: Failed to load user config for {uid}: {e}")
+                finally:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+
+            return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
+
+    def _save_user_config(self, context, config):
+        with self._lock:
+            uid = self._check_auth(context)
+            config_path = os.path.join("users", uid, CONFIG_FILE)
+            tmp_path = ""
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                json.dump(config, tmp, indent=2)
                 tmp_path = tmp.name
+                tmp.flush()
+                # Close it explicitly before uploading
                 tmp.close()
 
             try:
-                self.storage.download_file(config_path, tmp_path)
-                with open(tmp_path) as f:
-                    config = json.load(f)
-                    logging.debug(f"DEBUG: Loaded user config for {uid}: {config}")
-                    return config
-            except Exception as e:
-                logging.debug(f"DEBUG: Failed to load user config for {uid}: {e}")
+                self.storage.upload_file(tmp_path, config_path)
+                if hasattr(os, "sync"):
+                    os.sync()
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
-        logging.debug(f"DEBUG: No user config found at {config_path} for {uid}, using defaults")
-        return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
-
-    def _save_user_config(self, context, config):
-        uid = self._check_auth(context)
-        config_path = os.path.join("users", uid, CONFIG_FILE)
-        logging.debug(f"DEBUG: Saving user config to {config_path}: {config}")
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
-            json.dump(config, tmp, indent=2)
-            tmp_path = tmp.name
-            tmp.flush()
-            # Close it explicitly before uploading
-            tmp.close()
-
-        try:
-            self.storage.upload_file(tmp_path, config_path)
-            logging.debug(f"DEBUG: User config saved to {config_path}")
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-
     def _load_user_data(self, context):
-        config = self._load_user_config(context)
-        filename = config.get("active_dataset", SOURCE_FILE)
-        uid = self._check_auth(context)
+        with self._lock:
+            config = self._load_user_config(context)
+            filename = config.get("active_dataset", SOURCE_FILE)
+            uid = self._check_auth(context)
 
-        user_path = os.path.join("users", uid, filename)
-        # For LocalStorageProvider, print absolute path for debugging
-        if hasattr(self.storage, "base_dir"):
-            abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
-            logging.debug(
-                f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path} (abs: {abs_user_path})"
-            )
-        else:
-            logging.debug(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
-
-        # Check cache
-        if uid in self._user_cache:
-            entry = self._user_cache[uid]
-            # Move to end (most recent)
-            self._user_cache.move_to_end(uid)
-
-            if entry["filename"] == filename:
-                # Check if modified
-                try:
-                    mtime = self.storage.get_last_modified(user_path)
-                    if mtime == entry["mtime"]:
-                        logging.debug(f"DEBUG: Returning cached data for {uid}/{filename}")
-                        return entry["data"], config
-                    else:
-                        logging.debug(f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})")
-                except Exception as e:
-                    logging.debug(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
-                    pass  # Force reload on error
-
-        if not self.storage.exists(user_path):
-            logging.debug(f"DEBUG: User file {user_path} NOT FOUND in storage.")
-            # Fallback for prototype: check global Sample_Data.json
-            if self.storage.exists(SOURCE_FILE):
-                logging.debug(f"DEBUG: Falling back to global {SOURCE_FILE}")
-                user_path = SOURCE_FILE
-                filename = SOURCE_FILE
+            user_path = os.path.join("users", uid, filename)
+            # For LocalStorageProvider, print absolute path for debugging
+            if hasattr(self.storage, "base_dir"):
+                abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
+                logging.debug(
+                    f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path} (abs: {abs_user_path})"
+                )
             else:
-                logging.debug(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
-                return {}, config
-        else:
-            logging.debug(f"DEBUG: Found user file at {user_path}")
+                logging.debug(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
 
-        logging.debug(f"DEBUG: Loading data from {user_path}...")
-        with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
-            tmp_path = tmp.name
-            tmp.close()  # Close to avoid locking
-
-        try:
-            self.storage.download_file(user_path, tmp_path)
-            if filename.endswith(".mdb"):
-                cache = self._load_mdb(tmp_path)
-            else:
-                with open(tmp_path) as f:
-                    raw_data = json.load(f)
-                # Use converter to normalize keys/types even for JSON
-                from mm_to_json.mm_to_json import MmToJsonConverter
-
-                converter = MmToJsonConverter(table_data=raw_data)
-                cache = converter.export_raw()
-
-            # Update cache
-            try:
-                mtime = self.storage.get_last_modified(user_path)
-                self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+            # Check cache
+            if uid in self._user_cache:
+                entry = self._user_cache[uid]
+                # Move to end (most recent)
                 self._user_cache.move_to_end(uid)
 
-                # Evict oldest if limit exceeded
-                if len(self._user_cache) > MAX_CACHE_SIZE:
-                    oldest_uid, _ = self._user_cache.popitem(last=False)
-                    logging.debug(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
+                if entry["filename"] == filename:
+                    # Check if modified
+                    try:
+                        mtime = self.storage.get_last_modified(user_path)
+                        if mtime == entry["mtime"]:
+                            logging.debug(f"DEBUG: Returning cached data for {uid}/{filename}")
+                            return entry["data"], config
+                        else:
+                            logging.debug(
+                                f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})"
+                            )
+                    except Exception as e:
+                        logging.debug(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
+                        pass  # Force reload on error
 
-                logging.debug(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
+            if not self.storage.exists(user_path):
+                logging.debug(f"DEBUG: User file {user_path} NOT FOUND in storage.")
+                # Fallback for prototype: check global Sample_Data.json
+                if self.storage.exists(SOURCE_FILE):
+                    logging.debug(f"DEBUG: Falling back to global {SOURCE_FILE}")
+                    user_path = SOURCE_FILE
+                    filename = SOURCE_FILE
+                else:
+                    logging.debug(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
+                    return {}, config
+            else:
+                logging.debug(f"DEBUG: Found user file at {user_path}")
+
+            logging.debug(f"DEBUG: Loading data from {user_path}...")
+            with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
+                tmp_path = tmp.name
+                tmp.close()  # Close to avoid locking
+
+            try:
+                self.storage.download_file(user_path, tmp_path)
+                if filename.endswith(".mdb"):
+                    cache = self._load_mdb(tmp_path)
+                else:
+                    with open(tmp_path) as f:
+                        raw_data = json.load(f)
+                    # Use converter to normalize keys/types even for JSON
+                    from mm_to_json.mm_to_json import MmToJsonConverter
+
+                    converter = MmToJsonConverter(table_data=raw_data)
+                    cache = converter.export_raw()
+
+                # Update cache
+                try:
+                    mtime = self.storage.get_last_modified(user_path)
+                    self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+                    self._user_cache.move_to_end(uid)
+
+                    # Evict oldest if limit exceeded
+                    if len(self._user_cache) > MAX_CACHE_SIZE:
+                        oldest_uid, _ = self._user_cache.popitem(last=False)
+                        logging.debug(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
+
+                    logging.debug(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
+                except Exception as e:
+                    logging.debug(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
+
+                return cache, config
             except Exception as e:
-                logging.debug(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
-
-            return cache, config
-        except Exception as e:
-            logging.debug(f"DEBUG: Error loading data from {user_path}: {e}")
-            return {}, config
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+                logging.debug(f"DEBUG: Error loading data from {user_path}: {e}")
+                return {}, config
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
 
     def _load_mdb(self, path):
         """Parsing MDB using MmToJsonConverter (Jackcess/JPype) for performance."""
@@ -620,20 +618,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             try:
                 self.storage.upload_file(tmp_path, user_path)
+                # FORCE FS SYNC for E2E consistency
+                if hasattr(os, "sync"):
+                    os.sync()
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
             logging.info(f"Saved uploaded file to {user_path}")
 
-            # Update active dataset in config
-            config = self._load_user_config(context)
-            config["active_dataset"] = filename
-            self._save_user_config(context, config)
+            with self._lock:
+                # Update active dataset in config
+                config = self._load_user_config(context)
+                config["active_dataset"] = filename
+                self._save_user_config(context, config)
 
-            # Invalidate cache to force reload of the new dataset
-            if uid in self._user_cache:
-                del self._user_cache[uid]
+                # Invalidate cache to force reload of the new dataset
+                if uid in self._user_cache:
+                    del self._user_cache[uid]
 
             return pb2.UploadDatasetResponse(success=True, message=f"Saved {filename}")
         except Exception as e:
@@ -971,25 +973,30 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             context.set_details(f"File {filename} not found.")
             return pb2.SetActiveDatasetResponse()
 
-        logging.info(f"Switching user {uid} dataset to {filename}...")
-        # Update config
-        config = self._load_user_config(context)
-        config["active_dataset"] = filename
-        self._save_user_config(context, config)
+        with self._lock:
+            logging.info(f"Switching user {uid} dataset to {filename}...")
+            # Update config
+            config = self._load_user_config(context)
+            config["active_dataset"] = filename
+            self._save_user_config(context, config)
 
-        # Invalidate cache to force reload
-        if uid in self._user_cache:
-            del self._user_cache[uid]
+            # Invalidate cache to force reload
+            if uid in self._user_cache:
+                del self._user_cache[uid]
 
-        # FORCE SYNCHRONOUS EXTRACTION:
-        # This ensures the database is fully populated before returning to the caller.
-        # Critical for E2E/CI reliability.
-        logging.info(f"SetActiveDataset: Forcing synchronous extraction for {uid}/{filename}...")
-        try:
-            self._load_user_data(context)
-            logging.info(f"SetActiveDataset: Extraction complete for {uid}/{filename}")
-        except Exception as e:
-            logging.error(f"SetActiveDataset: Extraction failed for {uid}/{filename}: {e}")
+            # FORCE FS SYNC for E2E consistency
+            if hasattr(os, "sync"):
+                os.sync()
+
+            # FORCE SYNCHRONOUS EXTRACTION:
+            # This ensures the database is fully populated before returning to the caller.
+            # Critical for E2E/CI reliability.
+            logging.info(f"SetActiveDataset: Forcing synchronous extraction for {uid}/{filename}...")
+            try:
+                self._load_user_data(context)
+                logging.info(f"SetActiveDataset: Extraction complete for {uid}/{filename}")
+            except Exception as e:
+                logging.error(f"SetActiveDataset: Extraction failed for {uid}/{filename}: {e}")
 
         return pb2.SetActiveDatasetResponse()
 
