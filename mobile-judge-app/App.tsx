@@ -1094,7 +1094,7 @@ export default function App() {
 											return (
 												<TouchableOpacity
 													key={item.code}
-													data-testid={`dq-code-${item.code}`}
+													testID={`dq-code-${item.code}`}
 													style={[
 														styles.dqItem,
 														isSelected && styles.selectedDqItem,
@@ -1181,7 +1181,7 @@ export default function App() {
 											console.log("E2E: Closing offline modal via HTML button");
 											setOfflineModalVisible(false);
 										}}
-										data-testid="modal-close-button"
+										testID="modal-close-button"
 										style={{
 											padding: "10px 20px",
 											backgroundColor: COLORS.primary,

@@ -1,4 +1,4 @@
-# Build stage (Only for dependencies)
+# Build stage
 FROM node:20-alpine AS builder
 
 # Install system dependencies
@@ -20,23 +20,32 @@ RUN mkdir -p lib/proto && \
   -I/protos \
   /protos/meetmanager/v1/meet_manager.proto
 
-# E2E/Development image (using Dev server with volume mounts)
+# Copy the rest of the application
+COPY web-client/ .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+ARG NEXT_PUBLIC_E2E_AUTH_BYPASS
+ENV NEXT_PUBLIC_E2E_AUTH_BYPASS=$NEXT_PUBLIC_E2E_AUTH_BYPASS
+
+# Build the Next.js application
+RUN npm run build
+
+# Production image
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 
 # Install netcat for health checks
 RUN apk add --no-cache netcat-openbsd
 
-# Copy dependencies and proto libs from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/lib ./lib
-
-# The rest of the app will be mounted via volume in docker-compose
+# Copy the entire build (non-standalone for simplicity)
+COPY --from=builder /app ./
 
 EXPOSE 3000
 ENV PORT=3000
 
-# Start script with backend wait loop and dev server
-CMD ["sh", "-c", "echo 'Waiting for backend:8080 (TCP)...' && until nc -z backend 8080; do sleep 2; done && echo 'Backend is UP, starting Next.js Dev Server...' && npm run dev"]
+# Start script with backend wait loop and production server
+CMD ["sh", "-c", "echo 'Waiting for backend:8080 (TCP)...' && until nc -z backend 8080; do sleep 2; done && echo 'Backend is UP, starting Next.js...' && npm start"]

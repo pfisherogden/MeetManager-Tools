@@ -136,8 +136,11 @@ test-frontend: codegen
     cd web-client && npm test
 
 test-e2e:
-    @echo "Running Playwright E2E Tests..."
-    cd web-client && npm run test-e2e
+    @echo "Running Playwright E2E Tests with dynamic port discovery..."
+    docker compose up -d --remove-orphans
+    @export DYNAMIC_PORT=$$(docker compose port frontend 3000 | cut -d: -f2); \
+    echo "Frontend discovered on port: $$DYNAMIC_PORT"; \
+    cd web-client && FRONTEND_URL=http://localhost:$$DYNAMIC_PORT npx playwright test
 
 test-e2e-judge:
     @echo "Running Judge App E2E Tests..."
