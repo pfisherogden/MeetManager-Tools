@@ -8,11 +8,9 @@ export async function ensureDatasetActive(
 	filename: string,
 	data: any,
 ) {
-	// If auth bypass is enabled, frontend uses a fixed UID. We must match it here.
-	const effectiveUserId =
-		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-			? "e2e-bypass-user"
-			: userId;
+	// Shard Isolation: Always use the unique userId provided by the test
+	// to avoid collisions on shared runners.
+	const effectiveUserId = userId;
 	console.log(
 		`[Utils] Ensuring ${filename} is active for ${effectiveUserId}...`,
 	);
