@@ -9,8 +9,8 @@ test.describe("Meet Administrator Management", () => {
 		const shardIndex = process.env.SHARD_INDEX || "0";
 		const userId =
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}`
-				: `e2e-admin-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+				? `e2e-bypass-user-${shardIndex}-${testInfo.retry}`
+				: `e2e-admin-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,
@@ -26,11 +26,12 @@ test.describe("Meet Administrator Management", () => {
 	}) => {
 		const shardIndex = process.env.SHARD_INDEX || "0";
 		const workerIndex = test.info().workerIndex;
+		const retry = test.info().retry;
 		const userId =
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}`
-				: `e2e-admin-${shardIndex}-${workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
-		const ds1 = `tiny_meet_${workerIndex}.json`;
+				? `e2e-bypass-user-${shardIndex}-${retry}`
+				: `e2e-admin-${shardIndex}-${workerIndex}-${retry}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		const ds1 = `tiny_meet_${shardIndex}_${workerIndex}_${retry}.json`;
 		const ds2 = `tiny_champs_${workerIndex}.json`;
 
 		const datasets = [

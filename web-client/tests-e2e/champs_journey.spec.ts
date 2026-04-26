@@ -4,7 +4,7 @@ import { ensureDatasetActive, getFixtureData } from "./utils";
 test.describe("Champs Dataset Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		const shardIndex = process.env.SHARD_INDEX || "0";
-		const userId = `e2e-champs-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+		const userId = `e2e-champs-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,
@@ -20,8 +20,9 @@ test.describe("Champs Dataset Journey", () => {
 		test.setTimeout(300000); // 5 mins
 		const shardIndex = process.env.SHARD_INDEX || "0";
 		const workerIndex = test.info().workerIndex;
-		const userId = `e2e-champs-${shardIndex}-${workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
-		const testFileName = `tiny_champs_${workerIndex}.json`;
+		const retry = test.info().retry;
+		const userId = `e2e-champs-${shardIndex}-${workerIndex}-${retry}-${test.info().project.name.replace(/\s+/g, "-")}`;
+		const testFileName = `tiny_champs_${shardIndex}_${workerIndex}_${retry}.json`;
 		const data = getFixtureData("tiny_champs.json");
 
 		// 1. Ensure dataset is active

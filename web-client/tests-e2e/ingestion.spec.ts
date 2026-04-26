@@ -8,8 +8,8 @@ test.describe("Ingestion and Admin Journey", () => {
 		const shardIndex = process.env.SHARD_INDEX || "0";
 		const userId =
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}`
-				: `e2e-ingestion-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+				? `e2e-bypass-user-${shardIndex}-${testInfo.retry}`
+				: `e2e-ingestion-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 
 		// Set header for all requests from this page
 		await page.setExtraHTTPHeaders({

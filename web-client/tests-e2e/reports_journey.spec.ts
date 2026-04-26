@@ -7,8 +7,8 @@ test.describe("Reports Generation Journey", () => {
 		const shardIndex = process.env.SHARD_INDEX || "0";
 		const userId =
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}`
-				: `e2e-reports-${shardIndex}-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
+				? `e2e-bypass-user-${shardIndex}-${testInfo.retry}`
+				: `e2e-reports-${shardIndex}-${testInfo.workerIndex}-${testInfo.retry}-${testInfo.project.name.replace(/\s+/g, "-")}`;
 		await page.setExtraHTTPHeaders({
 			"x-user-id": userId,
 			"x-e2e-uid": userId,
@@ -31,8 +31,8 @@ test.describe("Reports Generation Journey", () => {
 		const shardIndex = process.env.SHARD_INDEX || "0";
 		const userId =
 			process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true"
-				? `e2e-bypass-user-${shardIndex}`
-				: `e2e-reports-${shardIndex}-${test.info().workerIndex}-${test.info().project.name.replace(/\s+/g, "-")}`;
+				? `e2e-bypass-user-${shardIndex}-${test.info().retry}`
+				: `e2e-reports-${shardIndex}-${test.info().workerIndex}-${test.info().retry}-${test.info().project.name.replace(/\s+/g, "-")}`;
 		await ensureTinyMeetActive(page, userId);
 		await page.goto("/reports", { waitUntil: "networkidle" });
 		await expect(
