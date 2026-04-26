@@ -380,21 +380,38 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return os.path.join("users", uid, filename)
 
     def _check_auth(self, context):
-        """Helper to ensure the request is authenticated."""
+        """Helper to ensure the request is authenticated with robust UID detection."""
         if context is not None:
             try:
-                # Allow custom user ID via metadata for E2E test isolation
-                metadata = dict(context.invocation_metadata())
-                # Metadata keys are lowercase in gRPC
+                # 1. Direct Metadata Search (Case-insensitive)
+                metadata = {k.lower(): v for k, v in context.invocation_metadata()}
                 uid = metadata.get("x-e2e-uid") or metadata.get("x-user-id")
-                if uid:
-                    # logging.debug(f"DEBUG: Auth using x-e2e-uid/x-user-id metadata: {uid}")
-                    return uid
-            except (AttributeError, TypeError):
-                # Context might be a mock or None-like without invocation_metadata
-                pass
 
-        # Allow disabling auth for local dev/testing
+                # 2. Cookie Search (Backup for browser-based calls in Safari)
+                if not uid:
+                    cookie_header = metadata.get("cookie") or metadata.get("Cookie") or ""
+                    # Handle if cookie is a list (rare but possible in some gRPC wrappers)
+                    cookie_str = cookie_header[0] if isinstance(cookie_header, list) else cookie_header
+                    if cookie_str:
+                        for part in cookie_str.split(";"):
+                            pair = part.strip().split("=", 1)
+                            if len(pair) == 2:
+                                name, value = pair
+                                if name.lower() in ["x-user-id", "x-e2e-uid"]:
+                                    uid = value
+                                    break
+
+                if uid:
+                    return uid
+
+                # 3. Log metadata keys if UID is missing in E2E mode
+                if os.getenv("IS_E2E") == "true":
+                    logging.debug(f"DEBUG: No UID found in metadata. Available keys: {list(metadata.keys())}")
+
+            except (AttributeError, TypeError) as e:
+                logging.debug(f"DEBUG: Auth metadata extraction failed: {e}")
+
+        # Fallback for local development or testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
             return "dev-user"
 
@@ -456,26 +473,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             uid = self._check_auth(context)
 
             # E2E Check: Completely ignore the cache if x-e2e-uid/x-user-id is present or IS_E2E is set
-            is_e2e = os.getenv("IS_E2E") == "true"
-            if context is not None:
-                try:
-                    metadata = dict(context.invocation_metadata())
-                    if "x-e2e-uid" in metadata or "x-user-id" in metadata:
-                        is_e2e = True
-                except Exception:
-                    pass
+            metadata = {k.lower(): v for k, v in (context.invocation_metadata() if context else [])}
+            is_e2e = os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata or "x-user-id" in metadata
+            if not is_e2e and "cookie" in metadata:
+                is_e2e = "x-user-id=" in str(metadata["cookie"]).lower()
 
             user_path = os.path.join("users", uid, filename)
-            # For LocalStorageProvider, print absolute path for debugging
-            if hasattr(self.storage, "base_dir"):
-                abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
-                logging.debug(
-                    f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path} (abs: {abs_user_path})"
-                )
-            else:
-                logging.debug(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
+            storage_exists = self.storage.exists(user_path)
 
-            # Check cache
+            if is_e2e:
+                logging.info(f"E2E: uid={uid}, file={user_path}, exists={storage_exists}")
+
+            # Check cache (Skip if E2E)
             if not is_e2e and uid in self._user_cache:
                 entry = self._user_cache[uid]
                 # Move to end (most recent)
@@ -496,7 +505,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         logging.debug(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
                         pass  # Force reload on error
 
-            if not self.storage.exists(user_path):
+            if not storage_exists:
                 logging.debug(f"DEBUG: User file {user_path} NOT FOUND in storage.")
                 # Fallback for prototype: check global Sample_Data.json
                 if self.storage.exists(SOURCE_FILE):
