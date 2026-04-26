@@ -697,22 +697,22 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         meets = []
         for item in data:
             logging.debug(f"DEBUG: Meet item keys: {list(item.keys())}")
-            # Prefer lowercase keys from MmToJsonConverter
-            # MDB column 'Meet_name1' should be 'meet_name1'
-            name = (
-                item.get("meet_name1")
-                or item.get("meet_name")
-                or item.get("mname")
-                or item.get("Meet_name1")
-                or "Unknown Meet"
-            )
-            loc = item.get("location") or item.get("meet_location") or item.get("Meet_location") or ""
-            start = self._format_date(
-                item.get("start") or item.get("start_date") or item.get("meet_start") or item.get("Meet_start") or ""
-            )
-            end = self._format_date(
-                item.get("end") or item.get("end_date") or item.get("meet_end") or item.get("Meet_end") or ""
-            )
+
+            # Universal case-insensitive field lookup
+            def get_field(d, keys):
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            name = get_field(item, ["meet_name1", "meet_name", "mname", "Meet_name1"]) or "Unknown Meet"
+            loc = get_field(item, ["location", "meet_location", "Meet_location"])
+            start = self._format_date(get_field(item, ["start", "start_date", "meet_start", "Meet_start"]))
+            end = self._format_date(get_field(item, ["end", "end_date", "meet_end", "Meet_end"]))
+            course_val = get_field(item, ["course", "meet_course", "Meet_course"])
 
             meets.append(
                 pb2.Meet(
@@ -721,6 +721,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     location=str(loc or ""),
                     start_date=str(start or ""),
                     end_date=str(end or ""),
+                    course=str(course_val or ""),
                     status="active",
                 )
             )
@@ -745,15 +746,25 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         teams = []
         for item in data:
-            t_id = self._safe_int(item.get("team_no", 0))
+            # Universal case-insensitive field lookup
+            def get_field(d, keys):
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            t_id = self._safe_int(get_field(item, ["team_no", "team", "t_id", "Team_no"]))
             teams.append(
                 pb2.Team(
                     id=t_id,
-                    name=str(item.get("team_name", "Unknown") or "Unknown"),
-                    code=str(item.get("team_abbr", "") or ""),
-                    lsc=str(item.get("team_lsc", "") or ""),
-                    city=str(item.get("team_city", "") or ""),
-                    state=str(item.get("team_statenew", "") or ""),
+                    name=str(get_field(item, ["team_name", "tname", "Team_name"]) or "Unknown"),
+                    code=str(get_field(item, ["team_abbr", "tabbr", "Team_abbr"]) or ""),
+                    lsc=str(get_field(item, ["team_lsc", "tlsc", "team_lsc"]) or ""),
+                    city=str(get_field(item, ["team_city", "tcity", "team_city"]) or ""),
+                    state=str(get_field(item, ["team_statenew", "tstate", "team_statenew"]) or ""),
                     athlete_count=ath_counts.get(t_id, 0),
                     color=self._get_team_color(t_id),
                 )
