@@ -10,6 +10,7 @@ services:
       - ./backend/tests:/app/tests
       - ./backend/tests/fixtures:/app/tests/fixtures
       - ./tmp:/app/tmp
+      - mmtools-data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
@@ -32,6 +33,7 @@ services:
       - ./web-client:/app
       - ./tmp:/app/tmp
       - /app/node_modules
+      - mmtools-data:/app/data
     command: ["sh", "-c", "echo 'Waiting for backend:8080 (TCP)...' && until nc -z backend 8080; do sleep 2; done && echo 'Backend is UP, starting Next.js...' && npm run dev"]
     environment:
       - BACKEND_INTERNAL_HOST=backend:8080
@@ -42,3 +44,6 @@ services:
       - FIRESTORE_MOCK_PATH=/app/tmp/mock_firestore.json
     depends_on:
       - backend
+
+volumes:
+  mmtools-data:
