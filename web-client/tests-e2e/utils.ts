@@ -83,7 +83,9 @@ export async function ensureDatasetActive(
 		const tableText = await page.locator("table").textContent();
 		if (tableText && !tableText.includes("No data available")) {
 			isPopulated = true;
-			console.log(`[Utils] Data confirmed ready on /meets after ${i + 1} retries.`);
+			console.log(
+				`[Utils] Data confirmed ready on /meets after ${i + 1} retries.`,
+			);
 			break;
 		}
 		console.log(`[Utils] Data not ready, retrying (${i + 1}/30)...`);
@@ -93,8 +95,6 @@ export async function ensureDatasetActive(
 	if (!isPopulated) {
 		throw new Error(
 			`[Utils] Data failed to populate for ${filename} after 60s of polling.`,
-		);
-	}
 		);
 	}
 
