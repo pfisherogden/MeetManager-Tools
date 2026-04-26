@@ -45,7 +45,7 @@ test.describe("DQ Lifecycle Journey", () => {
 		});
 
 		// Select first session and event
-		await judgePage.getByText(/Morning Session/i).click();
+		await judgePage.getByText(/Session 1|Morning Session/i).click();
 		await judgePage.getByText(/Event #1/i).click();
 
 		// Add a DQ

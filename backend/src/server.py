@@ -1897,12 +1897,25 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetSessions(self, request, context):
         request = request or pb2.GetSessionsRequest()
         cache, _ = self._load_user_data(context)
-        data = cache.get("session", [])
-        meets = cache.get("meet", [])
+        data = self._get_table(cache, "session")
+        meets = self._get_table(cache, "meet")
+
+        # Universal case-insensitive field lookup helper
+        def get_field(d, keys):
+            if not d:
+                return None
+            for k in keys:
+                if k in d:
+                    return d[k]
+                for actual_key in d.keys():
+                    if actual_key.lower() == k.lower():
+                        return d[actual_key]
+            return None
+
         meet_start = None
         if meets:
             m = meets[0]
-            date_str = m.get("start") or m.get("start_date") or ""
+            date_str = get_field(m, ["start", "start_date"]) or ""
             if date_str:
                 try:
                     if " " in date_str:
@@ -1916,48 +1929,63 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 except Exception:
                     pass
 
-        # Count events per session from sessitem for reliability
-        sess_item_table = cache.get("sessitem", [])
-        event_counts_map: dict[Any, int] = {}
+        # Count events per session for reliability
+        sess_item_table = self._get_table(cache, "sessitem")
+        event_table = self._get_table(cache, "event")
+
+        # event_counts_map: sess_ptr -> count
+        event_counts_map: dict[str, int] = {}
+        # sess_no_counts: sess_no -> count (fallback)
+        sess_no_counts: dict[int, int] = {}
+
         for si in sess_item_table:
-            s_ptr = si.get("sess_ptr")
+            s_ptr = get_field(si, ["sess_ptr"])
             if s_ptr:
-                event_counts_map[s_ptr] = event_counts_map.get(s_ptr, 0) + 1
+                event_counts_map[str(s_ptr)] = event_counts_map.get(str(s_ptr), 0) + 1
+
+        for e in event_table:
+            s_no = self._safe_int(get_field(e, ["sess_no"])) or 1
+            if s_no:
+                sess_no_counts[s_no] = sess_no_counts.get(s_no, 0) + 1
 
         sessions_to_process = []
         if data:
             for item in data:
-                s_ptr = item.get("sess_ptr")
-                e_cnt = self._safe_int(item.get("event_cnt"))
-                if not e_cnt and s_ptr:
-                    e_cnt = event_counts_map.get(s_ptr, 0)
+                s_ptr = get_field(item, ["sess_ptr"])
+                s_no = self._safe_int(get_field(item, ["sess_no"]))
+                e_cnt = self._safe_int(get_field(item, ["event_cnt"]))
+
+                if not e_cnt:
+                    if s_ptr:
+                        e_cnt = event_counts_map.get(str(s_ptr), 0)
+                    if not e_cnt and s_no:
+                        e_cnt = sess_no_counts.get(s_no, 0)
 
                 sessions_to_process.append(
                     {
-                        "id": str(item.get("sess_no")),
-                        "name": item.get("sess_name", f"Session {item.get('sess_no')}"),
-                        "day": self._safe_int(item.get("sess_day", 1)),
-                        "warmup": self._safe_int(item.get("sess_warmup", 0)),
-                        "starttime": self._safe_int(item.get("sess_starttime", 0)),
+                        "id": str(s_no or "0"),
+                        "name": str(get_field(item, ["sess_name", "sname"]) or f"Session {s_no}"),
+                        "day": self._safe_int(get_field(item, ["sess_day", "day"]) or 1),
+                        "warmup": self._safe_int(get_field(item, ["sess_warmup"]) or 0),
+                        "starttime": self._safe_int(get_field(item, ["sess_starttime"]) or 0),
                         "event_cnt": e_cnt,
                         "source_item": item,
                     }
                 )
         else:
-            event_table = cache.get("event", [])
-            sess_ids = sorted({self._safe_int(e.get("sess_no", 1)) for e in event_table})
-            if not sess_ids and not event_table:
+            sess_ids = sorted({self._safe_int(get_field(e, ["sess_no"]) or 1) for e in event_table})
+            if not sess_ids:
                 sess_ids = [1]
 
             for s_id in sess_ids:
                 sessions_to_process.append(
                     {
                         "id": str(s_id),
-                        "name": "Session 1" if s_id == 1 and not event_table else f"Session {s_id}",
+                        "name": f"Session {s_id}",
                         "day": 1,
                         "warmup": 0,
                         "starttime": 0,
-                        "event_cnt": None,
+                        "event_cnt": sess_no_counts.get(s_id, 0) if event_table else None,
                         "source_item": {},
                     }
                 )
@@ -1966,32 +1994,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         for s_info in sessions_to_process:
             item = s_info["source_item"]
             sess_date = ""
-            day_offset = self._safe_int(s_info["day"], 1) - 1
+            day_offset = self._safe_int(s_info["day"]) - 1
             if meet_start and day_offset >= 0:
-                s_date = meet_start + datetime.timedelta(days=day_offset)
-                sess_date = s_date.strftime("%Y-%m-%d")
-            else:
-                sess_date = self._format_date(item.get("sess_date", ""))
-
-            s_no = s_info["id"]
-            events = cache.get("event", [])
-            ev_count = 0
-            if s_no:
-                ev_count = sum(1 for e in events if str(e.get("sess_no", 1)) == str(s_no))
+                d = meet_start + datetime.timedelta(days=day_offset)
+                sess_date = d.strftime("%Y-%m-%d")
 
             sessions.append(
                 pb2.Session(
-                    id=str(s_no),
+                    id=str(s_info["id"]),
                     meet_id="1",
                     name=s_info["name"],
                     date=sess_date,
                     warm_up_time=self._seconds_to_time(s_info["warmup"]),
                     start_time=self._seconds_to_time(s_info["starttime"]),
-                    event_count=s_info.get("event_cnt") or ev_count,
-                    session_num=self._safe_int(s_no, 0),
+                    event_count=s_info["event_cnt"] or 0,
+                    session_num=self._safe_int(s_info["id"]),
+                    day=self._safe_int(s_info["day"]),
                 )
             )
-
         return pb2.GetSessionsResponse(sessions=sessions)
 
     def GetAdminConfig(self, request, context):
