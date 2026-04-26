@@ -31,7 +31,7 @@ test.describe("Mobile Judge App Journey", () => {
 	// Set baseURL to the judge app endpoint.
 	// In local dev, the judge app is mounted as a static directory in the frontend.
 	test.use({
-		baseURL: process.env.MOBILE_APP_URL || "http://localhost:3100/judge/",
+		baseURL: process.env.MOBILE_APP_URL || "http://localhost:3000/judge/",
 		viewport: { width: 390, height: 1200 }, // Ensure tall enough for all DQ codes
 	});
 
