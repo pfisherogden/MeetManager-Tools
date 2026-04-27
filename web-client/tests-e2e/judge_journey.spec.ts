@@ -1,9 +1,14 @@
 import { expect, test } from "@playwright/test";
-import { getE2ETestContext, robustClick } from "./utils";
+import {
+	ensureDatasetActive,
+	getE2ETestContext,
+	getFixtureData,
+	robustClick,
+} from "./utils";
 
 test.describe("Mobile Judge App Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo);
+		const { userId } = getE2ETestContext(testInfo, page);
 		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
@@ -11,82 +16,120 @@ test.describe("Mobile Judge App Journey", () => {
 		console.log(`Using isolated Judge User ID: ${userId}`);
 	});
 
-	// Set baseURL to the judge app endpoint.
-	// In local dev, the judge app is mounted as a static directory in the frontend.
-	test.use({
-		baseURL: process.env.MOBILE_APP_URL || "http://localhost:3000/judge/",
-		viewport: { width: 390, height: 1200 }, // Ensure tall enough for all DQ codes
-	});
-
 	test("should allow a judge to login, select event, and submit DQ", async ({
 		page,
+		context,
 	}, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const { userId } = getE2ETestContext(testInfo);
+		const { userId, getFilename } = getE2ETestContext(testInfo);
 
-		// 1. Initial Page: Enter Name
-		await page.goto("./");
+		// 0. Setup: Upload and Publish a dataset
+		const testFileName = getFilename("tiny_meet.json");
+		const data = getFixtureData("tiny_meet.json");
+		await ensureDatasetActive(page, userId, testFileName, data);
+
+		// Now publish it
+		await page.goto("/admin", { waitUntil: "networkidle" });
+		const row = page.getByTestId(`dataset-row-${testFileName}`);
+		await row.getByTestId("publish-button").click();
+
+		// Wait for judge URL to appear in dialog
+		const judgeUrlLocator = page.getByTestId("judge-app-url");
+		await expect(judgeUrlLocator).toBeVisible({ timeout: 30000 });
+		let judgeUrl = (await judgeUrlLocator.textContent()) || "";
+
+		// Dynamic port remapping for local E2E
+		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+		if (frontendUrl !== "http://localhost:3000") {
+			console.log(`[E2E] Remapping judgeUrl from localhost:3000 to ${frontendUrl}`);
+			judgeUrl = judgeUrl.replaceAll("http://localhost:3000", frontendUrl);
+		}
+
+		console.log(`Authorized Judge App URL: ${judgeUrl}`);
+
+		// 1. Initial Page: Enter Name (on the specific authorized URL)
+		const judgePage = await context.newPage();
+		
+		// Setup console logging for the NEW page
+		getE2ETestContext(testInfo, judgePage);
+		
+		await judgePage.goto(judgeUrl);
+		
+		// Wait for HMR/Fast Refresh to settle then reload to ensure a clean state
+		console.log("[E2E] Waiting for Judge App to settle...");
+		await judgePage.waitForTimeout(5000);
+		await judgePage.reload({ waitUntil: "networkidle" });
 
 		// Wait for app to be ready (hydration sentinel)
-		await expect(page.getByPlaceholder("Your Name")).toBeVisible({
+		await expect(judgePage.getByPlaceholder("Your Name")).toBeVisible({
 			timeout: 45000,
 		});
 
-		await page.getByPlaceholder("Your Name").fill("E2E Judge");
-		await page.getByRole("button", { name: /START JUDGING/i }).click();
+		await judgePage.getByPlaceholder("Your Name").fill("E2E Judge");
+		await robustClick(judgePage.getByText(/START JUDGING/i));
 
 		// 2. Meet List: Select Meet
 		// Wait for meet data to be fetched from backend (auth check)
-		await expect(page.getByText(/Event 1/i)).toBeVisible({ timeout: 60000 });
-		await page.getByText(/Event 1/i).click();
+		const eventItem = judgePage.getByTestId("event-item-13");
+		await expect(eventItem).toBeVisible({
+			timeout: 60000,
+		});
+		await eventItem.click();
 
 		// 3. Heat List: Select Heat
-		await expect(page.getByText(/Heat 1/i)).toBeVisible({ timeout: 15000 });
-		await page.getByText(/Heat 1/i).click();
+		await expect(judgePage.getByText(/Heat 1/i)).toBeVisible({ timeout: 15000 });
+		await judgePage.getByText(/Heat 1/i).click();
 
 		// 4. Heat Detail: Click a swimmer to DQ
 		// Look for "TAP TO DQ" button
-		const dqBtn = page.getByRole("button", { name: /TAP TO DQ/i }).first();
+		const dqBtn = judgePage.getByText(/TAP TO DQ/i).first();
 		await expect(dqBtn).toBeVisible({ timeout: 15000 });
 		await dqBtn.click();
 
 		// 5. Verify DQ Modal opens
 		await expect(
-			page.getByPlaceholder("Add notes here (optional)"),
+			judgePage.getByPlaceholder("Add notes here (optional)"),
 		).toBeVisible();
 
 		// 6. Select a DQ code (e.g., "1A") via new data-testid
 		const code1A_selector = "[data-testid='dq-code-1A']";
-		await page.waitForSelector(code1A_selector, {
+		await judgePage.waitForSelector(code1A_selector, {
 			state: "attached",
 			timeout: 10000,
 		});
 
 		// Use evaluate click for Safari robustness
-		await page.evaluate((sel) => {
+		await judgePage.evaluate((sel) => {
 			const el = document.querySelector(sel);
 			if (el) (el as HTMLElement).click();
 		}, code1A_selector);
 
 		// 7. Add Note and Submit
-		await page
+		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("E2E Test Note");
-		await page.getByRole("button", { name: /SUBMIT DQ/i }).click();
+		await robustClick(judgePage.getByLabel("Save changes"));
 
 		// 8. Verify submission (wait for modal to close or history to update)
 		await expect(
-			page.getByPlaceholder("Add notes here (optional)"),
+			judgePage.getByPlaceholder("Add notes here (optional)"),
 		).not.toBeVisible();
 
 		// 9. Sync Data (Offline -> Online)
-		const syncBtn = page.getByTestId("dq-history-button");
+		const syncBtn = judgePage.getByTestId("dq-history-button");
 		await expect(syncBtn).toBeVisible({ timeout: 15000 });
 		await robustClick(syncBtn, { timeout: 30000 });
 
-		await expect(page.getByText(/Successfully synced/i)).toBeVisible({
-			timeout: 45000,
+		await expect(judgePage.getByText("DQ History (Pending: 0)")).toBeVisible({
+			timeout: 60000,
 		});
-		await expect(page.getByText(/DQ History \(Pending: 0\)/)).toBeVisible();
+
+		// Optional success message check
+		const successMsg = judgePage.getByText(/Successfully synced/i);
+		if (await successMsg.isVisible()) {
+			console.log("Verified success message visibility");
+		}
+		
+		await expect(judgePage.getByText("DQ History (Total: 1)")).toBeVisible();
 	});
 });

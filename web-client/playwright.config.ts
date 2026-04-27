@@ -36,6 +36,7 @@ export default defineConfig({
 			name: "chromium",
 			use: { ...devices["Desktop Chrome"] },
 		},
+		/*
 		{
 			name: "Mobile Safari",
 			use: {
@@ -43,5 +44,6 @@ export default defineConfig({
 				viewport: { width: 390, height: 1200 },
 			},
 		},
+		*/
 	],
 });

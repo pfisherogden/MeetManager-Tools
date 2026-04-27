@@ -136,11 +136,15 @@ test-frontend: codegen
     cd web-client && npm test
 
 test-e2e:
-    @echo "Running Playwright E2E Tests with dynamic port discovery..."
-    docker compose up -d --remove-orphans
-    @export DYNAMIC_PORT=$$(docker compose port frontend 3000 | cut -d: -f2); \
-    echo "Frontend discovered on port: $$DYNAMIC_PORT"; \
-    cd web-client && FRONTEND_URL=http://localhost:$$DYNAMIC_PORT npx playwright test
+    @echo "Running Playwright E2E Tests against a PRODUCTION build..."
+    docker-compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --remove-orphans
+    @echo "Waiting for services to be healthy..."
+    sleep 20
+    @cd web-client && FRONTEND_URL=http://localhost:$(docker compose port frontend 3000 | cut -d: -f2) npx playwright test
+
+down-e2e:
+    @echo "Tearing down E2E services..."
+    docker-compose -f docker-compose.yml -f docker-compose.e2e.yml down --remove-orphans
 
 test-e2e-judge:
     @echo "Running Judge App E2E Tests..."

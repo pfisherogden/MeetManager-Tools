@@ -3,9 +3,6 @@ const nextConfig = {
 	typescript: {
 		ignoreBuildErrors: true,
 	},
-	eslint: {
-		ignoreDuringBuilds: true,
-	},
 	images: {
 		unoptimized: true,
 	},
@@ -13,6 +10,7 @@ const nextConfig = {
 		serverActions: {
 			bodySizeLimit: "50mb",
 		},
+		outputFileTracingRoot: "../../",
 	},
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),

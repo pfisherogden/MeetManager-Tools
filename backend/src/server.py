@@ -2081,8 +2081,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             safe_pub_path = urllib.parse.quote(user_pub_path)
             program_url = f"{frontend_base}/api/data?path={safe_pub_path}&token={token}"
-
             sync_url = f"{frontend_base}/api/sync-dqs?token={token}&uid={uid}"
+
+            logging.info(f"PublishMeetData: frontend_base={frontend_base}, program_url={program_url}")
 
             # Nested URLs must be fully encoded to be valid as a query parameter value.
             # We use safe="" to ensure EVERYTHING including / and : is encoded for the final link.

@@ -143,7 +143,9 @@ export function DatasetManager() {
 	const handlePublish = async (filename: string) => {
 		setIsPublishing(filename);
 		try {
-			const res = await publishMeetData(filename);
+			// Pass current origin as frontendUrl to ensure the backend generates correct links
+			const frontendUrl = typeof window !== "undefined" ? window.location.origin : undefined;
+			const res = await publishMeetData(filename, frontendUrl);
 			if (res.success && res.judgeAppUrl) {
 				setJudgeUrl(res.judgeAppUrl);
 				toast.success("Meet data published to Judge App");

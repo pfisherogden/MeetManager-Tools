@@ -11,11 +11,19 @@ import {
  * Generates a consistent test context including isolated UID and filenames.
  * This ensures that shard, worker, and retry indices are identical across all hooks and test cases.
  */
-export function getE2ETestContext(testInfo: TestInfo) {
+export function getE2ETestContext(testInfo: TestInfo, page?: Page) {
 	const shardIndex = process.env.SHARD_INDEX || "0";
 	const workerIndex = testInfo.workerIndex;
 	const retry = testInfo.retry;
 	const projectName = testInfo.project.name.replace(/\s+/g, "-");
+
+	// Setup console logging if page is provided
+	if (page) {
+		console.log(`[Utils] Attaching console listener for project: ${projectName}`);
+		page.on("console", (msg) => {
+			console.log(`[Browser Console] [${projectName}] ${msg.type()}: ${msg.text()}`);
+		});
+	}
 
 	// Isolated User ID for the entire shard+worker+retry combination
 	const userId =
@@ -32,6 +40,7 @@ export function getE2ETestContext(testInfo: TestInfo) {
 		// Generate unique filenames to prevent shard collision on shared filesystems
 		getFilename: (base: string) =>
 			`${base.split(".")[0]}_${shardIndex}_${workerIndex}_${retry}.json`,
+	};
 	};
 }
 

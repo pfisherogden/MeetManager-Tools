@@ -127,7 +127,7 @@ const getOrderedDQCategories = (
 	return defaultOrdered;
 };
 
-const BUILD_TIME = "04/25/2026, 07:27:16 PM PT"; // Fixed build time
+const BUILD_TIME = "04/27/2026, 01:18:38 PM PT"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<
@@ -185,6 +185,8 @@ export default function App() {
 		updatePendingCount();
 		refreshEvents();
 	}, [updatePendingCount, refreshEvents]);
+
+	const isInitialized = useRef(false);
 
 	useEffect(() => {
 		const initializeApp = async () => {
@@ -246,8 +248,12 @@ export default function App() {
 					seedData();
 				}
 
-				refreshEvents();
-				updatePendingCount();
+				if (!isInitialized.current) {
+					refreshEvents();
+					updatePendingCount();
+					isInitialized.current = true;
+				}
+				
 				console.log("APP: Initialization complete, setting isLoading=false");
 				setIsLoading(false);
 			} catch (err: any) {
@@ -678,9 +684,10 @@ export default function App() {
 													? membersList[leg - 1]
 													: `Leg ${leg}`;
 												return (
-
 													<TouchableOpacity
 														key={leg}
+														testID="add-dq-button"
+														{...(Platform.OS === "web" ? { "data-testid": "add-dq-button" } : {})}
 														style={styles.legRow}
 														onPress={() => handleDQ(item, leg)}
 													>
@@ -716,6 +723,8 @@ export default function App() {
 					// Render standard swimmer view
 					return (
 						<TouchableOpacity
+							testID="add-dq-button"
+							{...(Platform.OS === "web" ? { "data-testid": "add-dq-button" } : {})}
 							style={[styles.swimmerCard, item.empty && styles.emptyCard]}
 							onPress={() => handleDQ(item)}
 						>
@@ -1095,6 +1104,7 @@ export default function App() {
 												<TouchableOpacity
 													key={item.code}
 													testID={`dq-code-${item.code}`}
+													{...(Platform.OS === "web" ? { "data-testid": `dq-code-${item.code}` } : {})}
 													style={[
 														styles.dqItem,
 														isSelected && styles.selectedDqItem,
@@ -1616,12 +1626,12 @@ const styles = StyleSheet.create({
 	},
 	modalContainer: {
 		backgroundColor: COLORS.background,
+		maxWidth: 500,
+	},
 	modalPopup: {
 		borderRadius: 10,
 		maxHeight: "90%",
 		width: "100%",
-		maxWidth: 500,
-	},
 		maxWidth: 500,
 	},
 	modalHeader: {

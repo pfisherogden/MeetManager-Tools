@@ -1,0 +1,9 @@
+services:
+  backend:
+    shm_size: '2gb'
+  frontend:
+    volumes:
+      - mmtools-data:/app/data
+      - ./tmp:/app/tmp
+    command: ["sh", "-c", "echo 'Waiting for backend:8080 (TCP)...' && until nc -z backend 8080; do sleep 2; done && echo 'Backend is UP, starting Next.js...' && npm start"]
+    shm_size: '2gb'
