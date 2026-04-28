@@ -3,7 +3,7 @@ import { getE2ETestContext } from "./utils";
 
 test.describe("Dashboard Smoke Test", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo);
+		const { userId } = getE2ETestContext(testInfo, page);
 		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },

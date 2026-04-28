@@ -39,22 +39,27 @@ test.describe("Mobile Judge App Journey", () => {
 		let judgeUrl = (await judgeUrlLocator.textContent()) || "";
 
 		// Dynamic port remapping for local E2E
-		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-		if (frontendUrl !== "http://localhost:3000") {
-			console.log(`[E2E] Remapping judgeUrl from localhost:3000 to ${frontendUrl}`);
-			judgeUrl = judgeUrl.replaceAll("http://localhost:3000", frontendUrl);
-		}
+		// The judge app is now served by Nginx on port 8081 in docker-compose.e2e.yml
+		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3100";
+
+		// Map from frontend judge path to dedicated static server
+		judgeUrl = judgeUrl.replaceAll(
+			"http://localhost:3000/judge",
+			"http://localhost:8081",
+		);
+		// Ensure API calls still point to the correct frontend port
+		judgeUrl = judgeUrl.replaceAll("http://localhost:3000", frontendUrl);
 
 		console.log(`Authorized Judge App URL: ${judgeUrl}`);
 
 		// 1. Initial Page: Enter Name (on the specific authorized URL)
 		const judgePage = await context.newPage();
-		
+
 		// Setup console logging for the NEW page
 		getE2ETestContext(testInfo, judgePage);
-		
+
 		await judgePage.goto(judgeUrl);
-		
+
 		// Wait for HMR/Fast Refresh to settle then reload to ensure a clean state
 		console.log("[E2E] Waiting for Judge App to settle...");
 		await judgePage.waitForTimeout(5000);
@@ -77,7 +82,9 @@ test.describe("Mobile Judge App Journey", () => {
 		await eventItem.click();
 
 		// 3. Heat List: Select Heat
-		await expect(judgePage.getByText(/Heat 1/i)).toBeVisible({ timeout: 15000 });
+		await expect(judgePage.getByText(/Heat 1/i)).toBeVisible({
+			timeout: 15000,
+		});
 		await judgePage.getByText(/Heat 1/i).click();
 
 		// 4. Heat Detail: Click a swimmer to DQ
@@ -129,7 +136,7 @@ test.describe("Mobile Judge App Journey", () => {
 		if (await successMsg.isVisible()) {
 			console.log("Verified success message visibility");
 		}
-		
+
 		await expect(judgePage.getByText("DQ History (Total: 1)")).toBeVisible();
 	});
 });

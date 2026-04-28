@@ -180,12 +180,12 @@ def _process_single_report_process(
     columns_on_page,
     show_relay_swimmers,
     zebra_striping,
-    msgpack_path,  # Use msgpack file instead of large dict
+    msgpack_path,
     rtype_map,
     renderer_type=None,
     html_preview=False,
+    idx=0,
 ):
-    # This runs in a separate process, avoiding the GIL
     import datetime
     import logging
     import os
@@ -194,60 +194,35 @@ def _process_single_report_process(
 
     import msgpack
 
-    # Re-initialize logging configuration in the subprocess to ensure logs are captured
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
     log_level = getattr(logging, log_level_str, logging.INFO)
     logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
-
-    # Suppress verbose third-party loggers in the subprocess
     if log_level_str != "DEBUG":
         logging.getLogger("fontTools").setLevel(logging.WARNING)
-        logging.getLogger("fontTools.subset").setLevel(logging.WARNING)
         logging.getLogger("weasyprint").setLevel(logging.WARNING)
-        logging.getLogger("jpype").setLevel(logging.WARNING)
-        # Also disable global logging for anything below INFO to catch stray loggers
-        logging.disable(logging.DEBUG)
-
-    from meetmanager.v1 import meet_manager_pb2 as pb2
-    from mm_to_json.mm_to_json import MmToJsonConverter
     from mm_to_json.reporting.extractor import ReportDataExtractor
-    from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
-    from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
     rtype = rtype_map.get(report_req_type, "psych")
     title = report_req_title
-
     start_time = datetime.datetime.now()
-
-    with open(msgpack_path, "rb") as f:
-        packed_data = msgpack.unpack(f, raw=False)
-
-    cache_data = packed_data["cache"]
-    full_data = packed_data["full_data"]
-
-    load_end_time = datetime.datetime.now()
-    load_duration = (load_end_time - start_time).total_seconds()
-
-    converter = MmToJsonConverter(table_data=cache_data)
-    extractor = ReportDataExtractor(converter, full_data=full_data)
-
-    is_html = html_preview or rtype == "program_html"
-    with tempfile.NamedTemporaryFile(suffix=".html" if is_html else ".pdf", delete=False) as tmp:
-        temp_path = tmp.name
-
     try:
+        with open(msgpack_path, "rb") as f:
+            unpacked = msgpack.unpack(f, raw=False)
+            full_data = unpacked["full_data"]
+            unpacked["cache"]
+        load_duration = (datetime.datetime.now() - start_time).total_seconds()
         render_start_time = datetime.datetime.now()
-
-        # Use requested renderer
-        renderer: PlaywrightRenderer | WeasyRenderer
-        if renderer_type == pb2.RENDERER_TYPE_PLAYWRIGHT:
-            renderer = PlaywrightRenderer(temp_path)
+        is_html = html_preview or (rtype == "program_html")
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".html" if is_html else ".pdf")
+        os.close(temp_fd)
+        extractor = ReportDataExtractor(full_data)
+        renderer: Any
+        if renderer_type == "playwright":
+            renderer = PlaywrightRenderer(output_path=temp_path)
         else:
-            renderer = WeasyRenderer(temp_path)
+            renderer = WeasyRenderer(output_path=temp_path)
 
         report_data = None
-        template = "meet_program.j2"
-
         if rtype == "psych":
             report_data = extractor.extract_psych_sheet_data(
                 team_filter=report_req_team_filter,
@@ -256,22 +231,23 @@ def _process_single_report_process(
                 age_group_filter=report_req_age_group_filter,
             )
             template = "psych_sheet.j2"
-        elif rtype in ["entries", "entries_hytek"]:
+        elif rtype == "entries":
             report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
                 report_title=title,
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            template = "entries_hytek.j2"
+            template = "meet_entries.j2"
         elif rtype == "lineups":
-            report_data = extractor.extract_timer_sheets_data(
+            # Fallback to entries for lineups if not explicitly implemented
+            report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
                 report_title=title,
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            template = "timer_sheets.j2"
+            template = "lineups.j2"
         elif rtype == "results":
             report_data = extractor.extract_results_data(
                 team_filter=report_req_team_filter,
@@ -307,7 +283,6 @@ def _process_single_report_process(
                 show_dq_lines=(rtype == "judge_sheets"),
             )
             template = "meet_program.j2"
-
         if report_data:
             report_data["zebra_striping"] = zebra_striping
             if is_html:
@@ -319,39 +294,29 @@ def _process_single_report_process(
                     renderer.render_meet_program(report_data)
                 else:
                     renderer.render_entries(report_data, template)
-
         if os.path.exists(temp_path):
             with open(temp_path, "rb") as f:
                 pdf_bytes = f.read()
             os.unlink(temp_path)
         else:
             pdf_bytes = b""
-
         render_duration = (datetime.datetime.now() - render_start_time).total_seconds()
-
-        # Determine the effective filename
         ext = ".html" if is_html else ".pdf"
         final_filename = f"{user_id}_{title}{ext}"
-
-        # If it was an HTML preview, we also want to return the string for convenience
-        html_str = ""
-        if is_html:
-            html_str = pdf_bytes.decode("utf-8")
-
+        html_str = pdf_bytes.decode("utf-8") if is_html else ""
         return {
-            "pdf_bytes": pdf_bytes,
+            "success": True,
+            "content": pdf_bytes,
             "filename": final_filename,
             "html_content": html_str,
+            "rtype": rtype,
+            "idx": idx,
             "load_duration": load_duration,
             "render_duration": render_duration,
         }
-
     except Exception as e:
-        if os.path.exists(temp_path):
-            os.unlink(temp_path)
-        logging.error(f"Error in single report process: {e}")
-        logging.error(traceback.format_exc())
-        raise e
+        logging.error(f"Error in _process_single_report_process (idx {idx}): {traceback.format_exc()}")
+        return {"success": False, "error": str(e), "rtype": rtype, "idx": idx}
 
 
 class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
@@ -1632,12 +1597,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             try:
                 res = _process_single_report_process(
-                    0,
                     request.type,
                     request.title,
                     request.team_filter,
                     request.gender_filter,
                     request.age_group_filter,
+                    uid,
                     request.columns_on_page if request.HasField("columns_on_page") else 2,
                     request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
                     request.zebra_striping if request.HasField("zebra_striping") else False,
@@ -1759,18 +1724,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         tasks.append(
                             executor.submit(
                                 _process_single_report_process,
-                                idx,
                                 report_req.type,
                                 report_req.title,
                                 report_req.team_filter,
                                 report_req.gender_filter,
                                 report_req.age_group_filter,
+                                uid,
                                 report_req.columns_on_page if getattr(report_req, "columns_on_page", None) else 2,
                                 report_req.show_relay_swimmers if report_req.HasField("show_relay_swimmers") else True,
                                 report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
                                 msgpack_path,
                                 rtype_map,
                                 request.renderer_type if hasattr(request, "renderer_type") else None,
+                                False,  # html_preview
+                                idx,
                             )
                         )
 
@@ -1790,20 +1757,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     )
                     logging.info(f"Job {job_id}: Progress update {finished_count}/{total_reports}")
 
-                # BUNDLING: Create ZIP in original order
-                zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for i, future in enumerate(tasks):
-                        res = future.result()
-                        if res.get("success"):
-                            zip_file.writestr(res["filename"], res["content"])
-                            logging.info(
-                                f"Job {job_id}: Report {i + 1}/{total_reports} ({res.get('rtype')}) added to bundle"
-                            )
-                        else:
-                            raise Exception(
-                                f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
-                            )
                 # BUNDLING: Create ZIP in original order
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:

@@ -41,6 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
 		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
 
+	console.log(`[AuthProvider] Init: isAuthDisabled=${isAuthDisabled}, bypass=${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`);
+
 	useEffect(() => {
 		const token = Cookies.get("googleAccessToken");
 		if (token) setGoogleAccessToken(token);

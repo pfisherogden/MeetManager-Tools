@@ -10,7 +10,7 @@ test.describe("Coach Persona Journey", () => {
 
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const { userId, getFilename } = getE2ETestContext(testInfo);
+		const { userId, getFilename } = getE2ETestContext(testInfo, page);
 		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
@@ -33,8 +33,7 @@ test.describe("Coach Persona Journey", () => {
 
 		// Select Club Style report
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.scrollIntoViewIfNeeded();
-		await clubCard.click();
+		await robustClick(clubCard);
 
 		// Wait for config card
 		const configCard = page.getByTestId("report-configuration-card");
@@ -44,16 +43,15 @@ test.describe("Coach Persona Journey", () => {
 		const teamFilterBtn = configCard
 			.getByRole("combobox")
 			.filter({ hasText: /All Teams/i });
-		await teamFilterBtn.scrollIntoViewIfNeeded();
-		await teamFilterBtn.click();
+		await robustClick(teamFilterBtn, { waitForState: "closed" });
 
-		// Select Blue Dolphins
-		await page.getByRole("option", { name: "Blue Dolphins" }).click();
+		// Select Kyleton Swimmers (since that's in tiny_meet.json)
+		await page.getByRole("option", { name: "Kyleton Swimmers" }).click();
 
 		// Verify summary reflects team
 		const summary = page.locator("div").filter({ hasText: /^Summary/ });
-		await expect(summary).toContainText("Target: Blue Dolphins", {
-			timeout: 15000,
+		await expect(summary).toContainText("Target: Kyleton Swimmers", {
+			timeout: 10000,
 		});
 
 		// 3. Add to pack and verify

@@ -10,7 +10,7 @@ test.describe("Visual Journey Capture", () => {
 	const reportDir = path.join(process.cwd(), "tmp", "visual-report");
 
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId, getFilename } = getE2ETestContext(testInfo);
+		const { userId, getFilename } = getE2ETestContext(testInfo, page);
 		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },

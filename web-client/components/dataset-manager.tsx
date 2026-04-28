@@ -114,8 +114,9 @@ export function DatasetManager() {
 			const res = await setActiveDataset(filename);
 			if (res.success) {
 				toast.success(`Active dataset set to: ${filename}`);
-				// NUCLEAR: Force full page reload to ensure revalidated data is shown
-				window.location.href = "/admin";
+				// Use refresh() instead of full page reload to avoid E2E redirect loops
+				router.refresh();
+				await fetchDatasets();
 			} else {
 				toast.error(res.message || "Failed to set active dataset");
 			}
@@ -144,7 +145,8 @@ export function DatasetManager() {
 		setIsPublishing(filename);
 		try {
 			// Pass current origin as frontendUrl to ensure the backend generates correct links
-			const frontendUrl = typeof window !== "undefined" ? window.location.origin : undefined;
+			const frontendUrl =
+				typeof window !== "undefined" ? window.location.origin : undefined;
 			const res = await publishMeetData(filename, frontendUrl);
 			if (res.success && res.judgeAppUrl) {
 				setJudgeUrl(res.judgeAppUrl);

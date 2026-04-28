@@ -10,7 +10,7 @@ test.describe("Meet Administrator Management", () => {
 
 	test.beforeEach(async ({ page, context }, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const { userId } = getE2ETestContext(testInfo);
+		const { userId } = getE2ETestContext(testInfo, page);
 		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },

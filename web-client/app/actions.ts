@@ -399,11 +399,17 @@ export async function getDashboardStats() {
 	}
 }
 
-export async function publishMeetData(_filename: string, frontendUrlOverride?: string) {
+export async function publishMeetData(
+	_filename: string,
+	frontendUrlOverride?: string,
+) {
 	try {
 		const metadata = await getAuthMetadata();
 		// The proto expects frontend_url to generate the full link
-		const frontendUrl = frontendUrlOverride || process.env.FRONTEND_URL || "http://localhost:3000";
+		const frontendUrl =
+			frontendUrlOverride ||
+			process.env.FRONTEND_URL ||
+			"http://localhost:3000";
 		const response = await client.publishMeetData(
 			{ frontendUrl },
 			{ metadata },

@@ -19,9 +19,13 @@ export function getE2ETestContext(testInfo: TestInfo, page?: Page) {
 
 	// Setup console logging if page is provided
 	if (page) {
-		console.log(`[Utils] Attaching console listener for project: ${projectName}`);
+		console.log(
+			`[Utils] Attaching console listener for project: ${projectName}`,
+		);
 		page.on("console", (msg) => {
-			console.log(`[Browser Console] [${projectName}] ${msg.type()}: ${msg.text()}`);
+			console.log(
+				`[Browser Console] [${projectName}] ${msg.type()}: ${msg.text()}`,
+			);
 		});
 	}
 
@@ -41,7 +45,6 @@ export function getE2ETestContext(testInfo: TestInfo, page?: Page) {
 		getFilename: (base: string) =>
 			`${base.split(".")[0]}_${shardIndex}_${workerIndex}_${retry}.json`,
 	};
-	};
 }
 
 export async function ensureDatasetActive(
@@ -53,13 +56,23 @@ export async function ensureDatasetActive(
 	console.log(`[Utils] Ensuring ${filename} is active for ${userId}...`);
 
 	await page.goto("/admin", { waitUntil: "networkidle" });
+	
+	// Add delay and reload to ensure console logs are captured and HMR/FastRefresh settle
+	console.log("[Utils] Waiting for initial page load to settle...");
+	await page.waitForTimeout(5000);
+	await page.reload({ waitUntil: "networkidle" });
 
-	// Defensively check for login redirect (common in Safari)
+	// Defensively check for login redirect (common in resource-constrained Safari runners)
+	// But only wait if we are actually stuck on the login page.
 	if (page.url().includes("/login")) {
-		console.warn(
-			`[Utils] Detected redirect to login on Safari. Waiting for auth redirect back...`,
-		);
-		await page.waitForURL("**/admin", { timeout: 20000 });
+		try {
+			console.warn(`[Utils] Detected redirect to login. Attempting to wait for auth-bypass to redirect back...`);
+			await page.waitForURL("**/admin", { timeout: 10000 });
+		} catch (e) {
+			console.error(`[Utils] Stuck on login page even with bypass. Current URL: ${page.url()}`);
+			// Fallback: try going to admin again directly
+			await page.goto("/admin", { waitUntil: "networkidle" });
+		}
 	}
 
 	// Use a robust wait for the input element
@@ -145,12 +158,23 @@ export async function ensureDatasetActive(
  */
 export async function robustClick(
 	locator: Locator,
-	options: { timeout?: number } = {},
+	options: { timeout?: number; waitForState?: string } = {},
 ) {
-	const timeout = options.timeout || 10000;
+	const timeout = options.timeout || 15000;
+
+	// 1. Wait for visibility
+	await expect(locator).toBeVisible({ timeout });
+
+	// 2. Optional: Wait for a specific data-state (useful for Radix UI / Shadcn)
+	if (options.waitForState) {
+		await expect(locator).toHaveAttribute("data-state", options.waitForState, {
+			timeout,
+		});
+	}
+
 	try {
-		// Attempt standard click
-		await locator.click({ timeout });
+		// 3. Attempt standard click
+		await locator.click({ timeout: 5000 });
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.log(

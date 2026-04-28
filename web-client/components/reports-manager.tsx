@@ -578,6 +578,8 @@ export function ReportsManager({
 						data-report-status={
 							isGenerating ? "generating" : isBundling ? "bundling" : "idle"
 						}
+						data-job-progress={jobProgress}
+						data-job-message={jobMessage}
 						className="shadow-lg"
 					>
 						<CardHeader>

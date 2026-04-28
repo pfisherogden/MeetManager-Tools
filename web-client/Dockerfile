@@ -1,6 +1,12 @@
 # Build stage
 FROM node:20-alpine AS builder
 
+ARG NEXT_PUBLIC_E2E_AUTH_BYPASS
+ENV NEXT_PUBLIC_E2E_AUTH_BYPASS=$NEXT_PUBLIC_E2E_AUTH_BYPASS
+
+ARG NEXT_PUBLIC_AUTH_DISABLED
+ENV NEXT_PUBLIC_AUTH_DISABLED=$NEXT_PUBLIC_AUTH_DISABLED
+
 # Install system dependencies
 RUN apk add --no-cache libc6-compat protobuf
 
@@ -12,14 +18,6 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy protos and generate client
 COPY protos/ /protos/
-RUN mkdir -p lib/proto && \
-  ./node_modules/.bin/grpc_tools_node_protoc \
-  --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto \
-  --ts_proto_out=./lib/proto \
-  --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,esModuleInterop=true \
-  -I/protos \
-  /protos/meetmanager/v1/meet_manager.proto
-
 # Copy the rest of the application
 COPY web-client/ .
 
@@ -28,6 +26,9 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 ARG NEXT_PUBLIC_E2E_AUTH_BYPASS
 ENV NEXT_PUBLIC_E2E_AUTH_BYPASS=$NEXT_PUBLIC_E2E_AUTH_BYPASS
+
+ARG NEXT_PUBLIC_AUTH_DISABLED
+ENV NEXT_PUBLIC_AUTH_DISABLED=$NEXT_PUBLIC_AUTH_DISABLED
 
 # Build the Next.js application
 RUN npm run build

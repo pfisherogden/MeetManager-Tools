@@ -14,7 +14,7 @@ const authFile = path.join(__dirname, "../../auth.json");
 
 test.describe("Production Smoke Tests", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo);
+		const { userId } = getE2ETestContext(testInfo, page);
 		const domain = new URL(process.env.BASE_URL || "http://localhost:3000")
 			.hostname;
 

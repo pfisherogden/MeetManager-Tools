@@ -6,22 +6,17 @@ const nextConfig = {
 	images: {
 		unoptimized: true,
 	},
+	outputFileTracingRoot: "../../",
 	experimental: {
 		serverActions: {
 			bodySizeLimit: "50mb",
 		},
-		outputFileTracingRoot: "../../",
 	},
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
 	},
 	async rewrites() {
-		return [
-			{
-				source: "/judge/:path*",
-				destination: "/judge/index.html",
-			},
-		];
+		return [];
 	},
 };
 
