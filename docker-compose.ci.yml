@@ -9,6 +9,9 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - LOG_LEVEL=INFO
+      - FRONTEND_URL=http://localhost:3000
+      - DATA_ACCESS_TOKEN=mmtools-default-secret-2024
+      - GRPC_AUTH_DISABLED=true
 
   frontend:
     image: ${IMAGE_PREFIX}/frontend:${TAG}
@@ -17,13 +20,14 @@ services:
     volumes:
       - mmtools-data:/app/data
     environment:
-      - BACKEND_URL=http://backend:8080
+      - BACKEND_INTERNAL_HOST=backend:8080
       - NEXT_PUBLIC_E2E_AUTH_BYPASS=true
+      - DATA_ACCESS_TOKEN=mmtools-default-secret-2024
 
   judge-app:
     image: ${IMAGE_PREFIX}/judge-app:${TAG}
     ports:
-      - "8081:8080"
+      - "8081:80"
 
 volumes:
   mmtools-data:

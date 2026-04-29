@@ -5,15 +5,20 @@ RUN apk add --no-cache libc6-compat protobuf netcat-openbsd
 
 WORKDIR /app
 
-# Copy all files first
-COPY . .
-
-# Install root dependencies
+# Copy root package.json for just/scripts
+COPY package.json package-lock.json* ./
 RUN npm install
 
-# Install web-client dependencies
+# Copy protos (needed for codegen)
+COPY protos/ /app/protos/
+
+# Copy web-client and build
 WORKDIR /app/web-client
+COPY web-client/package.json web-client/package-lock.json* ./
 RUN npm install
+
+# Copy source
+COPY web-client/ .
 
 # Build args
 ARG NEXT_PUBLIC_E2E_AUTH_BYPASS
@@ -25,12 +30,11 @@ ENV NEXT_PUBLIC_AUTH_DISABLED=$NEXT_PUBLIC_AUTH_DISABLED
 ARG NEXT_PUBLIC_BACKEND_PORT
 ENV NEXT_PUBLIC_BACKEND_PORT=$NEXT_PUBLIC_BACKEND_PORT
 
-# Build
+# Build (this triggers codegen which needs ../protos)
 RUN npm run build
 
 EXPOSE 3000
 ENV PORT=3000
 
 # Start script with backend wait loop
-# Next.js should find .next in the current directory (web-client)
 CMD ["sh", "-c", "echo 'Waiting for backend:8080 (TCP)...' && until nc -z backend 8080; do sleep 2; done && echo 'Backend is UP, starting Next.js...' && npm start"]
