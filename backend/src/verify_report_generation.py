@@ -40,9 +40,9 @@ def inspect_data_step_by_step(table_data):
         # Also check case variants
         if not rows:
             rows = table_data.get(tname.upper(), [])
-        print(f"Table '{tname}': {len(rows)} rows found.")
+        print(f"Processing table... {len(rows)} rows found.")
         if rows:
-            print(f"  First row keys: {list(rows[0].keys())}")
+            # Redacted keys for security
 
     print("\n--- STEP 2: Converter Inspection ---")
     converter = MmToJsonConverter(table_data=table_data)

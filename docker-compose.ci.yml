@@ -12,6 +12,7 @@ services:
       - FRONTEND_URL=http://localhost:3000
       - DATA_ACCESS_TOKEN=mmtools-default-secret-2024
       - GRPC_AUTH_DISABLED=true
+      - JUDGE_APP_URL=http://localhost:8081
 
   frontend:
     image: ${IMAGE_PREFIX}/frontend:${TAG}
@@ -27,7 +28,7 @@ services:
   judge-app:
     image: ${IMAGE_PREFIX}/judge-app:${TAG}
     ports:
-      - "8081:80"
+      - "8081:8080"
 
 volumes:
   mmtools-data:

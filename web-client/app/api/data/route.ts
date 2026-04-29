@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
 			}),
 		);
 	} catch (error: any) {
-		console.error(`API Error (data?path=${path}):`, error);
+		const safePath = String(path).replace(/[^\w./-]/g, "");
+		console.error(`API Error (data?path=${safePath}):`, error.message);
 		return withCors(
 			NextResponse.json(
 				{ error: `Failed to fetch file: ${error.message}` },

@@ -67,8 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 			// Ensure cookies are set for backend consistency if they were missing
 			if (!storedUid) {
-				Cookies.set("x-user-id", mockUid, { path: "/", sameSite: "strict" });
-				Cookies.set("idToken", "dev-token", { path: "/", sameSite: "strict" });
+				Cookies.set("x-user-id", mockUid, {
+					path: "/",
+					sameSite: "strict",
+					secure: true,
+				});
+				Cookies.set("idToken", "dev-token", {
+					path: "/",
+					sameSite: "strict",
+					secure: true,
+				});
 			}
 			return;
 		}
