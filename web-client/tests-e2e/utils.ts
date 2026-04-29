@@ -38,9 +38,13 @@ export async function robustClick(
 
 	// 1. Wait for hydration and fonts (if applicable)
 	const body = page.locator("body");
-	const hasHydratedAttr = await body.evaluate((el) => el.hasAttribute("data-hydrated"));
+	const hasHydratedAttr = await body.evaluate((el) =>
+		el.hasAttribute("data-hydrated"),
+	);
 	if (hasHydratedAttr) {
-		await page.waitForSelector("body[data-hydrated='true']", { timeout: 20000 });
+		await page.waitForSelector("body[data-hydrated='true']", {
+			timeout: 20000,
+		});
 	}
 	await page.evaluate(() => document.fonts.ready);
 
@@ -60,7 +64,10 @@ export async function robustClick(
 			force: options.force,
 		});
 	} catch (error) {
-		console.warn("[Utils] Standard click failed, falling back to evaluate:", error);
+		console.warn(
+			"[Utils] Standard click failed, falling back to evaluate:",
+			error,
+		);
 		await locator.evaluate((el) => (el as HTMLElement).click());
 	}
 }
@@ -87,24 +94,32 @@ export async function ensureDatasetActive(
 	}
 
 	// 2. Upload dataset directly via API
-	const uploadResponse = await page.request.post("/api/test/status?action=upload_dataset", {
-		data: {
-			filename,
-			data_json: JSON.stringify(data),
+	const uploadResponse = await page.request.post(
+		"/api/test/status?action=upload_dataset",
+		{
+			data: {
+				filename,
+				data_json: JSON.stringify(data),
+			},
+			headers: { "x-user-id": userId },
 		},
-		headers: { "x-user-id": userId },
-	});
+	);
 
 	if (!uploadResponse.ok()) {
 		const text = await uploadResponse.text();
-		throw new Error(`Failed to upload dataset: ${uploadResponse.status()} - ${text}`);
+		throw new Error(
+			`Failed to upload dataset: ${uploadResponse.status()} - ${text}`,
+		);
 	}
 
 	// 3. Set as active via API
-	const activateResponse = await page.request.post("/api/test/status?action=set_active", {
-		data: { filename },
-		headers: { "x-user-id": userId },
-	});
+	const activateResponse = await page.request.post(
+		"/api/test/status?action=set_active",
+		{
+			data: { filename },
+			headers: { "x-user-id": userId },
+		},
+	);
 
 	if (!activateResponse.ok()) {
 		const text = await activateResponse.text();
@@ -117,12 +132,17 @@ export async function ensureDatasetActive(
 	await expect
 		.poll(
 			async () => {
-				const res = await page.request.get("/api/test/status?action=list_datasets", {
-					headers: { "x-user-id": userId },
-				});
+				const res = await page.request.get(
+					"/api/test/status?action=list_datasets",
+					{
+						headers: { "x-user-id": userId },
+					},
+				);
 				if (!res.ok()) return false;
 				const body = await res.json();
-				const current = body.datasets?.find((d: any) => d.filename === filename);
+				const current = body.datasets?.find(
+					(d: any) => d.filename === filename,
+				);
 				return current?.isActive === true;
 			},
 			{

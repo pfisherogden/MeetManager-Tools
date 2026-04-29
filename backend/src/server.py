@@ -1102,7 +1102,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             context.set_details(f"File {filename} not found.")
             return pb2.SetActiveDatasetResponse()
 
-
         with self._lock:
             logging.info(f"Switching user {uid} dataset to {filename}...")
             # Update config

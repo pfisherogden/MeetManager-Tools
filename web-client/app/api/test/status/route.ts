@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
 	const uid = request.headers.get("x-user-id");
 
 	if (!uid) {
-		return NextResponse.json({ error: "x-user-id header required" }, { status: 400 });
+		return NextResponse.json(
+			{ error: "x-user-id header required" },
+			{ status: 400 },
+		);
 	}
 
 	const metadata = new Metadata();
@@ -41,13 +44,18 @@ export async function POST(request: NextRequest) {
 				};
 			}
 
-			const response = await client.uploadDataset(requestGenerator(), { metadata });
+			const response = await client.uploadDataset(requestGenerator(), {
+				metadata,
+			});
 			return NextResponse.json(response);
-		} 
-		
+		}
+
 		if (action === "set_active") {
 			const { filename } = await request.json();
-			const response = await client.setActiveDataset({ filename }, { metadata });
+			const response = await client.setActiveDataset(
+				{ filename },
+				{ metadata },
+			);
 			return NextResponse.json(response);
 		}
 
