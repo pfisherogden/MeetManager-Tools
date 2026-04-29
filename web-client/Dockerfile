@@ -5,20 +5,17 @@ RUN apk add --no-cache libc6-compat protobuf netcat-openbsd
 
 WORKDIR /app
 
-# Copy root package.json for just/scripts
-COPY package.json package-lock.json* ./
-RUN npm install
-
 # Copy protos (needed for codegen)
-# Root context is project root, so protos is at ./protos
 COPY protos/ /app/protos/
 
 # Setup web-client
 WORKDIR /app/web-client
-COPY web-client/package.json web-client/package-lock.json* ./
-RUN npm install
 
-# Copy web-client source BEFORE build so codegen can run
+# Install dependencies including devDeps for codegen
+COPY web-client/package.json web-client/package-lock.json* ./
+RUN npm ci
+
+# Copy web-client source
 COPY web-client/ .
 
 # Build args
@@ -32,7 +29,8 @@ ARG NEXT_PUBLIC_BACKEND_PORT
 ENV NEXT_PUBLIC_BACKEND_PORT=$NEXT_PUBLIC_BACKEND_PORT
 
 # Build (this triggers codegen which needs ../protos)
-RUN npm run build
+# Codegen is part of the build process in package.json or we call it explicitly
+RUN npm run codegen && npm run build
 
 EXPOSE 3000
 ENV PORT=3000
