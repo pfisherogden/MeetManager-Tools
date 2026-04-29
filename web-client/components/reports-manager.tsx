@@ -126,7 +126,7 @@ interface ReportsManagerProps {
 export function ReportsManager({
 	initialTeams: propTeams = [],
 }: ReportsManagerProps) {
-	const [selectedType, setSelectedType] = useState<number | null>(null);
+	const [selectedType, setSelectedType] = useState<number | null>(0);
 	const [title, setTitle] = useState("");
 	const [teamFilter, setTeamFilter] = useState("");
 	const [isGenerating, setIsGenerating] = useState(false);
@@ -257,22 +257,15 @@ export function ReportsManager({
 		const typeInfo = reportTypes.find((r) => r.id === selectedType);
 		const reportTitle = title || typeInfo?.name || "Report";
 
-		console.log(
-			`E2E DEBUG: handleGenerate called with selectedType=${selectedType}, htmlPreviewMode=${htmlPreviewMode}, rendererType=${rendererType}`,
-		);
-
 		// Open blank window synchronously to prevent popup blocking in CI/headless
 		let newTab: Window | null = null;
 		if (selectedType === 5 || htmlPreviewMode) {
-			console.log("E2E DEBUG: Opening preview window synchronously");
 			newTab = window.open("about:blank", "_blank");
 			if (newTab) {
 				newTab.document.write(
 					"<html><body><p>Generating report...</p></body></html>",
 				);
 				newTab.document.close();
-			} else {
-				console.log("E2E DEBUG: window.open returned null (likely headless)");
 			}
 		}
 
@@ -289,17 +282,19 @@ export function ReportsManager({
 			});
 
 			if (result.success) {
-				if (selectedType === 5 || htmlPreviewMode) {
-					console.log("E2E DEBUG: HTML mode detected, processing preview...");
-					if (result.htmlContent) {
-						if (newTab) {
-							newTab.document.open();
-							newTab.document.write(result.htmlContent);
-							newTab.document.close();
-						}
+				if ((selectedType === 5 || htmlPreviewMode) && result.htmlContent) {
+					if (newTab) {
+						newTab.document.open();
+						newTab.document.write(result.htmlContent);
+						newTab.document.close();
+						toast.success("HTML Program opened in new tab");
+					} else {
+						// Fallback if popup was blocked despite synchronous opening
+						const blob = new Blob([result.htmlContent], { type: "text/html" });
+						const url = URL.createObjectURL(blob);
+						window.open(url, "_blank");
+						toast.success("HTML Program opened in new tab");
 					}
-					// ALWAYS show the toast so E2E tests can detect success
-					toast.success("HTML Program opened in new tab");
 				} else if (result.pdfContentBase64) {
 					// Close tab if it was opened but we got a PDF
 					if (newTab) newTab.close();
@@ -383,11 +378,9 @@ export function ReportsManager({
 		setCustomPack([...customPack, ...newItems]);
 		toast.success(`Applied ${preset.name} to builder`);
 
-		// Scroll builder into view (if available in environment)
+		// Scroll builder into view
 		const builder = document.getElementById("report-builder");
-		if (builder && typeof builder.scrollIntoView === "function") {
-			builder.scrollIntoView({ behavior: "smooth" });
-		}
+		builder?.scrollIntoView({ behavior: "smooth" });
 	};
 
 	const reportPresets = [

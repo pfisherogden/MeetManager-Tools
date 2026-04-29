@@ -117,12 +117,6 @@ All agents MUST follow these workflow phases:
 - **2026-04-19**: **Mobile Safari E2E Robustness**:
   - **Pointer Interception**: Mobile Safari emulation often suffers from pointer-event interception by overlapping or transparent elements. Use `page.evaluate(() => el.click())` for critical buttons to ensure interaction stability.
   - **Viewport Awareness**: Increase viewport height (e.g. to 1200px) in mobile emulation to prevent the soft keyboard or narrow layouts from pushing critical buttons out of view.
-- **2026-04-23**: **High-Concurrency E2E Sharding & UI Stability**:
-  - **Shard Isolation**: Playwright shards tests at the **test case** level. Every test case MUST be fully self-contained, ensuring its own dataset is active (e.g., via `ensureDataset`) to prevent race conditions or missing data in high-shard (32+) environments.
-  - **User Gesture Compliance**: Browsers (especially in headless CI) block `window.open` if not triggered by a direct user gesture. Synchronous server actions are rare; prefer opening a blank tab *synchronously* in the click handler and populating its content once the promise resolves.
-  - **Server Action Signature Safety**: Functions with 5+ positional arguments are highly prone to ordering bugs during refactors. Always use named objects/interfaces for complex server actions to prevent "Ghost Argument" bugs.
-  - **Component/Test Sync**: When refactoring component signatures (e.g., changing props to state), unit tests (Vitest) must be updated immediately. Ensure mocks for `@/app/actions` match the actual implementation's exports and return types.
-  - **Standardized UI Selectors**: Use `data-testid` exclusively for E2E interactions to prevent "element not found" errors when button text or roles change (e.g., "Download" vs "Generate").
 
 
 ### 11. Season Setup Automation
