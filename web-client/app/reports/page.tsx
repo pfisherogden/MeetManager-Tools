@@ -19,10 +19,13 @@ export default async function ReportsPage() {
 		const list = (await getTeams()) as unknown as { teams: ServerTeam[] };
 		if (list?.teams) {
 			mappedTeams = list.teams.map((t) => ({
-				id: t.id.toString(),
+				id: String(t.id),
 				name: t.name,
-				code: t.code,
+				abbreviation: t.code || "",
+				city: "",
+				state: "",
 				athleteCount: 0,
+				color: "#000000",
 			}));
 		}
 	} catch (e) {

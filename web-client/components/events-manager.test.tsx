@@ -35,8 +35,24 @@ const mockEvents: SwimEvent[] = [
 ];
 
 const mockSessions = [
-	{ id: "1", name: "Session 1" },
-	{ id: "2", name: "Session 2" },
+	{
+		id: "1",
+		name: "Session 1",
+		meetId: "m1",
+		date: "2023-05-31",
+		warmUpTime: "08:00",
+		startTime: "09:00",
+		eventCount: 5,
+	},
+	{
+		id: "2",
+		name: "Session 2",
+		meetId: "m1",
+		date: "2023-05-31",
+		warmUpTime: "12:00",
+		startTime: "13:00",
+		eventCount: 10,
+	},
 ];
 
 describe("EventsManager", () => {

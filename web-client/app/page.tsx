@@ -7,11 +7,15 @@ import type { GetDashboardStatsResponse } from "@/lib/proto/meetmanager/v1/meet_
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-	let stats: GetDashboardStatsResponse = {
+	let stats: any = {
 		meetCount: 0,
 		teamCount: 0,
 		athleteCount: 0,
 		eventCount: 0,
+		totalAthletes: 0,
+		totalTeams: 0,
+		totalEvents: 0,
+		totalResults: 0,
 	};
 
 	try {

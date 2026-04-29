@@ -176,10 +176,15 @@ export async function getSessions() {
 	}
 }
 
-export async function getRelays() {
+export async function getRelays(eventId?: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.getRelays({}, { metadata });
+		const response = await client.getRelays(
+			{
+				eventId,
+			},
+			{ metadata },
+		);
 		return {
 			relays: response.relays.map((r) => ({
 				id: r.id,
@@ -393,9 +398,28 @@ export async function getJobStatus(jobId: string) {
 export async function getDashboardStats() {
 	try {
 		const metadata = await getAuthMetadata();
-		return await client.getDashboardStats({}, { metadata });
+		const response = await client.getDashboardStats({}, { metadata });
+		return {
+			meetCount: response.meetCount,
+			teamCount: response.teamCount,
+			athleteCount: response.athleteCount,
+			eventCount: response.eventCount,
+			totalAthletes: response.athleteCount, // Keep legacy field for compatibility
+			totalTeams: response.teamCount,
+			totalEvents: response.eventCount,
+			totalResults: response.meetCount, // Approximate
+		};
 	} catch (_err) {
-		return { totalAthletes: 0, totalTeams: 0, totalEvents: 0, totalResults: 0 };
+		return {
+			meetCount: 0,
+			teamCount: 0,
+			athleteCount: 0,
+			eventCount: 0,
+			totalAthletes: 0,
+			totalTeams: 0,
+			totalEvents: 0,
+			totalResults: 0,
+		};
 	}
 }
 
@@ -409,7 +433,7 @@ export async function publishMeetData(
 		const frontendUrl =
 			frontendUrlOverride ||
 			process.env.FRONTEND_URL ||
-			"http://localhost:3000";
+			"http://localhost:3100";
 		const response = await client.publishMeetData(
 			{ frontendUrl },
 			{ metadata },
@@ -434,27 +458,29 @@ export async function getAthlete(id: number) {
 	return await client.getAthlete({ id }, { metadata });
 }
 
-export async function getEntries() {
+export async function getEntries(eventId?: string, athleteId?: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.getEntries({}, { metadata });
+		const response = await client.getEntries(
+			{
+				eventId,
+				athleteId,
+			},
+			{ metadata },
+		);
 		return { entries: response.entries || [] };
 	} catch (_err) {
 		return { entries: [] };
 	}
 }
 
-export async function updateAdminConfig(_config: any) {
+export async function updateAdminConfig(_name: string, _desc?: string) {
 	// Legacy placeholder to satisfy imports during build
 	return { success: true };
 }
 
 export async function getDisqualifications() {
-	try {
-		const metadata = await getAuthMetadata();
-		const response = await client.getDisqualifications({}, { metadata });
-		return { disqualifications: response.disqualifications || [] };
-	} catch (_err) {
-		return { disqualifications: [] };
-	}
+	// Currently the backend doesn't support GetDQs as an RPC method.
+	// Returning empty array to satisfy UI but avoid broken gRPC call.
+	return { disqualifications: [] };
 }

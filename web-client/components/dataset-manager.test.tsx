@@ -1,6 +1,14 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DatasetManager } from "./dataset-manager";
+
+// Mock next/navigation
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({
+		refresh: vi.fn(),
+		push: vi.fn(),
+	}),
+}));
 
 // Mock server actions
 vi.mock("@/app/actions", () => ({

@@ -12,6 +12,7 @@ import {
 	Upload,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -52,6 +53,7 @@ interface Dataset {
 }
 
 export function DatasetManager() {
+	const router = useRouter();
 	const [datasets, setDatasets] = useState<Dataset[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [isUploading, setIsUploading] = useState(false);

@@ -90,11 +90,6 @@ const client: MeetManagerServiceClient = clientFactory.create(
 		"grpc.max_receive_message_length": 50 * 1024 * 1024,
 		"grpc.max_send_message_length": 50 * 1024 * 1024,
 	}),
-	{
-		"*": {
-			timeout: 300000, // 5 minutes
-		},
-	},
 );
 
 export default client;

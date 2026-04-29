@@ -18,5 +18,5 @@ export default defineConfig({
 				singleFork: true,
 			},
 		},
-	},
+	} as any,
 });

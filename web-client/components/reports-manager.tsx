@@ -120,7 +120,7 @@ interface CustomPackItem {
 }
 
 interface ReportsManagerProps {
-	initialTeams?: { id: number; name: string }[];
+	initialTeams?: { id: string; name: string }[];
 }
 
 export function ReportsManager({
@@ -148,7 +148,7 @@ export function ReportsManager({
 
 	// Improved Team Filter State
 	const [initialTeams, setTeams] =
-		useState<{ id: number; name: string }[]>(propTeams);
+		useState<{ id: string; name: string }[]>(propTeams);
 	const [teamFilterOpen, setTeamFilterOpen] = useState(false);
 	const [presetTeamOpen, setPresetTeamOpen] = useState(false);
 
@@ -157,7 +157,11 @@ export function ReportsManager({
 			setTeams(propTeams);
 		} else {
 			getTeams().then((res) => {
-				if (res.teams) setTeams(res.teams);
+				if (res.teams) {
+					setTeams(
+						res.teams.map((t) => ({ id: String(t.id), name: t.name })),
+					);
+				}
 			});
 		}
 	}, [propTeams]);

@@ -17,10 +17,9 @@ test.describe("Champs Dataset Journey", () => {
 	test("should correctly process and display tiny Champs dataset", async ({
 		page,
 	}, testInfo) => {
-		test.setTimeout(300000); // 5 mins
-		const { userId, getFilename } = getE2ETestContext(testInfo);
-		const testFileName = getFilename("tiny_champs.json");
-		const data = getFixtureData("tiny_champs.json");
+	test.setTimeout(300000); // 5 mins
+	const { getFilename } = getE2ETestContext(testInfo);
+	const testFileName = getFilename("tiny_champs.json");		const data = getFixtureData("tiny_champs.json");
 
 		// 1. Ensure dataset is active
 		await ensureDatasetActive(page, testInfo, testFileName, data);

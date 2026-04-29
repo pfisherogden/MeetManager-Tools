@@ -88,7 +88,7 @@ export function ScoresManager({
 	const columns = useMemo<Column<Score>[]>(() => {
 		const uniqueTeams = Array.from(new Set(data.map((d) => d.teamName))).sort();
 		const uniqueMeets = Array.from(new Set(data.map((d) => d.meetName)))
-			.filter(Boolean)
+			.filter((n): n is string => !!n)
 			.sort();
 		const uniqueRanks = Array.from(new Set(data.map((d) => d.rank))).sort(
 			(a, b) => a - b,

@@ -20,8 +20,8 @@ vi.mock("@/app/actions", () => ({
 }));
 
 const mockTeams = [
-	{ id: "t1", name: "Sharks", code: "SHK", athleteCount: 45 },
-	{ id: "t2", name: "Dolphins", code: "DOL", athleteCount: 38 },
+	{ id: "1", name: "Sharks" },
+	{ id: "2", name: "Dolphins" },
 ];
 
 describe("ReportsManager", () => {

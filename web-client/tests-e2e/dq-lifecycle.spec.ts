@@ -18,10 +18,9 @@ test.describe("DQ Lifecycle Journey", () => {
 		page,
 		context,
 	}, testInfo) => {
-		test.setTimeout(300000); // 5 mins
-		const { userId, getFilename } = getE2ETestContext(testInfo, page);
-		const testFileName = getFilename("dq_lifecycle.json");
-		const data = getFixtureData("tiny_meet.json");
+	test.setTimeout(300000); // 5 mins
+	const { getFilename } = getE2ETestContext(testInfo, page);
+	const testFileName = getFilename("dq_lifecycle.json");		const data = getFixtureData("tiny_meet.json");
 
 		// 1. Ensure dataset is active
 		await ensureDatasetActive(page, testInfo, testFileName, data);
