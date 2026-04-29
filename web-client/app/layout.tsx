@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import type React from "react";
 import "./globals.css";
-import { AuthGuard } from "@/components/auth-guard";
 import { ConfigProvider } from "@/components/config-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Providers } from "./providers";
@@ -35,7 +34,10 @@ export const metadata: Metadata = {
 	},
 };
 
-console.log("ROOT LAYOUT LOADED. BYPASS:", process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS);
+console.log(
+	"ROOT LAYOUT LOADED. BYPASS:",
+	process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS,
+);
 
 export default function RootLayout({
 	children,
@@ -57,10 +59,11 @@ export default function RootLayout({
 					shadow="0 0 10px var(--primary),0 0 5px var(--primary)"
 				/>
 				<Providers>
-				        <SidebarProvider defaultOpen={true}>
-				                <ConfigProvider>{children}</ConfigProvider>
-				        </SidebarProvider>
-				</Providers>			</body>
+					<SidebarProvider defaultOpen={true}>
+						<ConfigProvider>{children}</ConfigProvider>
+					</SidebarProvider>
+				</Providers>{" "}
+			</body>
 		</html>
 	);
 }

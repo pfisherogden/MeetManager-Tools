@@ -478,6 +478,7 @@ export function ReportsManager({
 										<Button
 											variant="outline"
 											size="sm"
+											data-testid="preset-team-filter-trigger"
 											className="h-8 min-w-[120px] justify-between"
 										>
 											{presetTeamFilter}
@@ -615,6 +616,7 @@ export function ReportsManager({
 											variant="outline"
 											className="w-full justify-between"
 											role="combobox"
+											data-testid="team-filter-trigger"
 										>
 											{teamFilter || "All Teams"}
 											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -787,7 +789,13 @@ export function ReportsManager({
 			</div>
 
 			<div id="report-builder" className="space-y-4">
-				<Card className="shadow-lg border-primary/20">
+				<Card
+					className="shadow-lg border-primary/20"
+					data-testid="report-builder-card"
+					data-report-status={isBundling ? "bundling" : "idle"}
+					data-job-progress={jobProgress}
+					data-job-message={jobMessage}
+				>
 					<CardHeader className="bg-primary/5">
 						<div className="flex items-center justify-between">
 							<div className="flex items-center gap-2">

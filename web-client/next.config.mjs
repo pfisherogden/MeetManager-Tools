@@ -12,6 +12,9 @@ const nextConfig = {
 			bodySizeLimit: "50mb",
 		},
 	},
+	generateBuildId: async () => {
+		return `build-${new Date().getTime()}`;
+	},
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
 	},

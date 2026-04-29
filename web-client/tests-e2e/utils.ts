@@ -15,7 +15,7 @@ export function getE2ETestContext(testInfo: TestInfo, page?: Page) {
 	const shardIndex = process.env.SHARD_INDEX || "0";
 	const workerIndex = testInfo.workerIndex;
 	const retry = testInfo.retry;
-	const projectName = testInfo.project.name.replace(/\s+/g, "-");
+	const projectName = testInfo.project?.name?.replace(/\s+/g, "-") || "default";
 
 	// Setup console logging if page is provided
 	if (page) {
@@ -26,6 +26,18 @@ export function getE2ETestContext(testInfo: TestInfo, page?: Page) {
 			console.log(
 				`[Browser Console] [${projectName}] ${msg.type()}: ${msg.text()}`,
 			);
+		});
+		page.on("requestfailed", (request) => {
+			console.log(
+				`[Browser Request Failed] [${projectName}] ${request.method()} ${request.url()}: ${request.failure()?.errorText}`,
+			);
+		});
+		page.on("response", (response) => {
+			if (response.status() >= 400) {
+				console.log(
+					`[Browser Response Error] [${projectName}] ${response.status()} ${response.request().method()} ${response.url()}`,
+				);
+			}
 		});
 	}
 
@@ -49,27 +61,40 @@ export function getE2ETestContext(testInfo: TestInfo, page?: Page) {
 
 export async function ensureDatasetActive(
 	page: Page,
-	userId: string,
+	testInfo: TestInfo,
 	filename: string,
 	data: any,
 ) {
+	const { userId } = getE2ETestContext(testInfo, page);
 	console.log(`[Utils] Ensuring ${filename} is active for ${userId}...`);
 
-	await page.goto("/admin", { waitUntil: "networkidle" });
-	
+	// 1. Hit the dedicated mock login endpoint to synthesize session cookies with the specific UID
+	// We use page.request.get to set cookies directly in the context without navigation
+	const response = await page.request.get(`/api/test/auth?uid=${userId}`);
+	if (!response.ok()) {
+		throw new Error(
+			`Failed to authenticate test user ${userId}: ${response.status()} ${response.statusText()}`,
+		);
+	}
+
+	// 2. Navigate to Admin
+	await page.goto("/admin", { waitUntil: "domcontentloaded" });
+
 	// Add delay and reload to ensure console logs are captured and HMR/FastRefresh settle
 	console.log("[Utils] Waiting for initial page load to settle...");
 	await page.waitForTimeout(5000);
-	await page.reload({ waitUntil: "networkidle" });
 
-	// Defensively check for login redirect (common in resource-constrained Safari runners)
-	// But only wait if we are actually stuck on the login page.
+	// Defensively check for login redirect (should now be resolved by /api/e2e/login)	// But only wait if we are actually stuck on the login page.
 	if (page.url().includes("/login")) {
 		try {
-			console.warn(`[Utils] Detected redirect to login. Attempting to wait for auth-bypass to redirect back...`);
+			console.warn(
+				`[Utils] Detected redirect to login. Attempting to wait for auth-bypass to redirect back...`,
+			);
 			await page.waitForURL("**/admin", { timeout: 10000 });
-		} catch (e) {
-			console.error(`[Utils] Stuck on login page even with bypass. Current URL: ${page.url()}`);
+		} catch (_e) {
+			console.error(
+				`[Utils] Stuck on login page even with bypass. Current URL: ${page.url()}`,
+			);
 			// Fallback: try going to admin again directly
 			await page.goto("/admin", { waitUntil: "networkidle" });
 		}

@@ -3,6 +3,7 @@ import {
 	ensureDatasetActive,
 	getE2ETestContext,
 	getFixtureData,
+	robustClick,
 } from "./utils";
 
 test.describe("Reports Generation Journey", () => {
@@ -14,7 +15,7 @@ test.describe("Reports Generation Journey", () => {
 		await context.addCookies([
 			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);
-		await ensureDatasetActive(page, userId, testFileName, data);
+		await ensureDatasetActive(page, testInfo, testFileName, data);
 	});
 
 	test("should generate and download a ZIP bundle asynchronously", async ({
@@ -30,25 +31,31 @@ test.describe("Reports Generation Journey", () => {
 		const configCard = page.getByTestId("report-configuration-card");
 		await expect(configCard).toBeVisible();
 
-		// Click the Generate ZIP button
-		const generateBtn = configCard.getByTestId("generate-bundle-button");
+		// Add to pack first
+		await page.getByRole("button", { name: /Add to Pack/i }).click();
+
+		// Click the Generate ZIP button (located in the builder card)
+		const builderCard = page.getByTestId("report-builder-card");
+		const generateBtn = builderCard.getByTestId("generate-bundle-button");
 		await robustClick(generateBtn);
 
 		// Assert the bundling state
-		await expect(configCard).toHaveAttribute("data-report-status", "bundling", {
+		await expect(builderCard).toHaveAttribute("data-report-status", "bundling", {
 			timeout: 30000,
 		});
 
-		// Wait for progress to start moving (optional, but good for stability)
+		// Wait for progress to start moving
 		await expect(async () => {
-			const progressStr = await configCard.getAttribute("data-job-progress");
+			const progressStr = await builderCard.getAttribute("data-job-progress");
 			const progress = Number.parseFloat(progressStr || "0");
 			expect(progress).toBeGreaterThanOrEqual(0);
 		}).toPass({ timeout: 20000 });
 
-		// Wait for the download to be triggered by the frontend's polling
+		// Wait for completion and download
+		const downloadPromise = page.waitForEvent("download", { timeout: 180000 });
+
 		// We first wait for the status to return to 'idle' with a very long timeout
-		await expect(configCard).toHaveAttribute("data-report-status", "idle", {
+		await expect(builderCard).toHaveAttribute("data-report-status", "idle", {
 			timeout: 300000, // 5 minutes for very large bundles
 		});
 

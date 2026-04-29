@@ -41,36 +41,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
 		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
 
-	console.log(`[AuthProvider] Init: isAuthDisabled=${isAuthDisabled}, bypass=${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`);
+	console.log(
+		`[AuthProvider] Init: isAuthDisabled=${isAuthDisabled}, bypass=${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`,
+	);
+useEffect(() => {
+	const token = Cookies.get("googleAccessToken");
+	if (token) setGoogleAccessToken(token);
 
-	useEffect(() => {
-		const token = Cookies.get("googleAccessToken");
-		if (token) setGoogleAccessToken(token);
+	if (isAuthDisabled) {
+		// Mock local user for development or E2E testing
+		// Prioritize the UID from cookies if set by the E2E test for isolation
+		const storedUid = Cookies.get("x-user-id");
+		const mockUid = storedUid || "e2e-default-user";
 
-		if (isAuthDisabled) {
-			// Mock local user for development or E2E testing
-			// Prioritize the UID from cookies if set by the E2E test for isolation
-			const storedUid = Cookies.get("x-user-id");
-			const mockUser = {
-				uid: storedUid || "e2e-bypass-user",
-				email: "dev@local.host",
-				displayName: "E2E Bypass User",
-			} as User;
-			setUser(mockUser);
-			Cookies.set("idToken", "dev-token", {
-				expires: 1 / 24,
-				secure: false, // Local dev usually not https
-				sameSite: "strict",
-			});
-			Cookies.set("x-user-id", mockUser.uid, {
-				expires: 1 / 24,
-				secure: false,
-				sameSite: "strict",
-			});
-			setLoading(false);
-			return;
+		console.log(`[AuthProvider] E2E Bypass Active. UID: ${mockUid}`);
+
+		const mockUser = {
+			uid: mockUid,
+			email: "e2e-test@example.com",
+			displayName: "E2E Test User",
+		} as User;
+
+		setUser(mockUser);
+		setLoading(false);
+
+		// Ensure cookies are set for backend consistency if they were missing
+		if (!storedUid) {
+			Cookies.set("x-user-id", mockUid, { path: "/", sameSite: "strict" });
+			Cookies.set("idToken", "dev-token", { path: "/", sameSite: "strict" });
 		}
-
+		return;
+	}
 		const unsubscribe = onAuthStateChanged(auth, async (user) => {
 			setUser(user);
 			if (user) {

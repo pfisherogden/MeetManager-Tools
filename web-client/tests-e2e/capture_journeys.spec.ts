@@ -4,6 +4,7 @@ import {
 	ensureDatasetActive,
 	getE2ETestContext,
 	getFixtureData,
+	robustClick,
 } from "./utils";
 
 test.describe("Visual Journey Capture", () => {
@@ -18,7 +19,7 @@ test.describe("Visual Journey Capture", () => {
 
 		const testFileName = getFilename("tiny_champs.json");
 		const data = getFixtureData("tiny_champs.json");
-		await ensureDatasetActive(page, userId, testFileName, data);
+		await ensureDatasetActive(page, testInfo, testFileName, data);
 	});
 
 	test("capture admin dashboard", async ({ page }) => {
@@ -34,7 +35,7 @@ test.describe("Visual Journey Capture", () => {
 	test("capture coach filtered reports", async ({ page }) => {
 		await page.goto("/reports");
 		const clubCard = page.getByTestId("report-card-entries-(club-style)");
-		await clubCard.evaluate((el) => (el as HTMLElement).click());
+		await robustClick(clubCard);
 
 		const configCard = page.getByTestId("report-configuration-card");
 		await expect(configCard).toBeAttached();
@@ -55,8 +56,9 @@ test.describe("Visual Journey Capture", () => {
 
 	test("capture judge app events", async ({ page }, testInfo) => {
 		const { userId } = getE2ETestContext(testInfo);
+		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3100";
 		const judgeBase =
-			process.env.MOBILE_APP_URL || "http://localhost:3000/judge";
+			process.env.MOBILE_APP_URL || `${frontendUrl}/judge/index.html`;
 		await page.goto(`${judgeBase}?uid=${userId}`);
 		await page.getByPlaceholder("Your Name").fill("Visual Reviewer");
 		await page.getByText("START JUDGING").click();

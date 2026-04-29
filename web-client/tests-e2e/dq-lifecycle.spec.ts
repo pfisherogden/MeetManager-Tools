@@ -24,7 +24,7 @@ test.describe("DQ Lifecycle Journey", () => {
 		const data = getFixtureData("tiny_meet.json");
 
 		// 1. Ensure dataset is active
-		await ensureDatasetActive(page, userId, testFileName, data);
+		await ensureDatasetActive(page, testInfo, testFileName, data);
 
 		// 2. Publish to Judge App
 		await page.goto("/admin", { waitUntil: "networkidle" });
@@ -38,10 +38,11 @@ test.describe("DQ Lifecycle Journey", () => {
 
 		// Dynamic port remapping for local E2E
 		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3100";
-		// Map from frontend judge path to dedicated static server
+		// Use the same frontend server for the judge app to avoid port mapping issues
+		// Use index.html explicitly to ensure we hit the static file and bypass Next.js routing greediness
 		judgeUrl = judgeUrl.replaceAll(
 			"http://localhost:3000/judge",
-			"http://localhost:8081",
+			`${frontendUrl}/judge/index.html`,
 		);
 		// Ensure API calls still point to the correct frontend port
 		judgeUrl = judgeUrl.replaceAll("http://localhost:3000", frontendUrl);

@@ -99,7 +99,8 @@ class FirebaseAuthInterceptor(grpc.ServerInterceptor):
             token = auth_header[len("Bearer ") :]
             try:
                 if token == "dev-token" and os.getenv("GRPC_AUTH_DISABLED") == "true":
-                    uid = "dev-user"
+                    # Check metadata for x-user-id or x-e2e-uid first for shard isolation
+                    uid = metadata.get("x-user-id") or metadata.get("x-e2e-uid") or "dev-user"
                 else:
                     decoded_token = auth.verify_id_token(token)
                     uid = decoded_token["uid"]

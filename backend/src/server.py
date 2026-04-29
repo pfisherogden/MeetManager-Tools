@@ -209,13 +209,16 @@ def _process_single_report_process(
         with open(msgpack_path, "rb") as f:
             unpacked = msgpack.unpack(f, raw=False)
             full_data = unpacked["full_data"]
-            unpacked["cache"]
+            cache_data = unpacked["cache"]
         load_duration = (datetime.datetime.now() - start_time).total_seconds()
         render_start_time = datetime.datetime.now()
         is_html = html_preview or (rtype == "program_html")
         temp_fd, temp_path = tempfile.mkstemp(suffix=".html" if is_html else ".pdf")
         os.close(temp_fd)
-        extractor = ReportDataExtractor(full_data)
+
+        from mm_to_json.mm_to_json import MmToJsonConverter
+        converter = MmToJsonConverter(table_data=cache_data)
+        extractor = ReportDataExtractor(converter, full_data=full_data)
         renderer: Any
         if renderer_type == "playwright":
             renderer = PlaywrightRenderer(output_path=temp_path)
@@ -330,8 +333,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
             self.storage = LocalStorageProvider(base_storage_dir)
 
-        # Cache structure: {uid: {'filename': str, 'mtime': float, 'data': dict}}
-        # Using OrderedDict for simple LRU eviction
         self._user_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.current_file = SOURCE_FILE
         self.job_manager = JobManager()
@@ -1570,7 +1571,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
                 with open(sample_path) as f:
                     cache = json.load(f)
-
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
                 pb2.REPORT_TYPE_ENTRIES: "entries",
@@ -1682,7 +1682,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             self.job_manager.update_job(job_id, status=pb2.JOB_STATUS_PROCESSING, message="Converting data...")
             logging.info(f"Job {job_id}: starting MmToJsonConverter")
-
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
                 pb2.REPORT_TYPE_ENTRIES: "entries",
@@ -1812,7 +1811,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 import urllib.parse
 
                 safe_bundle_path = urllib.parse.quote(bundle_rel_path)
-                frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3000")
+                # Try to get FRONTEND_URL from environment, defaulting to 3100 for local dev consistency
+                frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3100")
                 bundle_url = f"{frontend_base}/api/data?path={safe_bundle_path}&token={token}"
                 logging.info(f"Using absolute proxy fallback URL: {bundle_url}")
 

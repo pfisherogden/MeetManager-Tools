@@ -63,6 +63,11 @@ const authMiddleware = async function* (call: any, options: any) {
 	if (token) metadata = metadata.set("Authorization", `Bearer ${token}`);
 	if (userId) metadata = metadata.set("x-user-id", userId);
 
+	// E2E Bypass: Force dev-token if none provided and bypass is active
+	if (!token && process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+		metadata = metadata.set("Authorization", "Bearer dev-token");
+	}
+
 	return yield* call.next(call.request, {
 		...options,
 		metadata,

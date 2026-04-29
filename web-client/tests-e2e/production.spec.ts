@@ -63,7 +63,7 @@ test.describe("Production Smoke Tests", () => {
 		await expect(page.getByText(/Dataset Management/i).first()).toBeVisible();
 		// Verify action buttons exist
 		await expect(
-			page.getByRole("button", { name: /Publish to Judge App/i }),
+			page.getByRole("button", { name: /Publish to Judge App/i }).first(),
 		).toBeVisible();
 	});
 });

@@ -23,7 +23,7 @@ test.describe("Champs Dataset Journey", () => {
 		const data = getFixtureData("tiny_champs.json");
 
 		// 1. Ensure dataset is active
-		await ensureDatasetActive(page, userId, testFileName, data);
+		await ensureDatasetActive(page, testInfo, testFileName, data);
 
 		// 2. Meets Page: Verify name
 		await page.goto("/meets", { waitUntil: "networkidle" });

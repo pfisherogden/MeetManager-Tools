@@ -1,9 +1,10 @@
+import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import client from "@/lib/mm-client";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
 	try {
 		console.log("TEST-BUNDLE: Starting generation with sample data...");
 
@@ -22,8 +23,11 @@ export async function GET(_request: NextRequest) {
 				columnsOnPage: 2,
 				showRelaySwimmers: true,
 				zebraStriping: true,
+				rendererType: 0, // RENDERER_TYPE_UNSPECIFIED
+				htmlPreview: false,
 			})),
 			bundleName: "test_sample_bundle.zip",
+			rendererType: 0, // RENDERER_TYPE_UNSPECIFIED
 		});
 
 		if (!response.success) {

@@ -26,7 +26,7 @@ test.describe("Mobile Judge App Journey", () => {
 		// 0. Setup: Upload and Publish a dataset
 		const testFileName = getFilename("tiny_meet.json");
 		const data = getFixtureData("tiny_meet.json");
-		await ensureDatasetActive(page, userId, testFileName, data);
+		await ensureDatasetActive(page, testInfo, testFileName, data);
 
 		// Now publish it
 		await page.goto("/admin", { waitUntil: "networkidle" });
@@ -42,10 +42,11 @@ test.describe("Mobile Judge App Journey", () => {
 		// The judge app is now served by Nginx on port 8081 in docker-compose.e2e.yml
 		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3100";
 
-		// Map from frontend judge path to dedicated static server
+		// Use the same frontend server for the judge app to avoid port mapping issues
+		// Use index.html explicitly to ensure we hit the static file and bypass Next.js routing greediness
 		judgeUrl = judgeUrl.replaceAll(
 			"http://localhost:3000/judge",
-			"http://localhost:8081",
+			`${frontendUrl}/judge/index.html`,
 		);
 		// Ensure API calls still point to the correct frontend port
 		judgeUrl = judgeUrl.replaceAll("http://localhost:3000", frontendUrl);

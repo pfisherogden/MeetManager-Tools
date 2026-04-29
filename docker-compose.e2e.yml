@@ -1,8 +1,13 @@
 services:
   backend:
     shm_size: '2gb'
+    environment:
+      - FRONTEND_URL=http://localhost:3100
+      - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
+      - GRPC_AUTH_DISABLED=true
+      - PYTHONDONTWRITEBYTECODE=1
   frontend:
-    # Explicitly clear volumes to prevent main docker-compose.yml from mounting host ./web-client
+    # Use image build for production performance and stability
     volumes:
       - mmtools-data:/app/data
       - ./tmp:/app/tmp
@@ -13,4 +18,4 @@ services:
     ports:
       - "8081:80"
     volumes:
-      - ./mobile-judge-app/dist:/usr/share/nginx/html
+      - ./mobile-judge-app/dist:/usr/share/nginx/html/judge

@@ -41,7 +41,7 @@ test.describe("Meet Administrator Management", () => {
 		// 1. Upload both datasets
 		for (const ds of datasets) {
 			const data = getFixtureData(ds.fixture);
-			await ensureDatasetActive(page, userId, ds.filename, data);
+			await ensureDatasetActive(page, testInfo, ds.filename, data);
 		}
 
 		// 2. Switch between them and verify /meets content
