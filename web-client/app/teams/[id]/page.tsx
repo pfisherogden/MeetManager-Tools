@@ -19,7 +19,7 @@ export default async function TeamPage({
 	let team: any = null;
 	try {
 		const response = await getTeam(teamId);
-		if (response && response.team) {
+		if (response?.team) {
 			team = response.team;
 		}
 	} catch (e) {

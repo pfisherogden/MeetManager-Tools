@@ -2,7 +2,6 @@ import { getDashboardStats } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Dashboard } from "@/components/dashboard";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import type { GetDashboardStatsResponse } from "@/lib/proto/meetmanager/v1/meet_manager";
 
 export const dynamic = "force-dynamic";
 

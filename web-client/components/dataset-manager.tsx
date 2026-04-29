@@ -11,8 +11,8 @@ import {
 	Trash2,
 	Upload,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {

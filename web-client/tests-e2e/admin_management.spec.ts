@@ -21,8 +21,9 @@ test.describe("Meet Administrator Management", () => {
 	test("should support uploading, switching between, and deleting multiple datasets", async ({
 		page,
 	}, testInfo) => {
-	const { getFilename } = getE2ETestContext(testInfo);
-	const ds1 = getFilename("tiny_meet.json");		const ds2 = getFilename("tiny_champs.json");
+		const { getFilename } = getE2ETestContext(testInfo);
+		const ds1 = getFilename("tiny_meet.json");
+		const ds2 = getFilename("tiny_champs.json");
 
 		const datasets = [
 			{

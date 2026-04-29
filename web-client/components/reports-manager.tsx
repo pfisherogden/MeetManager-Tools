@@ -158,9 +158,7 @@ export function ReportsManager({
 		} else {
 			getTeams().then((res) => {
 				if (res.teams) {
-					setTeams(
-						res.teams.map((t) => ({ id: String(t.id), name: t.name })),
-					);
+					setTeams(res.teams.map((t) => ({ id: String(t.id), name: t.name })));
 				}
 			});
 		}

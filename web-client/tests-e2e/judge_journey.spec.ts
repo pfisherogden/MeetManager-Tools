@@ -21,7 +21,7 @@ test.describe("Mobile Judge App Journey", () => {
 		context,
 	}, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const { userId, getFilename } = getE2ETestContext(testInfo);
+		const { getFilename } = getE2ETestContext(testInfo);
 
 		// 0. Setup: Upload and Publish a dataset
 		const testFileName = getFilename("tiny_meet.json");
