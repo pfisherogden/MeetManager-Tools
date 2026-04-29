@@ -1,0 +1,21 @@
+services:
+  backend:
+    shm_size: '2gb'
+    environment:
+      - FRONTEND_URL=http://localhost:3100
+      - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
+      - GRPC_AUTH_DISABLED=true
+      - PYTHONDONTWRITEBYTECODE=1
+  frontend:
+    # Use image build for production performance and stability
+    volumes:
+      - mmtools-data:/app/data
+      - ./tmp:/app/tmp
+    command: ["sh", "-c", "echo 'Waiting for backend:8080 (TCP)...' && until nc -z backend 8080; do sleep 2; done && echo 'Backend is UP, starting Next.js...' && npm start"]
+    shm_size: '2gb'
+  judge-app:
+    image: nginx:stable-alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - ./mobile-judge-app/dist:/usr/share/nginx/html/judge

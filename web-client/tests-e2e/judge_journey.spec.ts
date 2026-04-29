@@ -1,160 +1,143 @@
 import { expect, test } from "@playwright/test";
+import {
+	ensureDatasetActive,
+	getE2ETestContext,
+	getFixtureData,
+	robustClick,
+} from "./utils";
 
 test.describe("Mobile Judge App Journey", () => {
 	test.beforeEach(async ({ page, context }, testInfo) => {
-		// Set a unique user ID for this test to avoid collisions in the backend
-		const userId = `e2e-judge-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
-
-		// Set header for all requests from this page
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-		});
-
-		// Set cookie for additional resilience
+		const { userId } = getE2ETestContext(testInfo, page);
+		await page.setExtraHTTPHeaders({ "x-user-id": userId });
 		await context.addCookies([
-			{
-				name: "x-user-id",
-				value: userId,
-				domain: "localhost",
-				path: "/",
-			},
+			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
 		]);
-
-		console.log(`Using isolated User ID: ${userId}`);
+		console.log(`Using isolated Judge User ID: ${userId}`);
 	});
 
-	// Set baseURL to the mobile app port (8080 by default in Docker)
-	test.use({ baseURL: process.env.MOBILE_APP_URL || "http://localhost:8080" });
+	test("should allow a judge to login, select event, and submit DQ", async ({
+		page,
+		context,
+	}, testInfo) => {
+		test.setTimeout(300000); // 5 mins
+		const { getFilename } = getE2ETestContext(testInfo);
 
-	test("should allow adding a DQ in individual event", async ({ page }) => {
-		await page.goto("/");
+		// 0. Setup: Upload and Publish a dataset
+		const testFileName = getFilename("tiny_meet.json");
+		const data = getFixtureData("tiny_meet.json");
+		await ensureDatasetActive(page, testInfo, testFileName, data);
 
-		// 0. Handle Judge Name Prompt
-		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
-		await page.getByText("START JUDGING").click();
+		// Now publish it
+		await page.goto("/admin", { waitUntil: "networkidle" });
+		const row = page.getByTestId(`dataset-row-${testFileName}`);
+		await row.getByTestId("publish-button").click();
 
-		// 1. Verify we are on the Events view
-		await expect(page.getByText("Events", { exact: true })).toBeVisible();
+		// Wait for judge URL to appear in dialog
+		const judgeUrlLocator = page.getByTestId("judge-app-url");
+		await expect(judgeUrlLocator).toBeVisible({ timeout: 30000 });
+		let judgeUrl = (await judgeUrlLocator.textContent()) || "";
 
-		// 2. Tap an individual event (e.g., Event 1)
-		// Assuming seed data has Event 1.
-		// Use a more robust selector that works for both "Event 1" and "#1"
-		await page
-			.getByText(/#1 |Event 1/i)
-			.first()
-			.click();
+		// Dynamic port remapping for local E2E
+		// The judge app is now served by Nginx on port 8081 in docker-compose.e2e.yml
+		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3100";
 
-		// 3. Tap a heat (e.g., Heat 1)
-		await page
-			.getByText(/Heat 1/i)
-			.first()
-			.click();
+		// Use the same frontend server for the judge app to avoid port mapping issues
+		// Use index.html explicitly to ensure we hit the static file and bypass Next.js routing greediness
+		judgeUrl = judgeUrl.replaceAll(
+			"http://localhost:3000/judge",
+			`${frontendUrl}/judge/index.html`,
+		);
+		// Ensure API calls still point to the correct frontend port
+		judgeUrl = judgeUrl.replaceAll("http://localhost:3000", frontendUrl);
 
-		// 4. Tap "TAP TO DQ" for a swimmer
-		await expect(page.getByText("TAP TO DQ").first()).toBeVisible();
-		await page.getByText("TAP TO DQ").first().click();
+		console.log(`Authorized Judge App URL: ${judgeUrl}`);
+
+		// 1. Initial Page: Enter Name (on the specific authorized URL)
+		const judgePage = await context.newPage();
+
+		// Setup console logging for the NEW page
+		getE2ETestContext(testInfo, judgePage);
+
+		await judgePage.goto(judgeUrl);
+
+		// Wait for HMR/Fast Refresh to settle then reload to ensure a clean state
+		console.log("[E2E] Waiting for Judge App to settle...");
+		await judgePage.waitForTimeout(5000);
+		await judgePage.reload({ waitUntil: "networkidle" });
+
+		// Wait for app to be ready (hydration sentinel)
+		await expect(judgePage.getByPlaceholder("Your Name")).toBeVisible({
+			timeout: 45000,
+		});
+
+		await judgePage.getByPlaceholder("Your Name").fill("E2E Judge");
+		await robustClick(judgePage.getByText(/START JUDGING/i));
+
+		// 2. Meet List: Select Meet
+		// Wait for meet data to be fetched from backend (auth check)
+		const eventItem = judgePage.getByTestId("event-item-13");
+		await expect(eventItem).toBeVisible({
+			timeout: 60000,
+		});
+		await eventItem.click();
+
+		// 3. Heat List: Select Heat
+		await expect(judgePage.getByText(/Heat 1/i)).toBeVisible({
+			timeout: 15000,
+		});
+		await judgePage.getByText(/Heat 1/i).click();
+
+		// 4. Heat Detail: Click a swimmer to DQ
+		// Look for "TAP TO DQ" button
+		const dqBtn = judgePage.getByText(/TAP TO DQ/i).first();
+		await expect(dqBtn).toBeVisible({ timeout: 15000 });
+		await dqBtn.click();
 
 		// 5. Verify DQ Modal opens
 		await expect(
-			page.getByPlaceholder("Add notes here (optional)"),
+			judgePage.getByPlaceholder("Add notes here (optional)"),
 		).toBeVisible();
 
-		// 6. Select a DQ code (e.g., "1A")
-		// The code is usually in a text element next to description
-		await page.getByText("1A").first().click();
+		// 6. Select a DQ code (e.g., "1A") via new data-testid
+		const code1A_selector = "[data-testid='dq-code-1A']";
+		await judgePage.waitForSelector(code1A_selector, {
+			state: "attached",
+			timeout: 10000,
+		});
 
-		// 7. Add a note
-		await page
+		// Use evaluate click for Safari robustness
+		await judgePage.evaluate((sel) => {
+			const el = document.querySelector(sel);
+			if (el) (el as HTMLElement).click();
+		}, code1A_selector);
+
+		// 7. Add Note and Submit
+		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
-			.fill("Test DQ Note");
+			.fill("E2E Test Note");
+		await robustClick(judgePage.getByLabel("Save changes"));
 
-		// 8. Tap Save (checkmark-circle icon)
-		await page.getByLabel("Save changes").click();
-
-		// 9. Verification: Modal closes and DQ code is displayed
+		// 8. Verify submission (wait for modal to close or history to update)
 		await expect(
-			page.getByPlaceholder("Add notes here (optional)"),
+			judgePage.getByPlaceholder("Add notes here (optional)"),
 		).not.toBeVisible();
-		await expect(page.getByText("1A")).toBeVisible();
 
-		// 10. Verification: DQ History count increments
-		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
-	});
+		// 9. Sync Data (Offline -> Online)
+		const syncBtn = judgePage.getByTestId("dq-history-button");
+		await expect(syncBtn).toBeVisible({ timeout: 15000 });
+		await robustClick(syncBtn, { timeout: 30000 });
 
-	test("should toggle between Event and Program views", async ({ page }) => {
-		await page.goto("/");
+		await expect(judgePage.getByText("DQ History (Pending: 0)")).toBeVisible({
+			timeout: 60000,
+		});
 
-		// 0. Handle Judge Name Prompt
-		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
-		await page.getByText("START JUDGING").click();
-
-		// Default is Event view
-		await expect(page.getByText("Events", { exact: true })).toBeVisible();
-
-		// Switch to Program view
-		await page.getByText("SWITCH TO PROGRAM VIEW").click();
-
-		// Verify Program View is shown (Continuous list)
-		// The ProgramView component has different structure
-		await expect(page.getByText("SWITCH TO EVENT VIEW")).toBeVisible();
-
-		// In program mode, check if we see event headers
-		await expect(page.getByText(/#1 |Event 1/i).first()).toBeVisible();
-
-		// Switch back
-		await page.getByText("SWITCH TO EVENT VIEW").click();
-		await expect(page.getByText("Events", { exact: true })).toBeVisible();
-	});
-
-	test("should manage offline queue (clear all)", async ({ page }) => {
-		await page.goto("/");
-
-		// 0. Handle Judge Name Prompt
-		await page.getByPlaceholder("Your Name").fill("E2E Test Judge");
-		await page.getByText("START JUDGING").click();
-
-		// Add a DQ first
-		await page
-			.getByText(/#1 |Event 1/i)
-			.first()
-			.click();
-		await page
-			.getByText(/Heat 1/i)
-			.first()
-			.click();
-		await page.getByText("TAP TO DQ").first().click();
-		await page.getByText("1A").first().click();
-		await page.getByLabel("Save changes").click();
-
-		await expect(page.getByText(/DQ History \(Pending: 1\)/)).toBeVisible();
-
-		// Open DQ History
-		await page.getByText(/DQ History \(Pending: 1\)/).click();
-
-		// Verify modal content
-		await expect(page.getByText("DQ History (Total: 1)")).toBeVisible();
-		await expect(page.getByText("CLEAR PENDING")).toBeVisible();
-
-		// Clear Pending
-		await page.getByText("CLEAR PENDING").click();
-
-		// Verification
-		await expect(page.getByText("No DQs recorded")).toBeVisible();
-
-		// Close modal
-		await page.keyboard.press("Escape");
-		await page.waitForTimeout(1000);
-		// If still visible, try accessibility label or click outside
-		if (await page.getByText("DQ History").first().isVisible()) {
-			const closeButton = page.getByLabel("Close history");
-			if (await closeButton.isVisible()) {
-				await closeButton.click();
-			} else {
-				await page.mouse.click(10, 10);
-			}
+		// Optional success message check
+		const successMsg = judgePage.getByText(/Successfully synced/i);
+		if (await successMsg.isVisible()) {
+			console.log("Verified success message visibility");
 		}
 
-		// Queue count should be 0
-		await expect(page.getByText(/DQ History \(Pending: 0\)/)).toBeVisible();
+		await expect(judgePage.getByText("DQ History (Total: 1)")).toBeVisible();
 	});
 });

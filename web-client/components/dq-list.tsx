@@ -35,8 +35,10 @@ export function DqList() {
 		async function loadDqs() {
 			try {
 				const data = await getDisqualifications();
-				console.log(`DqList: Received ${data?.length || 0} DQs from server`);
-				setDqs(data);
+				console.log(
+					`DqList: Received ${data?.disqualifications?.length || 0} DQs from server`,
+				);
+				setDqs(data.disqualifications || []);
 			} catch (error) {
 				console.error("Failed to load DQs:", error);
 				toast.error("Failed to fetch disqualifications");

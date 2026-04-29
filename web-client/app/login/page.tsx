@@ -2,7 +2,7 @@
 
 import { LogIn, Waves } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 
-export default function LoginPage() {
+function LoginForm() {
 	const { user, login, loading } = useAuth();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -109,5 +109,24 @@ export default function LoginPage() {
 				</CardContent>
 			</Card>
 		</div>
+	);
+}
+
+export default function LoginPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex min-h-screen items-center justify-center bg-muted/50">
+					<div className="animate-pulse flex flex-col items-center gap-4">
+						<Waves className="h-12 w-12 text-primary" />
+						<p className="text-sm text-muted-foreground font-medium">
+							Loading...
+						</p>
+					</div>
+				</div>
+			}
+		>
+			<LoginForm />
+		</Suspense>
 	);
 }

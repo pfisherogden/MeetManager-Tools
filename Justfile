@@ -136,8 +136,15 @@ test-frontend: codegen
     cd web-client && npm test
 
 test-e2e:
-    @echo "Running Playwright E2E Tests..."
-    cd web-client && npm run test-e2e
+    @echo "Running Playwright E2E Tests against a PRODUCTION build..."
+    docker-compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --remove-orphans
+    @echo "Waiting for services to be healthy..."
+    sleep 20
+    @cd web-client && FRONTEND_URL=http://localhost:$(docker compose port frontend 3000 | cut -d: -f2) npx playwright test
+
+down-e2e:
+    @echo "Tearing down E2E services..."
+    docker-compose -f docker-compose.yml -f docker-compose.e2e.yml down --remove-orphans
 
 test-e2e-judge:
     @echo "Running Judge App E2E Tests..."
@@ -229,7 +236,9 @@ test-entries:
 # Build the mobile judge app web version
 build-mobile:
     @echo "Building mobile judge app web bundle..."
-    cd mobile-judge-app && npm run build-web
+    cd mobile-judge-app && APP_BASE_URL=/judge npm run build-web
+    mkdir -p web-client/public/judge
+    cp -r mobile-judge-app/dist/* web-client/public/judge/
 
 # Run the mobile judge app in Docker
 up-mobile:

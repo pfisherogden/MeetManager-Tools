@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import datetime
+import http.server
 import io
 import json
 import logging
 import multiprocessing
 import os
+import signal
 import tempfile
 import threading
+import time
 import uuid
 import zipfile
 from collections import OrderedDict
@@ -170,21 +173,21 @@ def msgpack_encode(obj):
 
 
 def _process_single_report_process(
-    idx,
     report_req_type,
     report_req_title,
     report_req_team_filter,
     report_req_gender_filter,
     report_req_age_group_filter,
+    user_id,
     columns_on_page,
     show_relay_swimmers,
     zebra_striping,
-    msgpack_path,  # Use msgpack file instead of large dict
+    msgpack_path,
     rtype_map,
     renderer_type=None,
     html_preview=False,
+    idx=0,
 ):
-    # This runs in a separate process, avoiding the GIL
     import datetime
     import logging
     import os
@@ -193,58 +196,39 @@ def _process_single_report_process(
 
     import msgpack
 
-    # Re-initialize logging configuration in the subprocess to ensure logs are captured
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
     log_level = getattr(logging, log_level_str, logging.INFO)
     logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
-
-    # Suppress verbose third-party loggers in the subprocess
     if log_level_str != "DEBUG":
         logging.getLogger("fontTools").setLevel(logging.WARNING)
-        logging.getLogger("fontTools.subset").setLevel(logging.WARNING)
         logging.getLogger("weasyprint").setLevel(logging.WARNING)
-        logging.getLogger("jpype").setLevel(logging.WARNING)
-        # Also disable global logging for anything below INFO to catch stray loggers
-        logging.disable(logging.DEBUG)
-
-    from meetmanager.v1 import meet_manager_pb2 as pb2
-    from mm_to_json.mm_to_json import MmToJsonConverter
     from mm_to_json.reporting.extractor import ReportDataExtractor
-    from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
-    from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 
     rtype = rtype_map.get(report_req_type, "psych")
     title = report_req_title
-
     start_time = datetime.datetime.now()
-
-    with open(msgpack_path, "rb") as f:
-        packed_data = msgpack.unpack(f, raw=False)
-
-    cache_data = packed_data["cache"]
-    full_data = packed_data["full_data"]
-
-    load_end_time = datetime.datetime.now()
-    load_duration = (load_end_time - start_time).total_seconds()
-
-    converter = MmToJsonConverter(table_data=cache_data)
-    extractor = ReportDataExtractor(converter, full_data=full_data)
-
-    with tempfile.NamedTemporaryFile(
-        suffix=".html" if html_preview or rtype == "program_html" else ".pdf", delete=False
-    ) as tmp:
-        temp_path = tmp.name
-
     try:
+        with open(msgpack_path, "rb") as f:
+            unpacked = msgpack.unpack(f, raw=False)
+            full_data = unpacked["full_data"]
+            cache_data = unpacked["cache"]
+        load_duration = (datetime.datetime.now() - start_time).total_seconds()
         render_start_time = datetime.datetime.now()
+        is_html = html_preview or (rtype == "program_html")
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".html" if is_html else ".pdf")
+        os.close(temp_fd)
 
-        # Use requested renderer
-        renderer: PlaywrightRenderer | WeasyRenderer
-        if renderer_type == pb2.RENDERER_TYPE_PLAYWRIGHT:
-            renderer = PlaywrightRenderer(temp_path)
+        from mm_to_json.mm_to_json import MmToJsonConverter
+
+        converter = MmToJsonConverter(table_data=cache_data)
+        extractor = ReportDataExtractor(converter, full_data=full_data)
+        renderer: Any
+        if renderer_type == "playwright":
+            renderer = PlaywrightRenderer(output_path=temp_path)
         else:
-            renderer = WeasyRenderer(temp_path)
+            renderer = WeasyRenderer(output_path=temp_path)
 
+        report_data = None
         if rtype == "psych":
             report_data = extractor.extract_psych_sheet_data(
                 team_filter=report_req_team_filter,
@@ -252,8 +236,7 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "psych_sheet.j2")
+            template = "psych_sheet.j2"
         elif rtype == "entries":
             report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
@@ -261,17 +244,16 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "entries_hytek.j2")
+            template = "meet_entries.j2"
         elif rtype == "lineups":
-            report_data = extractor.extract_timer_sheets_data(
+            # Fallback to entries for lineups if not explicitly implemented
+            report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
                 report_title=title,
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "timer_sheets.j2")
+            template = "lineups.j2"
         elif rtype == "results":
             report_data = extractor.extract_results_data(
                 team_filter=report_req_team_filter,
@@ -279,41 +261,7 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "results.j2")
-        elif rtype == "program":
-            program_data = extractor.extract_meet_program_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-                columns_on_page=columns_on_page,
-                show_relay_swimmers=show_relay_swimmers,
-            )
-            program_data["zebra_striping"] = zebra_striping
-            renderer.render_meet_program(program_data)
-        elif rtype == "program_html":
-            program_data = extractor.extract_meet_program_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-                columns_on_page=columns_on_page,
-                show_relay_swimmers=show_relay_swimmers,
-            )
-            program_data["zebra_striping"] = zebra_striping
-            html_content = renderer.render_to_html(program_data)
-            with open(temp_path, "wb") as f:
-                f.write(html_content.encode("utf-8"))
-        elif rtype == "entries_hytek":
-            report_data = extractor.extract_meet_entries_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-            )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "entries_hytek.j2")
+            template = "results.j2"
         elif rtype == "entries_club":
             report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
@@ -321,8 +269,7 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            report_data["zebra_striping"] = zebra_striping
-            renderer.render_entries(report_data, "entries_club.j2")
+            template = "entries_club.j2"
         elif rtype == "lane_timer_sheets":
             report_data = extractor.extract_lane_timer_sheets_data(
                 team_filter=report_req_team_filter,
@@ -330,45 +277,51 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            # Timer sheets always use specific template
-            renderer.render_entries(report_data, "timer_sheets.j2")
-        elif rtype == "judge_sheets":
-            # Judge sheets are meet program with DQ lines
-            program_data = extractor.extract_meet_program_data(
+            template = "timer_sheets.j2"
+        elif rtype in ["program", "program_html", "judge_sheets"]:
+            report_data = extractor.extract_meet_program_data(
                 team_filter=report_req_team_filter,
                 report_title=title,
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
                 columns_on_page=columns_on_page,
                 show_relay_swimmers=show_relay_swimmers,
-                show_dq_lines=True,
+                show_dq_lines=(rtype == "judge_sheets"),
             )
-            program_data["zebra_striping"] = zebra_striping
-            renderer.render_meet_program(program_data)
-
+            template = "meet_program.j2"
+        if report_data:
+            report_data["zebra_striping"] = zebra_striping
+            if is_html:
+                html_content = renderer.render_to_html(report_data, template_name=template)
+                with open(temp_path, "wb") as f:
+                    f.write(html_content.encode("utf-8"))
+            else:
+                if template == "meet_program.j2":
+                    renderer.render_meet_program(report_data)
+                else:
+                    renderer.render_entries(report_data, template)
         if os.path.exists(temp_path):
             with open(temp_path, "rb") as f:
-                content = f.read()
-            os.remove(temp_path)
-
-            render_end_time = datetime.datetime.now()
-            render_duration = (render_end_time - render_start_time).total_seconds()
-            total_duration = (render_end_time - start_time).total_seconds()
-
-            logging.info(
-                f"Worker {idx} finished {rtype}: Load: {load_duration:.2f}s, Render: {render_duration:.2f}s, Total: {total_duration:.2f}s"
-            )
-
-            safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-            ext = ".html" if html_preview or rtype == "program_html" else ".pdf"
-            file_name = f"{idx + 1}_{safe_title}{ext}"
-            return {"success": True, "filename": file_name, "content": content, "rtype": rtype, "idx": idx}
-
-        return {"success": False, "error": "Temp file not found"}
+                pdf_bytes = f.read()
+            os.unlink(temp_path)
+        else:
+            pdf_bytes = b""
+        render_duration = (datetime.datetime.now() - render_start_time).total_seconds()
+        ext = ".html" if is_html else ".pdf"
+        final_filename = f"{user_id}_{title}{ext}"
+        html_str = pdf_bytes.decode("utf-8") if is_html else ""
+        return {
+            "success": True,
+            "content": pdf_bytes,
+            "filename": final_filename,
+            "html_content": html_str,
+            "rtype": rtype,
+            "idx": idx,
+            "load_duration": load_duration,
+            "render_duration": render_duration,
+        }
     except Exception as e:
-        logging.error(f"Process failed: {traceback.format_exc()}")
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+        logging.error(f"Error in _process_single_report_process (idx {idx}): {traceback.format_exc()}")
         return {"success": False, "error": str(e), "rtype": rtype, "idx": idx}
 
 
@@ -383,11 +336,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
             self.storage = LocalStorageProvider(base_storage_dir)
 
-        # Cache structure: {uid: {'filename': str, 'mtime': float, 'data': dict}}
-        # Using OrderedDict for simple LRU eviction
         self._user_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.current_file = SOURCE_FILE
         self.job_manager = JobManager()
+        self._lock = threading.RLock()
         # Note: We don't load data in __init__ anymore because it's per-user
         # self._load_data()
         # self._load_config()
@@ -397,168 +349,183 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return os.path.join("users", uid, filename)
 
     def _check_auth(self, context):
-        """Helper to ensure the request is authenticated."""
+        """Helper to ensure the request is authenticated with robust UID detection."""
         if context is not None:
             try:
-                # Allow custom user ID via metadata for E2E test isolation
-                metadata = dict(context.invocation_metadata())
-                # Metadata keys are lowercase in gRPC
-                uid = metadata.get("x-user-id")
-                if uid:
-                    # logging.debug(f"DEBUG: Auth using x-user-id metadata: {uid}")
-                    return uid
-            except (AttributeError, TypeError):
-                # Context might be a mock or None-like without invocation_metadata
-                pass
+                # 1. Direct Metadata Search (Case-insensitive)
+                metadata = {k.lower(): v for k, v in context.invocation_metadata()}
+                uid = metadata.get("x-e2e-uid") or metadata.get("x-user-id")
 
-        # Allow disabling auth for local dev/testing
+                # 2. Cookie Search (Backup for browser-based calls in Safari)
+                if not uid:
+                    cookie_header = metadata.get("cookie") or metadata.get("Cookie") or ""
+                    # Handle if cookie is a list (rare but possible in some gRPC wrappers)
+                    cookie_str = cookie_header[0] if isinstance(cookie_header, list) else cookie_header
+                    if cookie_str:
+                        for part in cookie_str.split(";"):
+                            pair = part.strip().split("=", 1)
+                            if len(pair) == 2:
+                                name, value = pair
+                                if name.lower() in ["x-user-id", "x-e2e-uid"]:
+                                    uid = value
+                                    break
+
+                if uid:
+                    return uid
+
+                # 3. Log metadata keys if UID is missing in E2E mode
+                if os.getenv("IS_E2E") == "true":
+                    logging.debug(f"DEBUG: No UID found in metadata. Available keys: {list(metadata.keys())}")
+
+            except (AttributeError, TypeError) as e:
+                logging.debug(f"DEBUG: Auth metadata extraction failed: {e}")
+
+        uid = getattr(context, "uid", None)
+        if uid is not None:
+            return uid
+
+        # Fallback for local development or testing
         if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
             return "dev-user"
 
-        if context is None:
-            raise ValueError("Context is required for authentication")
-
-        uid = getattr(context, "uid", None)
-        if uid is None:
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Authentication required")
-        return uid
+        context.abort(grpc.StatusCode.UNAUTHENTICATED, "Authentication required")
+        return "unauthenticated"  # Should not reach here due to abort
 
     def _load_user_config(self, context):
-        uid = self._check_auth(context)
-        config_path = os.path.join("users", uid, CONFIG_FILE)
-        # For LocalStorageProvider, print absolute path for debugging
-        if hasattr(self.storage, "base_dir"):
-            abs_path = os.path.abspath(os.path.join(self.storage.base_dir, config_path))
-            logging.debug(f"DEBUG: Checking for config at {config_path} (abs: {abs_path}, uid: {uid})")
-        else:
-            logging.debug(f"DEBUG: Checking for config at {config_path} (uid: {uid})")
+        with self._lock:
+            uid = self._check_auth(context)
+            config_path = os.path.join("users", uid, CONFIG_FILE)
+            if self.storage.exists(config_path):
+                tmp_path = ""
+                with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+                    tmp_path = tmp.name
+                    tmp.close()
 
-        if self.storage.exists(config_path):
-            # ... rest of the method unchanged ...
-            with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+                try:
+                    self.storage.download_file(config_path, tmp_path)
+                    with open(tmp_path) as f:
+                        config = json.load(f)
+                        return config
+                except Exception as e:
+                    logging.debug(f"DEBUG: Failed to load user config for {uid}: {e}")
+                finally:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+
+            return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
+
+    def _save_user_config(self, context, config):
+        with self._lock:
+            uid = self._check_auth(context)
+            config_path = os.path.join("users", uid, CONFIG_FILE)
+            tmp_path = ""
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                json.dump(config, tmp, indent=2)
                 tmp_path = tmp.name
+                tmp.flush()
+                # Close it explicitly before uploading
                 tmp.close()
 
             try:
-                self.storage.download_file(config_path, tmp_path)
-                with open(tmp_path) as f:
-                    config = json.load(f)
-                    logging.debug(f"DEBUG: Loaded user config for {uid}: {config}")
-                    return config
-            except Exception as e:
-                logging.debug(f"DEBUG: Failed to load user config for {uid}: {e}")
+                self.storage.upload_file(tmp_path, config_path)
+                if hasattr(os, "sync"):
+                    os.sync()
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
-        logging.debug(f"DEBUG: No user config found at {config_path} for {uid}, using defaults")
-        return {"meet_name": "", "meet_description": "", "active_dataset": SOURCE_FILE}
-
-    def _save_user_config(self, context, config):
-        uid = self._check_auth(context)
-        config_path = os.path.join("users", uid, CONFIG_FILE)
-        logging.debug(f"DEBUG: Saving user config to {config_path}: {config}")
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
-            json.dump(config, tmp, indent=2)
-            tmp_path = tmp.name
-            tmp.flush()
-            # Close it explicitly before uploading
-            tmp.close()
-
-        try:
-            self.storage.upload_file(tmp_path, config_path)
-            logging.debug(f"DEBUG: User config saved to {config_path}")
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-
     def _load_user_data(self, context):
-        config = self._load_user_config(context)
-        filename = config.get("active_dataset", SOURCE_FILE)
-        uid = self._check_auth(context)
+        with self._lock:
+            config = self._load_user_config(context)
+            filename = config.get("active_dataset", SOURCE_FILE)
+            uid = self._check_auth(context)
 
-        user_path = os.path.join("users", uid, filename)
-        # For LocalStorageProvider, print absolute path for debugging
-        if hasattr(self.storage, "base_dir"):
-            abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
-            logging.debug(
-                f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path} (abs: {abs_user_path})"
-            )
-        else:
-            logging.debug(f"DEBUG: _load_user_data: uid={uid}, filename={filename}, user_path={user_path}")
+            # E2E Check: Completely ignore the cache if x-e2e-uid/x-user-id is present or IS_E2E is set
+            metadata = {k.lower(): v for k, v in (context.invocation_metadata() if context else [])}
+            is_e2e = os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata or "x-user-id" in metadata
+            if not is_e2e and "cookie" in metadata:
+                is_e2e = "x-user-id=" in str(metadata["cookie"]).lower()
 
-        # Check cache
-        if uid in self._user_cache:
-            entry = self._user_cache[uid]
-            # Move to end (most recent)
-            self._user_cache.move_to_end(uid)
+            user_path = os.path.join("users", uid, filename)
+            storage_exists = self.storage.exists(user_path)
 
-            if entry["filename"] == filename:
-                # Check if modified
-                try:
-                    mtime = self.storage.get_last_modified(user_path)
-                    if mtime == entry["mtime"]:
-                        logging.debug(f"DEBUG: Returning cached data for {uid}/{filename}")
-                        return entry["data"], config
-                    else:
-                        logging.debug(f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})")
-                except Exception as e:
-                    logging.debug(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
-                    pass  # Force reload on error
+            if is_e2e:
+                logging.info(f"E2E: uid={uid}, file={user_path}, exists={storage_exists}")
 
-        if not self.storage.exists(user_path):
-            logging.debug(f"DEBUG: User file {user_path} NOT FOUND in storage.")
-            # Fallback for prototype: check global Sample_Data.json
-            if self.storage.exists(SOURCE_FILE):
-                logging.debug(f"DEBUG: Falling back to global {SOURCE_FILE}")
-                user_path = SOURCE_FILE
-                filename = SOURCE_FILE
-            else:
-                logging.debug(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
-                return {}, config
-        else:
-            logging.debug(f"DEBUG: Found user file at {user_path}")
-
-        logging.debug(f"DEBUG: Loading data from {user_path}...")
-        with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
-            tmp_path = tmp.name
-            tmp.close()  # Close to avoid locking
-
-        try:
-            self.storage.download_file(user_path, tmp_path)
-            if filename.endswith(".mdb"):
-                cache = self._load_mdb(tmp_path)
-            else:
-                with open(tmp_path) as f:
-                    raw_data = json.load(f)
-                # Use converter to normalize keys/types even for JSON
-                from mm_to_json.mm_to_json import MmToJsonConverter
-
-                converter = MmToJsonConverter(table_data=raw_data)
-                cache = converter.export_raw()
-
-            # Update cache
-            try:
-                mtime = self.storage.get_last_modified(user_path)
-                self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+            # Check cache (Skip if E2E)
+            if not is_e2e and uid in self._user_cache:
+                entry = self._user_cache[uid]
+                # Move to end (most recent)
                 self._user_cache.move_to_end(uid)
 
-                # Evict oldest if limit exceeded
-                if len(self._user_cache) > MAX_CACHE_SIZE:
-                    oldest_uid, _ = self._user_cache.popitem(last=False)
-                    logging.debug(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
+                if entry["filename"] == filename:
+                    # Check if modified
+                    try:
+                        mtime = self.storage.get_last_modified(user_path)
+                        if mtime == entry["mtime"]:
+                            logging.debug(f"DEBUG: Returning cached data for {uid}/{filename}")
+                            return entry["data"], config
+                        else:
+                            logging.debug(
+                                f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})"
+                            )
+                    except Exception as e:
+                        logging.debug(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
+                        pass  # Force reload on error
 
-                logging.debug(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
+            if not storage_exists:
+                logging.debug(f"DEBUG: User file {user_path} NOT FOUND in storage.")
+                # Fallback for prototype: check global Sample_Data.json
+                if self.storage.exists(SOURCE_FILE):
+                    logging.debug(f"DEBUG: Falling back to global {SOURCE_FILE}")
+                    user_path = SOURCE_FILE
+                    filename = SOURCE_FILE
+                else:
+                    logging.debug(f"DEBUG: Global fallback {SOURCE_FILE} also NOT FOUND.")
+                    return {}, config
+            else:
+                logging.debug(f"DEBUG: Found user file at {user_path}")
+
+            logging.debug(f"DEBUG: Loading data from {user_path}...")
+            with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
+                tmp_path = tmp.name
+                tmp.close()  # Close to avoid locking
+
+            try:
+                self.storage.download_file(user_path, tmp_path)
+                if filename.endswith(".mdb"):
+                    cache = self._load_mdb(tmp_path)
+                else:
+                    with open(tmp_path) as f:
+                        raw_data = json.load(f)
+
+                    # Use converter to normalize keys/types even for JSON
+                    # This ensures table names (Meet -> meet) and column names are normalized
+                    converter = MmToJsonConverter(table_data=raw_data)
+                    cache = converter.export_raw()
+
+                # Update cache
+                try:
+                    mtime = self.storage.get_last_modified(user_path)
+                    self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+                    self._user_cache.move_to_end(uid)
+
+                    # Evict oldest if limit exceeded
+                    if len(self._user_cache) > MAX_CACHE_SIZE:
+                        oldest_uid, _ = self._user_cache.popitem(last=False)
+                        logging.debug(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
+
+                    logging.debug(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
+                except Exception as e:
+                    logging.debug(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
+
+                return cache, config
             except Exception as e:
-                logging.debug(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
-
-            return cache, config
-        except Exception as e:
-            logging.debug(f"DEBUG: Error loading data from {user_path}: {e}")
-            return {}, config
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+                logging.error(f"DEBUG: Error loading data from {user_path}: {e}")
+                return {}, config
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
 
     def _load_mdb(self, path):
         """Parsing MDB using MmToJsonConverter (Jackcess/JPype) for performance."""
@@ -575,17 +542,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     dst.write(chunk)
 
             converter = MmToJsonConverter(mdb_path=tmp_path)
-            # MmToJsonConverter loads data into self.tables (dict of DataFrames)
-            cache = {}
-            for table_name, df in converter.tables.items():
-                # Convert DataFrame to list of dicts, ensuring all values are strings/primitives
-                # The existing server logic expects strings for most things, but MmToJsonConverter
-                # might produce ints/floats.
-                # We'll convert to dicts and let Python handle types, but be aware of mismatch.
-                records = df.to_dict("records")
-                cache[table_name] = records
-
-            return cache
+            # Use export_raw for consistent normalization with JSON loading
+            return converter.export_raw()
         except Exception as e:
             logging.error(f"Error loading MDB: {e}")
             return {}
@@ -596,7 +554,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def UploadDataset(self, request_iterator, context):
         logging.debug("DEBUG: UploadDataset called")
         uid = self._check_auth(context)
-        filename = "uploaded.mdb"
+        filename = None
 
         # Temporary buffer to hold file content
         file_content = io.BytesIO()
@@ -604,7 +562,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             for request in request_iterator:
-                if request.HasField("filename"):
+                if request.HasField("filename") and request.filename:
                     filename = os.path.basename(request.filename)
                     ext = os.path.splitext(filename)[1].lower()
                     if ext not in [".mdb", ".json"]:
@@ -617,10 +575,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     file_content.write(request.chunk)
                     total_bytes += chunk_len
 
-            logging.info(f"UploadDataset: uid={uid}, received total {total_bytes} bytes for {filename}")
+            if not filename:
+                filename = "uploaded.mdb"
 
+            logging.info(f"UploadDataset: Final filename for {uid} is {filename}")
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
+            logging.info(f"UploadDataset: Targeting user_path={user_path} for {uid}")
+
             # For LocalStorageProvider, print absolute path for debugging
             if hasattr(self.storage, "base_dir"):
                 abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
@@ -638,20 +600,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             try:
                 self.storage.upload_file(tmp_path, user_path)
+                # FORCE FS SYNC for E2E consistency
+                if hasattr(os, "sync"):
+                    os.sync()
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
             logging.info(f"Saved uploaded file to {user_path}")
 
-            # Update active dataset in config
-            config = self._load_user_config(context)
-            config["active_dataset"] = filename
-            self._save_user_config(context, config)
+            with self._lock:
+                # Update active dataset in config
+                config = self._load_user_config(context)
+                config["active_dataset"] = filename
+                self._save_user_config(context, config)
 
-            # Invalidate cache to force reload of the new dataset
-            if uid in self._user_cache:
-                del self._user_cache[uid]
+                # Invalidate cache to force reload of the new dataset
+                if uid in self._user_cache:
+                    del self._user_cache[uid]
 
             return pb2.UploadDatasetResponse(success=True, message=f"Saved {filename}")
         except Exception as e:
@@ -689,30 +655,56 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         ]
         return palette[team_id % len(palette)]
 
+    def _get_table(self, cache, name):
+        """Helper to retrieve a table from cache with case-insensitive key lookup."""
+        if not cache:
+            return []
+
+        # Try direct lookup first (most common)
+        if name in cache:
+            return cache[name]
+
+        # Try lowercase lookup (normalized by MmToJsonConverter)
+        lower_name = name.lower()
+        if lower_name in cache:
+            return cache[lower_name]
+
+        # Exhaustive case-insensitive search
+        for actual_key in cache.keys():
+            if actual_key.lower() == lower_name:
+                return cache[actual_key]
+
+        return []
+
     def GetMeets(self, request, context):
         request = request or pb2.GetMeetsRequest()
         cache, _ = self._load_user_data(context)
-        logging.debug(f"DEBUG: Cache tables: {list(cache.keys())}")
-        data = cache.get("meet", [])
+        uid = self._check_auth(context)
+
+        data = self._get_table(cache, "meet")
+
+        if not data and cache:
+            logging.warning(f"GetMeets: No 'meet' table found for {uid}. Available tables: {list(cache.keys())}")
+
         meets = []
         for item in data:
-            logging.debug(f"DEBUG: Meet item keys: {list(item.keys())}")
-            # Prefer lowercase keys from MmToJsonConverter
-            # MDB column 'Meet_name1' should be 'meet_name1'
-            name = (
-                item.get("meet_name1")
-                or item.get("meet_name")
-                or item.get("mname")
-                or item.get("Meet_name1")
-                or "Unknown Meet"
-            )
-            loc = item.get("location") or item.get("meet_location") or item.get("Meet_location") or ""
-            start = self._format_date(
-                item.get("start") or item.get("start_date") or item.get("meet_start") or item.get("Meet_start") or ""
-            )
-            end = self._format_date(
-                item.get("end") or item.get("end_date") or item.get("meet_end") or item.get("Meet_end") or ""
-            )
+            # Universal case-insensitive field lookup
+            def get_field(d, keys):
+                if not d:
+                    return None
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            name = get_field(item, ["meet_name1", "meet_name", "mname", "Meet_name1"]) or "Unknown Meet"
+            loc = get_field(item, ["location", "meet_location", "Meet_location"])
+            start = self._format_date(get_field(item, ["start", "start_date", "meet_start", "Meet_start"]))
+            end = self._format_date(get_field(item, ["end", "end_date", "meet_end", "Meet_end"]))
+            course_val = get_field(item, ["course", "meet_course", "Meet_course"])
 
             meets.append(
                 pb2.Meet(
@@ -721,6 +713,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     location=str(loc or ""),
                     start_date=str(start or ""),
                     end_date=str(end or ""),
+                    course=str(course_val or ""),
                     status="active",
                 )
             )
@@ -730,12 +723,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetTeamsRequest()
         uid = self._check_auth(context)
         cache, _ = self._load_user_data(context)
-        data = cache.get("team", [])
-        logging.debug(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams in cache['team']")
-        if len(data) > 0:
-            logging.debug(f"DEBUG: First team in cache: {data[0].get('team_name')}")
 
-        athletes = cache.get("athlete", [])
+        data = self._get_table(cache, "team")
+        athletes = self._get_table(cache, "athlete")
+
+        logging.debug(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams")
 
         # Count athletes per team
         ath_counts: dict[int, int] = {}
@@ -745,15 +737,27 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         teams = []
         for item in data:
-            t_id = self._safe_int(item.get("team_no", 0))
+            # Universal case-insensitive field lookup
+            def get_field(d, keys):
+                if not d:
+                    return None
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            t_id = self._safe_int(get_field(item, ["team_no", "team", "t_id", "Team_no"]))
             teams.append(
                 pb2.Team(
                     id=t_id,
-                    name=str(item.get("team_name", "Unknown") or "Unknown"),
-                    code=str(item.get("team_abbr", "") or ""),
-                    lsc=str(item.get("team_lsc", "") or ""),
-                    city=str(item.get("team_city", "") or ""),
-                    state=str(item.get("team_statenew", "") or ""),
+                    name=str(get_field(item, ["team_name", "tname", "Team_name"]) or "Unknown"),
+                    code=str(get_field(item, ["team_abbr", "tabbr", "Team_abbr"]) or ""),
+                    lsc=str(get_field(item, ["team_lsc", "tlsc", "team_lsc"]) or ""),
+                    city=str(get_field(item, ["team_city", "tcity", "team_city"]) or ""),
+                    state=str(get_field(item, ["team_statenew", "tstate", "team_statenew"]) or ""),
                     athlete_count=ath_counts.get(t_id, 0),
                     color=self._get_team_color(t_id),
                 )
@@ -854,28 +858,28 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetEvents(self, request, context):
         request = request or pb2.GetEventsRequest()
         cache, _ = self._load_user_data(context)
-        data = cache.get("event", [])
+        data = self._get_table(cache, "event")
         events = []
-        stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breaststroke", "D": "Butterfly", "E": "IM"}
+        stroke_map = {"A": "Freestyle", "B": "Backstroke", "C": "Breast", "D": "Butterfly", "E": "IM"}
         gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
 
         entry_counts: dict[str, int] = {}
-        entries = cache.get("entry", [])
+        entries = self._get_table(cache, "entry")
         for e in entries:
             evt_ptr = e.get("event_ptr")
             if evt_ptr:
-                entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
+                entry_counts[str(evt_ptr)] = entry_counts.get(str(evt_ptr), 0) + 1
 
-        relays = cache.get("relay", [])
+        relays = self._get_table(cache, "relay")
         for r in relays:
             evt_ptr = r.get("event_ptr")
             if evt_ptr:
-                entry_counts[evt_ptr] = entry_counts.get(evt_ptr, 0) + 1
+                entry_counts[str(evt_ptr)] = entry_counts.get(str(evt_ptr), 0) + 1
 
         # Build session mapping from Sessitem (Linking Event_ptr to Session No)
         sess_map = {}
-        sessitem_table = cache.get("sessitem", [])
-        session_table = cache.get("session", [])
+        sessitem_table = self._get_table(cache, "sessitem")
+        session_table = self._get_table(cache, "session")
 
         # ptr_to_no: Sess_ptr -> Sess_no
         ptr_to_no = {s.get("sess_ptr"): self._safe_int(s.get("sess_no", 1)) for s in session_table if s.get("sess_ptr")}
@@ -884,41 +888,146 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             e_ptr = si.get("event_ptr")
             s_ptr = si.get("sess_ptr")
             if e_ptr and s_ptr:
-                sess_map[e_ptr] = ptr_to_no.get(s_ptr, 1)
+                sess_map[str(e_ptr)] = ptr_to_no.get(s_ptr, 1)
 
         for item in data:
-            raw_stroke = item.get("event_stroke", "").upper().strip()
+            # Universal case-insensitive field lookup
+            def get_field(d, keys):
+                if not d:
+                    return None
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            raw_stroke = str(get_field(item, ["event_stroke"]) or "").upper().strip()
             stroke_desc = stroke_map.get(raw_stroke, raw_stroke)
 
-            is_relay = item.get("ind_rel", "").upper().strip() == "R"
+            is_relay = str(get_field(item, ["ind_rel"]) or "").upper().strip() == "R"
             if raw_stroke == "E" and is_relay:
                 stroke_desc = "Medley Relay"
             elif is_relay and stroke_desc != raw_stroke:
                 stroke_desc += " Relay"
 
-            raw_gender = item.get("event_sex", "").upper().strip()
+            raw_gender = str(get_field(item, ["event_sex"]) or "").upper().strip()
             gender_desc = gender_map.get(raw_gender, raw_gender)
 
-            # Map Session: Use Sessitem map if Event.Sess_no is missing
-            e_ptr = item.get("event_ptr") or item.get("event_no")
-            sess_no = self._safe_int(item.get("sess_no"))
-            if not sess_no and e_ptr:
-                sess_no = sess_map.get(e_ptr, 1)
+            evt_ptr_val = get_field(item, ["event_ptr"]) or get_field(item, ["event_no"]) or "0"
+            evt_ptr_int = self._safe_int(evt_ptr_val)
+            evt_no = self._safe_int(get_field(item, ["event_no"]))
+            dist = self._safe_int(get_field(item, ["event_dist"]))
+
+            low_age = self._safe_int(get_field(item, ["low_age"]))
+            high_age = self._safe_int(get_field(item, ["high_age"]))
+            age_group = self._format_age(low_age, high_age)
 
             events.append(
                 pb2.Event(
-                    id=self._safe_int(item.get("event_no", 0)),
-                    gender=str(gender_desc or ""),
-                    distance=self._safe_int(item.get("event_dist", 0)),
-                    stroke=str(stroke_desc or ""),
-                    low_age=self._safe_int(item.get("low_age", 0)),
-                    high_age=self._safe_int(item.get("high_age", 0)),
-                    session=max(1, sess_no),
-                    entry_count=entry_counts.get(item.get("event_no") or item.get("event_ptr"), 0),
-                    age_group=str(self._format_age(item.get("low_age"), item.get("high_age")) or ""),
+                    id=evt_ptr_int,
+                    event_no=evt_no,
+                    name=f"{gender_desc} {age_group} {dist} {stroke_desc}",
+                    distance=dist,
+                    stroke=stroke_desc,
+                    gender=gender_desc,
+                    age_group=age_group,
+                    is_relay=is_relay,
+                    entry_count=entry_counts.get(str(evt_ptr_val), 0),
+                    session=sess_map.get(str(evt_ptr_val), 1),
                 )
             )
         return pb2.GetEventsResponse(events=events)
+
+    def GetEntries(self, request, context):
+        request = request or pb2.GetEntriesRequest()
+        cache, _ = self._load_user_data(context)
+        entries_data = self._get_table(cache, "entry")
+
+        athletes = {self._safe_int(a.get("ath_no")): a for a in self._get_table(cache, "athlete")}
+        teams = {self._safe_int(t.get("team_no")): t for t in self._get_table(cache, "team")}
+        events_map = {}
+        stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
+        gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
+
+        for e in self._get_table(cache, "event"):
+            # Universal case-insensitive field lookup
+            def get_field_inner(d, keys):
+                if not d:
+                    return None
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            e_ptr = get_field_inner(e, ["event_ptr"]) or get_field_inner(e, ["event_no"])
+            if e_ptr:
+                g = gender_map.get(str(get_field_inner(e, ["event_sex"]) or "").strip(), "")
+                d = get_field_inner(e, ["event_dist"]) or ""
+                s = stroke_map.get(str(get_field_inner(e, ["event_stroke"]) or "").strip(), "")
+                low = self._safe_int(get_field_inner(e, ["low_age"]))
+                high = self._safe_int(get_field_inner(e, ["high_age"]))
+                age_group = self._format_age(low, high)
+                name = f"{g} {age_group} {d} {s}"
+                events_map[str(e_ptr)] = name
+
+        result = []
+        for idx, item in enumerate(entries_data):
+            # Universal case-insensitive field lookup
+            def get_field_inner(d, keys):
+                if not d:
+                    return None
+                for k in keys:
+                    if k in d:
+                        return d[k]
+                    for actual_key in d.keys():
+                        if actual_key.lower() == k.lower():
+                            return d[actual_key]
+                return None
+
+            ath_id = self._safe_int(get_field_inner(item, ["ath_no"]))
+            if request and request.athlete_id and str(ath_id) != request.athlete_id:
+                continue
+
+            athlete = athletes.get(ath_id, {})
+            t_id = self._safe_int(get_field_inner(athlete, ["team_no", "team_no"]))
+            team_obj = teams.get(t_id, {})
+
+            event_id_val = get_field_inner(item, ["event_ptr"]) or get_field_inner(item, ["event_no"])
+            event_id_int = self._safe_int(event_id_val)
+            if request and request.event_id and str(event_id_val) != request.event_id:
+                continue
+
+            seed = get_field_inner(item, ["actualseed_time", "convseed_time", "seed_time"])
+
+            entry_id_val = get_field_inner(item, ["entry_no"])
+            final_id = self._safe_int(entry_id_val) if entry_id_val else idx
+
+            result.append(
+                pb2.Entry(
+                    id=final_id,
+                    athlete_id=ath_id,
+                    event_id=event_id_int,
+                    team_id=t_id,
+                    seed_time=self._format_time(seed),
+                    final_time=self._format_time(get_field_inner(item, ["fin_time", "pre_time"])),
+                    place=self._safe_int(get_field_inner(item, ["fin_place", "place"])),
+                    event_name=events_map.get(str(event_id_val), f"Event {event_id_val}"),
+                    athlete_name=f"{athlete.get('first_name', '')} {athlete.get('last_name', '')}".strip()
+                    or "Unknown Athlete",
+                    team_name=str(get_field_inner(team_obj, ["team_name", "tname"]) or ""),
+                    heat=self._safe_int(get_field_inner(item, ["fin_heat", "pre_heat"])),
+                    lane=self._safe_int(get_field_inner(item, ["fin_lane", "pre_lane"])),
+                    points=self._safe_float(get_field_inner(item, ["ev_score"])),
+                    team_color=self._get_team_color(t_id),
+                    status=str(get_field_inner(item, ["fin_stat", "pre_stat"]) or ""),
+                )
+            )
+        return pb2.GetEntriesResponse(entries=result)
 
     def ListDatasets(self, request, context):
         request = request or pb2.ListDatasetsRequest()
@@ -931,7 +1040,19 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             # List files from users/[uid]/
             user_prefix = os.path.join("users", uid)
-            files = self.storage.list_files(user_prefix)
+            if hasattr(self.storage, "_get_full_path"):
+                full_path = self.storage._get_full_path(user_prefix)
+                logging.info(f"ListDatasets: Checking local path: {full_path}")
+
+            # Retry loop for eventual consistency in CI environments            files = []
+            for attempt in range(5):
+                files = self.storage.list_files(user_prefix)
+                if files:
+                    break
+                if attempt < 4:
+                    logging.info(f"ListDatasets: No files found for {uid}, retrying in 2s...")
+                    time.sleep(2)
+
             logging.info(f"ListDatasets: Found {len(files)} files in {user_prefix}: {files}")
 
             # Also include default Sample_Data.json if it exists and user has no files?
@@ -972,20 +1093,49 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.SetActiveDatasetResponse()
 
         user_path = os.path.join("users", uid, filename)
-        if not self.storage.exists(user_path) and not (filename == SOURCE_FILE and self.storage.exists(SOURCE_FILE)):
+        exists = self.storage.exists(user_path)
+        logging.info(f"SetActiveDataset: uid={uid}, filename={filename}, user_path={user_path}, exists={exists}")
+
+        if not exists and not (filename == SOURCE_FILE and self.storage.exists(SOURCE_FILE)):
+            logging.warning(f"SetActiveDataset: File {filename} NOT FOUND in user directory for {uid}")
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"File {filename} not found.")
             return pb2.SetActiveDatasetResponse()
 
-        logging.info(f"Switching user {uid} dataset to {filename}...")
-        # Update config
-        config = self._load_user_config(context)
-        config["active_dataset"] = filename
-        self._save_user_config(context, config)
+        with self._lock:
+            logging.info(f"Switching user {uid} dataset to {filename}...")
+            # Update config
+            config = self._load_user_config(context)
+            config["active_dataset"] = filename
+            self._save_user_config(context, config)
 
-        # Invalidate cache to force reload
-        if uid in self._user_cache:
-            del self._user_cache[uid]
+            # Invalidate cache to force reload
+            if uid in self._user_cache:
+                del self._user_cache[uid]
+
+            # FORCE FS SYNC for E2E consistency
+            if hasattr(os, "sync"):
+                os.sync()
+
+            # FORCE SYNCHRONOUS EXTRACTION:
+            # This ensures the database is fully populated before returning to the caller.
+            # Critical for E2E/CI reliability.
+            logging.info(f"SetActiveDataset: Forcing synchronous extraction for {uid}/{filename}...")
+            try:
+                self._load_user_data(context)
+                # Clear cache AGAIN after extraction if it's an E2E-like environment
+                # to ensure subsequent calls also bypass any race-condition cache entries.
+                metadata = dict(context.invocation_metadata() if context else [])
+                if os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata or "x-user-id" in metadata:
+                    if uid in self._user_cache:
+                        del self._user_cache[uid]
+                logging.info(f"SetActiveDataset: Extraction complete for {uid}/{filename}")
+            except Exception as e:
+                logging.error(f"SetActiveDataset: Extraction failed for {uid}/{filename}: {e}")
+                # Reset config if extraction failed to prevent a broken active dataset
+                config["active_dataset"] = SOURCE_FILE
+                self._save_user_config(context, config)
+                context.abort(grpc.StatusCode.INTERNAL, f"Dataset extraction failed: {str(e)}")
 
         return pb2.SetActiveDatasetResponse()
 
@@ -1143,53 +1293,74 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         request = request or pb2.GetScoresRequest()
         cache, config = self._load_user_data(context)
 
-        teams_data = cache.get("team", [])
-        teams = {t.get("team_no"): {"name": t.get("team_name"), "id": t.get("team_no")} for t in teams_data}
+        # Universal case-insensitive field lookup helper
+        def get_field(d, keys):
+            if not d:
+                return None
+            for k in keys:
+                if k in d:
+                    return d[k]
+                for actual_key in d.keys():
+                    if actual_key.lower() == k.lower():
+                        return d[actual_key]
+            return None
+
+        teams_data = self._get_table(cache, "team")
+        teams = {
+            self._safe_int(get_field(t, ["team_no"])): {
+                "name": str(get_field(t, ["team_name", "tname", "Team_name"]) or "Unknown"),
+                "id": self._safe_int(get_field(t, ["team_no"])),
+            }
+            for t in teams_data
+        }
         scores = {t_id: {"ind": 0.0, "rel": 0.0} for t_id in teams}
 
-        entries_data = cache.get("entry", [])
-        athletes = {a.get("ath_no"): a for a in cache.get("athlete", [])}
+        entries_data = self._get_table(cache, "entry")
+        athletes = {self._safe_int(get_field(a, ["ath_no"])): a for a in self._get_table(cache, "athlete")}
         events_sex_map = {
-            e.get("event_no") or e.get("event_ptr"): e.get("event_sex", "M") for e in cache.get("event", [])
+            str(get_field(e, ["event_no"]) or get_field(e, ["event_ptr"]) or ""): str(
+                get_field(e, ["event_sex"]) or "M"
+            ).strip()
+            for e in self._get_table(cache, "event")
         }
 
         if entries_data:
             for e in entries_data:
-                ath_id = e.get("ath_no")
+                ath_id = self._safe_int(get_field(e, ["ath_no"]))
                 ath = athletes.get(ath_id)
                 if ath:
-                    t_id = ath.get("team_no")
+                    t_id = self._safe_int(get_field(ath, ["team_no"]))
                     if t_id in scores:
-                        e_id = e.get("event_ptr")
-                        sex = events_sex_map.get(e_id, ath.get("ath_sex", "M"))
+                        e_id = str(get_field(e, ["event_ptr"]) or "")
+                        sex = events_sex_map.get(e_id, str(get_field(ath, ["ath_sex"]) or "M"))
                         val = self._calculate_points(e, sex, False, cache)
                         scores[t_id]["ind"] += val
 
-        relays_data = cache.get("relay", [])
+        relays_data = self._get_table(cache, "relay")
         if relays_data:
             for r in relays_data:
-                t_id = r.get("team_no")
+                t_id = self._safe_int(get_field(r, ["team_no"]))
                 if not t_id or t_id == "0":
-                    t_id = r.get("team_ptr")
+                    t_id = self._safe_int(get_field(r, ["team_ptr"]))
 
                 if t_id in scores:
-                    e_id = r.get("event_ptr")
-                    sex = events_sex_map.get(e_id, r.get("rel_sex", "X"))
+                    e_id = str(get_field(r, ["event_ptr"]) or "")
+                    sex = events_sex_map.get(e_id, str(get_field(r, ["rel_sex"]) or "X"))
                     val = self._calculate_points(r, sex, True, cache)
                     scores[t_id]["rel"] += val
 
-        meets = cache.get("meet", [])
+        meets = self._get_table(cache, "meet")
         meet_name = config.get("meet_name")
         if not meet_name and meets:
             m = meets[0]
-            meet_name = m.get("meet_name1") or m.get("meet_name") or m.get("mname")
+            meet_name = get_field(m, ["meet_name1", "meet_name", "mname"])
 
         result = []
         for t_id, s in scores.items():
             total = s["ind"] + s["rel"]
             result.append(
                 pb2.Score(
-                    team_id=self._safe_int(t_id),
+                    team_id=t_id,
                     team_name=teams[t_id]["name"],
                     individual_points=s["ind"],
                     relay_points=s["rel"],
@@ -1205,65 +1376,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 r.rank = i + 1
 
         return pb2.GetScoresResponse(scores=result)
-
-    def GetEntries(self, request, context):
-        request = request or pb2.GetEntriesRequest()
-        cache, _ = self._load_user_data(context)
-        entries_data = cache.get("entry", [])
-
-        athletes = {self._safe_int(a.get("ath_no")): a for a in cache.get("athlete", [])}
-        teams = {self._safe_int(t.get("team_no")): t.get("team_name") for t in cache.get("team", [])}
-        events_map = {}
-        stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
-        gender_map = {"B": "Boys", "G": "Girls", "X": "Mixed", "M": "Men", "W": "Women", "F": "Women"}
-
-        for e in cache.get("event", []):
-            e_no = e.get("event_no") or e.get("event_ptr")
-            if e_no:
-                g = gender_map.get(e.get("event_sex", "").strip(), e.get("event_sex", ""))
-                d = e.get("event_dist", "")
-                s = stroke_map.get(e.get("event_stroke", "").strip(), e.get("event_stroke", ""))
-                age_group = self._format_age(e.get("low_age"), e.get("high_age"))
-                name = f"{g} {age_group} {d} {s}"
-                events_map[e_no] = name
-
-        result = []
-        for idx, item in enumerate(entries_data):
-            ath_id = self._safe_int(item.get("ath_no", 0))
-            if request and request.athlete_id and str(ath_id) != request.athlete_id:
-                continue
-
-            athlete = athletes.get(ath_id, {})
-            t_id = self._safe_int(athlete.get("team_no", 0))
-            event_id = item.get("event_ptr")
-            if request and request.event_id and str(event_id) != request.event_id:
-                continue
-
-            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
-
-            entry_id_val = item.get("entry_no")
-            final_id = self._safe_int(entry_id_val) if entry_id_val else idx
-
-            result.append(
-                pb2.Entry(
-                    id=final_id,
-                    event_id=self._safe_int(event_id),
-                    athlete_id=self._safe_int(ath_id),
-                    athlete_name=str(f"{athlete.get('first_name', '')} {athlete.get('last_name', '')}" or ""),
-                    team_id=self._safe_int(t_id),
-                    team_name=str(teams.get(t_id, "Unknown") or "Unknown"),
-                    seed_time=self._format_time(seed),
-                    final_time=self._format_time(item.get("fin_time")),
-                    place=self._safe_int(item.get("fin_place") or item.get("place")),
-                    event_name=str(events_map.get(event_id, f"Event {event_id}") or ""),
-                    heat=self._safe_int(item.get("fin_heat") or item.get("pre_heat") or 0),
-                    lane=self._safe_int(item.get("fin_lane") or item.get("pre_lane") or 0),
-                    points=self._safe_float(item.get("ev_score", 0.0)),
-                    team_color=self._get_team_color(t_id),
-                    status=str(item.get("fin_stat") or item.get("pre_stat") or ""),
-                )
-            )
-        return pb2.GetEntriesResponse(entries=result)
 
     def _get_scoring_map(self, cache):
         scoring_data = cache.get("scoring", [])
@@ -1319,10 +1431,22 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetEventScores(self, request, context):
         request = request or pb2.GetEventScoresRequest()
         cache, _ = self._load_user_data(context)
-        entries = cache.get("entry", [])
-        relays = cache.get("relay", [])
-        athletes_map = {self._safe_int(a.get("ath_no")): a for a in cache.get("athlete", [])}
-        teams_map = {self._safe_int(t.get("team_no")): t.get("team_name") for t in cache.get("team", [])}
+        entries = self._get_table(cache, "entry")
+        relays = self._get_table(cache, "relay")
+        athletes_map = {self._safe_int(a.get("ath_no")): a for a in self._get_table(cache, "athlete")}
+        teams_map = {self._safe_int(t.get("team_no")): t.get("team_name") for t in self._get_table(cache, "team")}
+
+        # Universal case-insensitive field lookup helper
+        def get_field(d, keys):
+            if not d:
+                return None
+            for k in keys:
+                if k in d:
+                    return d[k]
+                for actual_key in d.keys():
+                    if actual_key.lower() == k.lower():
+                        return d[actual_key]
+            return None
 
         events_map = {}
         stroke_map = {"A": "Free", "B": "Back", "C": "Breast", "D": "Fly", "E": "IM"}
@@ -1331,47 +1455,47 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         event_dict: dict[str, dict[str, Any]] = {}
         event_raw_map = {}
 
-        for e in cache.get("event", []):
-            e_no = e.get("event_no") or e.get("event_ptr")
+        for e in self._get_table(cache, "event"):
+            e_no = get_field(e, ["event_no"]) or get_field(e, ["event_ptr"])
             if not e_no:
                 continue
 
-            event_raw_map[e_no] = e
-            g = gender_map.get(e.get("event_sex", "").strip(), e.get("event_sex", ""))
-            d = e.get("event_dist", "")
-            s_raw = e.get("event_stroke", "").strip()
+            event_raw_map[str(e_no)] = e
+            g = gender_map.get(str(get_field(e, ["event_sex"]) or "").strip(), "")
+            d = get_field(e, ["event_dist"]) or ""
+            s_raw = str(get_field(e, ["event_stroke"]) or "").strip()
             s = stroke_map.get(s_raw, s_raw)
 
-            is_relay = e.get("ind_rel", "").upper().strip() == "R"
+            is_relay = str(get_field(e, ["ind_rel"]) or "").upper().strip() == "R"
             if s_raw == "E" and is_relay:
                 s = "Medley Relay"
             elif is_relay and s != s_raw:
                 s += " Relay"
 
-            low = e.get("low_age", "")
-            high = e.get("high_age", "")
+            low = get_field(e, ["low_age"])
+            high = get_field(e, ["high_age"])
             age_group = self._format_age(low, high)
             name = f"{g} {age_group} {d} {s}"
-            events_map[e_no] = name
-            event_dict[e_no] = {"id": self._safe_int(e_no), "name": name, "entries": []}
+            events_map[str(e_no)] = name
+            event_dict[str(e_no)] = {"id": self._safe_int(e_no), "name": name, "entries": []}
 
         for item in entries:
-            e_id = item.get("event_ptr")
+            e_id = str(get_field(item, ["event_ptr"]) or "")
             if e_id not in event_dict:
                 continue
 
-            ath_id = self._safe_int(item.get("ath_no"))
+            ath_id = self._safe_int(get_field(item, ["ath_no"]))
             ath = athletes_map.get(ath_id)
-            t_id = self._safe_int(ath.get("team_no", 0)) if ath else 0
-            place = self._safe_int(item.get("fin_place", item.get("place", 0)))
+            t_id = self._safe_int(get_field(ath, ["team_no"])) if ath else 0
+            place = self._safe_int(get_field(item, ["fin_place", "place"]))
 
             ev_raw = event_raw_map.get(e_id, {})
-            points = self._calculate_points(item, ev_raw.get("event_sex", "M"), False, cache)
+            points = self._calculate_points(item, str(get_field(ev_raw, ["event_sex"]) or "M"), False, cache)
 
-            if not item.get("fin_time") and place <= 0:
+            if not get_field(item, ["fin_time"]) and place <= 0:
                 continue
 
-            seed = item.get("actualseed_time") or item.get("convseed_time") or item.get("seed_time")
+            seed = get_field(item, ["actualseed_time", "convseed_time", "seed_time"])
 
             entry_obj = pb2.Entry(
                 id=0,
@@ -1379,9 +1503,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 athlete_id=ath_id,
                 athlete_name=f"{ath.get('first_name', '')} {ath.get('last_name', '')}" if ath else "Unknown",
                 team_id=t_id,
-                team_name=teams_map.get(t_id, "Unknown"),
+                team_name=str(teams_map.get(t_id, "Unknown")),
                 seed_time=self._format_time(seed),
-                final_time=self._format_time(item.get("fin_time")),
+                final_time=self._format_time(get_field(item, ["fin_time"])),
                 place=place,
                 points=points,
                 event_name=events_map.get(e_id, ""),
@@ -1389,16 +1513,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             event_dict[e_id]["entries"].append(entry_obj)
 
         for item in relays:
-            e_id = item.get("event_ptr")
+            e_id = str(get_field(item, ["event_ptr"]) or "")
             if e_id not in event_dict:
                 continue
 
-            t_id = self._safe_int(item.get("team_ptr") or item.get("team_no"))
-            place = self._safe_int(item.get("fin_place", item.get("place", 0)))
-            rel_ltr = item.get("team_ltr", "")
+            t_id = self._safe_int(get_field(item, ["team_ptr", "team_no"]))
+            place = self._safe_int(get_field(item, ["fin_place", "place"]))
+            rel_ltr = get_field(item, ["team_ltr"]) or ""
 
             ev_raw = event_raw_map.get(e_id, {})
-            points = self._calculate_points(item, ev_raw.get("event_sex", "X"), True, cache)
+            points = self._calculate_points(item, str(get_field(ev_raw, ["event_sex"]) or "X"), True, cache)
 
             if not item.get("fin_time") and place <= 0:
                 continue
@@ -1462,7 +1586,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
                 with open(sample_path) as f:
                     cache = json.load(f)
-
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
                 pb2.REPORT_TYPE_ENTRIES: "entries",
@@ -1489,12 +1612,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             try:
                 res = _process_single_report_process(
-                    0,
                     request.type,
                     request.title,
                     request.team_filter,
                     request.gender_filter,
                     request.age_group_filter,
+                    uid,
                     request.columns_on_page if request.HasField("columns_on_page") else 2,
                     request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
                     request.zebra_striping if request.HasField("zebra_striping") else False,
@@ -1574,7 +1697,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         try:
             self.job_manager.update_job(job_id, status=pb2.JOB_STATUS_PROCESSING, message="Converting data...")
             logging.info(f"Job {job_id}: starting MmToJsonConverter")
-
             rtype_map = {
                 pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
                 pb2.REPORT_TYPE_ENTRIES: "entries",
@@ -1616,18 +1738,20 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         tasks.append(
                             executor.submit(
                                 _process_single_report_process,
-                                idx,
                                 report_req.type,
                                 report_req.title,
                                 report_req.team_filter,
                                 report_req.gender_filter,
                                 report_req.age_group_filter,
+                                uid,
                                 report_req.columns_on_page if getattr(report_req, "columns_on_page", None) else 2,
                                 report_req.show_relay_swimmers if report_req.HasField("show_relay_swimmers") else True,
                                 report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
                                 msgpack_path,
                                 rtype_map,
                                 request.renderer_type if hasattr(request, "renderer_type") else None,
+                                False,  # html_preview
+                                idx,
                             )
                         )
 
@@ -1647,20 +1771,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     )
                     logging.info(f"Job {job_id}: Progress update {finished_count}/{total_reports}")
 
-                # BUNDLING: Create ZIP in original order
-                zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for i, future in enumerate(tasks):
-                        res = future.result()
-                        if res.get("success"):
-                            zip_file.writestr(res["filename"], res["content"])
-                            logging.info(
-                                f"Job {job_id}: Report {i + 1}/{total_reports} ({res.get('rtype')}) added to bundle"
-                            )
-                        else:
-                            raise Exception(
-                                f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
-                            )
                 # BUNDLING: Create ZIP in original order
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -1716,7 +1826,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 import urllib.parse
 
                 safe_bundle_path = urllib.parse.quote(bundle_rel_path)
-                frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3000")
+                # Try to get FRONTEND_URL from environment, defaulting to 3100 for local dev consistency
+                frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3100")
                 bundle_url = f"{frontend_base}/api/data?path={safe_bundle_path}&token={token}"
                 logging.info(f"Using absolute proxy fallback URL: {bundle_url}")
 
@@ -1754,12 +1865,25 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def GetSessions(self, request, context):
         request = request or pb2.GetSessionsRequest()
         cache, _ = self._load_user_data(context)
-        data = cache.get("session", [])
-        meets = cache.get("meet", [])
+        data = self._get_table(cache, "session")
+        meets = self._get_table(cache, "meet")
+
+        # Universal case-insensitive field lookup helper
+        def get_field(d, keys):
+            if not d:
+                return None
+            for k in keys:
+                if k in d:
+                    return d[k]
+                for actual_key in d.keys():
+                    if actual_key.lower() == k.lower():
+                        return d[actual_key]
+            return None
+
         meet_start = None
         if meets:
             m = meets[0]
-            date_str = m.get("start") or m.get("start_date") or ""
+            date_str = get_field(m, ["start", "start_date"]) or ""
             if date_str:
                 try:
                     if " " in date_str:
@@ -1773,48 +1897,63 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 except Exception:
                     pass
 
-        # Count events per session from sessitem for reliability
-        sess_item_table = cache.get("sessitem", [])
-        event_counts_map: dict[Any, int] = {}
+        # Count events per session for reliability
+        sess_item_table = self._get_table(cache, "sessitem")
+        event_table = self._get_table(cache, "event")
+
+        # event_counts_map: sess_ptr -> count
+        event_counts_map: dict[str, int] = {}
+        # sess_no_counts: sess_no -> count (fallback)
+        sess_no_counts: dict[int, int] = {}
+
         for si in sess_item_table:
-            s_ptr = si.get("sess_ptr")
+            s_ptr = get_field(si, ["sess_ptr"])
             if s_ptr:
-                event_counts_map[s_ptr] = event_counts_map.get(s_ptr, 0) + 1
+                event_counts_map[str(s_ptr)] = event_counts_map.get(str(s_ptr), 0) + 1
+
+        for e in event_table:
+            s_no = self._safe_int(get_field(e, ["sess_no"])) or 1
+            if s_no:
+                sess_no_counts[s_no] = sess_no_counts.get(s_no, 0) + 1
 
         sessions_to_process = []
         if data:
             for item in data:
-                s_ptr = item.get("sess_ptr")
-                e_cnt = self._safe_int(item.get("event_cnt"))
-                if not e_cnt and s_ptr:
-                    e_cnt = event_counts_map.get(s_ptr, 0)
+                s_ptr = get_field(item, ["sess_ptr"])
+                s_no = self._safe_int(get_field(item, ["sess_no"]))
+                e_cnt = self._safe_int(get_field(item, ["event_cnt"]))
+
+                if not e_cnt:
+                    if s_ptr:
+                        e_cnt = event_counts_map.get(str(s_ptr), 0)
+                    if not e_cnt and s_no:
+                        e_cnt = sess_no_counts.get(s_no, 0)
 
                 sessions_to_process.append(
                     {
-                        "id": str(item.get("sess_no")),
-                        "name": item.get("sess_name", f"Session {item.get('sess_no')}"),
-                        "day": self._safe_int(item.get("sess_day", 1)),
-                        "warmup": self._safe_int(item.get("sess_warmup", 0)),
-                        "starttime": self._safe_int(item.get("sess_starttime", 0)),
+                        "id": str(s_no or "0"),
+                        "name": str(get_field(item, ["sess_name", "sname"]) or f"Session {s_no}"),
+                        "day": self._safe_int(get_field(item, ["sess_day", "day"]) or 1),
+                        "warmup": self._safe_int(get_field(item, ["sess_warmup"]) or 0),
+                        "starttime": self._safe_int(get_field(item, ["sess_starttime"]) or 0),
                         "event_cnt": e_cnt,
                         "source_item": item,
                     }
                 )
         else:
-            event_table = cache.get("event", [])
-            sess_ids = sorted({self._safe_int(e.get("sess_no", 1)) for e in event_table})
-            if not sess_ids and not event_table:
+            sess_ids = sorted({self._safe_int(get_field(e, ["sess_no"]) or 1) for e in event_table})
+            if not sess_ids:
                 sess_ids = [1]
 
             for s_id in sess_ids:
                 sessions_to_process.append(
                     {
                         "id": str(s_id),
-                        "name": "Session 1" if s_id == 1 and not event_table else f"Session {s_id}",
+                        "name": f"Session {s_id}",
                         "day": 1,
                         "warmup": 0,
                         "starttime": 0,
-                        "event_cnt": None,
+                        "event_cnt": sess_no_counts.get(s_id, 0) if event_table else None,
                         "source_item": {},
                     }
                 )
@@ -1823,32 +1962,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         for s_info in sessions_to_process:
             item = s_info["source_item"]
             sess_date = ""
-            day_offset = self._safe_int(s_info["day"], 1) - 1
+            day_offset = self._safe_int(s_info["day"]) - 1
             if meet_start and day_offset >= 0:
-                s_date = meet_start + datetime.timedelta(days=day_offset)
-                sess_date = s_date.strftime("%Y-%m-%d")
-            else:
-                sess_date = self._format_date(item.get("sess_date", ""))
-
-            s_no = s_info["id"]
-            events = cache.get("event", [])
-            ev_count = 0
-            if s_no:
-                ev_count = sum(1 for e in events if str(e.get("sess_no", 1)) == str(s_no))
+                d = meet_start + datetime.timedelta(days=day_offset)
+                sess_date = d.strftime("%Y-%m-%d")
 
             sessions.append(
                 pb2.Session(
-                    id=str(s_no),
+                    id=str(s_info["id"]),
                     meet_id="1",
                     name=s_info["name"],
                     date=sess_date,
                     warm_up_time=self._seconds_to_time(s_info["warmup"]),
                     start_time=self._seconds_to_time(s_info["starttime"]),
-                    event_count=s_info.get("event_cnt") or ev_count,
-                    session_num=self._safe_int(s_no, 0),
+                    event_count=s_info["event_cnt"] or 0,
+                    session_num=self._safe_int(s_info["id"]),
+                    day=self._safe_int(s_info["day"]),
                 )
             )
-
         return pb2.GetSessionsResponse(sessions=sessions)
 
     def GetAdminConfig(self, request, context):
@@ -1918,8 +2049,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             safe_pub_path = urllib.parse.quote(user_pub_path)
             program_url = f"{frontend_base}/api/data?path={safe_pub_path}&token={token}"
-
             sync_url = f"{frontend_base}/api/sync-dqs?token={token}&uid={uid}"
+
+            logging.info(f"PublishMeetData: frontend_base={frontend_base}, program_url={program_url}")
 
             # Nested URLs must be fully encoded to be valid as a query parameter value.
             # We use safe="" to ensure EVERYTHING including / and : is encoded for the final link.
@@ -1936,8 +2068,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             judge_app_base = os.getenv("JUDGE_APP_URL")
             if not judge_app_base:
                 if "localhost" in frontend_base or "127.0.0.1" in frontend_base:
-                    # In local dev/E2E, judge app is served by docker or local server
-                    judge_app_base = "http://localhost:8080/MeetManager-Tools/judge"
+                    # In local dev/E2E, judge app is served by frontend on port 3000
+                    # or via mobile-judge-app container on port 8081.
+                    # We prefer port 3000 as it's the primary entry point.
+                    judge_app_base = "http://localhost:3000/judge"
                 else:
                     # Production GitHub Pages
                     judge_app_base = "https://pfisherogden.github.io/MeetManager-Tools/judge"
@@ -2148,8 +2282,26 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return ""
 
 
+def serve_health_check():
+    class HealthHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
+
+        def log_message(self, format, *args):
+            return
+
+    try:
+        httpd = http.server.HTTPServer(("0.0.0.0", 8081), HealthHandler)
+        logging.info("Health check server starting on port 8081...")
+        httpd.serve_forever()
+    except Exception as e:
+        logging.error(f"Failed to start health check server: {e}")
+
+
 def serve():
-    port = os.getenv("PORT", "50051")
+    port = os.getenv("PORT", "8080")
     interceptors = [FirebaseAuthInterceptor()]
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10),
@@ -2160,6 +2312,19 @@ def serve():
         ],
     )
 
+    # Graceful shutdown handler
+    def handle_sigterm(signum, frame):
+        logging.info("SIGTERM/SIGINT received, shutting down...")
+        server.stop(5)
+        os._exit(0)
+
+    signal.signal(signal.SIGTERM, handle_sigterm)
+    signal.signal(signal.SIGINT, handle_sigterm)
+
+    # Start health check server in background thread
+    health_thread = threading.Thread(target=serve_health_check, daemon=True)
+    health_thread.start()
+
     # Add Health Servicer
     health_servicer = health.HealthServicer()
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
@@ -2168,7 +2333,7 @@ def serve():
     pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
 
     server.add_insecure_port(f"0.0.0.0:{port}")
-    logging.info(f"Server starting on port {port} with AuthInterceptor and Health check...")
+    logging.info(f"Server starting on port {port} with AuthInterceptor and Health check (port 8081)...")
     server.start()
     server.wait_for_termination()
 

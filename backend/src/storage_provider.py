@@ -100,10 +100,12 @@ class LocalStorageProvider(StorageProvider):
     def get_url(self, remote_path: str) -> str:
         # Local URLs point to the frontend's dynamic data endpoint
         # Use environment variables to avoid collisions
-        host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
-        port = os.getenv("FRONTEND_PORT", "3000")
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
         token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
-        return f"http://{host}:{port}/api/data?path={remote_path}&token={token}"
+        import urllib.parse
+
+        safe_path = urllib.parse.quote(remote_path)
+        return f"{frontend_url}/api/data?path={safe_path}&token={token}"
 
 
 class GCSStorageProvider(StorageProvider):

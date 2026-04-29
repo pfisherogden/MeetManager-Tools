@@ -58,6 +58,13 @@ export const loadFromJSON = (programData: {
 	swimmers: Swimmer[];
 }) => {
 	if (Platform.OS === "web") {
+		console.log("Web Mock: loadFromJSON called with:", {
+			hasData: !!programData,
+			keys: programData ? Object.keys(programData) : [],
+			eventCount: programData?.events?.length || 0,
+			heatCount: programData?.heats?.length || 0,
+			swimmerCount: programData?.swimmers?.length || 0
+		});
 		resetDatabase();
 		if (programData.events) mockEvents = programData.events;
 		if (programData.heats) mockHeats = programData.heats;

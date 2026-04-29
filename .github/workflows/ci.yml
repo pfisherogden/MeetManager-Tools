@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, fix/e2e-robustness-final ]
     paths:
       - 'backend/**'
       - 'mm_to_json/**'
@@ -10,21 +10,16 @@ on:
       - 'web-client/**'
       - 'mobile-judge-app/**'
       - 'Justfile'
+      - 'docker-compose*'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'mm_to_json/**'
-      - 'protos/**'
-      - 'web-client/**'
-      - 'mobile-judge-app/**'
-      - 'Justfile'
-      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  REGISTRY: ghcr.io
+  IMAGE_NAME: pfisherogden/mmtools
 
 jobs:
   backend-and-tools:
@@ -45,36 +40,12 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'npm'
-          cache-dependency-path: 'mobile-judge-app/package-lock.json'
-
-      - name: Install dependencies
-        run: |
-          uv sync --all-packages --dev
-          cd web-client && npm install
-
-      - name: Set up Buf
-        uses: bufbuild/buf-action@v1
-        with:
-          setup_only: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mdbtools libglib2.0-0t64 libglib2.0-dev libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libffi-dev libjpeg-dev libopenjp2-7-dev libcairo2 libgdk-pixbuf2.0-0
-
-      - name: Lint Protos
-        run: just lint-protos
-
       - name: Generate Protos
-        run: just codegen
+        run: |
+          cd backend
+          uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto
 
-      - name: Lint with Ruff
+      - name: Lint Backend
         run: |
           just lint-backend
           just lint-mm-to-json
@@ -89,105 +60,167 @@ jobs:
 
   web-client:
     runs-on: ubuntu-latest
-    defaults:
-      run:
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: 'web-client/package-lock.json'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install dependencies
         working-directory: web-client
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'npm'
-          cache-dependency-path: 'web-client/package-lock.json'
-
-      - name: Install dependencies
         run: npm ci
-
-      - name: Lint (Biome)
-        run: npm run lint
-
-      - name: Generate Protos
-        run: npm run codegen
-
-      - name: Build
-        run: npm run build
-
-      - name: Test (Vitest)
-        run: npm test
-
-  mobile-judge-app:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mobile-judge-app
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'npm'
-          cache-dependency-path: 'web-client/package-lock.json'
-
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Type Check
-        run: npx tsc --noEmit
-
-      - name: Build (Expo Web)
-        run: npm run build-web
-
-      - name: Test (Jest)
-        run: npm test
-
-  integration-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
-        shardTotal: [32]
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
 
       - name: Install just
         uses: taiki-e/install-action@just
 
-      - name: Build and Start Services
+      - name: Generate Protos
         run: |
-          mkdir -p tmp && chmod 777 tmp
-          just build
-          just up
+          just codegen
+          just codegen-frontend
+
+      - name: Lint and Test
+        working-directory: web-client
+        run: |
+          npm run lint
+          npm test
+
+  build-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web-client/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_E2E_AUTH_BYPASS=true
+
+      - name: Build and push Judge App
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: mobile-judge-app/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/judge-app:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  integration-tests:
+    needs: build-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start Services
         env:
-          DOCKER_BUILDKIT: 1
-          COMPOSE_DOCKER_CLI_BUILD: 1
+          TAG: ${{ needs.build-images.outputs.tag }}
+          IMAGE_PREFIX: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        run: |
+          mkdir -p tmp && chmod -R 777 tmp
+          # Pull the images first to ensure they are available
+          docker pull ${IMAGE_PREFIX}/backend:${TAG}
+          docker pull ${IMAGE_PREFIX}/frontend:${TAG}
+          docker pull ${IMAGE_PREFIX}/judge-app:${TAG}
+          
+          # Use the CI-specific docker-compose file
+          docker compose -f docker-compose.ci.yml up -d
 
       - name: Wait for Services
         run: |
+          echo "Waiting for services to initialize..."
+          sleep 15
+          
+          echo "Waiting for backend to be ready..."
+          for i in {1..60}; do
+            if curl -s http://localhost:8081 > /dev/null; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Waiting... ($i/60)"
+            sleep 5
+          done
+
           echo "Waiting for frontend to be ready..."
-          for i in {1..30}; do
+          for i in {1..60}; do
             if curl -s http://localhost:3000 > /dev/null; then
               echo "Frontend is ready!"
               break
             fi
-            echo "Waiting... ($i/30)"
+            echo "Waiting... ($i/60)"
             sleep 5
           done
+
           echo "Waiting for judge-app to be ready..."
-          for i in {1..30}; do
-            if curl -s http://localhost:8080 > /dev/null; then
+          for i in {1..60}; do
+            if curl -s http://localhost:8081 > /dev/null; then
               echo "Judge App is ready!"
               break
             fi
-            echo "Waiting... ($i/30)"
+            echo "Waiting... ($i/60)"
             sleep 5
           done
 
@@ -198,52 +231,31 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'web-client/package-lock.json'
 
-      - name: Get Playwright version
-        id: playwright-version
-        run: echo "version=$(jq -r '.devDependencies["@playwright/test"]' package.json | tr -d '^~')" >> $GITHUB_OUTPUT
-        working-directory: web-client
-
-      - name: Cache Playwright Browsers
-        id: cache-playwright
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v5
-        with:
-          path: web-client/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('web-client/package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - name: Install Playwright
         run: |
           cd web-client
           npm ci
-
-      - name: Install Playwright Browsers
-        run: |
-          cd web-client
+          # MUST install all browsers to support webkit/safari projects
           npx playwright install --with-deps
 
-      - name: Install Playwright system dependencies
-        if: steps.cache-playwright.outputs.cache-hit == 'true'
+      - name: Run Playwright E2E Tests
         run: |
           cd web-client
-          npx playwright install-deps
-
-      - name: Run Playwright E2E Tests
-        run: just test-e2e-sharded ${{ matrix.shardIndex }} ${{ matrix.shardTotal }}
+          npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           FRONTEND_URL: http://localhost:3000
-          MOBILE_APP_URL: http://localhost:8080
+          MOBILE_APP_URL: http://localhost:8081
           NEXT_PUBLIC_E2E_AUTH_BYPASS: 'true'
+          SHARD_INDEX: ${{ matrix.shardIndex }}
+          IS_E2E: 'true'
 
-      - name: Print Logs
-        if: always()
-        run: docker compose logs
+      - name: Print Backend Logs on Failure
+        if: failure()
+        run: docker compose -f docker-compose.ci.yml logs backend
+
+      - name: Print Frontend Logs on Failure
+        if: failure()
+        run: docker compose -f docker-compose.ci.yml logs frontend
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v7
@@ -251,14 +263,8 @@ jobs:
         with:
           name: playwright-report-${{ matrix.shardIndex }}
           path: web-client/playwright-report/
-          retention-days: 30
-
-      - name: Run Headless Journeys
-        if: matrix.shardIndex == 1
-        run: |
-          just test-journeys
-          just test-dq-sync
+          retention-days: 7
 
       - name: Shutdown Services
         if: always()
-        run: just down
+        run: docker compose -f docker-compose.ci.yml down

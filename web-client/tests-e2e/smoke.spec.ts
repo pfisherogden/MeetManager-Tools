@@ -1,26 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { getE2ETestContext } from "./utils";
 
 test.describe("Dashboard Smoke Test", () => {
-	test.beforeEach(async ({ page, context }, testInfo) => {
-		// Set a unique user ID for this test to avoid collisions in the backend
-		const userId = `e2e-smoke-${testInfo.workerIndex}-${testInfo.project.name.replace(/\s+/g, "-")}`;
-
-		// Set header for all requests from this page
-		await page.setExtraHTTPHeaders({
-			"x-user-id": userId,
-		});
-
-		// Set cookie for additional resilience
-		await context.addCookies([
-			{
-				name: "x-user-id",
-				value: userId,
-				domain: "localhost",
-				path: "/",
-			},
-		]);
-
+	test.beforeEach(async ({ page }, testInfo) => {
+		const { userId } = getE2ETestContext(testInfo, page);
 		console.log(`Using isolated User ID: ${userId}`);
+
+		// 1. Hit the dedicated mock login endpoint to synthesize session cookies
+		const response = await page.request.get(`/api/test/auth?uid=${userId}`);
+		if (!response.ok()) {
+			throw new Error(
+				`Failed to authenticate test user ${userId}: ${response.status()}`,
+			);
+		}
 	});
 
 	test("should load the dashboard with stats", async ({ page }) => {

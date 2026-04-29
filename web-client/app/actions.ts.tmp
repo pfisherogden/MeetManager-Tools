@@ -1,0 +1,19 @@
+export async function getRelays(eventId?: string) {
+	const metadata = await getAuthMetadata();
+	try {
+		const response = await client.getRelays({ eventId }, { metadata });
+		return {
+			relays: response.relays.map((r) => ({
+				id: r.id,
+				eventNo: r.eventId,
+				teamId: r.teamId,
+				relayLetter: r.relayLetter,
+				swimmers: [r.leg1Name, r.leg2Name, r.leg3Name, r.leg4Name].filter(
+					(n) => n && n.length > 0,
+				),
+			})),
+		};
+	} catch (_err) {
+		return { relays: [] };
+	}
+}

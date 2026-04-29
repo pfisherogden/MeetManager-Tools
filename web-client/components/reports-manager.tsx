@@ -120,7 +120,7 @@ interface CustomPackItem {
 }
 
 interface ReportsManagerProps {
-	initialTeams?: { id: number; name: string }[];
+	initialTeams?: { id: string; name: string }[];
 }
 
 export function ReportsManager({
@@ -148,7 +148,7 @@ export function ReportsManager({
 
 	// Improved Team Filter State
 	const [initialTeams, setTeams] =
-		useState<{ id: number; name: string }[]>(propTeams);
+		useState<{ id: string; name: string }[]>(propTeams);
 	const [teamFilterOpen, setTeamFilterOpen] = useState(false);
 	const [presetTeamOpen, setPresetTeamOpen] = useState(false);
 
@@ -157,7 +157,9 @@ export function ReportsManager({
 			setTeams(propTeams);
 		} else {
 			getTeams().then((res) => {
-				if (res.teams) setTeams(res.teams);
+				if (res.teams) {
+					setTeams(res.teams.map((t) => ({ id: String(t.id), name: t.name })));
+				}
 			});
 		}
 	}, [propTeams]);
@@ -270,18 +272,16 @@ export function ReportsManager({
 		}
 
 		try {
-			const result = await generateReport(
-				selectedType,
-				reportTitle,
-				teamFilter,
-				undefined, // genderFilter
-				undefined, // ageGroupFilter
-				2, // columnsOnPage
-				true, // showRelaySwimmers
-				zebraStriping,
-				rendererType,
-				htmlPreviewMode,
-			);
+			const result = await generateReport({
+				type: selectedType,
+				title: reportTitle,
+				teamFilter: teamFilter,
+				columnsOnPage: 2,
+				showRelaySwimmers: true,
+				zebraStriping: zebraStriping,
+				rendererType: rendererType,
+				htmlPreview: htmlPreviewMode,
+			});
 
 			if (result.success) {
 				if ((selectedType === 5 || htmlPreviewMode) && result.htmlContent) {
@@ -473,6 +473,7 @@ export function ReportsManager({
 										<Button
 											variant="outline"
 											size="sm"
+											data-testid="preset-team-filter-trigger"
 											className="h-8 min-w-[120px] justify-between"
 										>
 											{presetTeamFilter}
@@ -568,7 +569,15 @@ export function ReportsManager({
 				</Card>
 
 				{selectedType !== null && (
-					<Card data-testid="report-configuration-card" className="shadow-lg">
+					<Card
+						data-testid="report-configuration-card"
+						data-report-status={
+							isGenerating ? "generating" : isBundling ? "bundling" : "idle"
+						}
+						data-job-progress={jobProgress}
+						data-job-message={jobMessage}
+						className="shadow-lg"
+					>
 						<CardHeader>
 							<div className="flex items-center gap-2">
 								<Settings2 className="h-5 w-5 text-primary" />
@@ -602,6 +611,7 @@ export function ReportsManager({
 											variant="outline"
 											className="w-full justify-between"
 											role="combobox"
+											data-testid="team-filter-trigger"
 										>
 											{teamFilter || "All Teams"}
 											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -774,7 +784,13 @@ export function ReportsManager({
 			</div>
 
 			<div id="report-builder" className="space-y-4">
-				<Card className="shadow-lg border-primary/20">
+				<Card
+					className="shadow-lg border-primary/20"
+					data-testid="report-builder-card"
+					data-report-status={isBundling ? "bundling" : "idle"}
+					data-job-progress={jobProgress}
+					data-job-message={jobMessage}
+				>
 					<CardHeader className="bg-primary/5">
 						<div className="flex items-center justify-between">
 							<div className="flex items-center gap-2">

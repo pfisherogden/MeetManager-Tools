@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 		const isZip = filename.endsWith(".zip");
 
 		return withCors(
-			new NextResponse(response.content, {
+			new NextResponse(response.content as any, {
 				headers: {
 					"Content-Type":
 						response.mimeType ||

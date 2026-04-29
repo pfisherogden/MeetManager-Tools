@@ -8,11 +8,20 @@ vi.mock("@/app/actions", () => ({
 	generateReportBundle: vi.fn(),
 	getJobStatus: vi.fn(),
 	getTeams: vi.fn(() => Promise.resolve({ teams: [] })),
+	getDashboardStats: vi.fn(() =>
+		Promise.resolve({
+			totalAthletes: 10,
+			totalTeams: 2,
+			totalEvents: 5,
+			totalResults: 0,
+		}),
+	),
+	getDisqualifications: vi.fn(() => Promise.resolve({ disqualifications: [] })),
 }));
 
 const mockTeams = [
-	{ id: "t1", name: "Sharks", code: "SHK", athleteCount: 45 },
-	{ id: "t2", name: "Dolphins", code: "DOL", athleteCount: 38 },
+	{ id: "1", name: "Sharks" },
+	{ id: "2", name: "Dolphins" },
 ];
 
 describe("ReportsManager", () => {

@@ -33,7 +33,7 @@ export interface SwimEvent {
 	sessionId: string;
 	eventNumber: number;
 	distance: number;
-	stroke: string; // Relaxed from specific union to allow server string
+	stroke: string;
 	gender: string;
 	ageGroup: string;
 	entryCount: number;
@@ -55,9 +55,9 @@ export interface Entry {
 	eventId: string;
 	athleteId: string;
 	athleteName: string;
-	teamId: string; // Added
+	teamId?: string;
 	teamName: string;
-	teamColor?: string; // Added
+	teamColor?: string;
 	seedTime: string;
 	finalTime: string | null;
 	place: number | null;
@@ -72,7 +72,7 @@ export interface Relay {
 	eventId: string;
 	teamId: string;
 	teamName: string;
-	teamColor?: string; // Added
+	teamColor?: string;
 	leg1: string;
 	leg2: string;
 	leg3: string;
@@ -100,5 +100,5 @@ export interface Score {
 	relayPoints: number;
 	totalPoints: number;
 	rank: number;
-	meetName: string;
+	meetName?: string;
 }

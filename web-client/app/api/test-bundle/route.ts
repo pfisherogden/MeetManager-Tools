@@ -22,8 +22,11 @@ export async function GET(_request: NextRequest) {
 				columnsOnPage: 2,
 				showRelaySwimmers: true,
 				zebraStriping: true,
+				rendererType: 0, // RENDERER_TYPE_UNSPECIFIED
+				htmlPreview: false,
 			})),
 			bundleName: "test_sample_bundle.zip",
+			rendererType: 0, // RENDERER_TYPE_UNSPECIFIED
 		});
 
 		if (!response.success) {

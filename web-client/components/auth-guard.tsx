@@ -10,11 +10,20 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 	const router = useRouter();
 	const pathname = usePathname();
 
+	const isAuthDisabled =
+		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
+		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
+
 	useEffect(() => {
+		if (isAuthDisabled) return;
 		if (!loading && !user && pathname !== "/login") {
 			router.push(`/login?returnUrl=${encodeURIComponent(pathname)}`);
 		}
-	}, [user, loading, router, pathname]);
+	}, [user, loading, router, pathname, isAuthDisabled]);
+
+	if (isAuthDisabled) {
+		return <>{children}</>;
+	}
 
 	if (loading) {
 		return (

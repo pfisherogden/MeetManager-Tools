@@ -2,16 +2,19 @@ import { getDashboardStats } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Dashboard } from "@/components/dashboard";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import type { DashboardStats } from "@/lib/proto/meetmanager/v1/meet_manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-	let stats: DashboardStats = {
+	let stats: any = {
 		meetCount: 0,
 		teamCount: 0,
 		athleteCount: 0,
 		eventCount: 0,
+		totalAthletes: 0,
+		totalTeams: 0,
+		totalEvents: 0,
+		totalResults: 0,
 	};
 
 	try {

@@ -6,14 +6,20 @@ const nextConfig = {
 	images: {
 		unoptimized: true,
 	},
-	output: "standalone",
+	outputFileTracingRoot: "../../",
 	experimental: {
 		serverActions: {
 			bodySizeLimit: "50mb",
 		},
 	},
+	generateBuildId: async () => {
+		return `build-${Date.now()}`;
+	},
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+	},
+	async rewrites() {
+		return [];
 	},
 };
 

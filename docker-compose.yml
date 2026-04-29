@@ -4,25 +4,18 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "${BACKEND_PORT:-8081}:8080"
+      - "8090:8080"
     volumes:
-      # - ./backend/data:/app/data # Removed to fix locking issues on macOS
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests
       - ./backend/tests/fixtures:/app/tests/fixtures
-      - ./tests/fixtures/anonymized_meets:/app/tests/fixtures/anonymized_meets
-      - ./protos:/app/protos
       - ./tmp:/app/tmp
-      # Anonymous volumes to keep high-churn files inside the VM (hole punching)
-      - /app/src/__pycache__
-      - /app/tests/__pycache__
-      - /app/.pytest_cache
-      - /app/.venv
-      - /app/src/mm_to_json/lib
+      - mmtools-data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - GRPC_AUTH_DISABLED=true
+      - LOG_LEVEL=DEBUG
       - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
 
   frontend:
@@ -31,13 +24,16 @@ services:
       dockerfile: web-client/Dockerfile
       args:
         - NEXT_PUBLIC_AUTH_DISABLED=true
+        - NEXT_PUBLIC_E2E_AUTH_BYPASS=true
+        - NEXT_PUBLIC_BACKEND_PORT=8090
         - NEXT_PUBLIC_BUILD_TIME=2026-03-15T00:00:00Z
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "3100:3000"
     volumes:
-      - ./tmp:/app/tmp
+      - mmtools-data:/app/data
     environment:
       - BACKEND_INTERNAL_HOST=backend:8080
+      - NEXT_PUBLIC_BACKEND_PORT=8090
       - NEXT_PUBLIC_AUTH_DISABLED=true
       - NEXT_PUBLIC_E2E_AUTH_BYPASS=true
       - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
@@ -46,9 +42,5 @@ services:
     depends_on:
       - backend
 
-  judge-app:
-    build:
-      context: mobile-judge-app
-      dockerfile: Dockerfile
-    ports:
-      - "${MOBILE_APP_PORT:-8080}:8080"
+volumes:
+  mmtools-data:

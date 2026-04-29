@@ -19,7 +19,9 @@ export default async function TeamPage({
 	let team: any = null;
 	try {
 		const response = await getTeam(teamId);
-		team = response.team;
+		if (response?.team) {
+			team = response.team;
+		}
 	} catch (e) {
 		console.error("Failed to load team", e);
 	}

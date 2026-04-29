@@ -127,7 +127,7 @@ const getOrderedDQCategories = (
 	return defaultOrdered;
 };
 
-const BUILD_TIME = "03/13/2026, 11:21:13 PM PT"; // Fixed build time
+const BUILD_TIME = "04/27/2026, 01:18:38 PM PT"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<
@@ -185,6 +185,8 @@ export default function App() {
 		updatePendingCount();
 		refreshEvents();
 	}, [updatePendingCount, refreshEvents]);
+
+	const isInitialized = useRef(false);
 
 	useEffect(() => {
 		const initializeApp = async () => {
@@ -246,8 +248,12 @@ export default function App() {
 					seedData();
 				}
 
-				refreshEvents();
-				updatePendingCount();
+				if (!isInitialized.current) {
+					refreshEvents();
+					updatePendingCount();
+					isInitialized.current = true;
+				}
+				
 				console.log("APP: Initialization complete, setting isLoading=false");
 				setIsLoading(false);
 			} catch (err: any) {
@@ -678,9 +684,10 @@ export default function App() {
 													? membersList[leg - 1]
 													: `Leg ${leg}`;
 												return (
-
 													<TouchableOpacity
 														key={leg}
+														testID="add-dq-button"
+														{...(Platform.OS === "web" ? { "data-testid": "add-dq-button" } : {})}
 														style={styles.legRow}
 														onPress={() => handleDQ(item, leg)}
 													>
@@ -716,6 +723,8 @@ export default function App() {
 					// Render standard swimmer view
 					return (
 						<TouchableOpacity
+							testID="add-dq-button"
+							{...(Platform.OS === "web" ? { "data-testid": "add-dq-button" } : {})}
 							style={[styles.swimmerCard, item.empty && styles.emptyCard]}
 							onPress={() => handleDQ(item)}
 						>
@@ -944,7 +953,7 @@ export default function App() {
 
 			{!programMode && currentScreen === "judge" && renderJudgeView()}
 
-			<Modal visible={dqModalVisible} animationType="slide" transparent={true}>
+			<Modal visible={dqModalVisible} animationType={Platform.OS === "web" ? "none" : "slide"} transparent={true}>
 				<TouchableOpacity
 					style={styles.modalOverlay}
 					activeOpacity={1}
@@ -1082,7 +1091,7 @@ export default function App() {
 								multiline
 							/>
 						</View>
-						<ScrollView>
+						<ScrollView style={{ flex: 1 }}>
 							{orderedDQCategories.map((category) => (
 								<View key={category} style={styles.dqCategory}>
 									<Text style={styles.categoryTitle}>
@@ -1094,6 +1103,8 @@ export default function App() {
 											return (
 												<TouchableOpacity
 													key={item.code}
+													testID={`dq-code-${item.code}`}
+													{...(Platform.OS === "web" ? { "data-testid": `dq-code-${item.code}` } : {})}
 													style={[
 														styles.dqItem,
 														isSelected && styles.selectedDqItem,
@@ -1180,7 +1191,7 @@ export default function App() {
 											console.log("E2E: Closing offline modal via HTML button");
 											setOfflineModalVisible(false);
 										}}
-										data-testid="modal-close-button"
+										testID="modal-close-button"
 										style={{
 											padding: "10px 20px",
 											backgroundColor: COLORS.primary,
@@ -1610,14 +1621,18 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: "rgba(0,0,0,0.5)",
 		justifyContent: "center",
+		alignItems: "center",
 		padding: 20,
 	},
 	modalContainer: {
 		backgroundColor: COLORS.background,
+		maxWidth: 500,
 	},
 	modalPopup: {
 		borderRadius: 10,
-		maxHeight: "80%",
+		maxHeight: "90%",
+		width: "100%",
+		maxWidth: 500,
 	},
 	modalHeader: {
 		padding: 20,
