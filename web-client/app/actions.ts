@@ -23,6 +23,10 @@ async function getAuthMetadata() {
 
 	const metadata = new Metadata();
 	metadata.set("x-user-id", userId);
+
+	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+		metadata.set("authorization", "Bearer dev-token");
+	}
 	return metadata;
 }
 

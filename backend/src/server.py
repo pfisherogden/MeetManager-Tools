@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import datetime
+import http.server
 import io
 import json
 import logging
 import multiprocessing
 import os
+import signal
 import tempfile
 import threading
 import time
@@ -552,7 +554,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def UploadDataset(self, request_iterator, context):
         logging.debug("DEBUG: UploadDataset called")
         uid = self._check_auth(context)
-        filename = "uploaded.mdb"
+        filename = None
 
         # Temporary buffer to hold file content
         file_content = io.BytesIO()
@@ -560,7 +562,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             for request in request_iterator:
-                if request.HasField("filename"):
+                if request.HasField("filename") and request.filename:
                     filename = os.path.basename(request.filename)
                     ext = os.path.splitext(filename)[1].lower()
                     if ext not in [".mdb", ".json"]:
@@ -573,10 +575,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     file_content.write(request.chunk)
                     total_bytes += chunk_len
 
-            logging.info(f"UploadDataset: uid={uid}, received total {total_bytes} bytes for {filename}")
+            if not filename:
+                filename = "uploaded.mdb"
 
+            logging.info(f"UploadDataset: Final filename for {uid} is {filename}")
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
+            logging.info(f"UploadDataset: Targeting user_path={user_path} for {uid}")
+
             # For LocalStorageProvider, print absolute path for debugging
             if hasattr(self.storage, "base_dir"):
                 abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
@@ -1087,10 +1093,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return pb2.SetActiveDatasetResponse()
 
         user_path = os.path.join("users", uid, filename)
-        if not self.storage.exists(user_path) and not (filename == SOURCE_FILE and self.storage.exists(SOURCE_FILE)):
+        exists = self.storage.exists(user_path)
+        logging.info(f"SetActiveDataset: uid={uid}, filename={filename}, user_path={user_path}, exists={exists}")
+
+        if not exists and not (filename == SOURCE_FILE and self.storage.exists(SOURCE_FILE)):
+            logging.warning(f"SetActiveDataset: File {filename} NOT FOUND in user directory for {uid}")
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"File {filename} not found.")
             return pb2.SetActiveDatasetResponse()
+
 
         with self._lock:
             logging.info(f"Switching user {uid} dataset to {filename}...")
@@ -1122,6 +1133,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 logging.info(f"SetActiveDataset: Extraction complete for {uid}/{filename}")
             except Exception as e:
                 logging.error(f"SetActiveDataset: Extraction failed for {uid}/{filename}: {e}")
+                # Reset config if extraction failed to prevent a broken active dataset
+                config["active_dataset"] = SOURCE_FILE
+                self._save_user_config(context, config)
+                context.abort(grpc.StatusCode.INTERNAL, f"Dataset extraction failed: {str(e)}")
 
         return pb2.SetActiveDatasetResponse()
 
@@ -2268,6 +2283,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return ""
 
 
+def serve_health_check():
+    class HealthHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
+
+        def log_message(self, format, *args):
+            return
+
+    try:
+        httpd = http.server.HTTPServer(("0.0.0.0", 8081), HealthHandler)
+        logging.info("Health check server starting on port 8081...")
+        httpd.serve_forever()
+    except Exception as e:
+        logging.error(f"Failed to start health check server: {e}")
+
+
 def serve():
     port = os.getenv("PORT", "8080")
     interceptors = [FirebaseAuthInterceptor()]
@@ -2280,6 +2313,19 @@ def serve():
         ],
     )
 
+    # Graceful shutdown handler
+    def handle_sigterm(signum, frame):
+        logging.info("SIGTERM/SIGINT received, shutting down...")
+        server.stop(5)
+        os._exit(0)
+
+    signal.signal(signal.SIGTERM, handle_sigterm)
+    signal.signal(signal.SIGINT, handle_sigterm)
+
+    # Start health check server in background thread
+    health_thread = threading.Thread(target=serve_health_check, daemon=True)
+    health_thread.start()
+
     # Add Health Servicer
     health_servicer = health.HealthServicer()
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
@@ -2288,7 +2334,7 @@ def serve():
     pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
 
     server.add_insecure_port(f"0.0.0.0:{port}")
-    logging.info(f"Server starting on port {port} with AuthInterceptor and Health check...")
+    logging.info(f"Server starting on port {port} with AuthInterceptor and Health check (port 8081)...")
     server.start()
     server.wait_for_termination()
 

@@ -26,6 +26,7 @@ export default ({ config }) => ({
 	web: {
 		favicon: "./assets/favicon.png",
 		bundler: "metro",
+		baseUrl: process.env.APP_BASE_URL || "",
 	},
 	experiments: {
 		baseUrl: process.env.APP_BASE_URL || "",
