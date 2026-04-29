@@ -10,15 +10,15 @@ COPY package.json package-lock.json* ./
 RUN npm install
 
 # Copy protos (needed for codegen)
-# The package.json script uses -I ../protos so it expects them one level up from web-client
+# Root context is project root, so protos is at ./protos
 COPY protos/ /app/protos/
 
-# Copy web-client and build
+# Setup web-client
 WORKDIR /app/web-client
 COPY web-client/package.json web-client/package-lock.json* ./
 RUN npm install
 
-# Copy source
+# Copy web-client source BEFORE build so codegen can run
 COPY web-client/ .
 
 # Build args
