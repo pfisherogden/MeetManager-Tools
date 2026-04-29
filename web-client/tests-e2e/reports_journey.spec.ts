@@ -40,9 +40,13 @@ test.describe("Reports Generation Journey", () => {
 		await robustClick(generateBtn);
 
 		// Assert the bundling state
-		await expect(builderCard).toHaveAttribute("data-report-status", "bundling", {
-			timeout: 30000,
-		});
+		await expect(builderCard).toHaveAttribute(
+			"data-report-status",
+			"bundling",
+			{
+				timeout: 30000,
+			},
+		);
 
 		// Wait for progress to start moving
 		await expect(async () => {

@@ -217,6 +217,7 @@ def _process_single_report_process(
         os.close(temp_fd)
 
         from mm_to_json.mm_to_json import MmToJsonConverter
+
         converter = MmToJsonConverter(table_data=cache_data)
         extractor = ReportDataExtractor(converter, full_data=full_data)
         renderer: Any

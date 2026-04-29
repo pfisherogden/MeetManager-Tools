@@ -1,10 +1,9 @@
-import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import client from "@/lib/mm-client";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
 	try {
 		console.log("TEST-BUNDLE: Starting generation with sample data...");
 

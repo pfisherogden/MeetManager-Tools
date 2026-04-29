@@ -13,7 +13,7 @@ const nextConfig = {
 		},
 	},
 	generateBuildId: async () => {
-		return `build-${new Date().getTime()}`;
+		return `build-${Date.now()}`;
 	},
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),

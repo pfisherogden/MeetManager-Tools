@@ -46,7 +46,9 @@ test.describe("Coach Persona Journey", () => {
 
 		// Select Blue Dolphins (which is in tiny_champs.json)
 		// Use a more resilient approach to click the option
-		const briarhillOption = page.getByRole("option", { name: /Blue Dolphins/i });
+		const briarhillOption = page.getByRole("option", {
+			name: /Blue Dolphins/i,
+		});
 		await expect(briarhillOption).toBeVisible({ timeout: 10000 });
 		await briarhillOption.click();
 

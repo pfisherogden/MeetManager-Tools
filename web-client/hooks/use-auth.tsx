@@ -44,34 +44,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	console.log(
 		`[AuthProvider] Init: isAuthDisabled=${isAuthDisabled}, bypass=${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`,
 	);
-useEffect(() => {
-	const token = Cookies.get("googleAccessToken");
-	if (token) setGoogleAccessToken(token);
+	useEffect(() => {
+		const token = Cookies.get("googleAccessToken");
+		if (token) setGoogleAccessToken(token);
 
-	if (isAuthDisabled) {
-		// Mock local user for development or E2E testing
-		// Prioritize the UID from cookies if set by the E2E test for isolation
-		const storedUid = Cookies.get("x-user-id");
-		const mockUid = storedUid || "e2e-default-user";
+		if (isAuthDisabled) {
+			// Mock local user for development or E2E testing
+			// Prioritize the UID from cookies if set by the E2E test for isolation
+			const storedUid = Cookies.get("x-user-id");
+			const mockUid = storedUid || "e2e-default-user";
 
-		console.log(`[AuthProvider] E2E Bypass Active. UID: ${mockUid}`);
+			console.log(`[AuthProvider] E2E Bypass Active. UID: ${mockUid}`);
 
-		const mockUser = {
-			uid: mockUid,
-			email: "e2e-test@example.com",
-			displayName: "E2E Test User",
-		} as User;
+			const mockUser = {
+				uid: mockUid,
+				email: "e2e-test@example.com",
+				displayName: "E2E Test User",
+			} as User;
 
-		setUser(mockUser);
-		setLoading(false);
+			setUser(mockUser);
+			setLoading(false);
 
-		// Ensure cookies are set for backend consistency if they were missing
-		if (!storedUid) {
-			Cookies.set("x-user-id", mockUid, { path: "/", sameSite: "strict" });
-			Cookies.set("idToken", "dev-token", { path: "/", sameSite: "strict" });
+			// Ensure cookies are set for backend consistency if they were missing
+			if (!storedUid) {
+				Cookies.set("x-user-id", mockUid, { path: "/", sameSite: "strict" });
+				Cookies.set("idToken", "dev-token", { path: "/", sameSite: "strict" });
+			}
+			return;
 		}
-		return;
-	}
 		const unsubscribe = onAuthStateChanged(auth, async (user) => {
 			setUser(user);
 			if (user) {
