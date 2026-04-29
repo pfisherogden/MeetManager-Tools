@@ -196,7 +196,7 @@ jobs:
           
           echo "Waiting for backend to be ready..."
           for i in {1..60}; do
-            if curl -s http://localhost:8080 > /dev/null; then
+            if curl -s http://localhost:8081 > /dev/null; then
               echo "Backend is ready!"
               break
             fi
@@ -249,22 +249,19 @@ jobs:
           SHARD_INDEX: ${{ matrix.shardIndex }}
           IS_E2E: 'true'
 
-      - name: Print Logs
-        if: always()
-        run: docker compose -f docker-compose.ci.yml logs
+      - name: Print Backend Logs on Failure
+        if: failure()
+        run: docker compose -f docker-compose.ci.yml logs backend
+
+      - name: Print Frontend Logs on Failure
+        if: failure()
+        run: docker compose -f docker-compose.ci.yml logs frontend
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report-${{ matrix.shardIndex }}
-          path: web-client/playwright-report/
-          retention-days: 7
-
-      - name: Shutdown Services
-        if: always()
-        run: docker compose -f docker-compose.ci.yml down
-matrix.shardIndex }}
           path: web-client/playwright-report/
           retention-days: 7
 
