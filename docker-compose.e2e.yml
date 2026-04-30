@@ -13,6 +13,8 @@ services:
       - ./tmp:/app/tmp
     command: ["sh", "-c", "echo 'Waiting for backend:8080 (TCP)...' && until nc -z backend 8080; do sleep 2; done && echo 'Backend is UP, starting Next.js...' && npm start"]
     shm_size: '2gb'
+    environment:
+      - WAIT_FOR_BACKEND=true
   judge-app:
     image: nginx:stable-alpine
     ports:

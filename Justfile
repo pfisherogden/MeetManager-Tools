@@ -140,7 +140,7 @@ test-e2e:
     docker-compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --remove-orphans
     @echo "Waiting for services to be healthy..."
     sleep 20
-    @cd web-client && FRONTEND_URL=http://localhost:$(docker compose port frontend 3000 | cut -d: -f2) npx playwright test
+    @cd web-client && FRONTEND_URL=http://localhost:$(docker compose port frontend 3000 | cut -d: -f2) WAIT_FOR_BACKEND=true npx playwright test
 
 down-e2e:
     @echo "Tearing down E2E services..."

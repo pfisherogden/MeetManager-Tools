@@ -41,4 +41,4 @@ RUN npm run codegen && npm run build
 
 EXPOSE 3000
 ENV PORT=3000
-CMD ["sh", "-c", "echo 'Waiting for backend:8080...' && until nc -z backend 8080; do sleep 2; done && npm start"]
+CMD ["sh", "-c", "if [ \"$WAIT_FOR_BACKEND\" = \"true\" ]; then echo 'Waiting for backend:8080...'; until nc -z backend 8080; do sleep 2; done; fi && npm start"]

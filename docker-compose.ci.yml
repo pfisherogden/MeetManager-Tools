@@ -24,6 +24,7 @@ services:
       - BACKEND_INTERNAL_HOST=backend:8080
       - NEXT_PUBLIC_E2E_AUTH_BYPASS=true
       - DATA_ACCESS_TOKEN=mmtools-default-secret-2024
+      - WAIT_FOR_BACKEND=true
 
   judge-app:
     image: ${IMAGE_PREFIX}/judge-app:${TAG}
