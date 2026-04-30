@@ -42,7 +42,7 @@ def inspect_data_step_by_step(table_data):
             rows = table_data.get(tname.upper(), [])
         print(f"Processing table... {len(rows)} rows found.")
         if rows:
-            # Redacted keys for security
+            pass  # Redacted keys for security
 
     print("\n--- STEP 2: Converter Inspection ---")
     converter = MmToJsonConverter(table_data=table_data)
