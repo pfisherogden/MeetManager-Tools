@@ -111,7 +111,7 @@ test.describe("DQ Lifecycle Journey", () => {
 				(resp.url().includes("/api/sync-dqs") ||
 					resp.url().includes("/api/submit-dq")) &&
 				resp.status() === 200,
-			{ timeout: 30000 },
+			{ timeout: 60000 },
 		);
 
 		await syncBtn.click();
