@@ -127,7 +127,7 @@ const getOrderedDQCategories = (
 	return defaultOrdered;
 };
 
-const BUILD_TIME = "04/29/2026, 04:22:45 PM PT"; // Fixed build time
+const BUILD_TIME = "04/30/2026, 02:08:52 PM PT"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<
@@ -199,16 +199,35 @@ export default function App() {
 				// 1. Detect dataset change and clear stale DQs if needed
 				if (typeof window !== "undefined" && window.localStorage) {
 					console.log("APP: Checking localStorage...");
-					const currentUrl = window.location.search;
-					const lastUrl = window.localStorage.getItem("mmtools_last_url");
-					
-					// Only clear if the URL (and thus the meet dataset) has actually changed
-					if (lastUrl && lastUrl !== currentUrl) {
-						console.log("APP: Dataset changed, clearing local DQ history");
+					const currentUrl = window.location.href;
+
+					// Extract program_url specifically to identify the meet
+					const match = currentUrl.match(/[?&]program_url=([^&]+)/);
+					const currentProgramUrl = match ? decodeURIComponent(match[1]) : "";
+
+					const lastProgramUrl = window.localStorage.getItem(
+						"mmtools_last_program_url",
+					);
+
+					// Only clear if the program data URL has actually changed
+					if (
+						lastProgramUrl &&
+						currentProgramUrl &&
+						lastProgramUrl !== currentProgramUrl
+					) {
+						console.log(
+							`APP: Meet changed from ${lastProgramUrl} to ${currentProgramUrl}. Clearing local DQs.`,
+						);
 						clearAllDQs();
-						window.localStorage.removeItem("mmtools_judge_name"); // Reset name on new meet
+						window.localStorage.removeItem("mmtools_judge_name");
 					}
-					window.localStorage.setItem("mmtools_last_url", currentUrl);
+
+					if (currentProgramUrl) {
+						window.localStorage.setItem(
+							"mmtools_last_program_url",
+							currentProgramUrl,
+						);
+					}
 
 					// 2. Load judge name or prompt for it
 					const savedName = window.localStorage.getItem("mmtools_judge_name");
@@ -222,8 +241,11 @@ export default function App() {
 				}
 
 				console.log("APP: Calling loadDataFromUrl()...");
-				const { loaded, dqData, syncUrl, errorMessage } = await loadDataFromUrl();
-				console.log(`APP: loadDataFromUrl() result: loaded=${loaded}, error=${errorMessage}`);
+				const { loaded, dqData, syncUrl, errorMessage } =
+					await loadDataFromUrl();
+				console.log(
+					`APP: loadDataFromUrl() result: loaded=${loaded}, error=${errorMessage}`,
+				);
 
 				if (dqData) {
 					setDqCodes(dqData);
@@ -253,7 +275,7 @@ export default function App() {
 					updatePendingCount();
 					isInitialized.current = true;
 				}
-				
+
 				console.log("APP: Initialization complete, setting isLoading=false");
 				setIsLoading(false);
 			} catch (err: any) {
@@ -264,9 +286,7 @@ export default function App() {
 		};
 
 		initializeApp();
-	}, [refreshEvents, updatePendingCount, handleSyncComplete]);
-
-	const selectEvent = (event: Event) => {
+	}, [refreshEvents, updatePendingCount, handleSyncComplete]);	const selectEvent = (event: Event) => {
 		setSelectedEvent(event);
 		const hts = getHeatsByEvent(event.id);
 		setHeats(hts);

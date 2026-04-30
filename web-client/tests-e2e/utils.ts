@@ -94,8 +94,31 @@ export async function waitForJudgeApp(page: Page) {
 }
 
 /**
+ * Sets up a valid E2E session by injecting cookies and hitting the mock auth endpoint.
+ */
+export async function setupE2ESession(page: Page, testInfo: TestInfo) {
+	const { userId } = getE2ETestContext(testInfo, page);
+	
+	// 1. Hit the dedicated mock login endpoint to synthesize session cookies on the server
+	const authResponse = await page.request.get(`/api/test/auth?uid=${userId}`);
+	if (!authResponse.ok()) {
+		throw new Error(
+			`Failed to authenticate test user ${userId}: ${authResponse.status()}`,
+		);
+	}
+
+	// 2. Also set cookies on the client side context for good measure
+	// This helps with hydration and immediate client-side checks
+	await page.context().addCookies([
+		{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
+		{ name: "idToken", value: "dev-token", domain: "localhost", path: "/" },
+	]);
+
+	return { userId };
+}
+
+/**
  * Ensures a specific dataset is active for the current user.
- * Uses direct API polling for a faster, non-UI dependent source of truth.
  */
 export async function ensureDatasetActive(
 	page: Page,
@@ -103,16 +126,8 @@ export async function ensureDatasetActive(
 	filename: string,
 	data: any,
 ) {
-	const { userId } = getE2ETestContext(testInfo, page);
+	const { userId } = await setupE2ESession(page, testInfo);
 	console.log(`[Utils] Ensuring ${filename} is active for ${userId}...`);
-
-	// 1. Hit the dedicated mock login endpoint
-	const authResponse = await page.request.get(`/api/test/auth?uid=${userId}`);
-	if (!authResponse.ok()) {
-		throw new Error(
-			`Failed to authenticate test user ${userId}: ${authResponse.status()}`,
-		);
-	}
 
 	// 2. Upload dataset directly via API
 	const uploadResponse = await page.request.post(

@@ -4,17 +4,15 @@ import {
 	getE2ETestContext,
 	getFixtureData,
 	robustClick,
+	setupE2ESession,
 } from "./utils";
 
 test.describe("Reports Generation Journey", () => {
-	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId, getFilename } = getE2ETestContext(testInfo, page);
+	test.beforeEach(async ({ page }, testInfo) => {
+		const { getFilename } = getE2ETestContext(testInfo, page);
 		const testFileName = getFilename("tiny_meet.json");
 		const data = getFixtureData("tiny_meet.json");
-		await page.setExtraHTTPHeaders({ "x-user-id": userId });
-		await context.addCookies([
-			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-		]);
+		await setupE2ESession(page, testInfo);
 		await ensureDatasetActive(page, testInfo, testFileName, data);
 	});
 

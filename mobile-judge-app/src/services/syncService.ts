@@ -76,11 +76,16 @@ export const triggerSync = async () => {
 			const payload = {
 				clientDqId,
 				client_id: judgeName,
+				// Fields for web UI (human readable)
 				event: event ? event.number : item.event_id,
 				heat: heat ? heat.number : swimmer.heat_id,
 				lane: swimmer.lane,
 				swimmer: swimmerDisplay,
 				infraction_code: item.dq_code,
+				// Fields for backend gRPC MDB sync (numeric IDs)
+				event_id: item.event_id,
+				swimmer_id: item.swimmer_id,
+				dq_code: item.dq_code,
 				notes: item.notes,
 			};
 

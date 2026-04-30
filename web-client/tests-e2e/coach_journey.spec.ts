@@ -4,21 +4,18 @@ import {
 	getE2ETestContext,
 	getFixtureData,
 	robustClick,
+	setupE2ESession,
 } from "./utils";
 
 test.describe("Coach Persona Journey", () => {
 	test.describe.configure({ mode: "serial" });
 
-	test.beforeEach(async ({ page, context }, testInfo) => {
+	test.beforeEach(async ({ page }, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const { userId, getFilename } = getE2ETestContext(testInfo, page);
-		await page.setExtraHTTPHeaders({ "x-user-id": userId });
-		await context.addCookies([
-			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-		]);
-
+		const { getFilename } = getE2ETestContext(testInfo, page);
 		const testFileName = getFilename("tiny_champs.json");
 		const data = getFixtureData("tiny_champs.json");
+		await setupE2ESession(page, testInfo);
 		await ensureDatasetActive(page, testInfo, testFileName, data);
 	});
 

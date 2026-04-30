@@ -3,15 +3,12 @@ import {
 	ensureDatasetActive,
 	getE2ETestContext,
 	getFixtureData,
+	setupE2ESession,
 } from "./utils";
 
 test.describe("Champs Dataset Journey", () => {
-	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo, page);
-		await page.setExtraHTTPHeaders({ "x-user-id": userId });
-		await context.addCookies([
-			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-		]);
+	test.beforeEach(async ({ page }, testInfo) => {
+		await setupE2ESession(page, testInfo);
 	});
 
 	test("should correctly process and display tiny Champs dataset", async ({

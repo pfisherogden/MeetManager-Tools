@@ -509,7 +509,22 @@ export async function updateAdminConfig(_name: string, _desc?: string) {
 }
 
 export async function getDisqualifications() {
-	// Currently the backend doesn't support GetDQs as an RPC method.
-	// Returning empty array to satisfy UI but avoid broken gRPC call.
-	return { disqualifications: [] };
+	try {
+		const headerList = await headers();
+		const cookieStore = await cookies();
+		const userId =
+			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+
+		if (!userId) {
+			console.warn("getDisqualifications: No userId found");
+			return { disqualifications: [] };
+		}
+
+		const { getDqs } = await import("@/lib/dq-db");
+		const dqs = await getDqs(userId);
+		return { disqualifications: dqs };
+	} catch (error) {
+		console.error("Failed to get disqualifications:", error);
+		return { disqualifications: [] };
+	}
 }

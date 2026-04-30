@@ -3,18 +3,15 @@ import {
 	ensureDatasetActive,
 	getE2ETestContext,
 	getFixtureData,
+	robustClick,
+	setupE2ESession,
 	waitForJudgeApp,
 } from "./utils";
 
 test.describe("DQ Lifecycle Journey", () => {
-	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo, page);
-		await page.setExtraHTTPHeaders({ "x-user-id": userId });
-		await context.addCookies([
-			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-		]);
+	test.beforeEach(async ({ page }, testInfo) => {
+		await setupE2ESession(page, testInfo);
 	});
-
 	test("should process DQ from Judge app to Results PDF", async ({
 		page,
 		context,
@@ -122,8 +119,13 @@ test.describe("DQ Lifecycle Journey", () => {
 			timeout: 60000,
 		});
 
-		// 5. Verify DQ in Admin Dashboard
+		// 5. Verify DQ in Web UI (Submitted DQs Page)
 		await page.bringToFront();
+		await page.goto("/dqs", { waitUntil: "networkidle" });
+		await expect(page.getByRole("table")).toContainText("1A", { timeout: 15000 });
+		await expect(page.getByRole("table")).toContainText("E2E Judge", { timeout: 15000 });
+
+		// 6. Verify DQ in Results PDF
 		await page.goto("/reports", { waitUntil: "networkidle" });
 		const resultsCard = page.getByTestId("report-card-meet-results");
 		await resultsCard.click();
