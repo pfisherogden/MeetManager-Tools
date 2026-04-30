@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, fix/e2e-robustness-final ]
+    branches: [ main, fix/e2e-robustness-final, fix/issue-380-judge-app-e2e ]
     paths:
       - 'backend/**'
       - 'mm_to_json/**'
@@ -240,11 +240,13 @@ jobs:
 
       - name: Run Playwright E2E Tests
         run: |
+          echo "Services settling..."
+          sleep 30
           cd web-client
           npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           FRONTEND_URL: http://localhost:3000
-          MOBILE_APP_URL: http://localhost:8081
+          MOBILE_APP_URL: http://localhost:3000/judge/index.html
           NEXT_PUBLIC_E2E_AUTH_BYPASS: 'true'
           SHARD_INDEX: ${{ matrix.shardIndex }}
           IS_E2E: 'true'
