@@ -4,6 +4,7 @@ import {
 	getE2ETestContext,
 	getFixtureData,
 	robustClick,
+	waitForJudgeApp,
 } from "./utils";
 
 test.describe("Mobile Judge App Journey", () => {
@@ -39,25 +40,24 @@ test.describe("Mobile Judge App Journey", () => {
 		let judgeUrl = (await judgeUrlLocator.textContent()) || "";
 
 		// Align E2E URL Logic: Use MOBILE_APP_URL as source of truth
-		const mobileAppUrl = process.env.MOBILE_APP_URL || "http://localhost:8081";
-		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+		const _mobileAppUrl = process.env.MOBILE_APP_URL || "http://localhost:8081";
+		const _frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
-		// Replace the base of the URL returned by the backend with our E2E-specific mobile app URL
-		// The backend might return http://localhost:3000/judge or similar
+		// Align E2E URL Logic: Use baseURL as the source of truth for the monolith
+		const baseURL = testInfo.project.use.baseURL || "http://localhost:3100";
 		const urlObj = new URL(judgeUrl);
-		const targetUrlObj = new URL(mobileAppUrl);
+		const baseObj = new URL(baseURL);
 
-		urlObj.protocol = targetUrlObj.protocol;
-		urlObj.host = targetUrlObj.host;
-		// Ensure it doesn't try to use the /judge subdirectory if served at root on port 8081
-		if (urlObj.pathname.startsWith("/judge")) {
-			urlObj.pathname = urlObj.pathname.replace("/judge", "");
+		urlObj.protocol = baseObj.protocol;
+		urlObj.host = baseObj.host;
+		urlObj.port = baseObj.port;
+
+		// Ensure it hits the monolith path
+		if (!urlObj.pathname.includes("/judge/")) {
+			urlObj.pathname = "/judge/index.html";
 		}
-		// Ensure sync/program params still point to the correct frontend
-		judgeUrl = urlObj
-			.toString()
-			.replaceAll("http://localhost:3000", frontendUrl);
 
+		judgeUrl = urlObj.toString();
 		console.log(`Authorized Judge App URL: ${judgeUrl}`);
 
 		// 1. Initial Page: Enter Name (on the specific authorized URL)
@@ -67,16 +67,7 @@ test.describe("Mobile Judge App Journey", () => {
 		getE2ETestContext(testInfo, judgePage);
 
 		await judgePage.goto(judgeUrl);
-
-		// Wait for HMR/Fast Refresh to settle then reload to ensure a clean state
-		console.log("[E2E] Waiting for Judge App to settle...");
-		await judgePage.waitForTimeout(5000);
-		await judgePage.reload({ waitUntil: "networkidle" });
-
-		// Wait for app to be ready (hydration sentinel)
-		await expect(judgePage.getByPlaceholder("Your Name")).toBeVisible({
-			timeout: 45000,
-		});
+		await waitForJudgeApp(judgePage);
 
 		await judgePage.getByPlaceholder("Your Name").fill("E2E Judge");
 		await robustClick(judgePage.getByText(/START JUDGING/i));

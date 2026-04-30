@@ -25,6 +25,8 @@ services:
       - NEXT_PUBLIC_E2E_AUTH_BYPASS=true
       - DATA_ACCESS_TOKEN=mmtools-default-secret-2024
       - WAIT_FOR_BACKEND=true
+      - USE_MOCK_FIRESTORE=true
+      - FIRESTORE_MOCK_PATH=/tmp/mock_firestore.json
 
   judge-app:
     image: ${IMAGE_PREFIX}/judge-app:${TAG}

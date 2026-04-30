@@ -73,6 +73,27 @@ export async function robustClick(
 }
 
 /**
+ * Ensures the Judge App is loaded and hydrated.
+ */
+export async function waitForJudgeApp(page: Page) {
+	console.log("[Utils] Waiting for Judge App hydration...");
+	// Wait for the path to be correct (supporting /judge/index.html or rewritten /judge)
+	await page.waitForFunction(() => window.location.pathname.includes("/judge"));
+
+	// Wait for a core element to be visible
+	await expect(
+		page
+			.getByPlaceholder("Your Name")
+			.or(page.getByText(/Events/i))
+			.first(),
+	).toBeVisible({ timeout: 45000 });
+
+	// Ensure fonts are ready
+	await page.evaluate(() => document.fonts.ready);
+	console.log("[Utils] Judge App is ready.");
+}
+
+/**
  * Ensures a specific dataset is active for the current user.
  * Uses direct API polling for a faster, non-UI dependent source of truth.
  */
