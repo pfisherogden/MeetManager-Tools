@@ -5,6 +5,7 @@ import {
 	getE2ETestContext,
 	getFixtureData,
 	robustClick,
+	waitForJudgeApp,
 } from "./utils";
 
 test.describe("Visual Journey Capture", () => {
@@ -54,12 +55,14 @@ test.describe("Visual Journey Capture", () => {
 		console.log("Captured: 2-coach-filtered-report.png");
 	});
 
-	test.skip("capture judge app events", async ({ page }, testInfo) => {
+	test("capture judge app events", async ({ page }, testInfo) => {
 		const { userId } = getE2ETestContext(testInfo);
-		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3100";
-		const judgeBase =
-			process.env.MOBILE_APP_URL || `${frontendUrl}/judge/index.html`;
-		await page.goto(`${judgeBase}?uid=${userId}`);
+		const baseURL = process.env.FRONTEND_URL || "http://localhost:3100";
+		const judgeUrl = new URL("/judge/index.html", baseURL).href;
+		
+		await page.goto(`${judgeUrl}?uid=${userId}`);
+		await waitForJudgeApp(page);
+		
 		await page.getByPlaceholder("Your Name").fill("Visual Reviewer");
 		await page.getByText("START JUDGING").click();
 

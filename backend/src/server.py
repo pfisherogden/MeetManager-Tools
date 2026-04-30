@@ -2068,13 +2068,21 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             judge_app_base = os.getenv("JUDGE_APP_URL")
             if not judge_app_base:
                 if "localhost" in frontend_base or "127.0.0.1" in frontend_base:
-                    # In local dev/E2E, judge app is served by frontend on port 3000
-                    # or via mobile-judge-app container on port 8081.
-                    # We prefer port 3000 as it's the primary entry point.
-                    judge_app_base = "http://localhost:3000/judge"
+                    # In local dev/E2E, judge app is served by frontend
+                    judge_app_base = f"{frontend_base}/judge/index.html"
                 else:
                     # Production GitHub Pages
-                    judge_app_base = "https://pfisherogden.github.io/MeetManager-Tools/judge"
+                    judge_app_base = "https://pfisherogden.github.io/MeetManager-Tools/judge/index.html"
+
+            # Force index.html if it's missing but we are pointing to our known domains
+            if "/judge" in judge_app_base and not judge_app_base.endswith("index.html"):
+                if "?" in judge_app_base:
+                    judge_app_base = judge_app_base.replace("/judge?", "/judge/index.html?")
+                elif judge_app_base.endswith("/judge"):
+                    judge_app_base += "/index.html"
+                elif judge_app_base.endswith("/judge/"):
+                    judge_app_base += "index.html"
+
 
             judge_app_url = f"{judge_app_base}?program_url={encoded_program}&sync_url={encoded_sync}"
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)

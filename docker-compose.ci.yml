@@ -26,10 +26,5 @@ services:
       - DATA_ACCESS_TOKEN=mmtools-default-secret-2024
       - WAIT_FOR_BACKEND=true
 
-  judge-app:
-    image: ${IMAGE_PREFIX}/judge-app:${TAG}
-    ports:
-      - "8081:8080"
-
 volumes:
   mmtools-data:

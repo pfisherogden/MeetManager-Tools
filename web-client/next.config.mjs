@@ -19,7 +19,12 @@ const nextConfig = {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
 	},
 	async rewrites() {
-		return [];
+		return [
+			{
+				source: "/judge/:path*",
+				destination: "/judge/index.html",
+			},
+		];
 	},
 };
 
