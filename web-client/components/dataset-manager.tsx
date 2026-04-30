@@ -22,11 +22,6 @@ import {
 	setActiveDataset,
 	uploadDatasetFromDrive,
 } from "@/app/actions";
-import { useAuth } from "@/hooks/use-auth";
-import {
-	type GoogleDriveFile,
-	useGooglePicker,
-} from "@/hooks/use-google-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +46,11 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/hooks/use-auth";
+import {
+	type GoogleDriveFile,
+	useGooglePicker,
+} from "@/hooks/use-google-picker";
 
 interface Dataset {
 	filename: string;
