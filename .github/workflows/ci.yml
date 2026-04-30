@@ -125,7 +125,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push Backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile
@@ -135,7 +135,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push Frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: web-client/Dockerfile
@@ -147,7 +147,7 @@ jobs:
             NEXT_PUBLIC_E2E_AUTH_BYPASS=true
 
       - name: Build and push Judge App
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: mobile-judge-app/Dockerfile
