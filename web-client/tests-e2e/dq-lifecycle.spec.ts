@@ -3,7 +3,6 @@ import {
 	ensureDatasetActive,
 	getE2ETestContext,
 	getFixtureData,
-	robustClick,
 	setupE2ESession,
 	waitForJudgeApp,
 } from "./utils";
@@ -122,8 +121,12 @@ test.describe("DQ Lifecycle Journey", () => {
 		// 5. Verify DQ in Web UI (Submitted DQs Page)
 		await page.bringToFront();
 		await page.goto("/dqs", { waitUntil: "networkidle" });
-		await expect(page.getByRole("table")).toContainText("1A", { timeout: 15000 });
-		await expect(page.getByRole("table")).toContainText("E2E Judge", { timeout: 15000 });
+		await expect(page.getByRole("table")).toContainText("1A", {
+			timeout: 15000,
+		});
+		await expect(page.getByRole("table")).toContainText("E2E Judge", {
+			timeout: 15000,
+		});
 
 		// 6. Verify DQ in Results PDF
 		await page.goto("/reports", { waitUntil: "networkidle" });

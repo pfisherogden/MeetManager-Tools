@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { getE2ETestContext, setupE2ESession } from "./utils";
+import { setupE2ESession } from "./utils";
 
 test.describe("Dashboard Smoke Test", () => {
 	test.beforeEach(async ({ page }, testInfo) => {
