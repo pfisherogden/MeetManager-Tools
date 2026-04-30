@@ -20,7 +20,13 @@ import {
 	listDatasets,
 	publishMeetData,
 	setActiveDataset,
+	uploadDatasetFromDrive,
 } from "@/app/actions";
+import { useAuth } from "@/hooks/use-auth";
+import {
+	type GoogleDriveFile,
+	useGooglePicker,
+} from "@/hooks/use-google-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +67,8 @@ export function DatasetManager() {
 	const [judgeUrl, setJudgeUrl] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
+	const { googleAccessToken } = useAuth();
+
 	const fetchDatasets = useCallback(async () => {
 		try {
 			const res = await listDatasets();
@@ -71,6 +79,33 @@ export function DatasetManager() {
 			setIsLoading(false);
 		}
 	}, []);
+
+	const onDriveFileSelect = useCallback(
+		async (file: GoogleDriveFile) => {
+			const ext = file.name.split(".").pop()?.toLowerCase();
+			if (ext !== "mdb" && ext !== "json") {
+				toast.error("Invalid file type. Please select an .mdb or .json file.");
+				return;
+			}
+
+			setIsUploading(true);
+			try {
+				await uploadDatasetFromDrive(file.id, file.name);
+				toast.success(`Successfully imported ${file.name} from Drive`);
+				await fetchDatasets();
+			} catch (_error) {
+				toast.error("Drive import failed");
+			} finally {
+				setIsUploading(false);
+			}
+		},
+		[fetchDatasets],
+	);
+
+	const { openPicker, isLoaded: isDriveLoaded } = useGooglePicker({
+		onFileSelect: onDriveFileSelect,
+		accessToken: googleAccessToken || undefined,
+	});
 
 	useEffect(() => {
 		fetchDatasets();
@@ -191,12 +226,25 @@ export function DatasetManager() {
 							className="bg-primary hover:bg-primary/90"
 							data-testid="upload-dataset-button"
 						>
-							{isUploading ? (
+							{isUploading && !isDriveLoaded ? (
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 							) : (
 								<Upload className="mr-2 h-4 w-4" />
 							)}
 							Upload Dataset
+						</Button>
+						<Button
+							variant="outline"
+							onClick={openPicker}
+							disabled={isUploading || !isDriveLoaded}
+							data-testid="import-from-drive-button"
+						>
+							{isUploading && isDriveLoaded ? (
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							) : (
+								<HardDrive className="mr-2 h-4 w-4" />
+							)}
+							Import from Drive
 						</Button>
 					</div>
 				</div>

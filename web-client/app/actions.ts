@@ -297,6 +297,31 @@ export async function uploadDataset(formData: FormData) {
 	}
 }
 
+export async function uploadDatasetFromDrive(fileId: string, filename: string) {
+	try {
+		const metadata = await getAuthMetadata();
+		const response = await client.uploadDatasetFromDrive(
+			{ fileId, filename },
+			{ metadata },
+		);
+
+		if (response.success) {
+			revalidatePath("/admin");
+			revalidatePath("/meets");
+			revalidatePath("/teams");
+			revalidatePath("/reports");
+		}
+
+		return {
+			success: response.success,
+			message: response.message,
+		};
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (uploadDatasetFromDrive):", err);
+		throw err;
+	}
+}
+
 export async function listDatasets() {
 	try {
 		const metadata = await getAuthMetadata();
