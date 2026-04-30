@@ -54,7 +54,7 @@ test.describe("Visual Journey Capture", () => {
 		console.log("Captured: 2-coach-filtered-report.png");
 	});
 
-	test.skip("capture judge app events", async ({ page }, testInfo) => {
+	test("capture judge app events", async ({ page }, testInfo) => {
 		const { userId } = getE2ETestContext(testInfo);
 		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3100";
 		const judgeBase =

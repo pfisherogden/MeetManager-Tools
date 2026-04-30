@@ -5,8 +5,7 @@ import {
 	getFixtureData,
 } from "./utils";
 
-test.describe
-	.skip("DQ Lifecycle Journey", () => {
+test.describe("DQ Lifecycle Journey", () => {
 		test.beforeEach(async ({ page, context }, testInfo) => {
 			const { userId } = getE2ETestContext(testInfo, page);
 			await page.setExtraHTTPHeaders({ "x-user-id": userId });

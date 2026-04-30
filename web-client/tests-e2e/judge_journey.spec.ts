@@ -6,8 +6,7 @@ import {
 	robustClick,
 } from "./utils";
 
-test.describe
-	.skip("Mobile Judge App Journey", () => {
+test.describe("Mobile Judge App Journey", () => {
 		test.beforeEach(async ({ page, context }, testInfo) => {
 			const { userId } = getE2ETestContext(testInfo, page);
 			await page.setExtraHTTPHeaders({ "x-user-id": userId });
