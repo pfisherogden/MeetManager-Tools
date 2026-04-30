@@ -1,18 +1,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
-import { getE2ETestContext } from "./utils";
+import { getE2ETestContext, setupE2ESession } from "./utils";
 
 test.describe("Ingestion and Admin Journey", () => {
-	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo, page);
-		await page.setExtraHTTPHeaders({ "x-user-id": userId });
-		await context.addCookies([
-			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-		]);
+	test.beforeEach(async ({ page }, testInfo) => {
+		const { userId } = await setupE2ESession(page, testInfo);
 		console.log(`Using isolated User ID: ${userId}`);
 	});
-
 	test("should allow navigating to Admin and uploading a dataset", async ({
 		page,
 	}, testInfo) => {

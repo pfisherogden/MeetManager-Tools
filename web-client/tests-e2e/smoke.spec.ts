@@ -1,18 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { getE2ETestContext } from "./utils";
+import { setupE2ESession } from "./utils";
 
 test.describe("Dashboard Smoke Test", () => {
 	test.beforeEach(async ({ page }, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo, page);
+		const { userId } = await setupE2ESession(page, testInfo);
 		console.log(`Using isolated User ID: ${userId}`);
-
-		// 1. Hit the dedicated mock login endpoint to synthesize session cookies
-		const response = await page.request.get(`/api/test/auth?uid=${userId}`);
-		if (!response.ok()) {
-			throw new Error(
-				`Failed to authenticate test user ${userId}: ${response.status()}`,
-			);
-		}
 	});
 
 	test("should load the dashboard with stats", async ({ page }) => {

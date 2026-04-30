@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, fix/e2e-robustness-final, fix/firebase-config-and-drive-restore ]
+    branches: [ main, fix/e2e-robustness-final, "fix/**", "feat/**" ]
     paths:
       - 'backend/**'
       - 'mm_to_json/**'

@@ -3,21 +3,17 @@ import {
 	ensureDatasetActive,
 	getE2ETestContext,
 	getFixtureData,
+	setupE2ESession,
 } from "./utils";
 
 test.describe("Meet Administrator Management", () => {
 	test.describe.configure({ mode: "serial" });
 
-	test.beforeEach(async ({ page, context }, testInfo) => {
+	test.beforeEach(async ({ page }, testInfo) => {
 		test.setTimeout(300000); // 5 mins
-		const { userId } = getE2ETestContext(testInfo, page);
-		await page.setExtraHTTPHeaders({ "x-user-id": userId });
-		await context.addCookies([
-			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-		]);
+		const { userId } = await setupE2ESession(page, testInfo);
 		console.log(`Using isolated Admin User ID: ${userId}`);
 	});
-
 	test("should support uploading, switching between, and deleting multiple datasets", async ({
 		page,
 	}, testInfo) => {

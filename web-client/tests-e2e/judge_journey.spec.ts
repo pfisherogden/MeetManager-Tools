@@ -4,19 +4,15 @@ import {
 	getE2ETestContext,
 	getFixtureData,
 	robustClick,
+	setupE2ESession,
 	waitForJudgeApp,
 } from "./utils";
 
 test.describe("Mobile Judge App Journey", () => {
-	test.beforeEach(async ({ page, context }, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo, page);
-		await page.setExtraHTTPHeaders({ "x-user-id": userId });
-		await context.addCookies([
-			{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-		]);
+	test.beforeEach(async ({ page }, testInfo) => {
+		const { userId } = await setupE2ESession(page, testInfo);
 		console.log(`Using isolated Judge User ID: ${userId}`);
 	});
-
 	test("should allow a judge to login, select event, and submit DQ", async ({
 		page,
 		context,
@@ -114,6 +110,16 @@ test.describe("Mobile Judge App Journey", () => {
 		await judgePage
 			.getByPlaceholder("Add notes here (optional)")
 			.fill("E2E Test Note");
+
+		// Setup sync response promise BEFORE clicking save
+		const syncResponsePromise = judgePage.waitForResponse(
+			(resp) =>
+				(resp.url().includes("/api/sync-dqs") ||
+					resp.url().includes("/api/submit-dq")) &&
+				resp.status() === 200,
+			{ timeout: 60000 },
+		);
+
 		await robustClick(judgePage.getByLabel("Save changes"));
 
 		// 8. Verify submission (wait for modal to close or history to update)
@@ -125,15 +131,6 @@ test.describe("Mobile Judge App Journey", () => {
 		const syncBtn = judgePage.getByTestId("dq-history-button");
 		await expect(syncBtn).toBeVisible({ timeout: 15000 });
 
-		// Wait for the sync response to ensure it actually hits the backend
-		const syncResponsePromise = judgePage.waitForResponse(
-			(resp) =>
-				(resp.url().includes("/api/sync-dqs") ||
-					resp.url().includes("/api/submit-dq")) &&
-				resp.status() === 200,
-			{ timeout: 60000 },
-		);
-
 		await robustClick(syncBtn, { timeout: 30000 });
 
 		await syncResponsePromise;
@@ -141,7 +138,6 @@ test.describe("Mobile Judge App Journey", () => {
 		await expect(judgePage.getByText("DQ History (Pending: 0)")).toBeVisible({
 			timeout: 60000,
 		});
-
 		// Optional success message check
 		const successMsg = judgePage.getByText(/Successfully synced/i);
 		if (await successMsg.isVisible()) {
