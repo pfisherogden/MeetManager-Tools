@@ -2083,7 +2083,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 elif judge_app_base.endswith("/judge/"):
                     judge_app_base += "index.html"
 
-
             judge_app_url = f"{judge_app_base}?program_url={encoded_program}&sync_url={encoded_sync}"
             return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
         except Exception as e:

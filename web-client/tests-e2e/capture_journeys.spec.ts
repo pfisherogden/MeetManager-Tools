@@ -59,10 +59,10 @@ test.describe("Visual Journey Capture", () => {
 		const { userId } = getE2ETestContext(testInfo);
 		const baseURL = process.env.FRONTEND_URL || "http://localhost:3100";
 		const judgeUrl = new URL("/judge/index.html", baseURL).href;
-		
+
 		await page.goto(`${judgeUrl}?uid=${userId}`);
 		await waitForJudgeApp(page);
-		
+
 		await page.getByPlaceholder("Your Name").fill("Visual Reviewer");
 		await page.getByText("START JUDGING").click();
 

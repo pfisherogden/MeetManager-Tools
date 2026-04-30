@@ -42,7 +42,9 @@ export async function robustClick(
 		el.hasAttribute("data-hydrated"),
 	);
 	if (hasHydratedAttr) {
-		await page.waitForSelector("body[data-hydrated='true']", { timeout: 20000 });
+		await page.waitForSelector("body[data-hydrated='true']", {
+			timeout: 20000,
+		});
 	}
 	await page.evaluate(() => document.fonts.ready);
 
@@ -80,7 +82,10 @@ export async function waitForJudgeApp(page: Page) {
 
 	// Wait for a core element to be visible
 	await expect(
-		page.getByPlaceholder("Your Name").or(page.getByText(/Events/i)).first(),
+		page
+			.getByPlaceholder("Your Name")
+			.or(page.getByText(/Events/i))
+			.first(),
 	).toBeVisible({ timeout: 45000 });
 
 	// Ensure fonts are ready
@@ -148,12 +153,17 @@ export async function ensureDatasetActive(
 	await expect
 		.poll(
 			async () => {
-				const res = await page.request.get("/api/test/status?action=list_datasets", {
-					headers: { "x-user-id": userId },
-				});
+				const res = await page.request.get(
+					"/api/test/status?action=list_datasets",
+					{
+						headers: { "x-user-id": userId },
+					},
+				);
 				if (!res.ok()) return false;
 				const body = await res.json();
-				const current = body.datasets?.find((d: any) => d.filename === filename);
+				const current = body.datasets?.find(
+					(d: any) => d.filename === filename,
+				);
 				return current?.isActive === true;
 			},
 			{
@@ -167,7 +177,9 @@ export async function ensureDatasetActive(
 	// 5. Navigate to ensure hydration settles on the intended page
 	await page.goto("/admin", { waitUntil: "domcontentloaded" });
 	const body = page.locator("body");
-	await expect(body).toHaveAttribute("data-hydrated", "true", { timeout: 20000 });
+	await expect(body).toHaveAttribute("data-hydrated", "true", {
+		timeout: 20000,
+	});
 	console.log(`[Utils] ${filename} is now active and verified for ${userId}.`);
 }
 
