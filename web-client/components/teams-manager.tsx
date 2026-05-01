@@ -16,6 +16,7 @@ const columns: Column<Team>[] = [
 				<span
 					className="w-2.5 h-2.5 rounded-full shrink-0"
 					style={{ backgroundColor: row.color }}
+					data-testid="team-color-badge"
 				/>
 				<Link
 					href={`/teams/${row.id}`}
@@ -60,6 +61,7 @@ const columns: Column<Team>[] = [
 				<span
 					className="w-4 h-4 rounded-full border border-border"
 					style={{ backgroundColor: value as string }}
+					data-testid="team-color-badge"
 				/>
 				<span className="font-mono text-xs">{value as string}</span>
 			</div>

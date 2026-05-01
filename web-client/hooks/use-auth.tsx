@@ -10,9 +10,11 @@ import {
 	type UserCredential,
 } from "firebase/auth";
 import Cookies from "js-cookie";
+import { usePathname, useRouter } from "next/navigation";
 import {
 	createContext,
 	type ReactNode,
+	useCallback,
 	useContext,
 	useEffect,
 	useState,
@@ -36,14 +38,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		null,
 	);
 	const [loading, setLoading] = useState(true);
+	const pathname = usePathname();
+	const router = useRouter();
 
 	const isAuthDisabled =
 		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
 		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
 
-	console.log(
-		`[AuthProvider] Init: isAuthDisabled=${isAuthDisabled}, bypass=${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`,
-	);
+	useEffect(() => {
+		// Client-side redirection backup for protected routes
+		if (!loading && !isAuthDisabled && !user) {
+			const isPublicPath =
+				pathname === "/login" ||
+				pathname.startsWith("/judge") ||
+				pathname.startsWith("/api/test") ||
+				pathname.startsWith("/api/data");
+
+			if (!isPublicPath) {
+				console.log(
+					`[AuthProvider] Redirecting unauthenticated user from ${pathname} to /login`,
+				);
+				router.push(`/login?returnUrl=${encodeURIComponent(pathname)}`);
+			}
+		}
+	}, [user, loading, pathname, router, isAuthDisabled]);
+
+	useEffect(() => {
+		console.log(
+			`[AuthProvider] Init: isAuthDisabled=${isAuthDisabled}, bypass=${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`,
+		);
+	}, [isAuthDisabled]);
+
 	useEffect(() => {
 		const token = Cookies.get("googleAccessToken");
 		if (token) setGoogleAccessToken(token);
@@ -58,46 +83,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 			const mockUser = {
 				uid: mockUid,
-				email: "e2e-test@example.com",
+				email: "e2e@example.com",
 				displayName: "E2E Test User",
 			} as User;
 
 			setUser(mockUser);
-			setLoading(false);
 
-			// Ensure cookies are set for backend consistency if they were missing
+			// Ensure cookies are set for gRPC consistent routing
 			if (!storedUid) {
 				Cookies.set("x-user-id", mockUid, {
 					path: "/",
 					sameSite: "strict",
-					secure: true,
 				});
+			}
+
+			// In bypass mode, we also need a dummy idToken for the middleware
+			if (!Cookies.get("idToken")) {
 				Cookies.set("idToken", "dev-token", {
 					path: "/",
 					sameSite: "strict",
-					secure: true,
 				});
 			}
+
+			setLoading(false);
 			return;
 		}
+
 		const unsubscribe = onAuthStateChanged(auth, async (user) => {
 			setUser(user);
 			if (user) {
-				const token = await getIdToken(user);
-				Cookies.set("idToken", token, {
-					expires: 1 / 24,
+				const idToken = await getIdToken(user);
+				Cookies.set("idToken", idToken, {
+					expires: 1 / 24, // 1 hour
 					secure: true,
 					sameSite: "strict",
+					path: "/",
 				});
 				Cookies.set("x-user-id", user.uid, {
 					expires: 1 / 24,
 					secure: true,
 					sameSite: "strict",
+					path: "/",
 				});
 			} else {
-				Cookies.remove("idToken");
-				Cookies.remove("x-user-id");
-				Cookies.remove("googleAccessToken");
+				Cookies.remove("idToken", { path: "/" });
+				Cookies.remove("x-user-id", { path: "/" });
+				Cookies.remove("googleAccessToken", { path: "/" });
 				setGoogleAccessToken(null);
 			}
 			setLoading(false);
@@ -115,28 +146,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				expires: 1 / 24,
 				secure: true,
 				sameSite: "strict",
+				path: "/",
 			});
 		}
 		return result;
 	};
 
-	const logout = async () => {
-		Cookies.remove("idToken");
-		Cookies.remove("x-user-id");
-		Cookies.remove("googleAccessToken");
-		setGoogleAccessToken(null);
-		if (isAuthDisabled) {
+	const logout = useCallback(async () => {
+		try {
+			if (!isAuthDisabled) {
+				await signOut(auth);
+			}
+			Cookies.remove("idToken", { path: "/" });
+			Cookies.remove("x-user-id", { path: "/" });
+			Cookies.remove("googleAccessToken", { path: "/" });
 			setUser(null);
-			return;
+			setGoogleAccessToken(null);
+			router.push("/login");
+		} catch (error) {
+			console.error("Logout error", error);
 		}
-		return signOut(auth);
-	};
+	}, [router, isAuthDisabled]);
 
-	const getToken = async () => {
+	const getToken = useCallback(async () => {
 		if (isAuthDisabled) return "dev-token";
 		if (!user) return null;
-		return getIdToken(user);
-	};
+		return await getIdToken(user);
+	}, [user, isAuthDisabled]);
 
 	return (
 		<AuthContext.Provider

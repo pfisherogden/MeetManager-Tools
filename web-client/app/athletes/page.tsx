@@ -6,37 +6,23 @@ import type { Athlete as UIAthlete } from "@/lib/swim-meet-types";
 
 export const dynamic = "force-dynamic";
 
-interface ServerAthlete {
-	id: number;
-	firstName: string;
-	lastName: string;
-	teamId: number;
-	teamName: string;
-	gender: string;
-	age: number;
-	dateOfBirth: string;
-}
-
-interface ServerTeam {
-	id: number;
-	name: string;
-	color: string;
-}
-
 export default async function AthletesPage() {
-	let mappedAthletes: (UIAthlete & { teamColor?: string })[] = [];
-	let teamOptions: string[] = [];
+	let mappedAthletes: UIAthlete[] = [];
+	let teamOptions: { id: string; name: string }[] = [];
 
 	try {
-		const [athleteList, teamList] = await Promise.all([
-			getAthletes() as unknown as { athletes: ServerAthlete[] },
-			getTeams() as unknown as { teams: ServerTeam[] },
+		const [athleteList, teamsResponse] = await Promise.all([
+			getAthletes(),
+			getTeams(),
 		]);
 
 		const teamColorMap: Record<number, string> = {};
-		if (teamList?.teams) {
-			teamOptions = teamList.teams.map((t) => t.name).sort();
-			for (const t of teamList.teams) {
+		if (teamsResponse?.teams) {
+			teamOptions = teamsResponse.teams.map((t) => ({
+				id: t.id.toString(),
+				name: t.name,
+			}));
+			for (const t of teamsResponse.teams) {
 				teamColorMap[t.id] = t.color;
 			}
 		}
@@ -55,7 +41,7 @@ export default async function AthletesPage() {
 			}));
 		}
 	} catch (e) {
-		console.error("Failed to fetch athletes", e);
+		console.error("Failed to fetch athletes or teams", e);
 	}
 
 	return (
@@ -65,7 +51,7 @@ export default async function AthletesPage() {
 				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 md:hidden">
 					<SidebarTrigger className="-ml-1" />
 				</header>
-				<div className="flex-1 flex flex-col overflow-hidden">
+				<div className="flex-1 overflow-auto">
 					<div className="p-6 pb-0">
 						<h1 className="text-2xl font-bold text-foreground">Athletes</h1>
 						<p className="text-muted-foreground">

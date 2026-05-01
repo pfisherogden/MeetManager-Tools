@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
 		isSamplePath || !isTokenConfigured || token === configuredToken;
 
 	if (!isAuthorized) {
+		console.warn(`[API/data] Unauthorized access attempt: path=${path}, tokenProvided=${token ? "YES (len=" + token.length + ")" : "NO"}, tokenExpected=${configuredToken ? "YES" : "NO"}`);
 		return withCors(
 			NextResponse.json({ error: "Unauthorized access" }, { status: 403 }),
 		);

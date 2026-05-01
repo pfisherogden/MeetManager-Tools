@@ -8,8 +8,7 @@ import client from "@/lib/mm-client";
 async function getAuthMetadata() {
 	const headerList = await headers();
 	const cookieStore = await cookies();
-	let userId =
-		headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+	let userId = headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
 
 	// Fallback for local development or E2E bypass
 	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" && !userId) {
@@ -91,6 +90,7 @@ export async function getTeams() {
 				name: t.name,
 				code: t.code,
 				athleteCount: t.athleteCount,
+				color: t.color,
 			})),
 		};
 	} catch (_err) {
@@ -117,6 +117,9 @@ export async function getMeets() {
 				name: m.name,
 				location: m.location,
 				startDate: m.startDate,
+				endDate: m.endDate,
+				course: m.course,
+				status: m.status,
 			})),
 		};
 	} catch (_err) {
@@ -134,8 +137,12 @@ export async function getAthletes() {
 				firstName: a.firstName,
 				lastName: a.lastName,
 				teamId: a.teamId,
+				teamName: a.teamName,
 				gender: a.gender,
 				age: a.age,
+				dateOfBirth: a.dateOfBirth,
+				regNo: a.regNo,
+				schoolYear: a.schoolYear,
 			})),
 		};
 	} catch (_err) {
@@ -150,12 +157,18 @@ export async function getEvents() {
 		return {
 			events: response.events.map((e) => ({
 				id: e.id,
-				eventNo: e.id,
+				eventNo: e.eventNo,
+				name: e.name,
 				gender: e.gender,
 				ageGroup: e.ageGroup,
 				distance: e.distance,
 				stroke: e.stroke,
-				isRelay: false, // Placeholder, update if needed
+				session: e.session,
+				status: e.status,
+				entryCount: e.entryCount,
+				isRelay: e.isRelay,
+				lowAge: e.lowAge,
+				highAge: e.highAge,
 			})),
 		};
 	} catch (_err) {
@@ -170,9 +183,14 @@ export async function getSessions() {
 		return {
 			sessions: response.sessions.map((s) => ({
 				id: s.id,
-				sessionNo: s.sessionNum,
+				meetId: s.meetId,
+				sessionNum: s.sessionNum,
 				name: s.name,
+				date: s.date,
 				startTime: s.startTime,
+				warmUpTime: s.warmUpTime,
+				eventCount: s.eventCount,
+				day: s.day,
 			})),
 		};
 	} catch (_err) {
@@ -183,21 +201,21 @@ export async function getSessions() {
 export async function getRelays(eventId?: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.getRelays(
-			{
-				eventId,
-			},
-			{ metadata },
-		);
+		const response = await client.getRelays({ eventId: eventId || "0" }, { metadata });
 		return {
 			relays: response.relays.map((r) => ({
 				id: r.id,
-				eventNo: r.eventId,
+				eventId: r.eventId,
 				teamId: r.teamId,
-				relayLetter: r.relayLetter,
-				swimmers: [r.leg1Name, r.leg2Name, r.leg3Name, r.leg4Name].filter(
-					Boolean,
-				),
+				teamName: r.teamName,
+				leg1Name: r.leg1Name,
+				leg2Name: r.leg2Name,
+				leg3Name: r.leg3Name,
+				leg4Name: r.leg4Name,
+				seedTime: r.seedTime,
+				finalTime: r.finalTime,
+				place: r.place,
+				eventName: r.eventName,
 			})),
 		};
 	} catch (_err) {
@@ -210,15 +228,18 @@ export async function getScores() {
 		const metadata = await getAuthMetadata();
 		const response = await client.getScores({}, { metadata });
 		return {
-			teamScores: response.scores.map((ts) => ({
-				teamId: ts.teamId,
-				teamName: ts.teamName,
-				score: ts.totalPoints,
-				rank: ts.rank,
+			scores: response.scores.map((s) => ({
+				teamId: s.teamId,
+				teamName: s.teamName,
+				individualPoints: s.individualPoints,
+				relayPoints: s.relayPoints,
+				totalPoints: s.totalPoints,
+				rank: s.rank,
+				meetName: s.meetName,
 			})),
 		};
 	} catch (_err) {
-		return { teamScores: [] };
+		return { scores: [] };
 	}
 }
 
@@ -230,12 +251,21 @@ export async function getEventScores() {
 			eventScores: response.eventScores.map((es) => ({
 				eventId: es.eventId,
 				eventName: es.eventName,
-				entries: es.entries.map((entry) => ({
-					athleteName: entry.athleteName,
-					teamName: entry.teamName,
-					finalTime: entry.finalTime,
-					place: entry.place,
-					points: entry.points,
+				entries: es.entries.map((e) => ({
+					id: e.id,
+					eventId: e.eventId,
+					athleteId: e.athleteId,
+					athleteName: e.athleteName,
+					teamId: e.teamId,
+					teamName: e.teamName,
+					seedTime: e.seedTime,
+					finalTime: e.finalTime,
+					place: e.place,
+					points: e.points,
+					eventName: e.eventName,
+					heat: e.heat,
+					lane: e.lane,
+					status: e.status,
 				})),
 			})),
 		};
@@ -250,9 +280,7 @@ export async function uploadDataset(formData: FormData) {
 
 	if (!file) throw new Error("No file provided");
 
-	console.log(
-		`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`,
-	);
+	console.log(`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`);
 
 	try {
 		const buffer = await file.arrayBuffer();
@@ -272,9 +300,7 @@ export async function uploadDataset(formData: FormData) {
 			metadata,
 		});
 
-		console.log(
-			`E2E DEBUG: Server Action: gRPC response: success=${response.success}`,
-		);
+		console.log(`E2E DEBUG: Server Action: gRPC response: success=${response.success}`);
 
 		if (response.success) {
 			// In E2E mode, we sometimes need an artificial delay for filesystem consistency
@@ -300,10 +326,7 @@ export async function uploadDataset(formData: FormData) {
 export async function uploadDatasetFromDrive(fileId: string, filename: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.uploadDatasetFromDrive(
-			{ fileId, filename },
-			{ metadata },
-		);
+		const response = await client.uploadDatasetFromDrive({ fileId, filename }, { metadata });
 
 		if (response.success) {
 			revalidatePath("/admin");
@@ -359,7 +382,7 @@ export async function setActiveDataset(filename: string) {
 export async function deleteDataset(filename: string) {
 	const metadata = await getAuthMetadata();
 	try {
-		const _response = await client.clearDataset({ filename }, { metadata });
+		await client.clearDataset({ filename }, { metadata });
 		revalidatePath("/admin");
 		return {
 			success: true,
@@ -371,10 +394,7 @@ export async function deleteDataset(filename: string) {
 	}
 }
 
-export async function generateReportBundle(
-	requests: GenerateReportConfig[],
-	bundleName: string,
-) {
+export async function generateReportBundle(requests: GenerateReportConfig[], bundleName: string) {
 	try {
 		const metadata = await getAuthMetadata();
 		const response = await client.generateReportBundle(
@@ -433,10 +453,10 @@ export async function getDashboardStats() {
 			teamCount: response.teamCount,
 			athleteCount: response.athleteCount,
 			eventCount: response.eventCount,
-			totalAthletes: response.athleteCount, // Keep legacy field for compatibility
+			totalAthletes: response.athleteCount,
 			totalTeams: response.teamCount,
 			totalEvents: response.eventCount,
-			totalResults: response.meetCount, // Approximate
+			totalResults: response.meetCount,
 		};
 	} catch (_err) {
 		return {
@@ -452,21 +472,11 @@ export async function getDashboardStats() {
 	}
 }
 
-export async function publishMeetData(
-	_filename: string,
-	frontendUrlOverride?: string,
-) {
+export async function publishMeetData(filename: string, frontendUrlOverride?: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		// The proto expects frontend_url to generate the full link
-		const frontendUrl =
-			frontendUrlOverride ||
-			process.env.FRONTEND_URL ||
-			"http://localhost:3100";
-		const response = await client.publishMeetData(
-			{ frontendUrl },
-			{ metadata },
-		);
+		const frontendUrl = frontendUrlOverride || process.env.FRONTEND_URL || "http://localhost:3100";
+		const response = await client.publishMeetData({ frontendUrl }, { metadata });
 		return {
 			success: response.success,
 			message: response.message,
@@ -490,13 +500,7 @@ export async function getAthlete(id: number) {
 export async function getEntries(eventId?: string, athleteId?: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.getEntries(
-			{
-				eventId,
-				athleteId,
-			},
-			{ metadata },
-		);
+		const response = await client.getEntries({ eventId: eventId || "0", athleteId: athleteId || "0" }, { metadata });
 		return { entries: response.entries || [] };
 	} catch (_err) {
 		return { entries: [] };
@@ -504,7 +508,6 @@ export async function getEntries(eventId?: string, athleteId?: string) {
 }
 
 export async function updateAdminConfig(_name: string, _desc?: string) {
-	// Legacy placeholder to satisfy imports during build
 	return { success: true };
 }
 
@@ -512,8 +515,7 @@ export async function getDisqualifications() {
 	try {
 		const headerList = await headers();
 		const cookieStore = await cookies();
-		const userId =
-			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+		const userId = headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
 
 		if (!userId) {
 			console.warn("getDisqualifications: No userId found");

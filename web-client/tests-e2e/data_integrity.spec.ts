@@ -1,0 +1,131 @@
+import { expect, test } from "@playwright/test";
+import {
+	ensureDatasetActive,
+	getE2ETestContext,
+	getFixtureData,
+	robustClick,
+	setupE2ESession,
+} from "./utils";
+
+test.describe("Data Integrity and UI Rendering", () => {
+	test.beforeEach(async ({ page }, testInfo) => {
+		const { getFilename } = getE2ETestContext(testInfo, page);
+		const testFileName = getFilename("tiny_champs.json");
+		const data = getFixtureData("tiny_champs.json");
+		await setupE2ESession(page, testInfo);
+		await ensureDatasetActive(page, testInfo, testFileName, data);
+	});
+
+	test("should show non-empty dashboard stats", async ({ page }) => {
+		await page.goto("/");
+		await expect(page.getByTestId("stat-meets")).not.toHaveText("0");
+		await expect(page.getByTestId("stat-teams")).not.toHaveText("0");
+		await expect(page.getByTestId("stat-athletes")).not.toHaveText("0");
+		await expect(page.getByTestId("stat-events")).not.toHaveText("0");
+	});
+
+	test("should show consistent and different team colors on Teams page", async ({
+		page,
+	}) => {
+		await page.goto("/teams");
+		const rows = page.locator("table tbody tr");
+		await expect(rows).not.toHaveCount(0);
+		
+		const count = await rows.count();
+		expect(count).toBeGreaterThan(1);
+
+		const colors = await rows.evaluateAll((list) => {
+			return list.map((row) => {
+				const badge = row.querySelector("[data-testid='team-color-badge']");
+				return badge ? window.getComputedStyle(badge).backgroundColor : null;
+			});
+		});
+
+		const uniqueColors = new Set(colors.filter((c) => c !== null));
+		console.log(`Found ${uniqueColors.size} unique team colors:`, Array.from(uniqueColors));
+		expect(uniqueColors.size).toBeGreaterThan(1);
+	});
+
+	test("should show non-empty Events page", async ({ page }) => {
+		await page.goto("/events");
+		await expect(page.getByRole("table")).toBeVisible();
+		await expect(page.locator("table tbody tr")).not.toHaveCount(0);
+		await expect(page.locator("table")).toContainText(/Freestyle/i);
+	});
+
+	test("should show non-empty Relays page", async ({ page }) => {
+		await page.goto("/relays");
+		await expect(page.locator("body")).not.toContainText(/No relays found/i);
+		await expect(page.locator("table tbody tr")).not.toHaveCount(0);
+	});
+
+	test("should show non-empty Scores page", async ({ page }) => {
+		await page.goto("/scores");
+		await expect(page.getByRole("table")).toBeVisible();
+		await expect(page.locator("table tbody tr")).not.toHaveCount(0);
+		await expect(page.locator("table")).toContainText(/Total/i);
+	});
+
+	test("should generate a single report with a human-readable filename", async ({ page }) => {
+		await page.goto("/reports");
+		
+		// Select "Psych Sheet"
+		const psychCard = page.getByTestId("report-card-psych-sheet");
+		await robustClick(psychCard);
+		
+		const configCard = page.getByTestId("report-configuration-card");
+		await expect(configCard).toBeVisible();
+		
+		const downloadPromise = page.waitForEvent("download");
+		await configCard.getByTestId("generate-report-button").click();
+		
+		const download = await downloadPromise;
+		const filename = download.suggestedFilename();
+		console.log(`Downloaded filename: ${filename}`);
+		
+		// Verify filename does NOT contain a long random-looking UID
+		expect(filename).toContain("Psych Sheet");
+		expect(filename).not.toMatch(/[a-zA-Z0-9]{20,}_/);
+	});
+
+	test("should generate and download a ZIP bundle without 403 unauthorized error", async ({ page }) => {
+		test.setTimeout(180000);
+		await page.goto("/reports");
+		
+		// Select "Default Meet Pack" preset
+		const presetBtn = page.getByTestId("preset-apply-default");
+		await expect(presetBtn).toBeVisible();
+		await presetBtn.click();
+		
+		// Wait for the bundle button to become enabled (indicates pack has items)
+		const bundleBtn = page.getByTestId("generate-bundle-button");
+		await expect(bundleBtn).toBeEnabled({ timeout: 20000 });
+		await bundleBtn.click();
+		
+		// Wait for completion (idle status)
+		const configCard = page.getByTestId("report-configuration-card");
+		await expect(configCard).toHaveAttribute("data-report-status", "idle", { timeout: 120000 });
+		
+		// Trigger download
+		const downloadPromise = page.waitForEvent("download");
+		const downloadBtn = page.getByTestId("download-bundle-button");
+		if (await downloadBtn.isVisible()) {
+			await downloadBtn.click();
+		} else {
+			// Fallback to generate button if it changed
+			await page.getByRole("button", { name: /Download/i }).click();
+		}
+		
+		const download = await downloadPromise;
+		expect(await download.path()).toBeTruthy();
+		expect(download.suggestedFilename()).toContain(".zip");
+	});
+
+	test("should show teams on Athletes page", async ({ page }) => {
+		await page.goto("/athletes");
+		await expect(page.getByRole("table")).toBeVisible();
+		const firstRow = page.locator("table tbody tr").first();
+		await expect(firstRow).toBeVisible();
+		await expect(firstRow).not.toContainText(/Unknown/i);
+	});
+});

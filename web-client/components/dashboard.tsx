@@ -21,6 +21,7 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 			icon: Trophy,
 			href: "/meets",
 			color: "bg-pool-blue text-tile-white",
+			testId: "stat-meets",
 		},
 		{
 			name: "Teams",
@@ -28,6 +29,7 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 			icon: Users,
 			href: "/teams",
 			color: "bg-sunshine text-foreground",
+			testId: "stat-teams",
 		},
 		{
 			name: "Athletes",
@@ -35,6 +37,7 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 			icon: User,
 			href: "/athletes",
 			color: "bg-pool-light text-foreground",
+			testId: "stat-athletes",
 		},
 		{
 			name: "Events",
@@ -42,6 +45,7 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 			icon: Timer,
 			href: "/events",
 			color: "bg-lane-red text-tile-white",
+			testId: "stat-events",
 		},
 	];
 
@@ -70,7 +74,10 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 								<div className="flex items-center justify-between">
 									<div>
 										<p className="text-sm text-muted-foreground">{stat.name}</p>
-										<p className="text-3xl font-bold text-foreground mt-1">
+										<p
+											className="text-3xl font-bold text-foreground mt-1"
+											data-testid={stat.testId}
+										>
 											{stat.value}
 										</p>
 									</div>

@@ -6,22 +6,6 @@ import type { Relay as UIRelay } from "@/lib/swim-meet-types";
 
 export const dynamic = "force-dynamic";
 
-interface ServerRelay {
-	id: number;
-	eventId: number;
-	eventName?: string;
-	teamId: number;
-	teamName: string;
-	teamColor?: string;
-	leg1Name: string;
-	leg2Name: string;
-	leg3Name: string;
-	leg4Name: string;
-	seedTime: string;
-	finalTime?: string;
-	place?: number;
-}
-
 export default async function RelaysPage({
 	searchParams,
 }: {
@@ -33,9 +17,7 @@ export default async function RelaysPage({
 	let mappedRelays: UIRelay[] = [];
 
 	try {
-		const list = (await getRelays(eventId)) as unknown as {
-			relays: ServerRelay[];
-		};
+		const list = await getRelays(eventId);
 		if (list?.relays) {
 			mappedRelays = list.relays.map((r) => ({
 				id: r.id.toString(),
@@ -43,7 +25,7 @@ export default async function RelaysPage({
 				eventName: r.eventName || `Event ${r.eventId}`,
 				teamId: r.teamId.toString(),
 				teamName: r.teamName,
-				teamColor: r.teamColor,
+				teamColor: "", // Backend will provide if needed, or derived from teamId
 				leg1: r.leg1Name,
 				leg2: r.leg2Name,
 				leg3: r.leg3Name,

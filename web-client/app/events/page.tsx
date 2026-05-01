@@ -7,33 +7,21 @@ import { formatAgeGroup } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-interface ServerEvent {
-	id: number;
-	session: number;
-	distance: number;
-	stroke: string;
-	gender: string;
-	lowAge: number;
-	highAge: number;
-	entryCount: number;
-	ageGroup?: string;
-}
-
 export default async function EventsPage() {
 	let mappedEvents: SwimEvent[] = [];
 	let sessions: Session[] = [];
 
 	try {
 		const [eventsList, sessionsList] = await Promise.all([
-			getEvents() as unknown as { events: ServerEvent[] },
-			getSessions() as unknown as { sessions: Session[] },
+			getEvents(),
+			getSessions(),
 		]);
 
 		if (eventsList?.events) {
 			mappedEvents = eventsList.events.map((e) => ({
 				id: e.id.toString(),
 				sessionId: e.session.toString(),
-				eventNumber: e.id,
+				eventNumber: e.eventNo, // Use correct field
 				distance: e.distance,
 				stroke: e.stroke,
 				gender: e.gender,
@@ -43,7 +31,15 @@ export default async function EventsPage() {
 		}
 
 		if (sessionsList?.sessions) {
-			sessions = sessionsList.sessions;
+			sessions = sessionsList.sessions.map(s => ({
+				id: s.id,
+				meetId: s.meetId,
+				name: s.name,
+				date: s.date,
+				startTime: s.startTime,
+				warmUpTime: s.warmUpTime,
+				eventCount: s.eventCount,
+			}));
 		}
 	} catch (e) {
 		console.error("Failed to fetch events or sessions", e);

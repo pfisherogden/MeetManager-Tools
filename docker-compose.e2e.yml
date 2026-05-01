@@ -15,6 +15,7 @@ services:
     shm_size: '2gb'
     environment:
       - WAIT_FOR_BACKEND=true
+      - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
       - USE_MOCK_FIRESTORE=true
       - FIRESTORE_MOCK_PATH=/app/tmp/mock_firestore.json
   judge-app:
