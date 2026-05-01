@@ -842,6 +842,9 @@ class MmToJsonConverter:
                         "psTime": "NT",
                         "isRelay": True,
                         "relayLtr": str(row.get("relay_ltr", "A")),  # Guessing col name
+                        "athleteId": self._safe_int(row.get("relay_no", row.get("relay"))),
+                        "teamId": team_no,
+                        "members": [],  # Placeholder for Schema B
                     }
                 )
         else:
