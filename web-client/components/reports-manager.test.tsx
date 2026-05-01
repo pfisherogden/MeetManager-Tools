@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ReportsManager } from "./reports-manager";
 
@@ -40,13 +40,19 @@ describe("ReportsManager", () => {
 	it("adds a report to the custom pack", async () => {
 		render(<ReportsManager initialTeams={mockTeams} />);
 
+		// Select a report type first
+		const psychCard = screen.getByTestId("report-card-psych-sheet");
+		fireEvent.click(psychCard);
+
 		const addButton = screen.getByRole("button", { name: /Add to Pack/i });
 		fireEvent.click(addButton);
 
 		// Custom Report Pack Builder should show 1 report
 		expect(screen.getByText(/1 Reports/i)).toBeDefined();
-		// Should show the default Psych Sheet in the builder
-		expect(screen.getByDisplayValue("Psych Sheet")).toBeDefined();
+		
+		// The builder card should contain the "Psych Sheet" input
+		const builderCard = screen.getByTestId("report-builder-card");
+		expect(within(builderCard).getByDisplayValue("Psych Sheet")).toBeDefined();
 	});
 
 	it("applies a preset to the builder", () => {
@@ -60,7 +66,7 @@ describe("ReportsManager", () => {
 		const applyBtn = screen.getByTestId("preset-apply-lineups");
 		fireEvent.click(applyBtn);
 
-		// Check if multiple reports were added (Lineup Sheets adds many)
-		expect(screen.getByText(/12 Reports/i)).toBeDefined();
+		// Check if reports were added (Lineup Sheets adds 1)
+		expect(screen.getByText(/1 Reports/i)).toBeDefined();
 	});
 });

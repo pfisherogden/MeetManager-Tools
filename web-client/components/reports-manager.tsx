@@ -815,6 +815,7 @@ export function ReportsManager({
 				<Card
 					className="shadow-lg border-primary/20"
 					data-testid="report-builder-card"
+					data-report-status={isBundling ? "bundling" : "idle"}
 				>
 					<CardHeader className="bg-primary/5 border-b rounded-t-xl">
 						<div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
