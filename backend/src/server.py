@@ -692,7 +692,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         variations = [lower_name, lower_name + "s"]
         if lower_name.endswith("s"):
             variations.append(lower_name[:-1])
-        
+
         # Exhaustive case-insensitive search
         for actual_key in cache.keys():
             lower_actual = actual_key.lower().strip()
@@ -853,7 +853,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             )
         return pb2.GetAthletesResponse(athletes=athletes)
 
-
     def GetAthlete(self, request, context):
         request = request or pb2.GetAthleteRequest()
         ath_id = request.id
@@ -913,7 +912,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # ptr_to_no: Sess_ptr -> Sess_no
         ptr_to_no = {
-            str(self._get_field(s, ["sess_ptr", "Sess_ptr"])): self._safe_int(self._get_field(s, ["sess_no", "Sess_no"], 1))
+            str(self._get_field(s, ["sess_ptr", "Sess_ptr"])): self._safe_int(
+                self._get_field(s, ["sess_no", "Sess_no"], 1)
+            )
             for s in session_table
             if self._get_field(s, ["sess_ptr", "Sess_ptr"])
         }
@@ -937,9 +938,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             raw_gender = str(self._get_field(item, ["event_sex", "Event_sex"]) or "").upper().strip()
             gender_desc = gender_map.get(raw_gender, raw_gender)
 
-            evt_ptr_val = (
-                self._get_field(item, ["event_ptr", "Event_ptr"])
-                or self._get_field(item, ["event_no", "Event_no"])
+            evt_ptr_val = self._get_field(item, ["event_ptr", "Event_ptr"]) or self._get_field(
+                item, ["event_no", "Event_no"]
             )
             evt_ptr_int = self._safe_int(evt_ptr_val)
             evt_no = self._safe_int(self._get_field(item, ["event_no", "Event_no"]))

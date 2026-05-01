@@ -31,7 +31,7 @@ export default async function EventsPage() {
 		}
 
 		if (sessionsList?.sessions) {
-			sessions = sessionsList.sessions.map(s => ({
+			sessions = sessionsList.sessions.map((s) => ({
 				id: s.id,
 				meetId: s.meetId,
 				name: s.name,

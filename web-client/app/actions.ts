@@ -8,7 +8,8 @@ import client from "@/lib/mm-client";
 async function getAuthMetadata() {
 	const headerList = await headers();
 	const cookieStore = await cookies();
-	let userId = headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+	let userId =
+		headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
 
 	// Fallback for local development or E2E bypass
 	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" && !userId) {
@@ -201,7 +202,10 @@ export async function getSessions() {
 export async function getRelays(eventId?: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.getRelays({ eventId: eventId || "0" }, { metadata });
+		const response = await client.getRelays(
+			{ eventId: eventId || "0" },
+			{ metadata },
+		);
 		return {
 			relays: response.relays.map((r) => ({
 				id: r.id,
@@ -280,7 +284,9 @@ export async function uploadDataset(formData: FormData) {
 
 	if (!file) throw new Error("No file provided");
 
-	console.log(`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`);
+	console.log(
+		`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`,
+	);
 
 	try {
 		const buffer = await file.arrayBuffer();
@@ -300,7 +306,9 @@ export async function uploadDataset(formData: FormData) {
 			metadata,
 		});
 
-		console.log(`E2E DEBUG: Server Action: gRPC response: success=${response.success}`);
+		console.log(
+			`E2E DEBUG: Server Action: gRPC response: success=${response.success}`,
+		);
 
 		if (response.success) {
 			// In E2E mode, we sometimes need an artificial delay for filesystem consistency
@@ -326,7 +334,10 @@ export async function uploadDataset(formData: FormData) {
 export async function uploadDatasetFromDrive(fileId: string, filename: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.uploadDatasetFromDrive({ fileId, filename }, { metadata });
+		const response = await client.uploadDatasetFromDrive(
+			{ fileId, filename },
+			{ metadata },
+		);
 
 		if (response.success) {
 			revalidatePath("/admin");
@@ -394,7 +405,10 @@ export async function deleteDataset(filename: string) {
 	}
 }
 
-export async function generateReportBundle(requests: GenerateReportConfig[], bundleName: string) {
+export async function generateReportBundle(
+	requests: GenerateReportConfig[],
+	bundleName: string,
+) {
 	try {
 		const metadata = await getAuthMetadata();
 		const response = await client.generateReportBundle(
@@ -472,11 +486,20 @@ export async function getDashboardStats() {
 	}
 }
 
-export async function publishMeetData(filename: string, frontendUrlOverride?: string) {
+export async function publishMeetData(
+	_filename: string,
+	frontendUrlOverride?: string,
+) {
 	try {
 		const metadata = await getAuthMetadata();
-		const frontendUrl = frontendUrlOverride || process.env.FRONTEND_URL || "http://localhost:3100";
-		const response = await client.publishMeetData({ frontendUrl }, { metadata });
+		const frontendUrl =
+			frontendUrlOverride ||
+			process.env.FRONTEND_URL ||
+			"http://localhost:3100";
+		const response = await client.publishMeetData(
+			{ frontendUrl },
+			{ metadata },
+		);
 		return {
 			success: response.success,
 			message: response.message,
@@ -500,7 +523,10 @@ export async function getAthlete(id: number) {
 export async function getEntries(eventId?: string, athleteId?: string) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.getEntries({ eventId: eventId || "0", athleteId: athleteId || "0" }, { metadata });
+		const response = await client.getEntries(
+			{ eventId: eventId || "0", athleteId: athleteId || "0" },
+			{ metadata },
+		);
 		return { entries: response.entries || [] };
 	} catch (_err) {
 		return { entries: [] };
@@ -515,7 +541,8 @@ export async function getDisqualifications() {
 	try {
 		const headerList = await headers();
 		const cookieStore = await cookies();
-		const userId = headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+		const userId =
+			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
 
 		if (!userId) {
 			console.warn("getDisqualifications: No userId found");
