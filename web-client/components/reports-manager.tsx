@@ -803,7 +803,9 @@ export function ReportsManager({
 									size="sm"
 									onClick={clearPack}
 									disabled={customPack.length === 0 || isBundling}
+									data-testid="clear-pack-button"
 								>
+									{" "}
 									<Trash2 className="mr-2 h-4 w-4" />
 									Clear
 								</Button>

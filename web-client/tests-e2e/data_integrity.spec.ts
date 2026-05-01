@@ -97,21 +97,33 @@ test.describe("Data Integrity and UI Rendering", () => {
 		test.setTimeout(180000);
 		await page.goto("/reports");
 
+		// 1. Clear any existing pack items first to ensure a clean state
+		const clearBtn = page.getByTestId("clear-pack-button");
+		if ((await clearBtn.isVisible()) && (await clearBtn.isEnabled())) {
+			await clearBtn.click();
+			await expect(page.getByText(/Your pack is empty/i)).toBeVisible();
+		}
+
+		// 2. Select "Default Meet Pack" preset
 		const presetBtn = page.getByTestId("preset-apply-default");
 		await expect(presetBtn).toBeVisible();
 		await presetBtn.click();
 
+		// 3. Wait for the bundle button to become enabled (indicates pack has items)
 		const bundleBtn = page.getByTestId("generate-bundle-button");
 		await expect(bundleBtn).toBeEnabled({ timeout: 20000 });
 
-		// Setup download listener BEFORE clicking generate
+		// 4. Setup download listener BEFORE clicking generate
 		const downloadPromise = page.waitForEvent("download", { timeout: 120000 });
 
 		await bundleBtn.click();
 
+		// 5. The UI triggers an automatic download via window.location.href once complete
 		const download = await downloadPromise;
 		expect(await download.path()).toBeTruthy();
-		expect(download.suggestedFilename()).toContain(".zip");
+		const filename = download.suggestedFilename();
+		console.log(`Downloaded bundle: ${filename}`);
+		expect(filename).toContain(".zip");
 	});
 
 	test("should show teams on Athletes page", async ({ page }) => {
