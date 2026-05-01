@@ -350,38 +350,51 @@ def update_entry_status(
 
     from java.util import HashMap
 
-    criteria = HashMap()
-    criteria.put("Event_ptr", event_ptr)
-    # In RELAY table it's Relay_no, in ENTRY it's Ath_no
-    id_col = "Relay_no" if is_relay else "Ath_no"
-    criteria.put(id_col, athlete_id)
+    # Helper to attempt update for a specific round type
+    def try_update(r_type):
+        criteria = HashMap()
+        criteria.put("Event_ptr", event_ptr)
+        # In RELAY table it's Relay_no, in ENTRY it's Ath_no
+        id_col = "Relay_no" if is_relay else "Ath_no"
+        criteria.put(id_col, athlete_id)
 
-    # Often we want to match heat/lane too to be safe
-    if heat > 0:
-        col = "Pre_heat" if round_type == "P" else ("Fin_heat" if round_type == "F" else "Sem_heat")
-        criteria.put(col, heat)
-    if lane > 0:
-        col = "Pre_lane" if round_type == "P" else ("Fin_lane" if round_type == "F" else "Sem_lane")
-        criteria.put(col, lane)
+        # Often we want to match heat/lane too to be safe
+        if heat > 0:
+            col = "Pre_heat" if r_type == "P" else ("Fin_heat" if r_type == "F" else "Sem_heat")
+            criteria.put(col, heat)
+        if lane > 0:
+            col = "Pre_lane" if r_type == "P" else ("Fin_lane" if r_type == "F" else "Sem_lane")
+            criteria.put(col, lane)
 
-    c = table.getDefaultCursor()
-    if c.findFirstRow(criteria):
-        row = c.getCurrentRow()
+        c = table.getDefaultCursor()
+        if c.findFirstRow(criteria):
+            row = c.getCurrentRow()
 
-        # Update status
-        stat_col = "Pre_stat" if round_type == "P" else ("Fin_stat" if round_type == "F" else "Sem_stat")
-        row.put(stat_col, status)
+            # Update status
+            stat_col = "Pre_stat" if r_type == "P" else ("Fin_stat" if r_type == "F" else "Sem_stat")
+            row.put(stat_col, status)
 
-        # Update DQ code if provided
-        if dq_code:
-            code_col = "Pre_dqcode" if round_type == "P" else ("Fin_dqcode" if round_type == "F" else "Sem_dqcode")
-            row.put(code_col, dq_code)
+            # Update DQ code if provided
+            if dq_code:
+                code_col = "Pre_dqcode" if r_type == "P" else ("Fin_dqcode" if r_type == "F" else "Sem_dqcode")
+                row.put(code_col, dq_code)
 
-        table.updateRow(row)
-        logger.info(f"Updated DQ status for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr}")
+            table.updateRow(row)
+            logger.info(f"Updated DQ status for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr} (Round {r_type})")
+            return True
+        return False
+
+    # 1. Try provided round type
+    if try_update(round_type):
         return True
 
+    # 2. Try common fallbacks if initial attempt failed
+    fallbacks = ["F", "P"] if round_type not in ["F", "P"] else (["F"] if round_type == "P" else ["P"])
+    for f in fallbacks:
+        if try_update(f):
+            return True
+
     logger.warning(
-        f"Could not find entry for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr} (Heat {heat}, Lane {lane})"
+        f"Could not find entry for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr} (Heat {heat}, Lane {lane}) across all rounds"
     )
     return False

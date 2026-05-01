@@ -92,7 +92,7 @@ const columns: Column<Athlete>[] = [
 
 interface AthletesManagerProps {
 	initialAthletes: Athlete[];
-	teams: string[];
+	teams: { id: string; name: string }[];
 }
 
 export function AthletesManager({
@@ -102,9 +102,10 @@ export function AthletesManager({
 	const [data, setData] = useState<Athlete[]>(initialAthletes);
 
 	// Update columns to use dynamic teams
+	const teamOptions = teams.map((t) => t.name);
 	const columnsWithTeams = columns.map((col) => {
 		if (col.key === "teamName") {
-			return { ...col, options: teams };
+			return { ...col, options: teamOptions };
 		}
 		return col;
 	});
