@@ -18,14 +18,10 @@ export async function GET(request: NextRequest) {
 	}
 
 	// Basic security check: allow if token matches environment secret or if it's a public path
-	const configuredToken = process.env.DATA_ACCESS_TOKEN;
-	const isTokenConfigured =
-		configuredToken !== undefined && configuredToken !== "";
-
-	// Allow unauthenticated access specifically for sample-user paths (public sample data)
-	const isSamplePath = path.startsWith("users/sample-user/");
+	const configuredToken =
+		process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
 	const isAuthorized =
-		isSamplePath || !isTokenConfigured || token === configuredToken;
+		path.startsWith("users/sample-user/") || token === configuredToken;
 
 	if (!isAuthorized) {
 		console.warn(

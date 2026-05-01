@@ -1,75 +1,65 @@
----
-name: Testing Standards
-description: Guidelines for running and writing tests in MeetManager-Tools. Use when adding features, fixing bugs, or verifying system behavior.
----
+# Skill: High-Precision E2E Stabilization
 
-# Testing Standards
+This skill provides expert guidance for hardening Playwright E2E tests in the MMTools project, specifically targeting race conditions, state leakage, and hydration hangs in the integrated Judge App.
 
-## Core Principles
-- **Mandatory Verification**: Every code change must be accompanied by tests.
-- **Unified Entry Point**: Use `just test` for full suite execution.
-- **Robustness**: Ensure gRPC server methods handle `request=None` gracefully.
-- **Environment Consistency**: Prefer running tests in Docker (`just test-backend` or `docker-compose run ...`) over local execution to avoid OS-specific library issues (e.g., Cairo/Pango versions).
+## 🎯 Core Principles
 
-## Test Workflow
-1. **Sync Dependencies**: Run `uv sync --all-packages --dev` (Backend) or `npm install` (Frontend).
-2. **Generate Code**: Run `just codegen` if modifying `.proto` files.
-3. **Execute Backend Tests**: Run `just test-backend` for `pytest`.
-   - Focus on data parsing and report generation logic.
-   - Verify PDF/PNG artifacts against snapshots in `backend/data/example_reports/`.
-4. **Execute Frontend Tests**: Run `just test-frontend` for `Vitest`.
-       - Focus on component rendering and Server Action interactions.
-       - **Anti-Hang**: Always use `vitest run` (or `npm test -- --run`) in automated scripts to prevent the runner from entering watch mode and hanging the process.
-5. **Local CI Check**: Run `just ci-local` to execute GitHub Actions locally using `act`. 
-   - This MUST be done before creating or updating a PR to ensure all remote workflows pass.
-   - **Cross-Platform**: The `Justfile` automatically detects the host environment. On Apple Silicon (M-series), it forces `--container-architecture linux/amd64` to ensure compatibility with standard Ubuntu-based action runners.
+1.  **Zero Leakage**: Every test journey MUST start with a clean slate.
+2.  **Pre-emptive Listening**: Listeners for network responses MUST be initialized BEFORE the action that triggers them.
+3.  **Monolith Readiness**: Tests MUST account for the Judge App being served via Next.js rewrites in the monolith.
 
-## Reliability Standards (Mandatory)
-- **2-Cycle Verification**: For all major implementations, refactors, or bug fixes, you MUST run the relevant test suite (e.g., `just test-backend` or `npm run test-e2e`) **2 times consecutively**. All 2 runs must pass 100% to consider the task complete. This catches flakiness and race conditions efficiently.
-- **Stateless Sharing (Next.js)**: In CI/E2E environments, data shared between API routes and Server Actions MUST use file-based mocks (with `fsync` and retries) instead of in-memory maps, as they run in separate worker processes.
-- **Volume Permissions**: When using Docker volumes in GHA, ensure the mount point on the host is world-writable (`chmod 777`) before starting services to prevent `EACCES` errors in the container.
+## 🛠 Hardening Patterns
 
-## CI Optimization & Browser Testing
-- **E2E Sharding**: Use Playwright sharding (e.g., 4-way) in CI to reduce total runtime. Verify shards pass independently.
-- **Browser Selection**: In CI, limit testing to `chromium` and `Mobile Safari` to maximize speed while maintaining cross-engine coverage. Use all browsers only for local full-suite validation.
-- **Caching**: Ensure `~/.cache/ms-playwright` and `node_modules` are cached using `actions/cache` to skip redundant downloads.
-- **Ready Checks**: Never use `sleep` for service readiness in CI. Use a `curl` or `nc` loop to wait for the frontend (port 3000) and backend (port 8080) to be fully reachable.
+### 1. Explicit State Reset
+Never assume the UI is in its default state. Use `data-testid` to click 'Clear' or 'Reset' buttons at the start of a `beforeEach` or at the beginning of a test.
+```typescript
+// Example: Resetting the report pack
+const clearBtn = page.getByTestId("clear-pack-button");
+if (await clearBtn.isVisible()) {
+    await clearBtn.click();
+}
+```
 
-## Robust Playwright Selectors
-- **Ambiguity**: If multiple buttons have the same name (e.g., "Apply to Builder" in a list), use `data-testid` or scoped locators: `page.locator("div", { has: page.getByText("Specific Item") }).getByRole("button")`.
-- **Mobile Interaction**: In mobile Safari emulation, pointer events are frequently intercepted by overlapping elements. Use `page.evaluate(() => el.click())` for critical buttons to ensure interaction stability.
-- **Viewport Height**: Use a tall viewport (e.g., 1200px) in mobile emulation to prevent the soft keyboard from pushing UI elements out of view.
-- **Inputs**: For verifying text inside an `<input>` or `<textarea>`, prefer `getByDisplayValue()` over `getByText()`, as the latter may not find the value of a form field.
-- **Spinners**: To check for loading states, use `toBeVisible()` on the spinner icon (e.g., `.animate-spin`) or `toBeAttached()` if the transition is very fast.
+### 2. Pre-emptive `waitForResponse`
+To eliminate sync race conditions, capture the response promise BEFORE the click.
+```typescript
+// ✅ CORRECT:
+const responsePromise = page.waitForResponse(r => r.url().includes("/api/sync") && r.status() === 200);
+await page.getByRole("button", { name: "Save" }).click();
+const response = await responsePromise;
 
-## Data & Mocking Best Practices
-- **Sensitive Data False Positives**: Test logs containing variable names like `gender`, `team`, or `age` may trigger CodeQL's `py/clear-text-logging-sensitive-data` alert. Use the `# codeql [py/clear-text-logging-sensitive-data]` suppression comment on the logging line if the data is anonymized or intended for test verification.
-- **Strict Case Sensitivity**: When mocking Pandas DataFrames or dictionaries for `MmToJsonConverter`, assume case-sensitive column access. Although the converter might normalize *loaded* data to lowercase, tests injecting raw data must match the expected internal keys exactly (e.g., use `convseed_time` not `ConvSeed_time`).
-- **Fixture Consistency**: Ensure mock data matches the structure of real MDB exports. If the application logic relies on specific relationships (e.g., `Event_ptr` linking `Entry` to `Event`), manually verified mock data is crucial.
+// ❌ INCORRECT:
+await page.getByRole("button", { name: "Save" }).click();
+const response = await page.waitForResponse(...); // Response may have already arrived!
+```
 
-## Report Validation
-- **Data Hydration**: Assert that all data fields (Meet Name, Team Filter, etc.) are correctly mapped from the request to the template data.
-- **Edge Cases**: Explicitly test "NT" (No Time) entries, scratched swimmers, and complex relay structures (up to 4 swimmers + alternates).
-   - **DOM Validation**: Use `BeautifulSoup` to parse generated HTML before it hits the PDF renderer. Assert:
-       - Expected CSS classes (e.g., `.event-block`, `.col-lane`) are present.
-       - No empty/invalid data fields.
-       - The number of blocks matches the database query.
-   - **Template Pitfalls**:
-       - **Jinja2 Shadowing**: Never use the key `items` in a dictionary passed to Jinja2 templates (e.g., `group.items`). Jinja2 resolves `items` to the built-in `dict.items()` method, causing `UndefinedError` or unexpected behavior. Use `sections` or `entries` instead.
-   - **Renderer Logs**: Capture WeasyPrint or Playwright stdout/stderr to programmatically check for layout warnings like "Content box too small."
-   
-   ## Design Patterns
-   
-- **Unit over Integration**: Prefer testing logic in isolation before full system tests.
-- **Snapshots**: Use file-based snapshots for visual reports to ensure data integrity across transformations.
+### 3. Hydration Sentinels
+Ensure the React/Expo SPA is fully interactive before clicking. Use a combination of path verification, element visibility, and font readiness.
+```typescript
+export async function waitForJudgeApp(page: Page) {
+    // 1. Path check (supports monolith rewrites)
+    await page.waitForFunction(() => window.location.pathname.includes("/judge"));
+    // 2. Element check (wait for a core interactive element)
+    await expect(page.getByPlaceholder("Your Name")).toBeVisible({ timeout: 30000 });
+    // 3. Font check (prevents layout shifts during click)
+    await page.evaluate(() => document.fonts.ready);
+}
+```
 
-## Live Environment Verification
-- **Pathing Issues**: GitHub Pages hosts sites in a subdirectory (e.g., `/Repo-Name/`). Always verify the app on the deployed URL to catch pathing regressions that don't appear in Docker root deployments.
-- **Asset Loading**: Check the browser console on the live site for 404s on JS chunks or assets, which often indicate `publicPath` or `baseUrl` configuration errors.
-- **Service Workers**: If implementing PWAs, verify service worker registration scope matches the subdirectory.
+### 4. Robust Click Fallback
+If standard `click()` fails due to pointer-event interception in mobile emulation, use a script-based fallback.
+```typescript
+export async function robustClick(locator: Locator) {
+    try {
+        await locator.click({ timeout: 5000 });
+    } catch (e) {
+        await locator.evaluate((el) => (el as HTMLElement).click());
+    }
+}
+```
 
-## Lessons Learned (Mobile Judge App)
-- **UI/Test Sync**: When modifying UI text strings (e.g., simplifying "DQ Swimmer: Name" to "DQ: Name"), immediately grep for that string in `__tests__` or `test/` directories. UI copy changes often break strict text matchers in Jest.
-- **Navigation Bounds**: When implementing list navigation (Next/Prev), always explicitly test the start (index 0) and end (index N-1) bounds to prevent out-of-range errors or visual glitches. Instead of faint disabled states, consider fully hiding (un-mounting) navigational arrows at the boundaries.
-- **Mobile Touch Targets**: Ensure navigation elements (arrows, buttons) have sufficient padding (hit slop) for touch interaction, as verified by browser automation.
-- **React Native Web Layouts**: Text wrapping behavior differs fundamentally between Native and Web. Ensure parent container views explicitly use `flexWrap: 'wrap'` when rendering flex-row lists on the Web to prevent text from overflowing or being truncated.
+## 🔍 Validation Checklist
+- [ ] Does the test clear global state (LocalStorage, Report Pack)?
+- [ ] Are all `waitForResponse` calls initialized before the trigger?
+- [ ] Does the Judge App test use `waitForJudgeApp`?
+- [ ] Is the `idToken` cookie injected for middleware bypass?

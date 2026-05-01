@@ -237,7 +237,7 @@ def _process_single_report_process(
                 age_group_filter=report_req_age_group_filter,
             )
             template = "psych_sheet.j2"
-        elif rtype == "entries":
+        elif rtype == "entries" or rtype == "entries_hytek":
             report_data = extractor.extract_meet_entries_data(
                 team_filter=report_req_team_filter,
                 report_title=title,
@@ -309,9 +309,10 @@ def _process_single_report_process(
         render_duration = (datetime.datetime.now() - render_start_time).total_seconds()
         ext = ".html" if is_html else ".pdf"
 
-        # Restore human-readable filenames (sanitized title or report type)
+        # Restore human-readable filenames (sanitized title or report type) with a timestamp to avoid collisions
         safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-        final_filename = f"{safe_title}{ext}"
+        timestamp = datetime.datetime.now().strftime("%H%M%S")
+        final_filename = f"{safe_title}_{timestamp}{ext}"
 
         html_str = pdf_bytes.decode("utf-8") if is_html else ""
         return {
@@ -1011,10 +1012,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 item, ["event_no", "Event_no"]
             )
             event_id_int = self._safe_int(event_id_val)
-            if request and request.event_id and str(event_id_val) != request.event_id:
+
+            # Fix: Only filter if event_id is provided AND is not '0' (default)
+            if request and request.event_id and request.event_id != "0" and str(event_id_val) != request.event_id:
                 continue
 
-            seed = self._get_field(item, ["actualseed_time", "convseed_time", "seed_time"])
+            seed = self._get_field(item, ["actualseed_time", "convseed_time", "seed_time", "ConvSeed_time"])
 
             entry_id_val = self._get_field(item, ["entry_no", "Entry_no"])
             final_id = self._safe_int(entry_id_val) if entry_id_val else idx
@@ -1282,7 +1285,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         result = []
         for idx, item in enumerate(relays_data):
             event_ptr = self._get_field(item, ["event_ptr", "Event_ptr"])
-            if request and request.event_id and str(event_ptr) != request.event_id:
+            # Fix: Only filter if event_id is provided AND is not '0' (default)
+            if request and request.event_id and request.event_id != "0" and str(event_ptr) != request.event_id:
                 continue
 
             t_id = self._safe_int(self._get_field(item, ["team_ptr", "team_no", "Team_ptr", "Team_no"]) or 0)
@@ -1855,7 +1859,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             is_unsigned_gcs = "storage.googleapis.com" in bundle_url and "?" not in bundle_url
 
             if is_relative or is_unsigned_gcs:
-                token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+                token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
                 import urllib.parse
 
                 safe_bundle_path = urllib.parse.quote(bundle_rel_path)
@@ -2055,15 +2059,17 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Generate URLs
             # Use the /api/data proxy for the program_url to avoid direct GCS signed URL issues.
             # This works statelessly using the DATA_ACCESS_TOKEN.
-            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+            token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
 
             # Use frontend_url from request if provided, otherwise environment variables
             if request.frontend_url:
                 frontend_base = request.frontend_url.rstrip("/")
             else:
-                frontend_host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
-                frontend_port = os.getenv("FRONTEND_PORT", "3000")
-                frontend_base = os.getenv("FRONTEND_PUBLIC_URL", f"http://{frontend_host}:{frontend_port}")
+                frontend_base = os.getenv("FRONTEND_URL") or os.getenv("FRONTEND_PUBLIC_URL")
+                if not frontend_base:
+                    frontend_host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
+                    frontend_port = os.getenv("FRONTEND_PORT", "3000")
+                    frontend_base = f"http://{frontend_host}:{frontend_port}"
 
             # Correctly path-encode the user_pub_path
             import urllib.parse
@@ -2105,7 +2111,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def SyncDQs(self, request, context):
         # System-level bypass for stateless sync from mobile apps (authenticated by web-client proxy)
-        token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+        token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
         uid = request.uid
 
         logging.info(f"SyncDQs: Received request for UID: {uid}, Payload length: {len(request.dqs_json)}")
@@ -2231,7 +2237,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         if not is_sample:
             # System-level bypass for stateless access
-            token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+            token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
             if token and request.token == token:
                 # Authorized via system token, skip uid check for the path prefix
                 # but we should still validate it's within 'users/'

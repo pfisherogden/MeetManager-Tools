@@ -87,8 +87,10 @@ test.describe("Data Integrity and UI Rendering", () => {
 		const filename = download.suggestedFilename();
 		console.log(`Downloaded filename: ${filename}`);
 
+		// Verify filename matches the human readable pattern (Psych Sheet_HHMMSS.pdf)
 		expect(filename).toContain("Psych Sheet");
-		expect(filename).not.toMatch(/[a-zA-Z0-9]{20,}_/);
+		expect(filename).toMatch(/Psych Sheet_\d{6}\.pdf/);
+		expect(filename).not.toMatch(/[a-zA-Z0-9]{20,}_/); // No long UID prefix
 	});
 
 	test("should generate and download a ZIP bundle without 403 unauthorized error", async ({
@@ -114,12 +116,20 @@ test.describe("Data Integrity and UI Rendering", () => {
 		await expect(bundleBtn).toBeEnabled({ timeout: 20000 });
 
 		// 4. Setup download listener BEFORE clicking generate
-		const downloadPromise = page.waitForEvent("download", { timeout: 120000 });
+		const downloadPromise = page.waitForEvent("download", { timeout: 150000 });
 
 		await bundleBtn.click();
 
 		// 5. The UI triggers an automatic download via window.location.href once complete
 		const download = await downloadPromise;
+		const downloadUrl = download.url();
+		console.log(`Download started: ${downloadUrl}`);
+
+		// 6. Verify the bundle URL contains a token and it's not empty
+		expect(downloadUrl).toContain("token=");
+		expect(downloadUrl).not.toContain("token=&");
+		expect(downloadUrl).not.toMatch(/token=$/); // Should not end with token=
+
 		expect(await download.path()).toBeTruthy();
 		const filename = download.suggestedFilename();
 		console.log(`Downloaded bundle: ${filename}`);

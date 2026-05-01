@@ -100,8 +100,8 @@ class LocalStorageProvider(StorageProvider):
     def get_url(self, remote_path: str) -> str:
         # Local URLs point to the frontend's dynamic data endpoint
         # Use environment variables to avoid collisions
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-        token = os.getenv("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+        frontend_url = os.getenv("FRONTEND_URL") or os.getenv("FRONTEND_PUBLIC_URL") or "http://localhost:3100"
+        token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
         import urllib.parse
 
         safe_path = urllib.parse.quote(remote_path)
