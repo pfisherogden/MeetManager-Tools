@@ -35,7 +35,16 @@ test.describe("Champs Dataset Journey", () => {
 			timeout: 20000,
 		});
 
-		// 4. Reports Page: Verify generation
+		// 4. Athletes Page: Verify team mapping
+		await page.goto("/athletes");
+		await expect(page.locator("table")).toContainText("Blue Dolphins", {
+			timeout: 20000,
+		});
+		await expect(page.locator("table")).not.toContainText("Unknown", {
+			timeout: 10000,
+		});
+
+		// 5. Reports Page: Verify generation
 		await page.goto("/reports");
 
 		// Select "Meet Results" card
