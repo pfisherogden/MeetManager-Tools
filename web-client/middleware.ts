@@ -4,6 +4,15 @@ import { NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
+	// Respect AUTH_DISABLED setting for local dev/E2E
+	const isAuthDisabled =
+		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
+		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
+
+	if (isAuthDisabled) {
+		return NextResponse.next();
+	}
+
 	// Define public paths that don't require authentication
 	const isPublicPath =
 		pathname === "/login" ||
