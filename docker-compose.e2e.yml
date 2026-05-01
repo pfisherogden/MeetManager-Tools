@@ -18,6 +18,8 @@ services:
       - DATA_ACCESS_TOKEN=${DATA_ACCESS_TOKEN:-mmtools-default-secret-2024}
       - USE_MOCK_FIRESTORE=true
       - FIRESTORE_MOCK_PATH=/app/tmp/mock_firestore.json
+      - NEXT_PUBLIC_AUTH_DISABLED=${NEXT_PUBLIC_AUTH_DISABLED:-false}
+      - NEXT_PUBLIC_E2E_AUTH_BYPASS=${NEXT_PUBLIC_E2E_AUTH_BYPASS:-true}
   judge-app:
     image: nginx:stable-alpine
     ports:

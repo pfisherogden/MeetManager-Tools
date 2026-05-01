@@ -9,10 +9,13 @@ export function middleware(request: NextRequest) {
 		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
 		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
 
+	console.log(
+		`[Middleware] Path: ${pathname}, AuthDisabled: ${isAuthDisabled}, E2EBypass: ${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`,
+	);
+
 	if (isAuthDisabled) {
 		return NextResponse.next();
 	}
-
 	// Define public paths that don't require authentication
 	const isPublicPath =
 		pathname === "/login" ||

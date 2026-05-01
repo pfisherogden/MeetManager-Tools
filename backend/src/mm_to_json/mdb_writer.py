@@ -380,7 +380,9 @@ def update_entry_status(
                 row.put(code_col, dq_code)
 
             table.updateRow(row)
-            logger.info(f"Updated DQ status for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr} (Round {r_type})")
+            logger.info(
+                f"Updated DQ status for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr} (Round {r_type})"
+            )
             return True
         return False
 
