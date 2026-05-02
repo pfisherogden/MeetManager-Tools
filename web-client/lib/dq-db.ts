@@ -198,3 +198,44 @@ export async function getDqs(userId?: string | null): Promise<any[]> {
 		throw error;
 	}
 }
+
+export async function deleteDq(dqId: string, userId?: string | null) {
+	try {
+		const db = getDb(userId);
+		if (process.env.USE_MOCK_FIRESTORE === "true") {
+			const storage = await (db as any).readStorage();
+			storage.delete(`disqualifications/${dqId}`);
+			await (db as any).writeStorage(storage);
+		} else {
+			await db.collection("disqualifications").doc(dqId).delete();
+		}
+	} catch (error: any) {
+		console.error(`FIRESTORE ERROR (deleteDq): ${error.message}`);
+		throw error;
+	}
+}
+
+export async function clearAllDqs(userId?: string | null) {
+	try {
+		const db = getDb(userId);
+		if (process.env.USE_MOCK_FIRESTORE === "true") {
+			const storage = await (db as any).readStorage();
+			for (const key of storage.keys()) {
+				if (key.startsWith("disqualifications/")) {
+					storage.delete(key);
+				}
+			}
+			await (db as any).writeStorage(storage);
+		} else {
+			const snapshot = await db.collection("disqualifications").get();
+			const batch = db.batch();
+			for (const doc of snapshot.docs) {
+				batch.delete(doc.ref);
+			}
+			await batch.commit();
+		}
+	} catch (error: any) {
+		console.error(`FIRESTORE ERROR (clearAllDqs): ${error.message}`);
+		throw error;
+	}
+}

@@ -311,7 +311,7 @@ def _process_single_report_process(
 
         # Restore human-readable filenames (sanitized title or report type) with a timestamp to avoid collisions
         safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-        timestamp = datetime.datetime.now().strftime("%H%M%S")
+        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
         final_filename = f"{safe_title}_{timestamp}{ext}"
 
         html_str = pdf_bytes.decode("utf-8") if is_html else ""
@@ -1014,9 +1014,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             event_id_int = self._safe_int(event_id_val)
 
             # Fix: Only filter if event_id is provided AND is not '0' (default)
-            if request and request.event_id and request.event_id != "0" and str(event_id_val) != request.event_id:
+            # Use numeric comparison to avoid 17.0 != 17 issues
+            if (
+                request
+                and request.event_id
+                and request.event_id != "0"
+                and self._safe_int(request.event_id) != event_id_int
+            ):
                 continue
-
             seed = self._get_field(item, ["actualseed_time", "convseed_time", "seed_time", "ConvSeed_time"])
 
             entry_id_val = self._get_field(item, ["entry_no", "Entry_no"])
@@ -1286,7 +1291,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         for idx, item in enumerate(relays_data):
             event_ptr = self._get_field(item, ["event_ptr", "Event_ptr"])
             # Fix: Only filter if event_id is provided AND is not '0' (default)
-            if request and request.event_id and request.event_id != "0" and str(event_ptr) != request.event_id:
+            if (
+                request
+                and request.event_id
+                and request.event_id != "0"
+                and self._safe_int(request.event_id) != self._safe_int(event_ptr)
+            ):
                 continue
 
             t_id = self._safe_int(self._get_field(item, ["team_ptr", "team_no", "Team_ptr", "Team_no"]) or 0)
@@ -1863,9 +1873,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 import urllib.parse
 
                 safe_bundle_path = urllib.parse.quote(bundle_rel_path)
-                # Try to get FRONTEND_URL from environment, defaulting to 3100 for local dev consistency
-                frontend_base = os.getenv("FRONTEND_URL", "http://localhost:3100")
-                bundle_url = f"{frontend_base}/api/data?path={safe_bundle_path}&token={token}"
+                # Try to get frontend_url from request if provided, otherwise from environment
+                frontend_base = getattr(request, "frontend_url", None) or os.getenv("FRONTEND_URL")
+                if not frontend_base:
+                    frontend_base = os.getenv("FRONTEND_PUBLIC_URL", "http://localhost:3100")
+
+                bundle_url = f"{frontend_base.rstrip('/')}/api/data?path={safe_bundle_path}&token={token}"
                 logging.info(f"Using absolute proxy fallback URL: {bundle_url}")
 
             logging.info(f"Job {job_id}: Final bundle_url: {bundle_url}")
@@ -2191,6 +2204,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                                 event_id = dq.get("event_id")
                                 athlete_id = dq.get("swimmer_id")
                                 dq_code = dq.get("dq_code", "")
+                                notes = dq.get("notes", "")
                                 heat = self._safe_int(dq.get("heat", 0))
                                 lane = self._safe_int(dq.get("lane", 0))
 
@@ -2207,6 +2221,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                                         is_relay=info["is_relay"],
                                     ):
                                         updated_count += 1
+                                        logging.info(
+                                            f"Updated MDB DQ for swimmer {athlete_id} in event {event_id}. Notes: {notes}"
+                                        )
 
                             db.close()
                             # Upload updated MDB back to storage

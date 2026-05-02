@@ -603,14 +603,16 @@ class GenerateReportResponse(_message.Message):
     def __init__(self, success: bool = ..., message: _Optional[str] = ..., pdf_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., html_content: _Optional[str] = ...) -> None: ...
 
 class GenerateReportBundleRequest(_message.Message):
-    __slots__ = ("reports", "bundle_name", "renderer_type")
+    __slots__ = ("reports", "bundle_name", "renderer_type", "frontend_url")
     REPORTS_FIELD_NUMBER: _ClassVar[int]
     BUNDLE_NAME_FIELD_NUMBER: _ClassVar[int]
     RENDERER_TYPE_FIELD_NUMBER: _ClassVar[int]
+    FRONTEND_URL_FIELD_NUMBER: _ClassVar[int]
     reports: _containers.RepeatedCompositeFieldContainer[GenerateReportRequest]
     bundle_name: str
     renderer_type: RendererType
-    def __init__(self, reports: _Optional[_Iterable[_Union[GenerateReportRequest, _Mapping]]] = ..., bundle_name: _Optional[str] = ..., renderer_type: _Optional[_Union[RendererType, str]] = ...) -> None: ...
+    frontend_url: str
+    def __init__(self, reports: _Optional[_Iterable[_Union[GenerateReportRequest, _Mapping]]] = ..., bundle_name: _Optional[str] = ..., renderer_type: _Optional[_Union[RendererType, str]] = ..., frontend_url: _Optional[str] = ...) -> None: ...
 
 class GenerateReportBundleResponse(_message.Message):
     __slots__ = ("success", "message", "zip_content", "filename", "bundle_url", "job_id")

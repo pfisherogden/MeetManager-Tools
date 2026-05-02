@@ -314,7 +314,13 @@ export function ReportsManager({
 				.slice(0, 19);
 			const bundleName = `meet_reports_${timestamp}.zip`;
 
-			const result = await generateReportBundle(requests, bundleName);
+			const frontendUrl =
+				typeof window !== "undefined" ? window.location.origin : undefined;
+			const result = await generateReportBundle(
+				requests,
+				bundleName,
+				frontendUrl,
+			);
 
 			if (result.success && result.jobId) {
 				startPolling(result.jobId, bundleName);
@@ -350,10 +356,21 @@ export function ReportsManager({
 		{
 			id: "default",
 			name: "Default Meet Pack",
-			description: "Psych Sheets, Lineups, and Meet Program",
+			description: "Timer Sheets, targeted Lineups, and Meet Program",
 			reports: [
-				{ type: 0, title: "Official Psych Sheet" },
-				{ type: 2, title: "Team Lineup Sheets" },
+				{ type: 8, title: "Lane Timer Sheets" },
+				{
+					type: 2,
+					title: "Girls 10&U Lineups",
+					genderFilter: "Girls",
+					ageGroupFilter: "10 & under",
+				},
+				{
+					type: 2,
+					title: "Boys 10&U Lineups",
+					genderFilter: "Boys",
+					ageGroupFilter: "10 & under",
+				},
 				{ type: 4, title: "Standard Meet Program" },
 			],
 		},

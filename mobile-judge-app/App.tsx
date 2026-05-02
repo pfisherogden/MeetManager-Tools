@@ -159,7 +159,7 @@ export default function App() {
 		}
 	}, [offlineModalVisible]);
 	const [programMode, setProgramMode] = useState(false); // Toggle state
-	const [showEmptyLanes, setShowEmptyLanes] = useState(true); // Issue #140
+	const [showEmptyLanes, setShowEmptyLanes] = useState(false); // Issue #140: Default to hidden
 	const [refreshCounter, setRefreshCounter] = useState<number>(0);
 	const [judgeName, setJudgeName] = useState<string>("");
 	const [namePromptVisible, setNamePromptVisible] = useState(false);
@@ -839,7 +839,6 @@ export default function App() {
 	return (
 		<SafeAreaView
 			style={styles.safeArea}
-			key={`app-view-${selectedEvent?.id}-${selectedHeat?.id}`}
 		>
 			{/* Judge Name Prompt */}
 			<Modal visible={namePromptVisible} animationType="fade" transparent={true}>
@@ -934,6 +933,7 @@ export default function App() {
 					}}
 					refreshTrigger={refreshCounter}
 					showEmptyLanes={showEmptyLanes}
+					selectedEventId={selectedEvent?.id}
 				/>
 			)}
 
@@ -1054,9 +1054,14 @@ export default function App() {
 										onPress={onSave}
 										style={[styles.headerIconButton, { marginLeft: 0 }]}
 										accessibilityLabel="Save changes"
+										testID="save-dq-button"
+										{...(Platform.OS === "web"
+											? { "data-testid": "save-dq-button" }
+											: {})}
 									>
 										<Ionicons
 											name="checkmark-circle"
+
 											size={48}
 											color={COLORS.success}
 										/>
@@ -1229,7 +1234,9 @@ export default function App() {
 								<View
 									style={[styles.modalContainer, styles.offlineModal]}
 									testID="dq-history-modal-content"
-									{...(Platform.OS === "web" ? { "data-testid": "dq-history-modal-content" } : {})}
+									{...(Platform.OS === "web"
+										? { "data-testid": "dq-history-modal-content" }
+										: {})}
 								>
 									<View style={styles.modalHeader}>
 										<View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -1327,6 +1334,17 @@ export default function App() {
 																Heat {swimmer?.heat_id || "?"}, Lane {swimmer?.lane || "?"} -{" "}
 																{dq.dq_code}
 															</Text>
+															{dq.notes ? (
+																<Text
+																	style={styles.pendingNote}
+																	numberOfLines={1}
+																	{...(Platform.OS === "web"
+																		? { "data-testid": "dq-history-note" }
+																		: {})}
+																>
+																	{dq.notes}
+																</Text>
+															) : null}
 														</TouchableOpacity>
 													</View>
 												);
@@ -1382,6 +1400,10 @@ export default function App() {
 									<View
 										style={[styles.modalContainer, styles.offlineModal]}
 										testID="dq-history-modal-content"
+										{...(Platform.OS === "web"
+											? { "data-testid": "dq-history-modal-content" }
+											: {})}
+
 									>
 										<View style={styles.modalHeader}>
 											<View style={{ flexDirection: "row", alignItems: "center" }}>

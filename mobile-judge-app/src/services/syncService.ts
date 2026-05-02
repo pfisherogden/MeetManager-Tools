@@ -32,6 +32,7 @@ export const triggerSync = async () => {
 	if (pending.length === 0) return;
 
 	const state = await NetInfo.fetch();
+	console.log(`SyncService: isConnected=${state.isConnected}, pending=${pending.length}`);
 	if (!state.isConnected) return;
 
 	// Optimization: If the endpoint is sync-dqs, we should ideally use submit-dq for individual items
@@ -41,7 +42,7 @@ export const triggerSync = async () => {
 		targetUrl = SYNC_ENDPOINT.replace("/api/sync-dqs", "/api/submit-dq");
 	}
 
-	console.log(`Syncing ${pending.length} items to ${targetUrl}`);
+	console.log(`SyncService: Syncing ${pending.length} items to ${targetUrl}`);
 
 	try {
 		const method = "POST";

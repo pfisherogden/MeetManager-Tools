@@ -87,9 +87,9 @@ test.describe("Data Integrity and UI Rendering", () => {
 		const filename = download.suggestedFilename();
 		console.log(`Downloaded filename: ${filename}`);
 
-		// Verify filename matches the human readable pattern (Psych Sheet_HHMMSS.pdf)
+		// Verify filename matches the human readable pattern (Psych Sheet_YYYYMMDD-HHMM.pdf)
 		expect(filename).toContain("Psych Sheet");
-		expect(filename).toMatch(/Psych Sheet_\d{6}\.pdf/);
+		expect(filename).toMatch(/Psych Sheet_\d{8}-\d{4}\.pdf/);
 		expect(filename).not.toMatch(/[a-zA-Z0-9]{20,}_/); // No long UID prefix
 	});
 

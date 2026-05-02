@@ -658,6 +658,8 @@ message GenerateReportBundleRequest {
   string bundle_name = 2;
   // renderer_type specifies the engine to use (default: weasyprint).
   RendererType renderer_type = 3;
+  // frontend_url is the base URL of the frontend calling the service.
+  optional string frontend_url = 4;
 }
 
 

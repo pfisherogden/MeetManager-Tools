@@ -408,6 +408,7 @@ export async function deleteDataset(filename: string) {
 export async function generateReportBundle(
 	requests: GenerateReportConfig[],
 	bundleName: string,
+	frontendUrl?: string,
 ) {
 	try {
 		const metadata = await getAuthMetadata();
@@ -416,20 +417,22 @@ export async function generateReportBundle(
 				reports: requests.map((r) => ({
 					type: r.type,
 					title: r.title,
-					teamFilter: r.teamFilter || "",
+					teamFilter: r.teamFilter,
 					genderFilter: r.genderFilter,
 					ageGroupFilter: r.ageGroupFilter,
 					columnsOnPage: r.columnsOnPage,
 					showRelaySwimmers: r.showRelaySwimmers,
 					zebraStriping: r.zebraStriping,
-					rendererType: r.rendererType || 0,
-					htmlPreview: r.htmlPreview || false,
+					rendererType: r.rendererType,
+					htmlPreview: r.htmlPreview,
 				})),
 				bundleName,
-				rendererType: 0,
+				rendererType: requests[0]?.rendererType || 0,
+				frontendUrl: frontendUrl || "",
 			},
 			{ metadata },
 		);
+
 		return {
 			success: response.success,
 			message: response.message,
@@ -555,5 +558,43 @@ export async function getDisqualifications() {
 	} catch (error) {
 		console.error("Failed to get disqualifications:", error);
 		return { disqualifications: [] };
+	}
+}
+
+export async function deleteDq(dqId: string) {
+	try {
+		const headerList = await headers();
+		const cookieStore = await cookies();
+		const userId =
+			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+
+		if (!userId) throw new Error("Unauthorized");
+
+		const { deleteDq: deleteFromDb } = await import("@/lib/dq-db");
+		await deleteFromDb(dqId, userId);
+		revalidatePath("/dqs");
+		return { success: true };
+	} catch (error: any) {
+		console.error("Failed to delete DQ:", error);
+		return { success: false, message: error.message };
+	}
+}
+
+export async function clearAllDqs() {
+	try {
+		const headerList = await headers();
+		const cookieStore = await cookies();
+		const userId =
+			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+
+		if (!userId) throw new Error("Unauthorized");
+
+		const { clearAllDqs: clearFromDb } = await import("@/lib/dq-db");
+		await clearFromDb(userId);
+		revalidatePath("/dqs");
+		return { success: true };
+	} catch (error: any) {
+		console.error("Failed to clear all DQs:", error);
+		return { success: false, message: error.message };
 	}
 }

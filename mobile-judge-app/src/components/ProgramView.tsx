@@ -33,15 +33,18 @@ interface ProgramViewProps {
 	) => void;
 	refreshTrigger: number; // Used to force re-render when DQs change
 	showEmptyLanes?: boolean;
+	selectedEventId?: number;
 }
 
 export const ProgramView: React.FC<ProgramViewProps> = ({
 	events,
 	onSelectSwimmer,
 	refreshTrigger,
-	showEmptyLanes = true,
+	showEmptyLanes = false, // Issue #140: Default to hidden
+	selectedEventId,
 }) => {
 	const flatListRef = useRef<FlatList>(null);
+	const lastScrolledEventId = useRef<number | null>(null);
 
 	// Function to scroll to specific event index
 	const scrollToEvent = (index: number) => {
@@ -52,6 +55,25 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 			viewPosition: 0,
 		});
 	};
+
+	// Auto-scroll to selected event on mount or refresh
+	useEffect(() => {
+		if (selectedEventId !== undefined && selectedEventId !== null) {
+			const index = events.findIndex((e) => e.id === selectedEventId);
+			if (index !== -1 && lastScrolledEventId.current !== selectedEventId) {
+				console.log(`ProgramView: Auto-scrolling to event ${selectedEventId} at index ${index}`);
+				// Small delay to ensure layout is ready
+				setTimeout(() => {
+					flatListRef.current?.scrollToIndex({
+						index,
+						animated: false,
+						viewPosition: 0,
+					});
+					lastScrolledEventId.current = selectedEventId;
+				}, 100);
+			}
+		}
+	}, [selectedEventId, events, refreshTrigger]);
 
 	const renderSwimmer = (swimmer: Swimmer, event: any, heat: any) => {
 		const isRelay = swimmer.isRelay;

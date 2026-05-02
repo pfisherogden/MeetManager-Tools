@@ -8,6 +8,7 @@ import {
 	HardDrive,
 	Loader2,
 	QrCode,
+	RefreshCw,
 	Trash2,
 	Upload,
 } from "lucide-react";
@@ -315,8 +316,20 @@ export function DatasetManager() {
 												size="sm"
 												onClick={() => handleSetActive(dataset.filename)}
 												data-testid="set-active-button"
+												className={
+													dataset.isActive
+														? "bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+														: ""
+												}
 											>
-												{dataset.isActive ? "Re-activate" : "Set Active"}
+												{dataset.isActive ? (
+													<>
+														<RefreshCw className="mr-2 h-3.5 w-3.5" />
+														Reload Cache
+													</>
+												) : (
+													"Set Active"
+												)}
 											</Button>
 											<Button
 												variant="outline"
@@ -353,7 +366,7 @@ export function DatasetManager() {
 			</CardContent>
 
 			<Dialog open={!!judgeUrl} onOpenChange={() => setJudgeUrl(null)}>
-				<DialogContent className="sm:max-w-md">
+				<DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>Judge App Ready</DialogTitle>
 						<DialogDescription>

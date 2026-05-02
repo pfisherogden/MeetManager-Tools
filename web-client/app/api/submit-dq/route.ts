@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
 			lane,
 			swimmer,
 			infraction_code,
+			notes,
 		} = payload;
 
 		console.log(
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
 				lane,
 				swimmer,
 				infraction_code,
+				notes: notes || "",
 			},
 			userId,
 		);

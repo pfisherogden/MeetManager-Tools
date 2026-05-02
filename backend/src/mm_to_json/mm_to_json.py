@@ -80,6 +80,12 @@ class MmToJsonConverter:
                 self._relay_grouped = {k: v for k, v in relay_df.groupby(col)}  # noqa: C416
 
     def _load_from_data(self, table_data):
+        if not isinstance(table_data, dict):
+            logger.error(f"ERROR: table_data must be a dictionary, got {type(table_data)}")
+            # Handle empty or invalid data gracefully
+            self.tables = {}
+            return
+
         logger.debug(f"DEBUG: _load_from_data called with keys: {list(table_data.keys())}")
 
         # Handle cases where data is wrapped in a 'data' key (from full JSON fixtures)
