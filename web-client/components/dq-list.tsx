@@ -25,6 +25,7 @@ interface DQRecord {
 	swimmer: string;
 	infraction_code: string;
 	notes?: string;
+	ingested?: boolean;
 	createdAt: string;
 }
 
@@ -167,6 +168,7 @@ export function DqList() {
 									<TableHead>Judge</TableHead>
 									<TableHead>Infraction</TableHead>
 									<TableHead>Notes</TableHead>
+									<TableHead>Status</TableHead>
 									<TableHead>Submitted At</TableHead>
 									<TableHead className="text-right">Actions</TableHead>
 								</TableRow>
@@ -192,6 +194,23 @@ export function DqList() {
 										<TableCell className="max-w-[200px] truncate italic text-sm text-muted-foreground">
 											{dq.notes || "-"}
 										</TableCell>
+										<TableCell>
+											{dq.ingested ? (
+												<div className="flex items-center gap-1.5 text-green-600">
+													<CheckCircle2 className="h-4 w-4" />
+													<span className="text-[10px] font-bold uppercase tracking-tight">
+														Ingested
+													</span>
+												</div>
+											) : (
+												<div className="flex items-center gap-1.5 text-amber-500">
+													<Loader2 className="h-4 w-4 animate-pulse" />
+													<span className="text-[10px] font-bold uppercase tracking-tight">
+														Pending Sync
+													</span>
+												</div>
+											)}
+										</TableCell>
 										<TableCell className="text-xs text-muted-foreground">
 											{new Date(dq.createdAt).toLocaleString(undefined, {
 												month: "short",
@@ -202,12 +221,6 @@ export function DqList() {
 										</TableCell>
 										<TableCell className="text-right">
 											<div className="flex items-center justify-end gap-2">
-												<div className="flex items-center gap-1.5 text-success mr-2">
-													<CheckCircle2 className="h-3.5 w-3.5" />
-													<span className="text-[10px] font-bold uppercase">
-														Synced
-													</span>
-												</div>
 												<Button
 													variant="ghost"
 													size="icon"

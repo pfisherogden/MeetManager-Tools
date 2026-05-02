@@ -133,6 +133,10 @@ resource "google_cloud_run_v2_service" "frontend" {
         name  = "NEXT_PUBLIC_AUTH_DISABLED"
         value = "false"
       }
+      env {
+        name  = "NEXT_PUBLIC_GOOGLE_CLIENT_ID"
+        value = var.google_client_id
+      }
     }
   }
 

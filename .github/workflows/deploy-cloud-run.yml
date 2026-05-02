@@ -67,6 +67,7 @@ jobs:
             --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} \
             --build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-KDE7ZPS0X5 \
             --build-arg NEXT_PUBLIC_GOOGLE_API_KEY=${{ secrets.FIREBASE_API_KEY }} \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
             --build-arg NEXT_PUBLIC_AUTH_DISABLED=false \
             --build-arg NEXT_PUBLIC_BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
             -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_SERVICE}:${{ github.sha }} -f web-client/Dockerfile .
@@ -107,3 +108,4 @@ jobs:
             NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }}
             NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ env.PROJECT_ID }}.firebasestorage.app
             NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-KDE7ZPS0X5
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}

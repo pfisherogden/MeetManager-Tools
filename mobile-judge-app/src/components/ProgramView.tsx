@@ -60,8 +60,10 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 	useEffect(() => {
 		if (selectedEventId !== undefined && selectedEventId !== null) {
 			const index = events.findIndex((e) => e.id === selectedEventId);
-			if (index !== -1 && lastScrolledEventId.current !== selectedEventId) {
-				console.log(`ProgramView: Auto-scrolling to event ${selectedEventId} at index ${index}`);
+			if (index !== -1) {
+				console.log(
+					`ProgramView: Auto-scrolling to event ${selectedEventId} at index ${index}`,
+				);
 				// Small delay to ensure layout is ready
 				setTimeout(() => {
 					flatListRef.current?.scrollToIndex({
@@ -69,7 +71,6 @@ export const ProgramView: React.FC<ProgramViewProps> = ({
 						animated: false,
 						viewPosition: 0,
 					});
-					lastScrolledEventId.current = selectedEventId;
 				}, 100);
 			}
 		}

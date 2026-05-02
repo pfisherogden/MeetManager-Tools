@@ -996,12 +996,17 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 high = self._safe_int(self._get_field(e, ["high_age", "High_age"]))
                 age_group = self._format_age(low, high)
                 name = f"{g} {age_group} {d} {s}"
-                events_map[str(e_ptr)] = name
+                events_map[self._safe_int(e_ptr)] = name
 
         result = []
         for idx, item in enumerate(entries_data):
             ath_id = self._safe_int(self._get_field(item, ["ath_no", "Ath_no"]))
-            if request and request.athlete_id and str(ath_id) != request.athlete_id:
+            if (
+                request
+                and request.athlete_id
+                and request.athlete_id != "0"
+                and self._safe_int(request.athlete_id) != ath_id
+            ):
                 continue
 
             athlete = athletes.get(ath_id, {})
@@ -1014,7 +1019,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             event_id_int = self._safe_int(event_id_val)
 
             # Fix: Only filter if event_id is provided AND is not '0' (default)
-            # Use numeric comparison to avoid 17.0 != 17 issues
             if (
                 request
                 and request.event_id
@@ -1038,7 +1042,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         self._get_field(item, ["fin_time", "pre_time", "Fin_time", "Pre_time"])
                     ),
                     place=self._safe_int(self._get_field(item, ["fin_place", "place", "Fin_place"])),
-                    event_name=events_map.get(str(event_id_val), f"Event {event_id_val}"),
+                    event_name=events_map.get(event_id_int, f"Event {event_id_int}"),
                     athlete_name=f"{self._get_field(athlete, ['first_name', 'First_name']) or ''} {self._get_field(athlete, ['last_name', 'Last_name']) or ''}".strip()
                     or "Unknown Athlete",
                     team_name=str(self._get_field(team_obj, ["team_name", "tname", "Team_name"]) or ""),
@@ -1081,6 +1085,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # For simplicity, let's just list user's files
 
             for rel_path in files:
+                # ONLY allow files in the root user directory (not subdirs like 'published/' or 'bundles/')
+                # rel_path looks like "users/UID/filename.ext" or "users/UID/published/file.json"
+                parts = rel_path.split("/")
+                if len(parts) != 3:
+                    continue
+
                 filename = os.path.basename(rel_path)
                 # Only allow MDB files or specific data JSONs (not config.json)
                 if filename.lower().endswith(".mdb") or (
@@ -1338,7 +1348,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     seed_time=self._format_time(seed),
                     final_time=self._format_time(self._get_field(item, ["fin_time", "Fin_time"])),
                     place=self._safe_int(self._get_field(item, ["fin_place", "place", "Fin_place"])),
-                    event_name=str(events_map.get(event_ptr, f"Event {event_ptr}") or ""),
+                    event_name=str(events_map.get(self._safe_int(event_ptr), f"Event {event_ptr}") or ""),
                     relay_letter=str(self._get_field(item, ["team_ltr", "Team_ltr"]) or ""),
                     heat=self._safe_int(self._get_field(item, ["fin_heat", "Fin_heat"])),
                     lane=self._safe_int(self._get_field(item, ["fin_lane", "Fin_lane"])),

@@ -27,8 +27,20 @@ export async function POST(request: NextRequest) {
 		});
 
 		if (response.success) {
+			// Mark as ingested in Firestore
+			try {
+				const { markAsIngested } = await import("@/lib/dq-db");
+				const dqIds = dqs.map((dq: any) => dq.clientDqId).filter(Boolean);
+				if (dqIds.length > 0) {
+					await markAsIngested(dqIds, uid);
+				}
+			} catch (dbError) {
+				console.error("Failed to mark DQs as ingested:", dbError);
+			}
+
 			return NextResponse.json({ success: true, message: response.message });
 		}
+
 		return NextResponse.json(
 			{ success: false, message: response.message },
 			{ status: 500 },

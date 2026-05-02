@@ -287,22 +287,42 @@ export function DatasetManager() {
 										data-testid={`dataset-row-${dataset.filename}`}
 										data-active={dataset.isActive}
 										data-test-state={dataset.isActive ? "active" : "inactive"}
+										className={
+											dataset.isActive
+												? "bg-green-50/50 hover:bg-green-50/80"
+												: ""
+										}
 									>
-										<TableCell className="font-medium flex items-center gap-2">
-											<Database className="h-4 w-4 text-muted-foreground" />
-											{dataset.filename}
+										<TableCell className="font-medium">
+											<div className="flex items-center gap-2">
+												<Database
+													className={cn(
+														"h-4 w-4",
+														dataset.isActive
+															? "text-green-600"
+															: "text-muted-foreground",
+													)}
+												/>
+												<span
+													className={
+														dataset.isActive ? "text-green-900 font-bold" : ""
+													}
+												>
+													{dataset.filename}
+												</span>
+											</div>
 										</TableCell>
 										<TableCell>
 											{dataset.isActive && (
 												<Badge
-													variant="secondary"
-													className="gap-1 bg-green-100 text-green-800 hover:bg-green-100 uppercase text-[10px]"
+													className="gap-1 bg-green-600 text-white hover:bg-green-700 shadow-sm px-2 py-0.5"
 													data-testid="active-dataset-badge"
 												>
 													<Check className="h-3 w-3" /> Active
 												</Badge>
 											)}
 										</TableCell>
+
 										<TableCell className="text-muted-foreground text-sm">
 											{dataset.lastModified
 												? formatDistanceToNow(new File([], "").lastModified, {

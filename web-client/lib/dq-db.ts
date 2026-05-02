@@ -239,3 +239,30 @@ export async function clearAllDqs(userId?: string | null) {
 		throw error;
 	}
 }
+
+export async function markAsIngested(dqIds: string[], userId?: string | null) {
+	try {
+		const db = getDb(userId);
+		if (process.env.USE_MOCK_FIRESTORE === "true") {
+			const storage = await (db as any).readStorage();
+			for (const id of dqIds) {
+				const key = `disqualifications/${id}`;
+				const data = storage.get(key);
+				if (data) {
+					storage.set(key, { ...data, ingested: true });
+				}
+			}
+			await (db as any).writeStorage(storage);
+		} else {
+			const batch = db.batch();
+			for (const id of dqIds) {
+				const docRef = db.collection("disqualifications").doc(id);
+				batch.update(docRef, { ingested: true });
+			}
+			await batch.commit();
+		}
+	} catch (error: any) {
+		console.error(`FIRESTORE ERROR (markAsIngested): ${error.message}`);
+		// Don't throw, just log
+	}
+}

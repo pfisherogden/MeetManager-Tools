@@ -31,3 +31,9 @@ variable "firebase_app_id" {
   description = "Firebase App ID"
   type        = string
 }
+
+variable "google_client_id" {
+  description = "Google Client ID for Drive integration"
+  type        = string
+  default     = ""
+}
