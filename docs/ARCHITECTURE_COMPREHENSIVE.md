@@ -104,17 +104,30 @@ The ingestion of an `.mdb` file is a critical, performance-sensitive operation.
 3.  The `MmToJsonConverter` class initializes a JVM instance via `jpype` and uses the `Jackcess` library to parse the raw Access database tables.
 4.  Data is extracted, normalized (handling various legacy casing conventions), and cached as JSON to prevent redundant, expensive parsing on subsequent requests.
 
-### 4.3. gRPC Service Design
+### 4.3. Dataset Activation & Caching
+The system supports a single "Active" dataset per user at any given time.
+- **Activation**: Clicking "Set Active" on a dataset triggers a full extraction from the source file (MDB or JSON). The resulting normalized state is cached in memory and indexed by `uid`.
+- **Reloading**: If the source file changes (e.g., a manual edit to the MDB), users can click "Reload Cache" (formerly "Re-activate") to force a fresh extraction and refresh the cache.
+- **Isolation**: In E2E environments, the cache is automatically invalidated after every `SetActiveDataset` call to ensure subsequent tests start from a pristine state.
+
+### 4.4. gRPC Service Design
 The `MeetManagerService` defines the contract between the frontend and backend. It utilizes Protocol Buffers (protobuf v3) to ensure strict type safety across the network boundary.
 - **Interceptors**: A custom `FirebaseAuthInterceptor` sits in front of all RPC methods. It intercepts the incoming call, extracts the `Authorization: Bearer <token>` metadata, verifies the token with the Firebase Admin SDK, and injects the resolved `uid` into the context.
 
-### 4.4. Storage Abstraction Layer
+### 4.5. Storage Abstraction Layer
 To support both seamless local development and robust cloud deployment, the backend implements a `StorageProvider` interface.
 - **`LocalStorageProvider`**: Writes to the local filesystem (used when running locally via Docker Compose).
 - **`GCSStorageProvider`**: Interacts with the Google Cloud Storage API.
 - **Sandboxing**: The backend enforces a strict `users/{uid}/` prefix on all storage operations. This guarantees that User A can never accidentally or maliciously access User B's uploaded `.mdb` files, generated JSONs, or DQs.
 
-## 5. Cloud Infrastructure & Deployment
+## 5. DQ Management & Persistence
+
+The Stroke & Turn DQ workflow spans the Mobile App, the Web Client Proxy, and the Python Backend.
+- **Persistence**: Submitted DQs are stored in **Firestore** (or a file-based mock in dev/CI) using the `clientDqId` as the unique key for idempotency.
+- **Sync Status**: DQs are marked as `ingested: true` in the database only after they have been successfully written to the active MDB file via the `SyncDQs` gRPC method. This allows operators to easily identify un-reconciled data.
+- **Management**: The Web Client provides an administrative dashboard to review recent DQ submissions, delete records, or clear the entire queue after a successful meet reconciliation.
+
+## 6. Cloud Infrastructure & Deployment
 
 MMTools is deployed to Google Cloud Platform (GCP) using an automated, Infrastructure-as-Code approach.
 
