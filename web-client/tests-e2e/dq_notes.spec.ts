@@ -19,6 +19,7 @@ test.describe("DQ Notes Preservation", () => {
 
 	test("should preserve notes from Judge App to Frontend", async ({
 		page,
+		baseURL,
 	}, testInfo) => {
 		const { userId } = getE2ETestContext(testInfo, page);
 		const testNote = "Test DQ note 123";
@@ -28,7 +29,7 @@ test.describe("DQ Notes Preservation", () => {
 		const token =
 			process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
 		const syncUrl = encodeURIComponent(
-			`http://localhost:3100/api/sync-dqs?token=${token}&uid=${userId}`,
+			`${baseURL}/api/sync-dqs?token=${token}&uid=${userId}`,
 		);
 		const judgeUrl = `/judge/index.html?sync_url=${syncUrl}`;
 		console.log(`Navigating to Judge App: ${judgeUrl}`);
