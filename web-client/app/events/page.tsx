@@ -27,6 +27,7 @@ export default async function EventsPage() {
 				gender: e.gender,
 				ageGroup: e.ageGroup || formatAgeGroup(e.lowAge, e.highAge),
 				entryCount: e.entryCount || 0,
+				isRelay: e.isRelay,
 			}));
 		}
 

@@ -81,6 +81,11 @@ While gRPC-Web can be called directly from the browser, certain operations—spe
 - **`/api/sync-dqs`**: Receives REST POST requests from the Mobile App containing DQ JSON data, translates them, and forwards them to the backend via the `SyncDQs` gRPC method.
 - **`/api/data`**: Fetches generated JSON program files from the backend via the `GetFile` gRPC method to serve to the Mobile App during the initial "Publish" sync.
 
+### 3.4. Deep Navigation & Filtering Consistency
+The Web Client relies on URL query parameters to maintain state across pages, avoiding complex global state management where possible.
+- **State Propagation**: When navigating from summary pages (like Events) to detail pages (like Entries or Relays), the `?event=[ID]` parameter is passed in the URL.
+- **Backend Responsibility**: The backend gRPC handlers (e.g., `GetEntries`, `GetRelays`) are responsible for honoring these filters. If a filter parameter is omitted, invalid, or zero, the backend MUST default to returning all data. This ensures direct links (deep navigation) remain functional without requiring prior user interaction.
+
 ## 4. Backend Architecture (Python gRPC Server)
 
 The Backend is a specialized Python service designed to handle the heavy lifting of parsing legacy Microsoft Access databases (`.mdb`) and generating complex, paginated PDF reports.

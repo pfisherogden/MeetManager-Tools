@@ -125,9 +125,7 @@ export function EventsManager({ initialEvents, sessions }: EventsManagerProps) {
 			render: (value, row) => (
 				<Link
 					href={
-						row.stroke.toLowerCase().includes("relay")
-							? `/relays?event=${row.id}`
-							: `/entries?event=${row.id}`
+						row.isRelay ? `/relays?event=${row.id}` : `/entries?event=${row.id}`
 					}
 					className="flex items-center gap-2 group"
 				>
