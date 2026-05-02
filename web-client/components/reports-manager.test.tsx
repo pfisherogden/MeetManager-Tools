@@ -49,7 +49,7 @@ describe("ReportsManager", () => {
 
 		// Custom Report Pack Builder should show 1 report
 		expect(screen.getByText(/1 Reports/i)).toBeDefined();
-		
+
 		// The builder card should contain the "Psych Sheet" input
 		const builderCard = screen.getByTestId("report-builder-card");
 		expect(within(builderCard).getByDisplayValue("Psych Sheet")).toBeDefined();

@@ -73,7 +73,9 @@ describe("GET /api/data", () => {
 				mimeType: "application/json",
 			});
 
-			const req = new NextRequest("http://localhost/api/data?path=test.json&token=mmtools-default-secret-2024");
+			const req = new NextRequest(
+				"http://localhost/api/data?path=test.json&token=mmtools-default-secret-2024",
+			);
 			const res = await GET(req);
 			expect(res.status).toBe(200);
 			expect(client.getFile).toHaveBeenCalledWith({
