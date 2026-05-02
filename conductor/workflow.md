@@ -40,6 +40,8 @@
 ## Verification Checklist
 - [ ] Code compiles without errors.
 - [ ] All unit and integration tests pass.
-- [ ] Linting and formatting checks pass.
-- [ ] New feature has been verified with a manual user journey pass.
-- [ ] `ARCHITECTURE.md` and other documentation updated as needed.
+- [ ] Linting and formatting checks pass (`just lint`).
+- [ ] **Critical Journeys Verified**: Verified E2E for Ingestion, Reporting, Filtered Navigation, and Judge App Sync.
+- [ ] **State Isolation Verified**: Confirmed no state leakage between test runs (explicit resets applied).
+- [ ] `ARCHITECTURE_COMPREHENSIVE.md` and other documentation updated as needed.
+- [ ] Learned behavior recorded in `GEMINI.md`.
