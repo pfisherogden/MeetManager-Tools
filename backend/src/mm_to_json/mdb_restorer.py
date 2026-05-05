@@ -154,6 +154,16 @@ def restore_db(json_path, target_mdb):
                                     print(f"  Warning: Could not parse date {v} for column {k}: {e}")
                                     row_map.put(k, None)
 
+                            elif dtype in (DataType.BINARY, DataType.OLE):
+                                # v is base64 string
+                                try:
+                                    import base64
+
+                                    row_map.put(k, base64.b64decode(v))
+                                except Exception as e:
+                                    print(f"  Warning: Could not decode binary data for column {k}: {e}")
+                                    row_map.put(k, None)
+
                             else:
                                 row_map.put(k, str(v))
 
