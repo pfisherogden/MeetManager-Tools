@@ -10,6 +10,7 @@ services:
       - ./backend/tests:/app/tests
       - ./backend/tests/fixtures:/app/tests/fixtures
       - ./backend/scripts:/app/scripts
+      - ../season-setup:/app/season-setup
       - ./tests:/tests
       - ./tmp:/app/tmp
       - mmtools-data:/app/data

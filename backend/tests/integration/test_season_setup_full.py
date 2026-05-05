@@ -12,7 +12,7 @@ from generate_season import generate
 
 from mm_to_json.mm_to_json import MmToJsonConverter
 
-TEMPLATE_MDB = "../template_unzip/swmeets7/Summer League Meet Template.mdb"
+TEMPLATE_MDB = "/app/season-setup/template_unzip/swmeets7/Summer League Meet Template.mdb"
 
 
 @pytest.mark.skipif(not os.path.exists(TEMPLATE_MDB), reason="Template MDB not found")

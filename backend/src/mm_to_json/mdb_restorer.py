@@ -137,13 +137,21 @@ def restore_db(json_path, target_mdb):
                                     row_map.put(k, bool(v))
 
                             elif dtype == DataType.SHORT_DATE_TIME:
-                                # v is long timestamp
-                                # create java.util.Date(v)
+                                # v can be long timestamp or ISO string
                                 try:
                                     from java.util import Date
 
-                                    row_map.put(k, Date(int(v)))
-                                except Exception:
+                                    if isinstance(v, (int, float)):
+                                        row_map.put(k, Date(int(v)))
+                                    else:
+                                        # Try parsing as ISO string
+                                        from datetime import datetime
+
+                                        dt = datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+                                        ts_ms = int(dt.timestamp() * 1000)
+                                        row_map.put(k, Date(ts_ms))
+                                except Exception as e:
+                                    print(f"  Warning: Could not parse date {v} for column {k}: {e}")
                                     row_map.put(k, None)
 
                             else:

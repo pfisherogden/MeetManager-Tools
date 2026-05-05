@@ -40,7 +40,12 @@ If manual verification in the MeetManager Windows application reveals incorrect 
 3.  **Validate Regressions**: Before finalizing a fix, run `just validate-season` against historical MDBs to ensure the change doesn't break known-good configurations from previous years.
 
 ## Best Practices
+- **Date Handling**: All date fields in transformed JSON must be converted to **millisecond timestamps** (integers) before restoration.
+- **Schema Awareness**: Always pass `table_defs` to `SeasonTransformer` when performing transformations. This ensures that even if a table is empty in the template, its columns are correctly mapped during record creation.
+- **Docker First**: Run MDB generation and validation inside the `backend` Docker container. This avoids local JRE/library conflicts and ensures consistent results.
+- **Meet Manager Constants**: Standardize dual meet settings:
+    - ID Format: 1 (USAS)
+    - Host LSC: CC
+    - DQ Codes: H (Custom)
+    - Scoring: 5, 3, 2, 1 (Individual), 10, 6 (Relay)
 - **Mirror Structure**: The generation script automatically creates a layered folder structure mirroring previous years' Google Drive layouts.
-
-- **Hermetic Tests**: Use `mock_mdb_generator.py` to test transformation logic without requiring real MDB files or a full JRE.
-- **Case-Insensitivity**: The `SeasonTransformer` is built to handle inconsistent casing in MDB table and column names (e.g., `Meet` vs `MEET`).

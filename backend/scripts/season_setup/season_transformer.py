@@ -16,6 +16,7 @@ class SeasonTransformer:
         """
         self.table_data = {str(k): v for k, v in table_data.items()}
         self.table_defs = {str(k): v for k, v in table_defs.items()} if table_defs else {}
+        self.team_ids = {} # Track team abbr -> ID
         
         # Standard table aliases to match MmToJsonConverter logic
         self.table_aliases = {
@@ -93,13 +94,17 @@ class SeasonTransformer:
             for t in teams:
                 # Find the actual value for abbreviation in this record
                 t_abbr = None
+                t_id = None
                 for k, v in t.items():
-                    if str(k).lower() in abbr_cols:
+                    lk = str(k).lower()
+                    if lk in abbr_cols:
                         t_abbr = str(v).strip().upper()
-                        break
+                    if lk in ["team", "team_no", "team_ptr"]:
+                        t_id = v
                 
                 if t_abbr and t_abbr in standard_teams:
                     filtered_teams.append(t)
+                    self.team_ids[t_abbr] = t_id
             
             self.table_data[key] = filtered_teams
 
@@ -119,7 +124,7 @@ class SeasonTransformer:
             logger.warning(f"Could not parse date string {date_str}: {e}")
             return None
 
-    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = ""):
+    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", opponent_team: Optional[str] = None):
         """Updates the MEET table metadata across all possible aliases."""
         keys = self._get_all_table_keys("meet")
         if not keys:
@@ -148,7 +153,10 @@ class SeasonTransformer:
                 "entrymax_total": ["entrymax_total", "ENTRYMAX_TOTAL"],
                 "indmax_perath": ["indmax_perath", "INDMAX_PERATH"],
                 "relmax_perath": ["relmax_perath", "RELMAX_PERATH"],
-                "addr1": ["meet_addr1", "MEET_ADDR1"]
+                "addr1": ["meet_addr1", "MEET_ADDR1"],
+                "dual_evenodd": ["dual_evenodd", "DUAL_EVENODD"],
+                "team_evenlanes": ["team_evenlanes", "TEAM_EVENLANES"],
+                "team_oddlanes": ["team_oddlanes", "TEAM_ODDLANES"]
             }
 
             values = {
@@ -168,7 +176,10 @@ class SeasonTransformer:
                 "entrymax_total": 4,
                 "indmax_perath": 3,
                 "relmax_perath": 2,
-                "addr1": address
+                "addr1": address,
+                "dual_evenodd": True,
+                "team_evenlanes": self.team_ids.get(owner_team.upper(), 0),
+                "team_oddlanes": self.team_ids.get(opponent_team.upper(), 0) if opponent_team else 0
             }
 
             for record in meet_table:
@@ -283,15 +294,24 @@ class SeasonTransformer:
             teams = self.table_data[key]
             # Robust exists check
             abbr_cols = ["tcode", "team_abbr", "abbr"]
-            exists = False
+            existing_id = None
             for t in teams:
+                found_abbr = None
+                found_id = None
                 for k, v in t.items():
-                    if str(k).lower() in abbr_cols and str(v).strip().upper() == str(abbr).strip().upper():
-                        exists = True
-                        break
-                if exists: break
+                    lk = str(k).lower()
+                    if lk in abbr_cols:
+                        found_abbr = str(v).strip().upper()
+                    if lk in ["team", "team_no", "team_ptr"]:
+                        found_id = v
+                
+                if found_abbr == str(abbr).strip().upper():
+                    existing_id = found_id
+                    break
             
-            if not exists:
+            if existing_id is not None:
+                self.team_ids[abbr.upper()] = existing_id
+            else:
                 logger.info(f"Adding missing team: {abbr} ({name}) to {key}")
                 
                 matched_team = {}
@@ -302,7 +322,7 @@ class SeasonTransformer:
                             try: max_no = max(max_no, int(v))
                             except: pass
                 
-                # Try to find a template record to clone structure from
+                new_id = max_no + 1
                 template_rec = None
                 if teams: 
                     template_rec = teams[0]
@@ -318,7 +338,7 @@ class SeasonTransformer:
                         elif lk in ["short", "team_short", "short_name"]: matched_team[k] = name[:15]
                         elif lk in ["lsc", "team_lsc"]: matched_team[k] = "CC"
                         elif lk in ["ttype", "team_type"]: matched_team[k] = "AGE"
-                        elif lk in ["team", "team_no", "team_ptr"]: matched_team[k] = max_no + 1
+                        elif lk in ["team", "team_no", "team_ptr"]: matched_team[k] = new_id
                         elif lk == "team_gender": matched_team[k] = "B"
                         else: matched_team[k] = template_rec.get(k)
                     teams.append(matched_team)
@@ -326,8 +346,9 @@ class SeasonTransformer:
                     # Fallback for empty table and no defs
                     new_team = {
                         "TCode": abbr, "TName": name, "Short": name[:15],
-                        "LSC": "CC", "TType": "AGE", "Team_no": max_no + 1
+                        "LSC": "CC", "TType": "AGE", "Team_no": new_id
                     }
                     teams.append(new_team)
                 
+                self.team_ids[abbr.upper()] = new_id
                 self.table_data[key] = teams

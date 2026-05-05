@@ -4,10 +4,19 @@ This directory contains tools to automate the configuration of MeetManager `.mdb
 
 ## Features
 
-- **Automated Configuration**: Sets meet dates, age-up dates, and entry deadlines based on a provided schedule.
-- **Venue-Aware**: Uses `config/venues.json` to automatically configure the correct number of lanes based on the host pool (e.g., FAST=8 lanes, DP=6 lanes).
-- **Session Consolidation**: Automatically consolidates all events into "Session 1" for standard dual meets, while preserving multi-session layouts for Championship meets.
-- **Team Management**: Purges old opponent data but preserves the host team's identity. Automatically adds missing teams (like new or returning league members).
+- **Automated Configuration**: Sets meet dates, age-up dates, and entry deadlines. Note: Dates are stored internally as millisecond timestamps to ensure compatibility with MDB restoration.
+- **Venue-Aware**: Uses `config/venues.json` to automatically configure lanes and facility addresses.
+- **Scoring Logic**: Automatically applies the league standard 5-3-2-1 / 10-6 scoring rules for dual meets.
+- **Session Consolidation**: Automatically consolidates all events into "Session 1" for standard dual meets.
+- **Team Management**: Purges old data but preserves host team identity. Robustly adds missing teams using schema-aware mapping.
+...
+### Execution Environment
+
+It is highly recommended to run these tools inside the `backend` Docker container to ensure all Java dependencies (JPype, Jackcess) are correctly configured.
+
+```bash
+docker compose run --rm backend just generate-season <args>
+```
 - **Configurable**: Easily adaptable for teams other than Del Prado via the `--owner-team` argument.
 
 ## Requirements

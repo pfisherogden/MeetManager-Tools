@@ -97,19 +97,30 @@ def generate(template_path, output_dir, owner_team="DP"):
         current_rows = copy.deepcopy(current_rows)
         
         transformer = SeasonTransformer(current_rows, table_defs=full_template["tables"])
-        
+
         # 1. Purge data
         transformer.purge_data(preserve_team_abbr=owner_team)
-        
-        # 2. Update metadata
+
+        # 2. Ensure teams exist (must do before update_meet to get IDs)
+        # Owner team
+        owner_name = get_team_name(owner_team, config)
+        transformer.ensure_team_exists(owner_team, owner_name)
+
+        # Opponent team
+        opponent_team = meet.get("opponent")
+        if opponent_team:
+            opp_name = get_team_name(opponent_team, config)
+            transformer.ensure_team_exists(opponent_team, opp_name)
+
+        # 3. Update metadata
         lanes, address = get_venue_info(meet["host"], config)
-        
+
         # Date Logic
         if meet["date"] == first_meet_date:
             entry_open = "2025-06-01"
         else:
             entry_open = first_meet_date
-            
+
         meet_dt = datetime.strptime(meet["date"], "%Y-%m-%d")
         deadline_dt = meet_dt - timedelta(days=4)
         entry_deadline = deadline_dt.strftime("%Y-%m-%d")
@@ -117,30 +128,22 @@ def generate(template_path, output_dir, owner_team="DP"):
         transformer.update_meet(
             name=meet["name"],
             start_date=meet["date"],
-
             lanes=lanes,
             location=meet["host"],
             address=address,
             age_up="2026-06-01",
             entry_open=entry_open,
-            entry_deadline=entry_deadline
+            entry_deadline=entry_deadline,
+            owner_team=owner_team,
+            opponent_team=opponent_team
         )
-        
-        # 3. Sessions
+
+        # 4. Sessions
         transformer.consolidate_sessions(is_champs=meet["is_champs"])
-        
-        # 4. Scoring and Seeding
+
+        # 5. Scoring and Seeding
         transformer.setup_scoring_and_seeding()
-        
-        # 5. Ensure teams exist
-        # Owner team
-        owner_name = get_team_name(owner_team, config)
-        transformer.ensure_team_exists(owner_team, owner_name)
-        
-        # Opponent team
-        if "opponent" in meet:
-            opp_name = get_team_name(meet["opponent"], config)
-            transformer.ensure_team_exists(meet["opponent"], opp_name)
+
 
         # Build output_data with transformed rows
         output_data = {"tables": {}}

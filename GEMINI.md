@@ -147,4 +147,9 @@ All agents MUST follow these workflow phases:
 
 ### 11. Season Setup Automation
 - **Rule**: Use the `season-setup` skill when configuring MDB files for a new swim season.
+- **Critical Knowledge**:
+    - **Date Format**: The `mdb_restorer` expects date fields to be **millisecond timestamps** (integers) in the JSON source. Providing ISO strings or other formats will lead to empty values or type mismatches in the final MDB.
+    - **Schema Mapping**: When tables (like `Team`) are empty in the template, `SeasonTransformer` must use explicit `table_defs` to map columns correctly.
+    - **Meet Defaults**: Dual meets should always set `ID Format` to 1 (USAS), `Host LSC` to CC, and `DQ Codes` to 'H' (Custom).
+    - **Scoring**: Standard dual meet scoring is 5-3-2-1 for individuals and 10-6 for relays.
 - **Action**: Check `.agent/skills/season-setup/SKILL.md` for execution and configuration details.
