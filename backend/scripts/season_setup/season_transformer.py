@@ -2,19 +2,20 @@ import logging
 import os
 import json
 import copy
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 class SeasonTransformer:
-    def __init__(self, table_data: Dict[str, List[Dict[str, Any]]]):
+    def __init__(self, table_data: Dict[str, List[Dict[str, Any]]], table_defs: Optional[Dict[str, Any]] = None):
         """
-        Initializes the SeasonTransformer with table data.
+        Initializes the SeasonTransformer with table data and optional definitions.
         table_data is a dictionary where keys are table names and values are lists of dictionaries (records).
-        Important: Ensures all keys are converted to Python strings.
+        table_defs is a dictionary where keys are table names and values are table definitions (with columns).
         """
-        # Convert all keys to standard Python strings to avoid java.lang.String issues
         self.table_data = {str(k): v for k, v in table_data.items()}
+        self.table_defs = {str(k): v for k, v in table_defs.items()} if table_defs else {}
         
         # Standard table aliases to match MmToJsonConverter logic
         self.table_aliases = {
@@ -85,13 +86,40 @@ class SeasonTransformer:
 
         for key in self._get_all_table_keys("team"):
             teams = self.table_data[key]
-            filtered_teams = [
-                t for t in teams 
-                if any(str(v).upper() in standard_teams for k, v in t.items() if str(k).lower() == "tcode")
-            ]
+            # Standard candidates for team abbreviation
+            abbr_cols = ["tcode", "team_abbr", "abbr"]
+            
+            filtered_teams = []
+            for t in teams:
+                # Find the actual value for abbreviation in this record
+                t_abbr = None
+                for k, v in t.items():
+                    if str(k).lower() in abbr_cols:
+                        t_abbr = str(v).strip().upper()
+                        break
+                
+                if t_abbr and t_abbr in standard_teams:
+                    filtered_teams.append(t)
+            
             self.table_data[key] = filtered_teams
 
-    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = ""):
+    def _date_to_ms(self, date_str: str) -> Optional[int]:
+        """Converts a date string (YYYY-MM-DD) to milliseconds since epoch."""
+        if not date_str:
+            return None
+        try:
+            # Handle already numeric or other formats if needed
+            if isinstance(date_str, (int, float)):
+                return int(date_str)
+            
+            # Try to parse YYYY-MM-DD
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            return int(dt.timestamp() * 1000)
+        except Exception as e:
+            logger.warning(f"Could not parse date string {date_str}: {e}")
+            return None
+
+    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = ""):
         """Updates the MEET table metadata across all possible aliases."""
         keys = self._get_all_table_keys("meet")
         if not keys:
@@ -110,42 +138,83 @@ class SeasonTransformer:
                 "lanes": ["meet_numlanes", "MEET_NUMLANES", "Meet_numlanes"],
                 "age_up": ["calc_date", "CALC_DATE", "Calc_date"],
                 "location": ["meet_location", "MEET_LOCATION", "Meet_location", "location"],
-                "open": ["entry_open", "ENTRY_OPEN", "Entry_open"],
-                "deadline": ["entry_deadline", "ENTRY_DEADLINE", "Entry_deadline"]
+                "open": ["entry_opendate", "ENTRY_OPENDATE", "Entry_opendate", "entry_open"],
+                "deadline": ["entry_deadline", "ENTRY_DEADLINE", "Entry_deadline"],
+                "idformat": ["meet_idformat", "MEET_IDFORMAT"],
+                "hostlsc": ["meet_hostlsc", "MEET_HOSTLSC"],
+                "dqcodes": ["dqcodes_type", "DQCODES_TYPE"],
+                "indmaxscorers": ["indmaxscorers_perteam", "INDMAXSCORERS_PERTEAM"],
+                "eligibility": ["entryeligibility_date", "ENTRYELIGIBILITY_DATE"],
+                "entrymax_total": ["entrymax_total", "ENTRYMAX_TOTAL"],
+                "indmax_perath": ["indmax_perath", "INDMAX_PERATH"],
+                "relmax_perath": ["relmax_perath", "RELMAX_PERATH"],
+                "addr1": ["meet_addr1", "MEET_ADDR1"]
             }
 
             values = {
-                "name": name, "start": start_date, "end": start_date, "lanes": lanes,
-                "age_up": age_up, "location": location, "open": entry_open, "deadline": entry_deadline
+                "name": name, 
+                "start": self._date_to_ms(start_date), 
+                "end": self._date_to_ms(start_date), 
+                "lanes": lanes,
+                "age_up": self._date_to_ms(age_up), 
+                "location": location, 
+                "open": self._date_to_ms(entry_open), 
+                "deadline": self._date_to_ms(entry_deadline),
+                "idformat": 1, # USAS
+                "hostlsc": "CC",
+                "dqcodes": "H", # Custom
+                "indmaxscorers": 4,
+                "eligibility": self._date_to_ms(entry_open),
+                "entrymax_total": 4,
+                "indmax_perath": 3,
+                "relmax_perath": 2,
+                "addr1": address
             }
 
             for record in meet_table:
                 # Use a list of actual columns to be safe
                 actual_cols = list(record.keys())
-                for actual_col in actual_cols:
-                    for prop, candidates in mappings.items():
+                # Ensure all mapped columns exist in the record if they are missing
+                for prop, candidates in mappings.items():
+                    found = False
+                    for actual_col in actual_cols:
                         if str(actual_col).lower() in [c.lower() for c in candidates]:
+                            found = True
                             if values[prop] is not None:
                                 record[actual_col] = values[prop]
+                            break
+                    if not found and values[prop] is not None:
+                        # Add the preferred candidate name
+                        record[candidates[0]] = values[prop]
 
     def setup_scoring_and_seeding(self):
         """Applies standard scoring and seeding rules."""
         for key in self._get_all_table_keys("scoring"):
             scoring = self.table_data[key]
             if scoring:
+                # Dual meet standard: 5-3-2-1 for individual, 10-6 for relays
+                ind_points = {1: 5.0, 2: 3.0, 3: 2.0, 4: 1.0}
+                rel_points = {1: 10.0, 2: 6.0}
+                
                 for row in scoring:
-                    # Individual
-                    for i, val in enumerate([5, 3, 2, 1], 1):
-                        target = f"ind{i}"
-                        for actual_col in row.keys():
-                            if str(actual_col).lower() == target:
-                                row[actual_col] = val
-                    # Relays
-                    for i, val in enumerate([10, 6], 1):
-                        target = f"rel{i}"
-                        for actual_col in row.keys():
-                            if str(actual_col).lower() == target:
-                                row[actual_col] = val
+                    actual_cols = {k.lower(): k for k in row.keys()}
+                    
+                    if "score_place" in actual_cols:
+                        place = row[actual_cols["score_place"]]
+                        if "ind_score" in actual_cols:
+                            row[actual_cols["ind_score"]] = ind_points.get(place, 0.0)
+                        if "rel_score" in actual_cols:
+                            row[actual_cols["rel_score"]] = rel_points.get(place, 0.0)
+                    else:
+                        # Fallback for ind1, ind2, ... structure
+                        for i, val in enumerate([5, 3, 2, 1, 0], 1):
+                            target = f"ind{i}"
+                            if target in actual_cols:
+                                row[actual_cols[target]] = val
+                        for i, val in enumerate([10, 6, 0], 1):
+                            target = f"rel{i}"
+                            if target in actual_cols:
+                                row[actual_cols[target]] = val
 
     def consolidate_sessions(self, is_champs: bool = False):
         """Consolidates all events into a single session for non-champs meets."""
@@ -156,23 +225,30 @@ class SeasonTransformer:
         sess_ptr = 1
         
         session_keys = self._get_all_table_keys("session")
+        
+        # Comprehensive session record
+        new_session = {
+            "Sess_no": 1,
+            "Sess_ltr": " ",
+            "Sess_ptr": sess_ptr,
+            "Sess_day": 1,
+            "Sess_starttime": 32400, # 9:00 AM (9 * 3600)
+            "Sess_entrymax": 0,
+            "Sess_name": "All",
+            "Sess_interval": 60,
+            "Sess_course": "Y",
+            "Sess_entrymaxind": 0,
+            "Sess_entrymaxrel": 0,
+            "Sess_backinterval": 15,
+            "Sess_divinginterval": 30,
+            "Sess_chaseinterval": 0
+        }
+
         if not session_keys:
-            self._set_table("session", [{"Sess_no": 1, "Sess_ptr": sess_ptr, "Sess_name": "Session 1", "Sess_day": 1}])
+            self._set_table("session", [new_session])
         else:
             for key in session_keys:
-                old_sessions = self.table_data[key]
-                if not old_sessions:
-                    self.table_data[key] = [{"Sess_no": 1, "Sess_ptr": sess_ptr, "Sess_name": "Session 1", "Sess_day": 1}]
-                else:
-                    base = copy.deepcopy(old_sessions[0])
-                    for actual_col in base.keys():
-                        lcol = str(actual_col).lower()
-                        if lcol == "sess_no" or lcol == "session": base[actual_col] = 1
-                        if lcol == "sess_ptr": base[actual_col] = sess_ptr
-                        if lcol == "sess_day" or lcol == "day": base[actual_col] = 1
-                        if lcol == "sess_name" or lcol == "sessname": base[actual_col] = "Session 1"
-                        if lcol == "sess_starttime" or lcol == "starttime": base[actual_col] = 480
-                    self.table_data[key] = [base]
+                self.table_data[key] = [new_session]
         
         for key in self._get_all_table_keys("sessitem"):
             self.table_data[key] = []
@@ -182,7 +258,8 @@ class SeasonTransformer:
         if event_keys:
             events = self.table_data[event_keys[0]]
             for i, event in enumerate(events, 1):
-                e_ptr = event.get("Event_ptr") or event.get("event_ptr") or i
+                # Try multiple PTR candidates
+                e_ptr = event.get("Event_ptr") or event.get("event_ptr") or event.get("Event") or i
                 new_sessitems.append({
                     "Sess_order": i, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
                     "Sess_rnd": "F", "Rept_type": " ", "Delay_seconds": 0, "Alt_With": False
@@ -204,29 +281,53 @@ class SeasonTransformer:
 
         for key in team_keys:
             teams = self.table_data[key]
-            exists = any(
-                any(str(v).upper() == str(abbr).upper() for k, v in t.items() if str(k).lower() == "tcode")
-                for t in teams
-            )
+            # Robust exists check
+            abbr_cols = ["tcode", "team_abbr", "abbr"]
+            exists = False
+            for t in teams:
+                for k, v in t.items():
+                    if str(k).lower() in abbr_cols and str(v).strip().upper() == str(abbr).strip().upper():
+                        exists = True
+                        break
+                if exists: break
             
             if not exists:
                 logger.info(f"Adding missing team: {abbr} ({name}) to {key}")
-                # Try to use existing column naming if possible
-                new_team = {}
-                if teams:
-                    new_team = copy.deepcopy(teams[0])
-                    for k in new_team.keys(): new_team[k] = None
                 
-                # Fill standard fields
-                for k in ["TCode", "tcode", "TCODE"]: new_team[k] = abbr
-                for k in ["TName", "tname", "TNAME"]: new_team[k] = name
-                for k in ["Short", "short", "SHORT"]: new_team[k] = name[:15]
-                for k in ["LSC", "lsc", "LSC"]: new_team[k] = "AB"
-                for k in ["TType", "ttype", "TTYPE"]: new_team[k] = "AGE"
+                matched_team = {}
+                max_no = 0
+                for t in teams:
+                    for k, v in t.items():
+                        if str(k).lower() in ["team", "team_no", "team_ptr"] and v:
+                            try: max_no = max(max_no, int(v))
+                            except: pass
                 
-                # Strip out columns that didn't exist in original if we created empty
-                if not teams:
-                    new_team = {k: v for k, v in new_team.items() if v is not None}
+                # Try to find a template record to clone structure from
+                template_rec = None
+                if teams: 
+                    template_rec = teams[0]
+                elif key in self.table_defs:
+                    # Create empty record from columns
+                    template_rec = {c["name"]: None for c in self.table_defs[key].get("columns", [])}
                 
-                teams.append(new_team)
+                if template_rec:
+                    for k, v in template_rec.items():
+                        lk = k.lower()
+                        if lk in ["tcode", "team_abbr", "abbr"]: matched_team[k] = abbr
+                        elif lk in ["tname", "team_name", "name"]: matched_team[k] = name
+                        elif lk in ["short", "team_short", "short_name"]: matched_team[k] = name[:15]
+                        elif lk in ["lsc", "team_lsc"]: matched_team[k] = "CC"
+                        elif lk in ["ttype", "team_type"]: matched_team[k] = "AGE"
+                        elif lk in ["team", "team_no", "team_ptr"]: matched_team[k] = max_no + 1
+                        elif lk == "team_gender": matched_team[k] = "B"
+                        else: matched_team[k] = template_rec.get(k)
+                    teams.append(matched_team)
+                else:
+                    # Fallback for empty table and no defs
+                    new_team = {
+                        "TCode": abbr, "TName": name, "Short": name[:15],
+                        "LSC": "CC", "TType": "AGE", "Team_no": max_no + 1
+                    }
+                    teams.append(new_team)
+                
                 self.table_data[key] = teams

@@ -178,6 +178,8 @@ class MmToJsonConverter:
             "athlete": ["athlete", "ATHLETE", "Athlete"],
             "team": ["Team", "TEAM"],
             "divisions": ["Divisions", "DIVISIONS"],
+            "scoring": ["Scoring", "SCORING"],
+            "stdlanes": ["StdLanes", "STDLANES"],
         }
 
         # Jackcess

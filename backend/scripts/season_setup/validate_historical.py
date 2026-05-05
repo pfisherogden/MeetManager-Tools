@@ -21,7 +21,10 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
     # Load template data once
     print(f"Loading template: {template_mdb}")
     template_conv = MmToJsonConverter(mdb_path=template_mdb)
-    template_data = {name: df.to_dict('records') for name, df in template_conv.tables.items()}
+    full_template = template_conv.export_full_schema()
+    full_template["tables"] = {str(k): v for k, v in full_template["tables"].items()}
+    
+    template_rows = {name: t_def["rows"] for name, t_def in full_template["tables"].items()}
 
     results = []
 
@@ -36,12 +39,12 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
         target_meet = target_conv.tables.get("meet").iloc[0]
         
         # Determine name, date, lanes, location
-        name = target_meet.get("Meet_name1") or target_meet.get("meet_name1")
-        date = target_meet.get("Meet_start") or target_meet.get("meet_start")
-        lanes = int(target_meet.get("Meet_numlanes") or target_meet.get("meet_numlanes") or 6)
-        location = target_meet.get("Meet_location") or target_meet.get("meet_location")
+        name = target_meet.get("meet_name1")
+        date = target_meet.get("meet_start")
+        lanes = int(target_meet.get("meet_numlanes") or 6)
+        location = target_meet.get("meet_location")
         
-        if isinstance(date, datetime):
+        if hasattr(date, 'timestamp'):
             age_up = f"{date.year}-06-01"
             date_str = date.strftime("%Y-%m-%d")
         else:
@@ -52,28 +55,46 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
 
         # Transform template
         import copy
-        current_data = copy.deepcopy(template_data)
-        transformer = SeasonTransformer(current_data)
+        current_data = copy.deepcopy(template_rows)
+        transformer = SeasonTransformer(current_data, table_defs=full_template["tables"])
         
         transformer.purge_data(preserve_team_abbr=owner_team)
         transformer.update_meet(name, date_str, lanes, location=location, age_up=age_up)
-        is_champs = "CHAMPS" in name.upper() or "CHAMPIONSHIP" in name.upper()
+        is_champs = "CHAMPS" in str(name).upper() or "CHAMPIONSHIP" in str(name).upper()
         transformer.consolidate_sessions(is_champs=is_champs)
         
         # Compare
-        transformed_meet = current_data.get("Meet") or current_data.get("MEET") or current_data.get("meet")
+        def get_table(data, logical):
+            aliases = ["Meet", "MEET", "meet"] if logical == "meet" else ["Session", "SESSIONS", "session"]
+            for a in aliases:
+                if a in data: return data[a]
+            return []
+
+        transformed_meet = get_table(transformer.table_data, "meet")
         transformed_row = transformed_meet[0]
         
         mismatches = []
-        t_name = transformed_row.get("Meet_name1") or transformed_row.get("meet_name1")
+        # Case-insensitive check for name
+        t_name = None
+        for k, v in transformed_row.items():
+            if k.lower() == "meet_name1":
+                t_name = v
+                break
+        
         if t_name != name:
             mismatches.append(f"Name mismatch: {t_name} != {name}")
             
-        t_lanes = transformed_row.get("Meet_numlanes") or transformed_row.get("meet_numlanes")
-        if int(t_lanes) != lanes:
+        # Case-insensitive check for lanes
+        t_lanes = None
+        for k, v in transformed_row.items():
+            if k.lower() == "meet_numlanes":
+                t_lanes = int(v)
+                break
+
+        if t_lanes != lanes:
             mismatches.append(f"Lanes mismatch: {t_lanes} != {lanes}")
             
-        t_sessions = len(current_data.get("Session") or current_data.get("SESSIONS") or current_data.get("session"))
+        t_sessions = len(get_table(transformer.table_data, "session"))
         if not is_champs and t_sessions != 1:
             mismatches.append(f"Session count mismatch: {t_sessions} != 1 for dual meet")
 

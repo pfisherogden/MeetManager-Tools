@@ -40,8 +40,11 @@ def load_config():
             return json.load(f)
     return {"venues": {}, "teams": {}}
 
-def get_lanes(host, config):
-    return config.get("venues", {}).get(host, 6) # Default to 6
+def get_venue_info(host, config):
+    info = config.get("venues", {}).get(host, {"lanes": 6, "address": ""})
+    if isinstance(info, int):
+        return info, ""
+    return info.get("lanes", 6), info.get("address", "")
 
 def get_team_name(abbr, config):
     return config.get("teams", {}).get(abbr, abbr)
@@ -93,13 +96,13 @@ def generate(template_path, output_dir, owner_team="DP"):
         current_rows = {tname: t_def["rows"] for tname, t_def in full_template["tables"].items()}
         current_rows = copy.deepcopy(current_rows)
         
-        transformer = SeasonTransformer(current_rows)
+        transformer = SeasonTransformer(current_rows, table_defs=full_template["tables"])
         
         # 1. Purge data
         transformer.purge_data(preserve_team_abbr=owner_team)
         
         # 2. Update metadata
-        lanes = get_lanes(meet["host"], config)
+        lanes, address = get_venue_info(meet["host"], config)
         
         # Date Logic
         if meet["date"] == first_meet_date:
@@ -114,8 +117,10 @@ def generate(template_path, output_dir, owner_team="DP"):
         transformer.update_meet(
             name=meet["name"],
             start_date=meet["date"],
+
             lanes=lanes,
             location=meet["host"],
+            address=address,
             age_up="2026-06-01",
             entry_open=entry_open,
             entry_deadline=entry_deadline
@@ -127,7 +132,12 @@ def generate(template_path, output_dir, owner_team="DP"):
         # 4. Scoring and Seeding
         transformer.setup_scoring_and_seeding()
         
-        # 5. Ensure opponent team exists
+        # 5. Ensure teams exist
+        # Owner team
+        owner_name = get_team_name(owner_team, config)
+        transformer.ensure_team_exists(owner_team, owner_name)
+        
+        # Opponent team
         if "opponent" in meet:
             opp_name = get_team_name(meet["opponent"], config)
             transformer.ensure_team_exists(meet["opponent"], opp_name)

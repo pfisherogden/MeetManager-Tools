@@ -9,6 +9,8 @@ services:
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests
       - ./backend/tests/fixtures:/app/tests/fixtures
+      - ./backend/scripts:/app/scripts
+      - ./tests:/tests
       - ./tmp:/app/tmp
       - mmtools-data:/app/data
     environment:

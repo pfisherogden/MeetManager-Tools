@@ -1,12 +1,12 @@
 {
   "venues": {
-    "FAST": 8,
-    "Del Prado Cabana Club": 6,
-    "Foothill High School": 8,
-    "Bay Club": 8,
-    "Pleasanton Meadows": 6,
-    "Briarhill Cabana Club": 4,
-    "Castlewood": 6
+    "FAST": { "lanes": 8, "address": "7000 Stoneridge Dr" },
+    "Del Prado Cabana Club": { "lanes": 6, "address": "6750 Paseo Santa Cruz" },
+    "Foothill High School": { "lanes": 8, "address": "4375 Foothill Rd" },
+    "Bay Club": { "lanes": 8, "address": "7090 Johnson Dr" },
+    "Pleasanton Meadows": { "lanes": 6, "address": "4300 Valley Ave" },
+    "Briarhill Cabana Club": { "lanes": 4, "address": "1234 Briarhill Dr" },
+    "Castlewood": { "lanes": 6, "address": "707 Country Club Cir" }
   },
   "teams": {
     "FAST": "FAST Dolphins",
