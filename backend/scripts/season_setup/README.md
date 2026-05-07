@@ -82,6 +82,29 @@ If verification in the MeetManager Windows application reveals incorrect setting
 3.  **Run Hermetic Tests**: Execute `uv run --project backend pytest tests/integration/test_season_setup_hermetic.py` to verify the transformation logic using randomized mock data.
 4.  **Regenerate Season**: Once the logic is verified, run the `generate-season` target to produce fresh 2026 MDB files.
 
-## Updating the Schedule
+## Configuration
 
-To configure a new season, update the `SCHEDULE_2026` array (or rename it appropriately for the current year) inside `generate_season.py`.
+The automation is driven by two JSON files in the `config/` directory:
+
+-   **`venues.json`**: Defines pool parameters (lanes, address) for each venue.
+-   **`schedule.json`**: Defines the meet schedule for each year, including home/away designations and host venues.
+
+## Usage
+
+Use the `generate-season` recipe in the root `Justfile`:
+
+```bash
+just generate-season <template_path> <output_dir> <year> <owner_team>
+```
+
+Example for 2026:
+
+```bash
+just generate-season ../season-setup/template.mdb ../season-setup/2026_meets 2026 DP
+```
+
+## Adding a New Season
+
+1.  Update `config/schedule.json` with the new year's meet list.
+2.  Ensure any new venues are added to `config/venues.json`.
+3.  Run the generation script with the new year argument.

@@ -26,7 +26,7 @@ def test_full_season_generation_and_load(tmp_path):
     output_dir = tmp_path / "2026_meets"
 
     # We only generate one meet for the test to keep it fast
-    # We patch SCHEDULE_2026 inside the test
+    # We patch load_schedule inside the test
     from unittest.mock import patch
 
     mock_schedule = [
@@ -35,12 +35,13 @@ def test_full_season_generation_and_load(tmp_path):
             "name": "FAST vs Del Prado",
             "host": "Del Prado Cabana Club",
             "is_champs": False,
-            "opponent": "FAST",
+            "home": "FAST",
+            "away": "DP",
         }
     ]
 
-    with patch("generate_season.SCHEDULE_2026", mock_schedule):
-        generate(TEMPLATE_MDB, str(output_dir), owner_team="DP")
+    with patch("generate_season.load_schedule", return_value=mock_schedule):
+        generate(TEMPLATE_MDB, str(output_dir), 2026)
 
     # Verify file existence
     generated_file = (

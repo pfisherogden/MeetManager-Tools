@@ -100,18 +100,19 @@ def test_generate_season_logic_hermetic(mock_restore, tmp_path):
 
         output_dir = tmp_path / "output"
         with patch(
-            "generate_season.SCHEDULE_2026",
-            [
+            "generate_season.load_schedule",
+            return_value=[
                 {
                     "date": "2026-05-30",
                     "name": "FAST vs Del Prado",
                     "host": "Del Prado Cabana Club",
                     "is_champs": False,
-                    "opponent": "FAST",
+                    "home": "FAST",
+                    "away": "DP",
                 }
             ],
         ):
-            generate(str(dummy_template), str(output_dir), owner_team="DP")
+            generate(str(dummy_template), str(output_dir), 2026)
 
     assert mock_restore.called
     _, target_path = mock_restore.call_args[0]

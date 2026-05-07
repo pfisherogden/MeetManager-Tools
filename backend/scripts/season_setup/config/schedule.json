@@ -1,0 +1,67 @@
+{
+  "2026": [
+    {
+      "date": "2026-05-30",
+      "name": "Del Prado @ FAST",
+      "host": "Foothill High School",
+      "lanes": 8,
+      "is_champs": false,
+      "home": "FAST",
+      "away": "DP"
+    },
+    {
+      "date": "2026-06-06",
+      "name": "Del Prado @ Briarhill",
+      "host": "Foothill High School",
+      "lanes": 8,
+      "is_champs": false,
+      "home": "BH",
+      "away": "DP"
+    },
+    {
+      "date": "2026-06-13",
+      "name": "Del Prado @ Pleasanton Meadows",
+      "host": "Pleasanton Meadows",
+      "is_champs": false,
+      "home": "SHRK",
+      "away": "DP"
+    },
+    {
+      "date": "2026-06-20",
+      "name": "Castlewood @ Del Prado",
+      "host": "Del Prado Cabana Club",
+      "is_champs": false,
+      "home": "DP",
+      "away": "CW"
+    },
+    {
+      "date": "2026-06-27",
+      "name": "Bay Club @ Del Prado",
+      "host": "Del Prado Cabana Club",
+      "is_champs": false,
+      "home": "DP",
+      "away": "BCTW"
+    },
+    {
+      "date": "2026-07-01",
+      "name": "TVSL Extra Chance Meet",
+      "host": "Del Prado Cabana Club",
+      "is_champs": false
+    },
+    {
+      "date": "2026-07-11",
+      "name": "Briarhill @ Del Prado",
+      "host": "Del Prado Cabana Club",
+      "is_champs": false,
+      "home": "DP",
+      "away": "BH"
+    },
+    {
+      "date": "2026-07-18",
+      "name": "TVSL Championships",
+      "host": "Foothill High School",
+      "lanes": 10,
+      "is_champs": true
+    }
+  ]
+}

@@ -4,8 +4,9 @@
     "Del Prado Cabana Club": { "lanes": 6, "address": "6750 Paseo Santa Cruz" },
     "Foothill High School": { "lanes": 8, "address": "4375 Foothill Rd" },
     "Bay Club": { "lanes": 8, "address": "7090 Johnson Dr" },
-    "Pleasanton Meadows": { "lanes": 6, "address": "4300 Valley Ave" },
+    "Pleasanton Meadows": { "lanes": 5, "address": "4300 Valley Ave" },
     "Briarhill Cabana Club": { "lanes": 4, "address": "1234 Briarhill Dr" },
+
     "Castlewood": { "lanes": 6, "address": "707 Country Club Cir" }
   },
   "teams": {
