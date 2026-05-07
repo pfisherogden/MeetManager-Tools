@@ -45,9 +45,9 @@ down:
     docker compose down
 
 # --- Season Setup Automation ---
-generate-season TEMPLATE OUTPUT_DIR OWNER="DP":
-    @echo "Generating 2026 season MDBs..."
-    uv run --project MeetManager-Tools python3 backend/scripts/season_setup/generate_season.py --template {{TEMPLATE}} --output-dir {{OUTPUT_DIR}} --owner-team {{OWNER}}
+generate-season TEMPLATE OUTPUT_DIR YEAR="2026" OWNER="DP":
+    @echo "Generating {{YEAR}} season MDBs..."
+    uv run --project MeetManager-Tools python3 backend/scripts/season_setup/generate_season.py --template {{TEMPLATE}} --output-dir {{OUTPUT_DIR}} --year {{YEAR}} --owner-team {{OWNER}}
 
 validate-season TEMPLATE +FILES:
     @echo "Validating season setup against historical data..."

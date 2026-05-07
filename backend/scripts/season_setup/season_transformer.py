@@ -124,7 +124,7 @@ class SeasonTransformer:
             logger.warning(f"Could not parse date string {date_str}: {e}")
             return None
 
-    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", opponent_team: Optional[str] = None):
+    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: Optional[str] = None, away_team: Optional[str] = None):
         """Updates the MEET table metadata across all possible aliases."""
         keys = self._get_all_table_keys("meet")
         if not keys:
@@ -156,8 +156,12 @@ class SeasonTransformer:
                 "addr1": ["meet_addr1", "MEET_ADDR1"],
                 "dual_evenodd": ["dual_evenodd", "DUAL_EVENODD"],
                 "team_evenlanes": ["team_evenlanes", "TEAM_EVENLANES"],
-                "team_oddlanes": ["team_oddlanes", "TEAM_ODDLANES"]
+                "team_oddlanes": ["team_oddlanes", "TEAM_ODDLANES"],
+                "excludententries": ["excludententries_whenimporting", "EXCLUDENTENTRIES_WHENIMPORTING"]
             }
+
+            home_id = self.team_ids.get(home_team.upper(), 0) if home_team else 0
+            away_id = self.team_ids.get(away_team.upper(), 0) if away_team else 0
 
             values = {
                 "name": name, 
@@ -177,10 +181,25 @@ class SeasonTransformer:
                 "indmax_perath": 3,
                 "relmax_perath": 2,
                 "addr1": address,
-                "dual_evenodd": True,
-                "team_evenlanes": self.team_ids.get(owner_team.upper(), 0),
-                "team_oddlanes": self.team_ids.get(opponent_team.upper(), 0) if opponent_team else 0
+                "dual_evenodd": bool(home_team and away_team),
+                "team_evenlanes": home_id,
+                "team_oddlanes": away_id,
+                "excludententries": False
             }
+
+            # Lane assignments
+            if home_team and away_team:
+                for i in range(1, 13):
+                    lane_key = f"dualteam_lane{i}"
+                    # Away in Odd (1, 3, 5...), Home in Even (2, 4, 6...)
+                    values[lane_key] = home_id if i % 2 == 0 else away_id
+                    mappings[lane_key] = [lane_key, lane_key.upper()]
+            else:
+                # Clear assignments for champs/extra chance
+                for i in range(1, 13):
+                    lane_key = f"dualteam_lane{i}"
+                    values[lane_key] = 0
+                    mappings[lane_key] = [lane_key, lane_key.upper()]
 
             for record in meet_table:
                 # Use a list of actual columns to be safe
@@ -191,12 +210,19 @@ class SeasonTransformer:
                     for actual_col in actual_cols:
                         if str(actual_col).lower() in [c.lower() for c in candidates]:
                             found = True
-                            if values[prop] is not None:
-                                record[actual_col] = values[prop]
+                            if values.get(prop) is not None:
+                                # Special case for boolean to match 2022 MDB (which used 1/0)
+                                val = values[prop]
+                                if isinstance(val, bool):
+                                    val = 1 if val else 0
+                                record[actual_col] = val
                             break
-                    if not found and values[prop] is not None:
+                    if not found and values.get(prop) is not None:
                         # Add the preferred candidate name
-                        record[candidates[0]] = values[prop]
+                        val = values[prop]
+                        if isinstance(val, bool):
+                            val = 1 if val else 0
+                        record[candidates[0]] = val
 
     def setup_scoring_and_seeding(self):
         """Applies standard scoring and seeding rules."""
@@ -327,7 +353,6 @@ class SeasonTransformer:
                 if teams: 
                     template_rec = teams[0]
                 elif key in self.table_defs:
-                    # Create empty record from columns
                     template_rec = {c["name"]: None for c in self.table_defs[key].get("columns", [])}
                 
                 if template_rec:
@@ -343,7 +368,6 @@ class SeasonTransformer:
                         else: matched_team[k] = template_rec.get(k)
                     teams.append(matched_team)
                 else:
-                    # Fallback for empty table and no defs
                     new_team = {
                         "TCode": abbr, "TName": name, "Short": name[:15],
                         "LSC": "CC", "TType": "AGE", "Team_no": new_id

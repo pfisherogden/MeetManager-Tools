@@ -22,23 +22,20 @@ from season_transformer import SeasonTransformer
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SCHEDULE_2026 = [
-    {"date": "2026-05-30", "name": "FAST vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "FAST"},
-    {"date": "2026-06-06", "name": "Del Prado vs Briarhill", "host": "Briarhill Cabana Club", "is_champs": False, "opponent": "BH"},
-    {"date": "2026-06-13", "name": "Del Prado vs Meadows", "host": "Pleasanton Meadows", "is_champs": False, "opponent": "SHRK"},
-    {"date": "2026-06-20", "name": "Castlewood vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "CW"},
-    {"date": "2026-06-27", "name": "Bay Club vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "BCTW"},
-    {"date": "2026-07-01", "name": "TVSL Extra Chance Meet", "host": "Foothill High School", "is_champs": False},
-    {"date": "2026-07-11", "name": "Briarhill vs Del Prado", "host": "Del Prado Cabana Club", "is_champs": False, "opponent": "BH"},
-    {"date": "2026-07-18", "name": "TVSL Championships", "host": "Foothill High School", "is_champs": True},
-]
-
 def load_config():
     config_path = os.path.join(script_dir, "config", "venues.json")
     if os.path.exists(config_path):
         with open(config_path, "r") as f:
             return json.load(f)
     return {"venues": {}, "teams": {}}
+
+def load_schedule(year):
+    schedule_path = os.path.join(script_dir, "config", "schedule.json")
+    if os.path.exists(schedule_path):
+        with open(schedule_path, "r") as f:
+            full_schedule = json.load(f)
+            return full_schedule.get(str(year))
+    return None
 
 def get_venue_info(host, config):
     info = config.get("venues", {}).get(host, {"lanes": 6, "address": ""})
@@ -61,9 +58,14 @@ def to_python(obj):
         return [to_python(x) for x in obj]
     return obj
 
-def generate(template_path, output_dir, owner_team="DP"):
+def generate(template_path, output_dir, year, owner_team="DP"):
+    schedule = load_schedule(year)
+    if not schedule:
+        logger.error(f"No schedule found for year {year} in config/schedule.json")
+        return
+
     # Base folder structure mirroring previous years
-    season_data_dir = os.path.join(output_dir, "2026 Del Prado Data", "Swim Meets")
+    season_data_dir = os.path.join(output_dir, f"{year} Del Prado Data", "Swim Meets")
     if not os.path.exists(season_data_dir):
         os.makedirs(season_data_dir)
 
@@ -77,9 +79,11 @@ def generate(template_path, output_dir, owner_team="DP"):
     
     config = load_config()
 
-    first_meet_date = "2026-05-30"
+    # Find the first meet date for entry open logic
+    meet_dates = sorted([m["date"] for m in schedule])
+    first_meet_date = meet_dates[0] if meet_dates else ""
 
-    for meet in SCHEDULE_2026:
+    for meet in schedule:
         # Create subfolder for each meet
         meet_dir_name = f"{meet['date']} {meet['name']}"
         meet_output_dir = os.path.join(season_data_dir, meet_dir_name)
@@ -106,24 +110,39 @@ def generate(template_path, output_dir, owner_team="DP"):
         owner_name = get_team_name(owner_team, config)
         transformer.ensure_team_exists(owner_team, owner_name)
 
-        # Opponent team
-        opponent_team = meet.get("opponent")
-        if opponent_team:
-            opp_name = get_team_name(opponent_team, config)
-            transformer.ensure_team_exists(opponent_team, opp_name)
+        # Home/Away teams
+        home_team = meet.get("home")
+        away_team = meet.get("away")
+        
+        if home_team:
+            h_name = get_team_name(home_team, config)
+            transformer.ensure_team_exists(home_team, h_name)
+        if away_team:
+            a_name = get_team_name(away_team, config)
+            transformer.ensure_team_exists(away_team, a_name)
 
         # 3. Update metadata
-        lanes, address = get_venue_info(meet["host"], config)
+        # Default lanes from venue, or override from meet (e.g. Champs)
+        v_lanes, address = get_venue_info(meet["host"], config)
+        lanes = meet.get("lanes", v_lanes)
 
         # Date Logic
         if meet["date"] == first_meet_date:
-            entry_open = "2025-06-01"
+            # 6/1 of previous year
+            try:
+                dt = datetime.strptime(meet["date"], "%Y-%m-%d")
+                entry_open = f"{dt.year - 1}-06-01"
+            except:
+                entry_open = "2025-06-01"
         else:
             entry_open = first_meet_date
-
+            
         meet_dt = datetime.strptime(meet["date"], "%Y-%m-%d")
         deadline_dt = meet_dt - timedelta(days=4)
         entry_deadline = deadline_dt.strftime("%Y-%m-%d")
+
+        # Age up is usually 6/1 of current year
+        age_up = f"{year}-06-01"
 
         transformer.update_meet(
             name=meet["name"],
@@ -131,19 +150,19 @@ def generate(template_path, output_dir, owner_team="DP"):
             lanes=lanes,
             location=meet["host"],
             address=address,
-            age_up="2026-06-01",
+            age_up=age_up,
             entry_open=entry_open,
             entry_deadline=entry_deadline,
             owner_team=owner_team,
-            opponent_team=opponent_team
+            home_team=home_team,
+            away_team=away_team
         )
-
+        
         # 4. Sessions
         transformer.consolidate_sessions(is_champs=meet["is_champs"])
-
+        
         # 5. Scoring and Seeding
         transformer.setup_scoring_and_seeding()
-
 
         # Build output_data with transformed rows
         output_data = {"tables": {}}
@@ -191,7 +210,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--template", required=True, help="Path to blank template MDB")
     parser.add_argument("--output-dir", required=True, help="Directory to save generated MDBs")
+    parser.add_argument("--year", type=int, default=2026, help="The season year (default: 2026)")
     parser.add_argument("--owner-team", default="DP", help="The abbreviation of the host team to preserve in the MDB (default: DP)")
     args = parser.parse_args()
 
-    generate(args.template, args.output_dir, args.owner_team)
+    generate(args.template, args.output_dir, args.year, args.owner_team)

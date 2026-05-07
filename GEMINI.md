@@ -144,10 +144,15 @@ All agents MUST follow these workflow phases:
   - Fixed cross-page filtering and restored missing Report Pack Builder options.
   - Achieved 100% green CI with 20/20 E2E pass rate across all modules.
 
-
 ### 11. Season Setup Automation
 - **Rule**: Use the `season-setup` skill when configuring MDB files for a new swim season.
+- **Architecture**:
+    - **Configuration-Driven**: The system uses `config/venues.json` for pool parameters and `config/schedule.json` for meet-specific details (dates, home/away, host).
+    - **Reusability**: Always pass the `year` argument to `generate_season.py` to target the correct schedule.
 - **Critical Knowledge**:
+...
+    - **Lane Assignments**: Home teams are assigned to EVEN lanes (2, 4, 6...), and Away teams to ODD lanes (1, 3, 5...), matching the "4-2-6" and "3-5-1" priority rules.
+
     - **Date Format**: The `mdb_restorer` expects date fields to be **millisecond timestamps** (integers) in the JSON source. Providing ISO strings or other formats will lead to empty values or type mismatches in the final MDB.
     - **Schema Mapping**: When tables (like `Team`) are empty in the template, `SeasonTransformer` must use explicit `table_defs` to map columns correctly.
     - **Meet Defaults**: Dual meets should always set `ID Format` to 1 (USAS), `Host LSC` to CC, and `DQ Codes` to 'H' (Custom).
