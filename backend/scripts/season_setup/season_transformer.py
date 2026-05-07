@@ -124,7 +124,7 @@ class SeasonTransformer:
             logger.warning(f"Could not parse date string {date_str}: {e}")
             return None
 
-    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: Optional[str] = None, away_team: Optional[str] = None):
+    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", city: str = "", state: str = "", zip_code: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: Optional[str] = None, away_team: Optional[str] = None):
         """Updates the MEET table metadata across all possible aliases."""
         keys = self._get_all_table_keys("meet")
         if not keys:
@@ -154,6 +154,9 @@ class SeasonTransformer:
                 "indmax_perath": ["indmax_perath", "INDMAX_PERATH"],
                 "relmax_perath": ["relmax_perath", "RELMAX_PERATH"],
                 "addr1": ["meet_addr1", "MEET_ADDR1"],
+                "city": ["meet_city", "MEET_CITY"],
+                "state": ["meet_state", "MEET_STATE"],
+                "zip": ["meet_zip", "MEET_ZIP"],
                 "dual_evenodd": ["dual_evenodd", "DUAL_EVENODD"],
                 "team_evenlanes": ["team_evenlanes", "TEAM_EVENLANES"],
                 "team_oddlanes": ["team_oddlanes", "TEAM_ODDLANES"],
@@ -181,6 +184,9 @@ class SeasonTransformer:
                 "indmax_perath": 3,
                 "relmax_perath": 2,
                 "addr1": address,
+                "city": city,
+                "state": state,
+                "zip": zip_code,
                 "dual_evenodd": bool(home_team and away_team),
                 "team_evenlanes": home_id,
                 "team_oddlanes": away_id,

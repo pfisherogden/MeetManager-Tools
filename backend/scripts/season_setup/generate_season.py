@@ -39,9 +39,7 @@ def load_schedule(year):
 
 def get_venue_info(host, config):
     info = config.get("venues", {}).get(host, {"lanes": 6, "address": ""})
-    if isinstance(info, int):
-        return info, ""
-    return info.get("lanes", 6), info.get("address", "")
+    return info
 
 def get_team_name(abbr, config):
     return config.get("teams", {}).get(abbr, abbr)
@@ -123,7 +121,8 @@ def generate(template_path, output_dir, year, owner_team="DP"):
 
         # 3. Update metadata
         # Default lanes from venue, or override from meet (e.g. Champs)
-        v_lanes, address = get_venue_info(meet["host"], config)
+        v_info = get_venue_info(meet["host"], config)
+        v_lanes = v_info.get("lanes", 6)
         lanes = meet.get("lanes", v_lanes)
 
         # Date Logic
@@ -149,7 +148,10 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             start_date=meet["date"],
             lanes=lanes,
             location=meet["host"],
-            address=address,
+            address=v_info.get("address", ""),
+            city=v_info.get("city", ""),
+            state=v_info.get("state", ""),
+            zip_code=v_info.get("zip", ""),
             age_up=age_up,
             entry_open=entry_open,
             entry_deadline=entry_deadline,

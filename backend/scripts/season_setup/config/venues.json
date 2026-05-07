@@ -1,14 +1,14 @@
 {
   "venues": {
-    "FAST": { "lanes": 8, "address": "7000 Stoneridge Dr" },
-    "Del Prado Cabana Club": { "lanes": 6, "address": "6750 Paseo Santa Cruz" },
-    "Foothill High School": { "lanes": 8, "address": "4375 Foothill Rd" },
-    "Bay Club": { "lanes": 8, "address": "7090 Johnson Dr" },
-    "Pleasanton Meadows": { "lanes": 5, "address": "4300 Valley Ave" },
-    "Briarhill Cabana Club": { "lanes": 4, "address": "1234 Briarhill Dr" },
-
-    "Castlewood": { "lanes": 6, "address": "707 Country Club Cir" }
+    "FAST": { "lanes": 8, "address": "4375 Foothill Rd", "city": "Pleasanton", "state": "CA", "zip": "94588" },
+    "Del Prado Cabana Club": { "lanes": 6, "address": "6750 Paseo Santa Cruz", "city": "Pleasanton", "state": "CA", "zip": "94566" },
+    "Foothill High School": { "lanes": 8, "address": "4375 Foothill Rd", "city": "Pleasanton", "state": "CA", "zip": "94588" },
+    "Bay Club": { "lanes": 8, "address": "7090 Johnson Dr", "city": "Pleasanton", "state": "CA", "zip": "94588" },
+    "Pleasanton Meadows": { "lanes": 5, "address": "4110 Churchill Dr", "city": "Pleasanton", "state": "CA", "zip": "94588" },
+    "Briarhill Cabana Club": { "lanes": 4, "address": "7084 Hansen Dr", "city": "Dublin", "state": "CA", "zip": "94568" },
+    "Castlewood": { "lanes": 6, "address": "707 Country Club Cir", "city": "Pleasanton", "state": "CA", "zip": "94566" }
   },
+
   "teams": {
     "FAST": "FAST Dolphins",
     "DP": "Del Prado Stingrays",
