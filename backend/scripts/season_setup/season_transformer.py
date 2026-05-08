@@ -140,7 +140,7 @@ class SeasonTransformer:
                     if str(actual_col).lower() == "num_lanesinbestheatstimedfinal":
                         event[actual_col] = lanes
 
-    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", city: str = "", state: str = "", zip_code: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: Optional[str] = None, away_team: Optional[str] = None):
+    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", city: str = "", state: str = "", zip_code: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: Optional[str] = None, away_team: Optional[str] = None, is_champs: bool = False):
         """Updates the MEET table metadata across all possible aliases."""
         # First, update all events to match pool lanes
         self.update_event_lanes(lanes)
@@ -168,6 +168,7 @@ class SeasonTransformer:
                 "hostlsc": ["meet_hostlsc", "MEET_HOSTLSC"],
                 "dqcodes": ["dqcodes_type", "DQCODES_TYPE"],
                 "indmaxscorers": ["indmaxscorers_perteam", "INDMAXSCORERS_PERTEAM"],
+                "relmaxscorers": ["relmaxscorers_perteam", "RELMAXSCORERS_PERTEAM"],
                 "eligibility": ["entryeligibility_date", "ENTRYELIGIBILITY_DATE"],
                 "entrymax_total": ["entrymax_total", "ENTRYMAX_TOTAL"],
                 "indmax_perath": ["indmax_perath", "INDMAX_PERATH"],
@@ -197,7 +198,8 @@ class SeasonTransformer:
                 "idformat": 1, # USAS
                 "hostlsc": "CC",
                 "dqcodes": "H", # Custom
-                "indmaxscorers": 4,
+                "indmaxscorers": 0 if is_champs else 4,
+                "relmaxscorers": 1 if is_champs else 2,
                 "eligibility": self._date_to_ms(entry_open),
                 "entrymax_total": 4,
                 "indmax_perath": 3,
@@ -206,9 +208,9 @@ class SeasonTransformer:
                 "city": city,
                 "state": state,
                 "zip": zip_code,
-                "dual_evenodd": bool(home_team and away_team),
-                "team_evenlanes": home_id,
-                "team_oddlanes": away_id,
+                "dual_evenodd": bool(home_team and away_team) if not is_champs else False,
+                "team_evenlanes": home_id if not is_champs else 0,
+                "team_oddlanes": away_id if not is_champs else 0,
                 "excludententries": False
             }
 
@@ -238,29 +240,28 @@ class SeasonTransformer:
                         if str(actual_col).lower() in [c.lower() for c in candidates]:
                             found = True
                             if values.get(prop) is not None:
-                                # Special case for boolean to match 2022 MDB (which used 1/0)
                                 val = values[prop]
+                                # Special case for boolean to match 2022 MDB (which used 1/0)
                                 if isinstance(val, bool):
                                     val = 1 if val else 0
                                 record[actual_col] = val
                             break
                     if not found and values.get(prop) is not None:
-                        # Add the preferred candidate name
                         val = values[prop]
                         if isinstance(val, bool):
                             val = 1 if val else 0
                         record[candidates[0]] = val
-
     def setup_scoring_and_seeding(self, is_champs: bool = False):
         """Applies standard scoring and seeding rules."""
         for key in self._get_all_table_keys("scoring"):
             scoring = self.table_data[key]
             if scoring:
                 if is_champs:
-                    # Championship standard: 20-17-16-15-14-13-12-11-9-7-6-5-4-3-2-1
+                    # Championship standard (12 places): 20-17-16-15-14-13-12-11-9-7-6-4
+                    # Confirmed via 2022 TVSL Champs Results
                     ind_points = {
-                        1: 20.0, 2: 17.0, 3: 16.0, 4: 15.0, 5: 14.0, 6: 13.0, 7: 12.0, 8: 11.0,
-                        9: 9.0, 10: 7.0, 11: 6.0, 12: 5.0, 13: 4.0, 14: 3.0, 15: 2.0, 16: 1.0
+                        1: 20.0, 2: 17.0, 3: 16.0, 4: 15.0, 5: 14.0, 6: 13.0,
+                        7: 12.0, 8: 11.0, 9: 9.0, 10: 7.0, 11: 6.0, 12: 4.0
                     }
                 else:
                     # Dual meet standard: 5-3-2-1 for individual, 10-6 for relays

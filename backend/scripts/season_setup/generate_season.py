@@ -157,7 +157,8 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             entry_deadline=entry_deadline,
             owner_team=owner_team,
             home_team=home_team,
-            away_team=away_team
+            away_team=away_team,
+            is_champs=meet["is_champs"]
         )
         
         # 4. Sessions
