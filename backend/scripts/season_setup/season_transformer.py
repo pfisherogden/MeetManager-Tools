@@ -364,15 +364,15 @@ class SeasonTransformer:
 
         # CHAMPS LOGIC
         logger.info("Creating multi-session layout for Champs")
-        # Define sessions
+        # Define sessions based on 2025 Champs MDB
         champs_sessions = [
-            {"name": "Med Relays", "stroke": "E", "ind_rel": "R", "start": 28800},
-            {"name": "Freestyle", "stroke": "A", "ind_rel": "I", "start": 31200},
-            {"name": "Butterfly", "stroke": "D", "ind_rel": "I", "start": 35400},
-            {"name": "Breaststroke", "stroke": "C", "ind_rel": "I", "start": 38400},
-            {"name": "Individual Medley", "stroke": "E", "ind_rel": "I", "start": 41700},
-            {"name": "Backstroke", "stroke": "B", "ind_rel": "I", "start": 45000},
-            {"name": "Freestyle Relays", "stroke": "A", "ind_rel": "R", "start": 49500},
+            {"name": "Med Relays", "stroke": "E", "ind_rel": "R", "start": 32400},
+            {"name": "Freestyle", "stroke": "A", "ind_rel": "I", "start": 34560},
+            {"name": "Butterfly", "stroke": "D", "ind_rel": "I", "start": 37440},
+            {"name": "Breaststroke", "stroke": "C", "ind_rel": "I", "start": 39540},
+            {"name": "Individual Medley", "stroke": "E", "ind_rel": "I", "start": 42600},
+            {"name": "Backstroke", "stroke": "B", "ind_rel": "I", "start": 45120},
+            {"name": "Freestyle Relays", "stroke": "A", "ind_rel": "R", "start": 48120},
         ]
 
         session_records = []
