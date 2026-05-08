@@ -251,14 +251,23 @@ class SeasonTransformer:
                             val = 1 if val else 0
                         record[candidates[0]] = val
 
-    def setup_scoring_and_seeding(self):
+    def setup_scoring_and_seeding(self, is_champs: bool = False):
         """Applies standard scoring and seeding rules."""
         for key in self._get_all_table_keys("scoring"):
             scoring = self.table_data[key]
             if scoring:
-                # Dual meet standard: 5-3-2-1 for individual, 10-6 for relays
-                ind_points = {1: 5.0, 2: 3.0, 3: 2.0, 4: 1.0}
-                rel_points = {1: 10.0, 2: 6.0}
+                if is_champs:
+                    # Championship standard: 20-17-16-15-14-13-12-11-9-7-6-5-4-3-2-1
+                    ind_points = {
+                        1: 20.0, 2: 17.0, 3: 16.0, 4: 15.0, 5: 14.0, 6: 13.0, 7: 12.0, 8: 11.0,
+                        9: 9.0, 10: 7.0, 11: 6.0, 12: 5.0, 13: 4.0, 14: 3.0, 15: 2.0, 16: 1.0
+                    }
+                else:
+                    # Dual meet standard: 5-3-2-1 for individual, 10-6 for relays
+                    ind_points = {1: 5.0, 2: 3.0, 3: 2.0, 4: 1.0}
+                
+                # Relays are usually 2x individual
+                rel_points = {k: v * 2 for k, v in ind_points.items()}
                 
                 for row in scoring:
                     actual_cols = {k.lower(): k for k in row.keys()}
@@ -271,11 +280,14 @@ class SeasonTransformer:
                             row[actual_cols["rel_score"]] = rel_points.get(place, 0.0)
                     else:
                         # Fallback for ind1, ind2, ... structure
-                        for i, val in enumerate([5, 3, 2, 1, 0], 1):
+                        points_list = [ind_points.get(i, 0.0) for i in range(1, 13)]
+                        for i, val in enumerate(points_list, 1):
                             target = f"ind{i}"
                             if target in actual_cols:
                                 row[actual_cols[target]] = val
-                        for i, val in enumerate([10, 6, 0], 1):
+                        
+                        rel_list = [rel_points.get(i, 0.0) for i in range(1, 13)]
+                        for i, val in enumerate(rel_list, 1):
                             target = f"rel{i}"
                             if target in actual_cols:
                                 row[actual_cols[target]] = val

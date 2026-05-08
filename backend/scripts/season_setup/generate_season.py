@@ -164,7 +164,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
         transformer.consolidate_sessions(is_champs=meet["is_champs"])
         
         # 5. Scoring and Seeding
-        transformer.setup_scoring_and_seeding()
+        transformer.setup_scoring_and_seeding(is_champs=meet["is_champs"])
         transformer.ensure_std_lanes()
 
         # Build output_data with transformed rows
