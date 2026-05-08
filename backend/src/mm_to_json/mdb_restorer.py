@@ -1,6 +1,10 @@
 import json
+import logging
+import os
 
 from mm_to_json import mdb_writer
+
+logger = logging.getLogger(__name__)
 
 
 def restore_db(json_path, target_mdb):
@@ -12,7 +16,7 @@ def restore_db(json_path, target_mdb):
     with open(json_path) as f:
         dump_data = json.load(f)
 
-    start_jvm()
+    mdb_writer.ensure_jvm_started()
 
     from com.healthmarketscience.jackcess import (
         ColumnBuilder,
@@ -25,7 +29,6 @@ def restore_db(json_path, target_mdb):
     from java.io import File
 
     # Create new MDB
-    # Format: V2000 is typical for .mdb
     db = DatabaseBuilder.create(Database.FileFormat.V2000, File(target_mdb))
 
     try:
@@ -39,13 +42,10 @@ def restore_db(json_path, target_mdb):
             # Add Columns
             columns = table_def.get("columns", [])
             for col in columns:
-                # Map type string to DataType
-                # e.g. "LONG" -> DataType.LONG
                 dtype_str = col["type"]
                 try:
                     dtype = getattr(DataType, dtype_str)
                 except AttributeError:
-                    print(f"Warning: Unknown type {dtype_str} for {col['name']}, defaulting to TEXT")
                     dtype = DataType.TEXT
 
                 cb = ColumnBuilder(col["name"])
@@ -66,14 +66,13 @@ def restore_db(json_path, target_mdb):
             indexes = table_def.get("indexes", [])
             for idx in indexes:
                 if idx["name"].startswith("."):
-                    # Skip internal/system indexes
                     continue
 
                 ib = IndexBuilder(idx["name"])
                 if idx.get("unique"):
                     ib.setUnique()
                 for cname in idx.get("columns", []):
-                    ib.addColumns([cname])  # accepts varargs or string array
+                    ib.addColumns([cname])
                 tb.addIndex(ib)
 
             # Create Table
@@ -84,98 +83,118 @@ def restore_db(json_path, target_mdb):
             if has_auto:
                 table.setAllowAutoNumberInsert(True)
 
-            # Map column name to type for coercion
-            col_types = {}
+            # Map column name (lowercase) to info for coercion
+            col_info = {}
             for col in columns:
-                col_types[col["name"]] = getattr(DataType, col["type"], DataType.TEXT)
+                col_info[col["name"].lower()] = {
+                    "type": getattr(DataType, col["type"], DataType.TEXT),
+                    "original_name": col["name"],
+                }
 
             # Insert Rows
-            rows = table_def.get("rows", [])
             if rows:
-                print(f"  Inserting {len(rows)} rows...")
-                # Jackcess can add rows from map
+                print(f"  Inserting {len(rows)} rows into {table_name}...")
                 from java.util import HashMap
 
                 for row_data in rows:
                     row_map = HashMap()
                     for k, v in row_data.items():
                         if table_name == "SESSIONS" and k == "DAY" and v is None:
-                            v = 1  # Fix for mm_to_json crash on null DAY
+                            v = 1
 
                         if v is None:
                             row_map.put(k, None)
                         else:
-                            # Coerce based on type
-                            dtype = col_types.get(k, DataType.TEXT)
+                            kl = str(k).lower()
+                            info = col_info.get(kl)
+                            if not info:
+                                row_map.put(k, str(v))
+                                continue
 
-                            # Numeric types
-                            if dtype in (
-                                DataType.LONG,
-                                DataType.INT,
-                                DataType.BYTE,
-                                DataType.NUMERIC,
-                                DataType.MONEY,
-                                DataType.BIG_INT,
+                            dtype = info["type"]
+                            dtype_name = str(dtype.name())
+
+                            if dtype_name in (
+                                "LONG",
+                                "INT",
+                                "BYTE",
+                                "NUMERIC",
+                                "MONEY",
+                                "BIG_INT",
                             ):
                                 try:
-                                    # Handle "123.0" if float in string?
                                     row_map.put(k, int(float(v)))
                                 except Exception:
-                                    row_map.put(k, v)  # Fallback
+                                    row_map.put(k, v)
 
-                            elif dtype in (DataType.DOUBLE, DataType.FLOAT):
+                            elif dtype_name in ("DOUBLE", "FLOAT"):
                                 try:
                                     row_map.put(k, float(v))
                                 except Exception:
                                     row_map.put(k, v)
 
-                            elif dtype == DataType.BOOLEAN:
-                                # "True"/"False" or 1/0
+                            elif dtype_name == "TEXT":
+                                try:
+                                    col = None
+                                    for c in table.getColumns():
+                                        if str(c.getName()).lower() == kl:
+                                            col = c
+                                            break
+
+                                    if col:
+                                        phys_name = str(col.getName())
+                                        max_len = col.getLength()
+                                        s_val = str(v)
+                                        if len(s_val) > max_len:
+                                            row_map.put(phys_name, s_val[:max_len])
+                                        else:
+                                            row_map.put(phys_name, s_val)
+                                    else:
+                                        row_map.put(k, str(v))
+                                except Exception:
+                                    row_map.put(k, str(v))
+
+                            elif dtype_name == "MEMO":
+                                row_map.put(k, str(v))
+
+                            elif dtype_name == "BOOLEAN":
                                 if isinstance(v, str):
                                     row_map.put(k, v.lower() == "true")
                                 else:
                                     row_map.put(k, bool(v))
 
-                            elif dtype == DataType.SHORT_DATE_TIME:
-                                # v can be long timestamp or ISO string
+                            elif dtype_name == "SHORT_DATE_TIME":
                                 try:
                                     from java.util import Date
 
                                     if isinstance(v, (int, float)):
                                         row_map.put(k, Date(int(v)))
                                     else:
-                                        # Try parsing as ISO string
                                         from datetime import datetime
 
-                                        dt = datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+                                        dt = datetime.fromisoformat(
+                                            str(v).replace("Z", "+00:00")
+                                        )
                                         ts_ms = int(dt.timestamp() * 1000)
                                         row_map.put(k, Date(ts_ms))
-                                except Exception as e:
-                                    print(f"  Warning: Could not parse date {v} for column {k}: {e}")
+                                except Exception:
                                     row_map.put(k, None)
 
-                            elif dtype in (DataType.BINARY, DataType.OLE):
-                                # v is base64 string
+                            elif dtype_name in ("BINARY", "OLE"):
                                 try:
                                     import base64
 
                                     row_map.put(k, base64.b64decode(v))
-                                except Exception as e:
-                                    print(f"  Warning: Could not decode binary data for column {k}: {e}")
+                                except Exception:
                                     row_map.put(k, None)
 
                             else:
                                 row_map.put(k, str(v))
 
                     table.addRowFromMap(row_map)
-
     finally:
         db.close()
     print("Restore complete.")
-
-
-def start_jvm():
-    mdb_writer.ensure_jvm_started()
 
 
 if __name__ == "__main__":

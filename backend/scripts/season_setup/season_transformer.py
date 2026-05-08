@@ -31,7 +31,7 @@ class SeasonTransformer:
             "team": ["Team", "TEAM", "team"],
             "divisions": ["Divisions", "DIVISIONS", "divisions"],
             "scoring": ["Scoring", "SCORING", "scoring"],
-            "stdlanes": ["Stdlanes", "STDLANES", "stdlanes"],
+            "stdlanes": ["StdLanes", "STDLANES", "stdlanes"],
         }
 
     def _get_all_table_keys(self, logical_name: str) -> List[str]:
@@ -124,8 +124,27 @@ class SeasonTransformer:
             logger.warning(f"Could not parse date string {date_str}: {e}")
             return None
 
+    def update_event_lanes(self, lanes: int):
+        """Updates all events to use the specified number of lanes."""
+        for key in self._get_all_table_keys("event"):
+            events = self.table_data[key]
+            for event in events:
+                # Update both prelanes and finlanes (most summer meets are timed finals)
+                for col in ["Num_prelanes", "Num_finlanes", "Num_semlanes"]:
+                    for actual_col in event.keys():
+                        if str(actual_col).lower() == col.lower():
+                            event[actual_col] = lanes
+                
+                # Also update Num_LanesInBestHeatsTimedFinal if it exists
+                for actual_col in event.keys():
+                    if str(actual_col).lower() == "num_lanesinbestheatstimedfinal":
+                        event[actual_col] = lanes
+
     def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", city: str = "", state: str = "", zip_code: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: Optional[str] = None, away_team: Optional[str] = None):
         """Updates the MEET table metadata across all possible aliases."""
+        # First, update all events to match pool lanes
+        self.update_event_lanes(lanes)
+
         keys = self._get_all_table_keys("meet")
         if not keys:
             self._set_table("meet", [{}])
@@ -197,11 +216,13 @@ class SeasonTransformer:
             if home_team and away_team:
                 for i in range(1, 13):
                     lane_key = f"dualteam_lane{i}"
-                    # Away in Odd (1, 3, 5...), Home in Even (2, 4, 6...)
-                    values[lane_key] = home_id if i % 2 == 0 else away_id
+                    # Home team in EVEN lanes (2, 4, 6...), Away team in ODD lanes (1, 3, 5...)
+                    if i <= lanes:
+                        values[lane_key] = home_id if i % 2 == 0 else away_id
+                    else:
+                        values[lane_key] = 0
                     mappings[lane_key] = [lane_key, lane_key.upper()]
             else:
-                # Clear assignments for champs/extra chance
                 for i in range(1, 13):
                     lane_key = f"dualteam_lane{i}"
                     values[lane_key] = 0
@@ -258,6 +279,37 @@ class SeasonTransformer:
                             target = f"rel{i}"
                             if target in actual_cols:
                                 row[actual_cols[target]] = val
+
+    def ensure_std_lanes(self):
+        """Ensures the StdLanes table contains standard seeding orders for 1-12 lanes."""
+        # Standard seeding orders for pools
+        # 6 lanes: 3, 4, 2, 5, 1, 6
+        # 8 lanes: 4, 5, 3, 6, 2, 7, 1, 8
+        # ...
+        standard_orders = {
+            1: [1],
+            2: [1, 2],
+            3: [2, 3, 1],
+            4: [2, 3, 1, 4],
+            5: [3, 4, 2, 5, 1],
+            6: [3, 4, 2, 5, 1, 6],
+            7: [4, 5, 3, 6, 2, 7, 1],
+            8: [4, 5, 3, 6, 2, 7, 1, 8],
+            9: [5, 6, 4, 7, 3, 8, 2, 9, 1],
+            10: [5, 6, 4, 7, 3, 8, 2, 9, 1, 10],
+            11: [6, 7, 5, 8, 4, 9, 3, 10, 2, 11, 1],
+            12: [6, 7, 5, 8, 4, 9, 3, 10, 2, 11, 1, 12]
+        }
+
+        new_rows = []
+        for tot, order in standard_orders.items():
+            row = {"tot_lanes": tot}
+            for i in range(1, 13):
+                col = f"order_{i:02d}"
+                row[col] = order[i-1] if i <= len(order) else 0
+            new_rows.append(row)
+
+        self._set_table("stdlanes", new_rows)
 
     def consolidate_sessions(self, is_champs: bool = False):
         """Consolidates all events into a single session for non-champs meets."""

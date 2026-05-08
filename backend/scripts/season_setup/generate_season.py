@@ -165,6 +165,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
         
         # 5. Scoring and Seeding
         transformer.setup_scoring_and_seeding()
+        transformer.ensure_std_lanes()
 
         # Build output_data with transformed rows
         output_data = {"tables": {}}

@@ -72,3 +72,23 @@ def test_mdb_date_and_type_integrity(tmp_path):
     # Verify Booleans
     assert bool(rm.get("a_relaysonly")) is True
     assert bool(rm.get("use_hometown")) is False
+
+    # 6. Test Text Truncation
+    # Meet_location has max length 20 in some versions, but let's check what it is in the template
+    # We'll use a very long string for Meet_addr1 which we know has a 30 char limit
+    long_addr = "1234567890123456789012345678901234567890" # 40 chars
+    meet_table["rows"][0]["Meet_addr1"] = long_addr
+    
+    with open(json_path, "w") as f:
+        json.dump(full_schema, f, default=lambda x: x.isoformat() if hasattr(x, 'isoformat') else x)
+    
+    restore_db(str(json_path), str(target_mdb))
+    
+    restored_conv_2 = MmToJsonConverter(mdb_path=str(target_mdb))
+    rm2 = restored_conv_2.tables.get("meet").iloc[0]
+    
+    # It should be truncated to 30 chars without crashing
+    assert len(rm2.get("meet_addr1")) <= 30
+    assert rm2.get("meet_addr1") == long_addr[:30]
+
+    print("MDB Type Integrity Test Passed")

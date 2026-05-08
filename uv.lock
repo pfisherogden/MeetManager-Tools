@@ -1064,6 +1064,7 @@ dependencies = [
     { name = "pytest" },
     { name = "pytz" },
     { name = "reportlab" },
+    { name = "requests" },
     { name = "ruff" },
     { name = "weasyprint" },
 ]
@@ -1097,6 +1098,7 @@ requires-dist = [
     { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytz", specifier = ">=2024.1" },
     { name = "reportlab", specifier = ">=4.0.0" },
+    { name = "requests", specifier = ">=2.32.5" },
     { name = "ruff", specifier = ">=0.3.0" },
     { name = "weasyprint", specifier = ">=68.1" },
 ]
