@@ -312,60 +312,91 @@ class SeasonTransformer:
         self._set_table("stdlanes", new_rows)
 
     def consolidate_sessions(self, is_champs: bool = False):
-        """Consolidates all events into a single session for non-champs meets."""
-        if is_champs:
+        """
+        Consolidates events into sessions.
+        - For non-champs: All events into a single "All" session.
+        - For champs: Multiple sessions based on event type.
+        """
+        session_keys = self._get_all_table_keys("session")
+        sessitem_keys = self._get_all_table_keys("sessitem")
+        event_keys = self._get_all_table_keys("event")
+
+        # Clear existing sessions and sessitems
+        for key in session_keys: self.table_data[key] = []
+        for key in sessitem_keys: self.table_data[key] = []
+
+        if not is_champs:
+            logger.info("Consolidating sessions into 'Session 1'")
+            sess_ptr = 1
+            new_session = {
+                "Sess_no": 1, "Sess_ltr": " ", "Sess_ptr": sess_ptr, "Sess_day": 1,
+                "Sess_starttime": 32400, "Sess_name": "All", "Sess_interval": 60,
+                "Sess_course": "Y", "Sess_entrymax": 0, "Sess_entrymaxind": 0,
+                "Sess_entrymaxrel": 0, "Sess_backinterval": 15, "Sess_divinginterval": 30,
+                "Sess_chaseinterval": 0
+            }
+            self._set_table("session", [new_session])
+
+            new_sessitems = []
+            if event_keys:
+                events = self.table_data[event_keys[0]]
+                for i, event in enumerate(events, 1):
+                    e_ptr = event.get("Event_ptr") or event.get("event_ptr") or i
+                    new_sessitems.append({
+                        "Sess_order": i, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
+                        "Sess_rnd": "F", "Rept_type": " ", "Delay_seconds": 0, "Alt_With": False
+                    })
+
+            self._set_table("sessitem", new_sessitems)
             return
 
-        logger.info("Consolidating sessions into 'Session 1'")
-        sess_ptr = 1
-        
-        session_keys = self._get_all_table_keys("session")
-        
-        # Comprehensive session record
-        new_session = {
-            "Sess_no": 1,
-            "Sess_ltr": " ",
-            "Sess_ptr": sess_ptr,
-            "Sess_day": 1,
-            "Sess_starttime": 32400, # 9:00 AM (9 * 3600)
-            "Sess_entrymax": 0,
-            "Sess_name": "All",
-            "Sess_interval": 60,
-            "Sess_course": "Y",
-            "Sess_entrymaxind": 0,
-            "Sess_entrymaxrel": 0,
-            "Sess_backinterval": 15,
-            "Sess_divinginterval": 30,
-            "Sess_chaseinterval": 0
-        }
+        # CHAMPS LOGIC
+        logger.info("Creating multi-session layout for Champs")
+        # Define sessions
+        champs_sessions = [
+            {"name": "Med Relays", "stroke": "E", "ind_rel": "R", "start": 28800},
+            {"name": "Freestyle", "stroke": "A", "ind_rel": "I", "start": 31200},
+            {"name": "Butterfly", "stroke": "D", "ind_rel": "I", "start": 35400},
+            {"name": "Breaststroke", "stroke": "C", "ind_rel": "I", "start": 38400},
+            {"name": "Individual Medley", "stroke": "E", "ind_rel": "I", "start": 41700},
+            {"name": "Backstroke", "stroke": "B", "ind_rel": "I", "start": 45000},
+            {"name": "Freestyle Relays", "stroke": "A", "ind_rel": "R", "start": 49500},
+        ]
 
-        if not session_keys:
-            self._set_table("session", [new_session])
-        else:
-            for key in session_keys:
-                self.table_data[key] = [new_session]
-        
-        for key in self._get_all_table_keys("sessitem"):
-            self.table_data[key] = []
-
+        session_records = []
         new_sessitems = []
-        event_keys = self._get_all_table_keys("event")
-        if event_keys:
-            events = self.table_data[event_keys[0]]
-            for i, event in enumerate(events, 1):
-                # Try multiple PTR candidates
-                e_ptr = event.get("Event_ptr") or event.get("event_ptr") or event.get("Event") or i
-                new_sessitems.append({
-                    "Sess_order": i, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
-                    "Sess_rnd": "F", "Rept_type": " ", "Delay_seconds": 0, "Alt_With": False
-                })
-            self._set_table("sessitem", new_sessitems)
+        events = self.table_data[event_keys[0]] if event_keys else []
+        
+        for i, s_def in enumerate(champs_sessions, 1):
+            sess_ptr = i
+            session_records.append({
+                "Sess_no": i, "Sess_ltr": " ", "Sess_ptr": sess_ptr, "Sess_day": 1,
+                "Sess_starttime": s_def["start"], "Sess_name": s_def["name"], "Sess_interval": 20,
+                "Sess_course": "Y", "Sess_entrymax": 0, "Sess_entrymaxind": 0,
+                "Sess_entrymaxrel": 0, "Sess_backinterval": 10, "Sess_divinginterval": 30,
+                "Sess_chaseinterval": 0
+            })
 
-        for key in event_keys:
-            for event in self.table_data[key]:
-                for actual_col in event.keys():
-                    if str(actual_col).lower() == "session":
-                        event[actual_col] = 1
+            # Find matching events
+            sess_events = []
+            for event in events:
+                e_stroke = str(event.get("Event_stroke") or "").strip().upper()
+                e_indrel = str(event.get("Ind_rel") or "").strip().upper()
+                if e_stroke == s_def["stroke"] and e_indrel == s_def["ind_rel"]:
+                    sess_events.append(event)
+            
+            # Sort by event_no to preserve order
+            sess_events.sort(key=lambda x: int(x.get("Event_no") or 0))
+
+            for j, event in enumerate(sess_events, 1):
+                e_ptr = event.get("Event_ptr") or event.get("event_ptr") or 0
+                new_sessitems.append({
+                    "Sess_order": j, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
+                    "Sess_rnd": "F", "Rept_type": "H", "Delay_seconds": 0, "Alt_With": False
+                })
+
+        self._set_table("session", session_records)
+        self._set_table("sessitem", new_sessitems)
 
     def ensure_team_exists(self, abbr: str, name: str):
         """Ensures a team exists in the TEAM table across all aliases."""
