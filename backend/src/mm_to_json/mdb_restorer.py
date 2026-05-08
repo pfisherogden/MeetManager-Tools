@@ -1,6 +1,6 @@
 import json
 import logging
-import os
+import sys
 
 from mm_to_json import mdb_writer
 
@@ -94,6 +94,7 @@ def restore_db(json_path, target_mdb):
             # Insert Rows
             if rows:
                 print(f"  Inserting {len(rows)} rows into {table_name}...")
+                sys.stdout.flush()
                 from java.util import HashMap
 
                 for row_data in rows:
@@ -114,6 +115,33 @@ def restore_db(json_path, target_mdb):
                             dtype = info["type"]
                             dtype_name = str(dtype.name())
 
+                            # TRUNCATION LOGIC FOR ANY STRING
+                            if dtype_name == "TEXT":
+                                try:
+                                    col = None
+                                    for c in table.getColumns():
+                                        if str(c.getName()).lower() == kl:
+                                            col = c
+                                            break
+
+                                    if col:
+                                        phys_name = str(col.getName())
+                                        try:
+                                            max_len = col.getLengthInUnits()
+                                        except Exception:
+                                            max_len = col.getLength()
+
+                                        s_val = str(v)
+                                        if len(s_val) > max_len:
+                                            v = s_val[:max_len]
+                                            k = phys_name
+                                        else:
+                                            k = phys_name
+                                            v = s_val
+                                except Exception:
+                                    pass
+
+                            # Now perform coercion/typing
                             if dtype_name in (
                                 "LONG",
                                 "INT",
@@ -133,28 +161,7 @@ def restore_db(json_path, target_mdb):
                                 except Exception:
                                     row_map.put(k, v)
 
-                            elif dtype_name == "TEXT":
-                                try:
-                                    col = None
-                                    for c in table.getColumns():
-                                        if str(c.getName()).lower() == kl:
-                                            col = c
-                                            break
-
-                                    if col:
-                                        phys_name = str(col.getName())
-                                        max_len = col.getLength()
-                                        s_val = str(v)
-                                        if len(s_val) > max_len:
-                                            row_map.put(phys_name, s_val[:max_len])
-                                        else:
-                                            row_map.put(phys_name, s_val)
-                                    else:
-                                        row_map.put(k, str(v))
-                                except Exception:
-                                    row_map.put(k, str(v))
-
-                            elif dtype_name == "MEMO":
+                            elif dtype_name == "TEXT" or dtype_name == "MEMO":
                                 row_map.put(k, str(v))
 
                             elif dtype_name == "BOOLEAN":
@@ -172,9 +179,7 @@ def restore_db(json_path, target_mdb):
                                     else:
                                         from datetime import datetime
 
-                                        dt = datetime.fromisoformat(
-                                            str(v).replace("Z", "+00:00")
-                                        )
+                                        dt = datetime.fromisoformat(str(v).replace("Z", "+00:00"))
                                         ts_ms = int(dt.timestamp() * 1000)
                                         row_map.put(k, Date(ts_ms))
                                 except Exception:

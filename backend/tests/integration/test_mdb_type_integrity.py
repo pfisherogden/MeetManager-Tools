@@ -22,6 +22,9 @@ def test_mdb_date_and_type_integrity(tmp_path):
     conv = MmToJsonConverter(mdb_path=template_path)
     full_schema = conv.export_full_schema()
 
+    addr1_col = next(c for c in full_schema["tables"]["Meet"]["columns"] if c["name"] == "Meet_addr1")
+    print(f"DEBUG: Exported Meet_addr1 col def: {addr1_col}")
+
     # 2. Modify some values to test different types
     # Meet Name (Text)
     meet_table = full_schema["tables"]["Meet"]
@@ -76,17 +79,17 @@ def test_mdb_date_and_type_integrity(tmp_path):
     # 6. Test Text Truncation
     # Meet_location has max length 20 in some versions, but let's check what it is in the template
     # We'll use a very long string for Meet_addr1 which we know has a 30 char limit
-    long_addr = "1234567890123456789012345678901234567890" # 40 chars
+    long_addr = "1234567890123456789012345678901234567890"  # 40 chars
     meet_table["rows"][0]["Meet_addr1"] = long_addr
-    
+
     with open(json_path, "w") as f:
-        json.dump(full_schema, f, default=lambda x: x.isoformat() if hasattr(x, 'isoformat') else x)
-    
+        json.dump(full_schema, f, default=lambda x: x.isoformat() if hasattr(x, "isoformat") else x)
+
     restore_db(str(json_path), str(target_mdb))
-    
+
     restored_conv_2 = MmToJsonConverter(mdb_path=str(target_mdb))
     rm2 = restored_conv_2.tables.get("meet").iloc[0]
-    
+
     # It should be truncated to 30 chars without crashing
     assert len(rm2.get("meet_addr1")) <= 30
     assert rm2.get("meet_addr1") == long_addr[:30]
