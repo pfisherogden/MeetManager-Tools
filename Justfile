@@ -1,4 +1,5 @@
 set shell := ["bash", "-c"]
+set dotenv-load := true
 
 # Default recipe
 default: verify
@@ -45,6 +46,16 @@ down:
     docker compose down
 
 # --- Season Setup Automation ---
+# Sync generated MDBs to a destination (e.g. Google Drive)
+# Requires SEASON_SETUP_SOURCE and SEASON_SETUP_DEST to be set in .env or environment
+sync-meets:
+    @if [ -z "$SEASON_SETUP_SOURCE" ] || [ -z "$SEASON_SETUP_DEST" ]; then \
+        echo "Error: SEASON_SETUP_SOURCE and SEASON_SETUP_DEST must be set in your .env file."; \
+        exit 1; \
+    fi
+    @echo "Syncing season MDBs..."
+    rsync -av "$SEASON_SETUP_SOURCE" "$SEASON_SETUP_DEST"
+
 generate-season TEMPLATE OUTPUT_DIR YEAR="2026" OWNER="DP":
     @echo "Generating {{YEAR}} season MDBs..."
     uv run --project MeetManager-Tools python3 backend/scripts/season_setup/generate_season.py --template {{TEMPLATE}} --output-dir {{OUTPUT_DIR}} --year {{YEAR}} --owner-team {{OWNER}}
