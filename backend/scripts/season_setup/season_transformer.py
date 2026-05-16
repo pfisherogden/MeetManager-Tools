@@ -128,17 +128,19 @@ class SeasonTransformer:
         """Updates all events to use the specified number of lanes."""
         for key in self._get_all_table_keys("event"):
             events = self.table_data[key]
+            logger.info(f"Updating {len(events)} events to {lanes} lanes")
             for event in events:
-                # Update both prelanes and finlanes (most summer meets are timed finals)
-                for col in ["Num_prelanes", "Num_finlanes", "Num_semlanes"]:
-                    for actual_col in event.keys():
-                        if str(actual_col).lower() == col.lower():
-                            event[actual_col] = lanes
+                # Update all common lane columns
+                lane_cols = ["Num_prelanes", "Num_finlanes", "Num_semlanes", "Num_LanesInBestHeatsTimedFinal"]
+                actual_cols = {k.lower(): k for k in event.keys()}
                 
-                # Also update Num_LanesInBestHeatsTimedFinal if it exists
-                for actual_col in event.keys():
-                    if str(actual_col).lower() == "num_lanesinbestheatstimedfinal":
-                        event[actual_col] = lanes
+                for col in lane_cols:
+                    if col.lower() in actual_cols:
+                        event[actual_cols[col.lower()]] = lanes
+                
+                # Also set Std_lanes to 'A' (Automatic) to ensure seeding rules apply
+                if "std_lanes" in actual_cols:
+                    event[actual_cols["std_lanes"]] = "A"
 
     def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", city: str = "", state: str = "", zip_code: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: Optional[str] = None, away_team: Optional[str] = None, is_champs: bool = False):
         """Updates the MEET table metadata across all possible aliases."""
@@ -199,7 +201,7 @@ class SeasonTransformer:
                 "hostlsc": "CC",
                 "dqcodes": "H", # Custom
                 "indmaxscorers": 0 if is_champs else 4,
-                "relmaxscorers": 1 if is_champs else 2,
+                "relmaxscorers": 1,
                 "eligibility": self._date_to_ms(entry_open),
                 "entrymax_total": 4,
                 "indmax_perath": 3,
@@ -258,18 +260,22 @@ class SeasonTransformer:
             scoring = self.table_data[key]
             if scoring:
                 if is_champs:
-                    # Championship standard (12 places): 20-17-16-15-14-13-12-11-9-7-6-4
-                    # Confirmed via 2022 TVSL Champs Results
+                    # Championship standard (16 places): 20-17-16-15-14-13-12-11-9-7-6-5-4-3-2-1
+                    # Confirmed via 2022-2025 historical data (User feedback)
                     ind_points = {
                         1: 20.0, 2: 17.0, 3: 16.0, 4: 15.0, 5: 14.0, 6: 13.0,
-                        7: 12.0, 8: 11.0, 9: 9.0, 10: 7.0, 11: 6.0, 12: 4.0
+                        7: 12.0, 8: 11.0, 9: 9.0, 10: 7.0, 11: 6.0, 12: 5.0,
+                        13: 4.0, 14: 3.0, 15: 2.0, 16: 1.0
+                    }
+                    # Relays (5 places): 40-34-32-30-28
+                    rel_points = {
+                        1: 40.0, 2: 34.0, 3: 32.0, 4: 30.0, 5: 28.0
                     }
                 else:
                     # Dual meet standard: 5-3-2-1 for individual, 10-6 for relays
                     ind_points = {1: 5.0, 2: 3.0, 3: 2.0, 4: 1.0}
-                
-                # Relays are usually 2x individual
-                rel_points = {k: v * 2 for k, v in ind_points.items()}
+                    # Relays are usually 2x individual
+                    rel_points = {k: v * 2 for k, v in ind_points.items()}
                 
                 for row in scoring:
                     actual_cols = {k.lower(): k for k in row.keys()}
@@ -281,14 +287,14 @@ class SeasonTransformer:
                         if "rel_score" in actual_cols:
                             row[actual_cols["rel_score"]] = rel_points.get(place, 0.0)
                     else:
-                        # Fallback for ind1, ind2, ... structure
-                        points_list = [ind_points.get(i, 0.0) for i in range(1, 13)]
+                        # Fallback for ind1, ind2, ... structure (up to 16 places for Champs)
+                        points_list = [ind_points.get(i, 0.0) for i in range(1, 17)]
                         for i, val in enumerate(points_list, 1):
                             target = f"ind{i}"
                             if target in actual_cols:
                                 row[actual_cols[target]] = val
                         
-                        rel_list = [rel_points.get(i, 0.0) for i in range(1, 13)]
+                        rel_list = [rel_points.get(i, 0.0) for i in range(1, 17)]
                         for i, val in enumerate(rel_list, 1):
                             target = f"rel{i}"
                             if target in actual_cols:
@@ -317,10 +323,13 @@ class SeasonTransformer:
 
         new_rows = []
         for tot, order in standard_orders.items():
-            row = {"tot_lanes": tot}
+            row = {"tot_lanes": tot, "Lanes": tot}
             for i in range(1, 13):
-                col = f"order_{i:02d}"
-                row[col] = order[i-1] if i <= len(order) else 0
+                val = order[i-1] if i <= len(order) else 0
+                # Standard Meet Manager column names for StdLanes are usually Order1, Order2...
+                row[f"Order{i}"] = val
+                # Fallback to order_01 etc if that's what's in the template
+                row[f"order_{i:02d}"] = val
             new_rows.append(row)
 
         self._set_table("stdlanes", new_rows)
@@ -355,11 +364,21 @@ class SeasonTransformer:
             if event_keys:
                 events = self.table_data[event_keys[0]]
                 for i, event in enumerate(events, 1):
-                    e_ptr = event.get("Event_ptr") or event.get("event_ptr") or i
+                    # Robustly find Event_ptr (could be MtEvent in some schemas)
+                    actual_cols = {k.lower(): k for k in event.keys()}
+                    e_ptr = i
+                    if "event_ptr" in actual_cols:
+                        e_ptr = event[actual_cols["event_ptr"]]
+                    elif "mtevent" in actual_cols:
+                        e_ptr = event[actual_cols["mtevent"]]
+
                     new_sessitems.append({
                         "Sess_order": i, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
                         "Sess_rnd": "F", "Rept_type": " ", "Delay_seconds": 0, "Alt_With": False
                     })
+                    # Link event to session if column exists
+                    if "session" in actual_cols:
+                        event[actual_cols["session"]] = sess_ptr
 
             self._set_table("sessitem", new_sessitems)
             return
@@ -380,6 +399,7 @@ class SeasonTransformer:
         session_records = []
         new_sessitems = []
         events = self.table_data[event_keys[0]] if event_keys else []
+        logger.info(f"Distributing {len(events)} events into {len(champs_sessions)} sessions")
         
         for i, s_def in enumerate(champs_sessions, 1):
             sess_ptr = i
@@ -394,21 +414,39 @@ class SeasonTransformer:
             # Find matching events
             sess_events = []
             for event in events:
-                e_stroke = str(event.get("Event_stroke") or "").strip().upper()
-                e_indrel = str(event.get("Ind_rel") or "").strip().upper()
+                actual_cols = {k.lower(): k for k in event.keys()}
+                e_stroke = str(event.get(actual_cols.get("event_stroke"), "")).strip().upper()
+                e_indrel = str(event.get(actual_cols.get("ind_rel"), "")).strip().upper()
+                
                 if e_stroke == s_def["stroke"] and e_indrel == s_def["ind_rel"]:
                     sess_events.append(event)
+                    # Link event to session if column exists
+                    if "session" in actual_cols:
+                        event[actual_cols["session"]] = sess_ptr
             
             # Sort by event_no to preserve order
-            sess_events.sort(key=lambda x: int(x.get("Event_no") or 0))
+            def get_event_no(x):
+                ac = {k.lower(): k for k in x.keys()}
+                for cand in ["event_no", "mtev"]:
+                    if cand in ac:
+                        return int(x[ac[cand]] or 0)
+                return 0
+            sess_events.sort(key=get_event_no)
 
             for j, event in enumerate(sess_events, 1):
-                e_ptr = event.get("Event_ptr") or event.get("event_ptr") or 0
+                actual_cols = {k.lower(): k for k in event.keys()}
+                e_ptr = 0
+                if "event_ptr" in actual_cols:
+                    e_ptr = event[actual_cols["event_ptr"]]
+                elif "mtevent" in actual_cols:
+                    e_ptr = event[actual_cols["mtevent"]]
+                
                 new_sessitems.append({
                     "Sess_order": j, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
                     "Sess_rnd": "F", "Rept_type": "H", "Delay_seconds": 0, "Alt_With": False
                 })
 
+        logger.info(f"Created {len(session_records)} sessions and {len(new_sessitems)} session items")
         self._set_table("session", session_records)
         self._set_table("sessitem", new_sessitems)
 
