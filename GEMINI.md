@@ -75,19 +75,23 @@ All agents MUST follow these workflow phases:
 
 ### Phase 3: Surgical Implementation
 - **Separate Branches**: NEVER push to `main`. Use `feat/*` or `fix/*`.
+- **Git Worktrees**: ALWAYS use `git worktree` when working on multiple branches simultaneously. This prevents local changes (like `.env` or generated artifacts) from clobbering one another.
+  - **Directory**: Use the `.worktrees/` directory (ignored by Git).
+  - **Cleanup**: Remove worktrees immediately after merging and deleting the branch.
 - **Code Preservation**: Preserve all existing comments and formatting. Do not refactor unrelated code.
 - **Documentation**: All new functions/classes MUST include type hints and Google-style docstrings.
 - **Dependency Protocol**: Use `uv` (Python) or `npm` (JS) and update lockfiles immediately after adding packages.
 
 ### Phase 4: Verification & Closure
-- **Local Verification**: 100% pass on linting, type-checking, and tests before pushing.
-- **CI/CD Monitoring**: **Mandatory** - After submitting a PR, you MUST monitor the GitHub Action checks using `gh pr checks`. Do not consider the task finished or close the issue until all checks are green and the PR is successfully merged.
-- **CI/CD Pass**: PR merging is ONLY permitted after all GitHub Actions are green.
+- **Local Verification**: 100% pass on linting, type-checking, and tests before pushing to a PR branch. This includes `just fix`, `just lint`, and all relevant module tests.
+- **CI/CD Monitoring**: **Mandatory** - After submitting a PR, you MUST monitor the GitHub Action checks using `gh pr checks --watch`. 
+- **CI/CD Pass**: PR merging is ONLY permitted after all GitHub Actions are green. 
+- **Merge Protocol**: Use `--squash` for merging PRs to keep a clean history.
 - **Communication**: Provide **periodic** progress updates in the `pfo-gemcli` Google Chat space.
   - **Work Started**: Post a message when beginning a task or after a major design phase.
+  - **Progress Updates**: Post updates every 15-20 minutes or at major milestones (e.g., "Tests passed locally, pushing PR").
   - **Work Completed**: **Mandatory** - Post a summary message when a task is finished, PR is merged, or a deployment is verified. **Always start a new thread for completions** to ensure they appear as new/unread notifications.
-  - **Frequency**: Update the chat every 15-20 minutes or at major milestones.
-- **Persistence**: Periodically update the GitHub issue with **Next Steps** to ensure session continuity.
+- **Persistence**: Periodically update the GitHub issue with **Next Steps** and current status. Close the issue only after the PR is merged.
 
 ### Technical Integrity & Safety
 - **Mandatory Pre-Commit**: ALWAYS run `just fix` and `just lint` before pushing to `main`. This catches trailing whitespace, formatting, and Mypy issues that break CI.
