@@ -19,7 +19,7 @@ def fetch_schedule(year=2026):
 
     # TVSL website structure varies, but usually it's in a table
     # We look for rows that look like meet dates
-    meets = []
+    # meets = []
 
     # This is a heuristic-based scraper since I don't have the live HTML yet
     # I'll try to find common table patterns

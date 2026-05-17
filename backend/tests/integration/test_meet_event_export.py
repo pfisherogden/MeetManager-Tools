@@ -82,7 +82,7 @@ def test_full_export_flow(tmp_path):
         assert "2;2;F;2;I;B;0;18;50;A;0" in content
 
         # Verify relay size (4) and individual size (0)
-        # Event 1 is relay
+        # Event 1 is relay, sess order 1
         assert ";1;1;1;09:00AM;Y;0;0;0;4*>" in content
-        # Event 2 is individual
-        assert ";1;2;2;09:36AM;Y;0;0;0;0*>" in content
+        # Event 2 is individual, sess order 1
+        assert ";2;1;1;09:36AM;Y;0;0;0;0*>" in content
