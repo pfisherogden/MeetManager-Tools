@@ -1,9 +1,8 @@
-import pytest
 import os
-import json
 import zipfile
 from season_transformer import SeasonTransformer
 from mm_to_json.reporting.meet_event_writer import MeetEventWriter
+
 
 def test_full_export_flow(tmp_path):
     # 1. Start with raw MDB-like data
@@ -11,44 +10,61 @@ def test_full_export_flow(tmp_path):
         "MEET": [{"Meet_name1": "Champs 2026", "Meet_start": "2026-07-18", "Meet_numlanes": 10}],
         "TEAM": [{"TCode": "DP", "TName": "Del Prado Stingrays"}],
         "MTEVENT": [
-            {"MtEvent": 1, "Event_no": 1, "Event_stroke": "E", "Ind_rel": "R", "Event_sex": "G", "Low_age": 0, "High_Age": 18, "Event_dist": 100, "Num_prelanes": 10, "Session": 0},
-            {"MtEvent": 2, "Event_no": 2, "Event_stroke": "A", "Ind_rel": "I", "Event_sex": "B", "Low_age": 0, "High_Age": 18, "Event_dist": 50, "Num_prelanes": 10, "Session": 0}
+            {
+                "MtEvent": 1,
+                "Event_no": 1,
+                "Event_stroke": "E",
+                "Ind_rel": "R",
+                "Event_sex": "G",
+                "Low_age": 0,
+                "High_Age": 18,
+                "Event_dist": 100,
+                "Num_prelanes": 10,
+                "Session": 0,
+            },
+            {
+                "MtEvent": 2,
+                "Event_no": 2,
+                "Event_stroke": "A",
+                "Ind_rel": "I",
+                "Event_sex": "B",
+                "Low_age": 0,
+                "High_Age": 18,
+                "Event_dist": 50,
+                "Num_prelanes": 10,
+                "Session": 0,
+            },
         ],
         "Session": [],
-        "Sessitem": []
+        "Sessitem": [],
     }
-    
+
     # 2. Transform (Season Setup Logic)
     transformer = SeasonTransformer(table_data)
-    transformer.update_meet(
-        name="TVSL Championships",
-        start_date="2026-07-18",
-        lanes=10,
-        is_champs=True
-    )
+    transformer.update_meet(name="TVSL Championships", start_date="2026-07-18", lanes=10, is_champs=True)
     transformer.consolidate_sessions(is_champs=True)
-    
+
     # 3. Export
     transformed_data = transformer.table_data
     writer = MeetEventWriter(
         meet_info=transformed_data["MEET"][0],
         sessions=transformed_data["Session"],
         events=transformed_data["MTEVENT"],
-        scoring=[] # Not strictly needed for EV3
+        scoring=[],  # Not strictly needed for EV3
     )
-    
+
     zip_path = str(tmp_path / "Champs_Export.zip")
     writer.write_to_zip(zip_path)
-    
+
     # 4. Verify ZIP
     assert os.path.exists(zip_path)
-    with zipfile.ZipFile(zip_path, 'r') as zipf:
+    with zipfile.ZipFile(zip_path, "r") as zipf:
         ev3_name = [n for n in zipf.namelist() if n.endswith(".ev3")][0]
         content = zipf.read(ev3_name).decode("utf-8")
-        
+
         # Verify meet info
         assert "TVSL Championships" in content
-        
+
         # Verify session mapping (Med Relays -> Session 1)
         # 1;1;F;1;R;G;0;18;100;E
         assert "1;1;F;1;R;G;0;18;100;E" in content
