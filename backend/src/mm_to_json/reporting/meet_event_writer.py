@@ -143,7 +143,7 @@ class MeetEventWriter:
         hyv_content = [self._generate_hyv_header()]
 
         # Group events by session for order
-        events_by_session = {}
+        events_by_session: dict[int, list[dict[str, Any]]] = {}
         for event in self.events:
             s_id = int(event.get("Session", 1))
             if s_id not in events_by_session:
