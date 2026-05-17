@@ -67,9 +67,22 @@ def test_full_export_flow(tmp_path):
         # Verify meet info
         assert "TVSL Championships" in content
 
+        # Verify header fields (exact indices)
+        header = content.split("\r\n")[0]
+        h_parts = header.split(";")
+        assert h_parts[5] == "YO"
+        assert h_parts[9] == "Created by Hy-Tek's MEET MANAGER"
+        assert h_parts[11] == "7.0Gb"
+
         # Verify session mapping (Med Relays -> Session 1)
-        # 1;1;F;1;R;G;0;18;100;E
-        assert "1;1;F;1;R;G;0;18;100;E" in content
+        # 1;1;F;1;R;G;0;18;100;E;0
+        assert "1;1;F;1;R;G;0;18;100;E;0" in content
         # Verify Freestyle -> Session 2
-        # 2;2;F;2;I;B;0;18;50;A
-        assert "2;2;F;2;I;B;0;18;50;A" in content
+        # 2;2;F;2;I;B;0;18;50;A;0
+        assert "2;2;F;2;I;B;0;18;50;A;0" in content
+
+        # Verify relay size (4) and individual size (0)
+        # Event 1 is relay
+        assert ";1;1;1;09:00AM;Y;0;0;0;4*>" in content
+        # Event 2 is individual
+        assert ";1;2;2;09:36AM;Y;0;0;0;0*>" in content
