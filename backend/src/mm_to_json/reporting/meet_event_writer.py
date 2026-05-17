@@ -70,7 +70,7 @@ class MeetEventWriter:
         fields[10] = "Tri-Valley Swim Lg. C"
         fields[11] = "7.0Gb"
         fields[12] = datetime.now().strftime("%m/%d/%Y")
-        fields[13] = "3"
+        fields[13] = str(self.meet_info.get("entrymax_total", "3"))
         fields[15] = "0"
 
         # Field 16 seems to be a fixed date in manual exports (06/01/2025)
@@ -126,9 +126,9 @@ class MeetEventWriter:
         fields[13] = "N"  # Not locked
         fields[14] = "0"
 
-        fields[21] = str(sess_order)
-        fields[22] = str(event.get("Session", "1"))
-        fields[23] = str(event.get("Session", "1"))  # Manual had session no in 22 and 23
+        fields[21] = str(event.get("Session", "1"))
+        fields[22] = str(sess_order)
+        fields[23] = "1"
 
         # Time mapping
         start_time = "09:00AM"

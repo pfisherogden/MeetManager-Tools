@@ -202,7 +202,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             temp_json = tf.name
 
         # Restore to MDB
-        filename = f"{meet['date']} {meet['name']}-audit-v4.mdb"
+        filename = f"{meet['date']} {meet['name']}-v5-final.mdb"
         target_mdb = os.path.join(meet_output_dir, filename)
 
         print(f"Restoring to {target_mdb}...")

@@ -10,9 +10,9 @@ if backend_src_dir not in sys.path:
     sys.path.append(backend_src_dir)
 sys.path.append(script_dir)
 
-from season_transformer import SeasonTransformer
+from season_transformer import SeasonTransformer  # noqa: E402
 
-from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.mm_to_json import MmToJsonConverter  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 
@@ -66,7 +66,7 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
         def get_table(data, logical):
             aliases = ["Meet", "MEET", "meet"] if logical == "meet" else ["Session", "SESSIONS", "session"]
             for a in aliases:
-                if a in data: return data[a]
+                if a in data: return data[a]  # noqa: E701
             return []
 
         transformed_meet = get_table(transformer.table_data, "meet")
