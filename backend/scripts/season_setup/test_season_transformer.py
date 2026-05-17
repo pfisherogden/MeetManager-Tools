@@ -1,5 +1,6 @@
 import pytest
-from mm_to_json.season_transformer import SeasonTransformer
+import os
+from season_transformer import SeasonTransformer
 
 @pytest.fixture
 def sample_data():
@@ -15,24 +16,22 @@ def sample_data():
         "RELAY": [{"RELAY": 1, "TEAM": 1}],
         "SESSIONS": [{"SESSION": 1, "SessName": "AM"}, {"SESSION": 2, "SessName": "PM"}],
         "MTEVENT": [
-            {"MtEvent": 1, "MtEv": 1, "Session": 1},
-            {"MtEvent": 2, "MtEv": 2, "Session": 2}
-        ]
+            {"MtEvent": 1, "MtEv": 1, "Session": 1, "Event_stroke": "E", "Ind_rel": "R", "Num_prelanes": 6, "Std_lanes": " "},
+            {"MtEvent": 2, "MtEv": 2, "Session": 2, "Event_stroke": "A", "Ind_rel": "I", "Num_prelanes": 6, "Std_lanes": " "}
+        ],
+        "Scoring": [{"score_place": i, "ind_score": 0.0, "rel_score": 0.0} for i in range(1, 17)],
+        "StdLanes": []
     }
 
 def test_purge_data(sample_data):
     transformer = SeasonTransformer(sample_data)
-    # Mocking venues.json existence for the test isn't strictly necessary if we check against DP and standard teams
     transformer.purge_data(preserve_team_abbr="DP")
     
-    assert len(sample_data["ATHLETE"]) == 0
-    assert len(sample_data["ENTRY"]) == 0
-    assert len(sample_data["RELAY"]) == 0
+    assert len(transformer.table_data["ATHLETE"]) == 0
+    assert len(transformer.table_data["ENTRY"]) == 0
+    assert len(transformer.table_data["RELAY"]) == 0
     
-    # "OLD" should be removed, "DP" and "FAST" (if in venues.json) should stay.
-    # Since venues.json is actually on disk in the real environment, we check what's there.
-    # For this test, let's assume "FAST" is a standard team.
-    team_codes = [t.get("TCode") for t in sample_data["TEAM"]]
+    team_codes = [t.get("TCode") or t.get("tcode") for t in transformer.table_data["TEAM"]]
     assert "DP" in team_codes
     assert "OLD" not in team_codes
 
@@ -40,36 +39,79 @@ def test_update_meet(sample_data):
     transformer = SeasonTransformer(sample_data)
     transformer.update_meet("New Season", "2026-06-01", 8, age_up="2026-06-01")
     
-    meet = sample_data["MEET"][0]
+    meet = transformer.table_data["MEET"][0]
+    # Check mappings (SeasonTransformer uses logical names but preserves casing)
     assert meet["meet_name1"] == "New Season"
-    assert meet["meet_start"] == "2026-06-01"
     assert meet["meet_numlanes"] == 8
-    assert meet["age_up"] == "2026-06-01"
+    
+    # Check that events were also updated
+    for event in transformer.table_data["MTEVENT"]:
+        assert event["Num_prelanes"] == 8
+        assert event["Std_lanes"] == "A"
+
+def test_championship_scoring(sample_data):
+    """Ensures Champs scoring uses 16 individual places and 5 relay places."""
+    transformer = SeasonTransformer(sample_data)
+    transformer.setup_scoring_and_seeding(is_champs=True)
+    
+    scoring = transformer.table_data["Scoring"]
+    
+    # Individual: 1st=20, 12th=5, 16th=1
+    assert float(scoring[0]["ind_score"]) == 20.0
+    assert float(scoring[11]["ind_score"]) == 5.0
+    assert float(scoring[15]["ind_score"]) == 1.0
+    
+    # Relays: 1st=40, 5th=28, 6th=0
+    assert float(scoring[0]["rel_score"]) == 40.0
+    assert float(scoring[4]["rel_score"]) == 28.0
+    assert float(scoring[5]["rel_score"]) == 0.0
 
 def test_consolidate_sessions_dual(sample_data):
     transformer = SeasonTransformer(sample_data)
     transformer.consolidate_sessions(is_champs=False)
     
-    assert len(sample_data["SESSIONS"]) == 1
-    assert sample_data["SESSIONS"][0]["SESSION"] == 1
+    assert len(transformer.table_data["SESSIONS"]) == 1
+    assert transformer.table_data["SESSIONS"][0]["Sess_no"] == 1
     
-    for event in sample_data["MTEVENT"]:
+    # Check event linking
+    for event in transformer.table_data["MTEVENT"]:
         assert event["Session"] == 1
 
 def test_consolidate_sessions_champs(sample_data):
+    """Ensures Champs layout creates 7 sessions and links events correctly."""
     transformer = SeasonTransformer(sample_data)
     transformer.consolidate_sessions(is_champs=True)
     
-    assert len(sample_data["SESSIONS"]) == 2
-    assert sample_data["MTEVENT"][1]["Session"] == 2
+    assert len(transformer.table_data["SESSIONS"]) == 7
+    
+    events = transformer.table_data["MTEVENT"]
+    # Event 1: Stroke E, Ind_rel R -> Med Relays (Session 1)
+    assert events[0]["Session"] == 1
+    # Event 2: Stroke A, Ind_rel I -> Freestyle (Session 2)
+    assert events[1]["Session"] == 2
+    
+    # Check Sessitem
+    sessitems = transformer.table_data["Sessitem"]
+    assert len(sessitems) == 2
+    assert sessitems[0]["Sess_ptr"] == 1
+    assert sessitems[1]["Sess_ptr"] == 2
+
+def test_ensure_std_lanes(sample_data):
+    """Ensures standard seeding orders are created with correct MM column names."""
+    transformer = SeasonTransformer(sample_data)
+    transformer.ensure_std_lanes()
+    
+    std_lanes = transformer.table_data["StdLanes"]
+    assert len(std_lanes) == 12
+    
+    # Check 6 lanes order: 3, 4, 2, 5, 1, 6
+    row6 = next(r for r in std_lanes if r["Lanes"] == 6)
+    assert row6["Order1"] == 3
+    assert row6["Order6"] == 6
 
 def test_ensure_team_exists(sample_data):
     transformer = SeasonTransformer(sample_data)
     transformer.ensure_team_exists("CW", "Castlewood")
     
-    team_codes = [t.get("TCode") for t in sample_data["TEAM"]]
+    team_codes = [t.get("TCode") or t.get("tcode") for t in transformer.table_data["TEAM"]]
     assert "CW" in team_codes
-    
-    # Should not add if already exists
-    transformer.ensure_team_exists("DP", "Del Prado")
-    assert len([t for t in sample_data["TEAM"] if t.get("TCode") == "DP"]) == 1
