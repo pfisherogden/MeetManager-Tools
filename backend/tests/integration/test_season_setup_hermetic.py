@@ -117,4 +117,3 @@ def test_generate_season_logic_hermetic(mock_restore, tmp_path):
     assert mock_restore.called
     _, target_path = mock_restore.call_args[0]
     assert "2026-05-30 FAST vs Del Prado-audit-v4.mdb" in target_path
-
