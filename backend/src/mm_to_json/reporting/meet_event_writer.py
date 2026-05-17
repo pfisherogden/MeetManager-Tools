@@ -3,6 +3,11 @@ import zipfile
 from datetime import datetime
 from typing import Any
 
+# Credits:
+# File format specifications (EV3/HYV) derived from research of:
+# - SwimComm/hytek-parser (MIT License)
+# - swimstandards/swimsnap (The Unlicense)
+
 logger = logging.getLogger(__name__)
 
 
