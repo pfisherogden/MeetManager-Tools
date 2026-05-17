@@ -18,9 +18,11 @@ from season_transformer import SeasonTransformer
 
 from mm_to_json.mdb_restorer import restore_db
 from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.reporting.meet_event_writer import MeetEventWriter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def load_config():
     config_path = os.path.join(script_dir, "config", "venues.json")
@@ -28,6 +30,7 @@ def load_config():
         with open(config_path) as f:
             return json.load(f)
     return {"venues": {}, "teams": {}}
+
 
 def load_schedule(year):
     schedule_path = os.path.join(script_dir, "config", "schedule.json")
@@ -37,24 +40,28 @@ def load_schedule(year):
             return full_schedule.get(str(year))
     return None
 
+
 def get_venue_info(host, config):
     info = config.get("venues", {}).get(host, {"lanes": 6, "address": ""})
     return info
 
+
 def get_team_name(abbr, config):
     return config.get("teams", {}).get(abbr, abbr)
+
 
 def to_python(obj):
     """Recursively convert Java/Pandas objects to standard Python types."""
     if "java.lang.String" in str(type(obj)):
         return str(obj)
-    if hasattr(obj, 'isoformat'):
+    if hasattr(obj, "isoformat"):
         return obj.isoformat()
     if isinstance(obj, dict):
         return {to_python(k): to_python(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
         return [to_python(x) for x in obj]
     return obj
+
 
 def generate(template_path, output_dir, year, owner_team="DP"):
     schedule = load_schedule(year)
@@ -131,7 +138,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             try:
                 dt = datetime.strptime(meet["date"], "%Y-%m-%d")
                 entry_open = f"{dt.year - 1}-06-01"
-            except:
+            except Exception:
                 entry_open = "2025-06-01"
         else:
             entry_open = first_meet_date
@@ -158,7 +165,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             owner_team=owner_team,
             home_team=home_team,
             away_team=away_team,
-            is_champs=meet["is_champs"]
+            is_champs=meet["is_champs"],
         )
 
         # 4. Sessions
@@ -184,17 +191,13 @@ def generate(template_path, output_dir, year, owner_team="DP"):
                 if rows:
                     for k in rows[0].keys():
                         cols.append({"name": k, "type": "TEXT"})
-                output_data["tables"][tname] = {
-                    "columns": cols,
-                    "indexes": [],
-                    "rows": rows
-                }
+                output_data["tables"][tname] = {"columns": cols, "indexes": [], "rows": rows}
 
         # Convert entire structure to Python types for JSON
         output_data = to_python(output_data)
 
         # Write to temp JSON
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tf:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tf:
             json.dump(output_data, tf)
             temp_json = tf.name
 
@@ -205,17 +208,44 @@ def generate(template_path, output_dir, year, owner_team="DP"):
         print(f"Restoring to {target_mdb}...")
         restore_db(temp_json, target_mdb)
 
+        # 6. Export to Team Manager (ZIP with EV3/HYV)
+        # Find required tables logically
+        meet_keys = transformer._get_all_table_keys("meet")
+        event_keys = transformer._get_all_table_keys("event")
+        session_keys = transformer._get_all_table_keys("session")
+        scoring_keys = transformer._get_all_table_keys("scoring")
+
+        if meet_keys and event_keys:
+            meet_info = transformer.table_data[meet_keys[0]][0]
+            events = transformer.table_data[event_keys[0]]
+            sessions = transformer.table_data[session_keys[0]] if session_keys else []
+            scoring = transformer.table_data[scoring_keys[0]] if scoring_keys else []
+
+            # Format filename as MM/DD/YYYY -> MMDDYYYY
+            m_date = datetime.strptime(meet["date"], "%Y-%m-%d").strftime("%d%b%Y")
+            zip_filename = f"Meet Events-{meet['name']}-{m_date}-001.zip"
+            target_zip = os.path.join(meet_output_dir, zip_filename)
+
+            writer = MeetEventWriter(meet_info, sessions, events, scoring)
+            writer.write_to_zip(target_zip)
+            print(f"Exported Team Manager events to {target_zip}")
+
         # Cleanup
         os.remove(temp_json)
 
     print(f"\nDone! All meets generated in {season_data_dir}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--template", required=True, help="Path to blank template MDB")
     parser.add_argument("--output-dir", required=True, help="Directory to save generated MDBs")
     parser.add_argument("--year", type=int, default=2026, help="The season year (default: 2026)")
-    parser.add_argument("--owner-team", default="DP", help="The abbreviation of the host team to preserve in the MDB (default: DP)")
+    parser.add_argument(
+        "--owner-team",
+        default="DP",
+        help="The abbreviation of the host team to preserve in the MDB (default: DP)",
+    )
     args = parser.parse_args()
 
     generate(args.template, args.output_dir, args.year, args.owner_team)

@@ -35,7 +35,7 @@ class SeasonTransformer:
 
     def _get_all_table_keys(self, logical_name: str) -> list[str]:
         """Finds all actual keys in table_data that match a logical table name (case-insensitive)."""
-        candidates = set(c.lower() for c in self.table_aliases.get(logical_name, [logical_name]))
+        candidates = {c.lower() for c in self.table_aliases.get(logical_name, [logical_name])}
         found_keys = []
         for actual_key in self.table_data.keys():
             if str(actual_key).lower() in candidates:
@@ -345,18 +345,29 @@ class SeasonTransformer:
         event_keys = self._get_all_table_keys("event")
 
         # Clear existing sessions and sessitems
-        for key in session_keys: self.table_data[key] = []
-        for key in sessitem_keys: self.table_data[key] = []
+        for key in session_keys:
+            self.table_data[key] = []
+        for key in sessitem_keys:
+            self.table_data[key] = []
 
         if not is_champs:
             logger.info("Consolidating sessions into 'Session 1'")
             sess_ptr = 1
             new_session = {
-                "Sess_no": 1, "Sess_ltr": " ", "Sess_ptr": sess_ptr, "Sess_day": 1,
-                "Sess_starttime": 32400, "Sess_name": "All", "Sess_interval": 60,
-                "Sess_course": "Y", "Sess_entrymax": 0, "Sess_entrymaxind": 0,
-                "Sess_entrymaxrel": 0, "Sess_backinterval": 15, "Sess_divinginterval": 30,
-                "Sess_chaseinterval": 0
+                "Sess_no": 1,
+                "Sess_ltr": " ",
+                "Sess_ptr": sess_ptr,
+                "Sess_day": 1,
+                "Sess_starttime": 32400,
+                "Sess_name": "All",
+                "Sess_interval": 60,
+                "Sess_course": "Y",
+                "Sess_entrymax": 0,
+                "Sess_entrymaxind": 0,
+                "Sess_entrymaxrel": 0,
+                "Sess_backinterval": 15,
+                "Sess_divinginterval": 30,
+                "Sess_chaseinterval": 0,
             }
             self._set_table("session", [new_session])
 
@@ -372,10 +383,17 @@ class SeasonTransformer:
                     elif "mtevent" in actual_cols:
                         e_ptr = event[actual_cols["mtevent"]]
 
-                    new_sessitems.append({
-                        "Sess_order": i, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
-                        "Sess_rnd": "F", "Rept_type": " ", "Delay_seconds": 0, "Alt_With": False
-                    })
+                    new_sessitems.append(
+                        {
+                            "Sess_order": i,
+                            "Sess_ptr": sess_ptr,
+                            "Event_ptr": e_ptr,
+                            "Sess_rnd": "F",
+                            "Rept_type": " ",
+                            "Delay_seconds": 0,
+                            "Alt_With": False,
+                        }
+                    )
                     # Link event to session if column exists
                     if "session" in actual_cols:
                         event[actual_cols["session"]] = sess_ptr
@@ -403,13 +421,24 @@ class SeasonTransformer:
 
         for i, s_def in enumerate(champs_sessions, 1):
             sess_ptr = i
-            session_records.append({
-                "Sess_no": i, "Sess_ltr": " ", "Sess_ptr": sess_ptr, "Sess_day": 1,
-                "Sess_starttime": s_def["start"], "Sess_name": s_def["name"], "Sess_interval": 20,
-                "Sess_course": "Y", "Sess_entrymax": 0, "Sess_entrymaxind": 0,
-                "Sess_entrymaxrel": 0, "Sess_backinterval": 10, "Sess_divinginterval": 30,
-                "Sess_chaseinterval": 0
-            })
+            session_records.append(
+                {
+                    "Sess_no": i,
+                    "Sess_ltr": " ",
+                    "Sess_ptr": sess_ptr,
+                    "Sess_day": 1,
+                    "Sess_starttime": s_def["start"],
+                    "Sess_name": s_def["name"],
+                    "Sess_interval": 20,
+                    "Sess_course": "Y",
+                    "Sess_entrymax": 0,
+                    "Sess_entrymaxind": 0,
+                    "Sess_entrymaxrel": 0,
+                    "Sess_backinterval": 10,
+                    "Sess_divinginterval": 30,
+                    "Sess_chaseinterval": 0,
+                }
+            )
 
             # Find matching events
             sess_events = []
@@ -431,6 +460,7 @@ class SeasonTransformer:
                     if cand in ac:
                         return int(x[ac[cand]] or 0)
                 return 0
+
             sess_events.sort(key=get_event_no)
 
             for j, event in enumerate(sess_events, 1):
@@ -441,10 +471,17 @@ class SeasonTransformer:
                 elif "mtevent" in actual_cols:
                     e_ptr = event[actual_cols["mtevent"]]
 
-                new_sessitems.append({
-                    "Sess_order": j, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
-                    "Sess_rnd": "F", "Rept_type": "H", "Delay_seconds": 0, "Alt_With": False
-                })
+                new_sessitems.append(
+                    {
+                        "Sess_order": j,
+                        "Sess_ptr": sess_ptr,
+                        "Event_ptr": e_ptr,
+                        "Sess_rnd": "F",
+                        "Rept_type": "H",
+                        "Delay_seconds": 0,
+                        "Alt_With": False,
+                    }
+                )
 
         logger.info(f"Created {len(session_records)} sessions and {len(new_sessitems)} session items")
         self._set_table("session", session_records)
@@ -486,8 +523,10 @@ class SeasonTransformer:
                 for t in teams:
                     for k, v in t.items():
                         if str(k).lower() in ["team", "team_no", "team_ptr"] and v:
-                            try: max_no = max(max_no, int(v))
-                            except: pass
+                            try:
+                                max_no = max(max_no, int(v))
+                            except (ValueError, TypeError):
+                                pass
 
                 new_id = max_no + 1
                 template_rec = None
@@ -497,21 +536,33 @@ class SeasonTransformer:
                     template_rec = {c["name"]: None for c in self.table_defs[key].get("columns", [])}
 
                 if template_rec:
-                    for k, v in template_rec.items():
+                    for k, _v in template_rec.items():
                         lk = k.lower()
-                        if lk in ["tcode", "team_abbr", "abbr"]: matched_team[k] = abbr
-                        elif lk in ["tname", "team_name", "name"]: matched_team[k] = name
-                        elif lk in ["short", "team_short", "short_name"]: matched_team[k] = name[:15]
-                        elif lk in ["lsc", "team_lsc"]: matched_team[k] = "CC"
-                        elif lk in ["ttype", "team_type"]: matched_team[k] = "AGE"
-                        elif lk in ["team", "team_no", "team_ptr"]: matched_team[k] = new_id
-                        elif lk == "team_gender": matched_team[k] = "B"
-                        else: matched_team[k] = template_rec.get(k)
+                        if lk in ["tcode", "team_abbr", "abbr"]:
+                            matched_team[k] = abbr
+                        elif lk in ["tname", "team_name", "name"]:
+                            matched_team[k] = name
+                        elif lk in ["short", "team_short", "short_name"]:
+                            matched_team[k] = name[:15]
+                        elif lk in ["lsc", "team_lsc"]:
+                            matched_team[k] = "CC"
+                        elif lk in ["ttype", "team_type"]:
+                            matched_team[k] = "AGE"
+                        elif lk in ["team", "team_no", "team_ptr"]:
+                            matched_team[k] = new_id
+                        elif lk == "team_gender":
+                            matched_team[k] = "B"
+                        else:
+                            matched_team[k] = template_rec.get(k)
                     teams.append(matched_team)
                 else:
                     new_team = {
-                        "TCode": abbr, "TName": name, "Short": name[:15],
-                        "LSC": "CC", "TType": "AGE", "Team_no": new_id
+                        "TCode": abbr,
+                        "TName": name,
+                        "Short": name[:15],
+                        "LSC": "CC",
+                        "TType": "AGE",
+                        "Team_no": new_id,
                     }
                     teams.append(new_team)
 
