@@ -1,14 +1,13 @@
+import json
 import logging
 import os
-import json
-import copy
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 class SeasonTransformer:
-    def __init__(self, table_data: Dict[str, List[Dict[str, Any]]], table_defs: Optional[Dict[str, Any]] = None):
+    def __init__(self, table_data: dict[str, list[dict[str, Any]]], table_defs: dict[str, Any] | None = None):
         """
         Initializes the SeasonTransformer with table data and optional definitions.
         table_data is a dictionary where keys are table names and values are lists of dictionaries (records).
@@ -17,7 +16,7 @@ class SeasonTransformer:
         self.table_data = {str(k): v for k, v in table_data.items()}
         self.table_defs = {str(k): v for k, v in table_defs.items()} if table_defs else {}
         self.team_ids = {} # Track team abbr -> ID
-        
+
         # Standard table aliases to match MmToJsonConverter logic
         self.table_aliases = {
             "meet": ["Meet", "MEET", "meet"],
@@ -34,23 +33,23 @@ class SeasonTransformer:
             "stdlanes": ["StdLanes", "STDLANES", "stdlanes"],
         }
 
-    def _get_all_table_keys(self, logical_name: str) -> List[str]:
+    def _get_all_table_keys(self, logical_name: str) -> list[str]:
         """Finds all actual keys in table_data that match a logical table name (case-insensitive)."""
         candidates = set(c.lower() for c in self.table_aliases.get(logical_name, [logical_name]))
         found_keys = []
         for actual_key in self.table_data.keys():
             if str(actual_key).lower() in candidates:
                 found_keys.append(actual_key)
-        
+
         # Fallback: if no aliases match, check if logical_name itself matches case-insensitively
         if not found_keys:
             for actual_key in self.table_data.keys():
                 if str(actual_key).lower() == logical_name.lower():
                     found_keys.append(actual_key)
-                    
+
         return found_keys
 
-    def _set_table(self, logical_name: str, records: List[Dict[str, Any]]):
+    def _set_table(self, logical_name: str, records: list[dict[str, Any]]):
         """Updates the records for a logical table name while preserving existing casing."""
         keys = self._get_all_table_keys(logical_name)
         if keys:
@@ -67,7 +66,7 @@ class SeasonTransformer:
         Filters TEAM table to keep only standard teams from venues.json or the preserved team.
         """
         logger.info(f"Purging data (preserving team: {preserve_team_abbr})")
-        
+
         # transaction tables
         for logical in ["athlete", "entry", "relay", "relaynames"]:
             for key in self._get_all_table_keys(logical):
@@ -78,7 +77,7 @@ class SeasonTransformer:
             config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config")
             venues_path = os.path.join(config_dir, "venues.json")
             if os.path.exists(venues_path):
-                with open(venues_path, "r") as f:
+                with open(venues_path) as f:
                     config = json.load(f)
                     for t in config.get("teams", {}).keys():
                         standard_teams.add(t.upper())
@@ -89,7 +88,7 @@ class SeasonTransformer:
             teams = self.table_data[key]
             # Standard candidates for team abbreviation
             abbr_cols = ["tcode", "team_abbr", "abbr"]
-            
+
             filtered_teams = []
             for t in teams:
                 # Find the actual value for abbreviation in this record
@@ -101,14 +100,14 @@ class SeasonTransformer:
                         t_abbr = str(v).strip().upper()
                     if lk in ["team", "team_no", "team_ptr"]:
                         t_id = v
-                
+
                 if t_abbr and t_abbr in standard_teams:
                     filtered_teams.append(t)
                     self.team_ids[t_abbr] = t_id
-            
+
             self.table_data[key] = filtered_teams
 
-    def _date_to_ms(self, date_str: str) -> Optional[int]:
+    def _date_to_ms(self, date_str: str) -> int | None:
         """Converts a date string (YYYY-MM-DD) to milliseconds since epoch."""
         if not date_str:
             return None
@@ -116,7 +115,7 @@ class SeasonTransformer:
             # Handle already numeric or other formats if needed
             if isinstance(date_str, (int, float)):
                 return int(date_str)
-            
+
             # Try to parse YYYY-MM-DD
             dt = datetime.strptime(date_str, "%Y-%m-%d")
             return int(dt.timestamp() * 1000)
@@ -133,16 +132,16 @@ class SeasonTransformer:
                 # Update all common lane columns
                 lane_cols = ["Num_prelanes", "Num_finlanes", "Num_semlanes", "Num_LanesInBestHeatsTimedFinal"]
                 actual_cols = {k.lower(): k for k in event.keys()}
-                
+
                 for col in lane_cols:
                     if col.lower() in actual_cols:
                         event[actual_cols[col.lower()]] = lanes
-                
+
                 # Also set Std_lanes to 'A' (Automatic) to ensure seeding rules apply
                 if "std_lanes" in actual_cols:
                     event[actual_cols["std_lanes"]] = "A"
 
-    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", city: str = "", state: str = "", zip_code: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: Optional[str] = None, away_team: Optional[str] = None, is_champs: bool = False):
+    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", city: str = "", state: str = "", zip_code: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: str | None = None, away_team: str | None = None, is_champs: bool = False):
         """Updates the MEET table metadata across all possible aliases."""
         # First, update all events to match pool lanes
         self.update_event_lanes(lanes)
@@ -156,7 +155,7 @@ class SeasonTransformer:
             meet_table = self.table_data[key]
             if not meet_table:
                 meet_table = [{}]
-            
+
             mappings = {
                 "name": ["meet_name1", "MEET_NAME1", "Meet_name1", "meet"],
                 "start": ["meet_start", "MEET_START", "Meet_start", "start"],
@@ -189,13 +188,13 @@ class SeasonTransformer:
             away_id = self.team_ids.get(away_team.upper(), 0) if away_team else 0
 
             values = {
-                "name": name, 
-                "start": self._date_to_ms(start_date), 
-                "end": self._date_to_ms(start_date), 
+                "name": name,
+                "start": self._date_to_ms(start_date),
+                "end": self._date_to_ms(start_date),
                 "lanes": lanes,
-                "age_up": self._date_to_ms(age_up), 
-                "location": location, 
-                "open": self._date_to_ms(entry_open), 
+                "age_up": self._date_to_ms(age_up),
+                "location": location,
+                "open": self._date_to_ms(entry_open),
                 "deadline": self._date_to_ms(entry_deadline),
                 "idformat": 1, # USAS
                 "hostlsc": "CC",
@@ -267,19 +266,20 @@ class SeasonTransformer:
                         7: 12.0, 8: 11.0, 9: 9.0, 10: 7.0, 11: 6.0, 12: 5.0,
                         13: 4.0, 14: 3.0, 15: 2.0, 16: 1.0
                     }
-                    # Relays (5 places): 40-34-32-30-28
+                    # Relays (8 places): 40-34-32-30-28-26-24-22
                     rel_points = {
-                        1: 40.0, 2: 34.0, 3: 32.0, 4: 30.0, 5: 28.0
+                        1: 40.0, 2: 34.0, 3: 32.0, 4: 30.0, 5: 28.0,
+                        6: 26.0, 7: 24.0, 8: 22.0
                     }
                 else:
                     # Dual meet standard: 5-3-2-1 for individual, 10-6 for relays
                     ind_points = {1: 5.0, 2: 3.0, 3: 2.0, 4: 1.0}
-                    # Relays are usually 2x individual
-                    rel_points = {k: v * 2 for k, v in ind_points.items()}
-                
+                    # Relays: 10, 6
+                    rel_points = {1: 10.0, 2: 6.0}
+
                 for row in scoring:
                     actual_cols = {k.lower(): k for k in row.keys()}
-                    
+
                     if "score_place" in actual_cols:
                         place = row[actual_cols["score_place"]]
                         if "ind_score" in actual_cols:
@@ -293,7 +293,7 @@ class SeasonTransformer:
                             target = f"ind{i}"
                             if target in actual_cols:
                                 row[actual_cols[target]] = val
-                        
+
                         rel_list = [rel_points.get(i, 0.0) for i in range(1, 17)]
                         for i, val in enumerate(rel_list, 1):
                             target = f"rel{i}"
@@ -400,7 +400,7 @@ class SeasonTransformer:
         new_sessitems = []
         events = self.table_data[event_keys[0]] if event_keys else []
         logger.info(f"Distributing {len(events)} events into {len(champs_sessions)} sessions")
-        
+
         for i, s_def in enumerate(champs_sessions, 1):
             sess_ptr = i
             session_records.append({
@@ -417,13 +417,13 @@ class SeasonTransformer:
                 actual_cols = {k.lower(): k for k in event.keys()}
                 e_stroke = str(event.get(actual_cols.get("event_stroke"), "")).strip().upper()
                 e_indrel = str(event.get(actual_cols.get("ind_rel"), "")).strip().upper()
-                
+
                 if e_stroke == s_def["stroke"] and e_indrel == s_def["ind_rel"]:
                     sess_events.append(event)
                     # Link event to session if column exists
                     if "session" in actual_cols:
                         event[actual_cols["session"]] = sess_ptr
-            
+
             # Sort by event_no to preserve order
             def get_event_no(x):
                 ac = {k.lower(): k for k in x.keys()}
@@ -440,7 +440,7 @@ class SeasonTransformer:
                     e_ptr = event[actual_cols["event_ptr"]]
                 elif "mtevent" in actual_cols:
                     e_ptr = event[actual_cols["mtevent"]]
-                
+
                 new_sessitems.append({
                     "Sess_order": j, "Sess_ptr": sess_ptr, "Event_ptr": e_ptr,
                     "Sess_rnd": "F", "Rept_type": "H", "Delay_seconds": 0, "Alt_With": False
@@ -471,16 +471,16 @@ class SeasonTransformer:
                         found_abbr = str(v).strip().upper()
                     if lk in ["team", "team_no", "team_ptr"]:
                         found_id = v
-                
+
                 if found_abbr == str(abbr).strip().upper():
                     existing_id = found_id
                     break
-            
+
             if existing_id is not None:
                 self.team_ids[abbr.upper()] = existing_id
             else:
                 logger.info(f"Adding missing team: {abbr} ({name}) to {key}")
-                
+
                 matched_team = {}
                 max_no = 0
                 for t in teams:
@@ -488,14 +488,14 @@ class SeasonTransformer:
                         if str(k).lower() in ["team", "team_no", "team_ptr"] and v:
                             try: max_no = max(max_no, int(v))
                             except: pass
-                
+
                 new_id = max_no + 1
                 template_rec = None
-                if teams: 
+                if teams:
                     template_rec = teams[0]
                 elif key in self.table_defs:
                     template_rec = {c["name"]: None for c in self.table_defs[key].get("columns", [])}
-                
+
                 if template_rec:
                     for k, v in template_rec.items():
                         lk = k.lower()
@@ -514,6 +514,6 @@ class SeasonTransformer:
                         "LSC": "CC", "TType": "AGE", "Team_no": new_id
                     }
                     teams.append(new_team)
-                
+
                 self.team_ids[abbr.upper()] = new_id
                 self.table_data[key] = teams

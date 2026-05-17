@@ -1,12 +1,11 @@
-import os
-import sys
+import argparse
+import copy
 import json
 import logging
-import argparse
+import os
+import sys
 import tempfile
-import copy
 from datetime import datetime, timedelta
-import pandas as pd
 
 # Robustly add the backend/src directory to the Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,9 +14,10 @@ if backend_src_dir not in sys.path:
     sys.path.append(backend_src_dir)
 sys.path.append(script_dir)
 
-from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.mdb_restorer import restore_db
 from season_transformer import SeasonTransformer
+
+from mm_to_json.mdb_restorer import restore_db
+from mm_to_json.mm_to_json import MmToJsonConverter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,14 +25,14 @@ logger = logging.getLogger(__name__)
 def load_config():
     config_path = os.path.join(script_dir, "config", "venues.json")
     if os.path.exists(config_path):
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             return json.load(f)
     return {"venues": {}, "teams": {}}
 
 def load_schedule(year):
     schedule_path = os.path.join(script_dir, "config", "schedule.json")
     if os.path.exists(schedule_path):
-        with open(schedule_path, "r") as f:
+        with open(schedule_path) as f:
             full_schedule = json.load(f)
             return full_schedule.get(str(year))
     return None
@@ -69,12 +69,12 @@ def generate(template_path, output_dir, year, owner_team="DP"):
 
     print(f"Loading template: {template_path}")
     template_conv = MmToJsonConverter(mdb_path=template_path)
-    
+
     # Export full schema including definitions
     full_template = template_conv.export_full_schema()
     # Normalize keys to Python strings in full_template too
     full_template["tables"] = {str(k): v for k, v in full_template["tables"].items()}
-    
+
     config = load_config()
 
     # Find the first meet date for entry open logic
@@ -93,11 +93,11 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             os.makedirs(os.path.join(meet_output_dir, sub), exist_ok=True)
 
         print(f"\nGenerating MDB for: {meet['name']} ({meet['date']})")
-        
+
         # We transform the ROWS inside the full_template
         current_rows = {tname: t_def["rows"] for tname, t_def in full_template["tables"].items()}
         current_rows = copy.deepcopy(current_rows)
-        
+
         transformer = SeasonTransformer(current_rows, table_defs=full_template["tables"])
 
         # 1. Purge data
@@ -111,7 +111,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
         # Home/Away teams
         home_team = meet.get("home")
         away_team = meet.get("away")
-        
+
         if home_team:
             h_name = get_team_name(home_team, config)
             transformer.ensure_team_exists(home_team, h_name)
@@ -135,7 +135,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
                 entry_open = "2025-06-01"
         else:
             entry_open = first_meet_date
-            
+
         meet_dt = datetime.strptime(meet["date"], "%Y-%m-%d")
         deadline_dt = meet_dt - timedelta(days=4)
         entry_deadline = deadline_dt.strftime("%Y-%m-%d")
@@ -160,17 +160,17 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             away_team=away_team,
             is_champs=meet["is_champs"]
         )
-        
+
         # 4. Sessions
         transformer.consolidate_sessions(is_champs=meet["is_champs"])
-        
+
         # 5. Scoring and Seeding
         transformer.setup_scoring_and_seeding(is_champs=meet["is_champs"])
         transformer.ensure_std_lanes()
 
         # Build output_data with transformed rows
         output_data = {"tables": {}}
-        
+
         # Start with all tables from the transformer (includes newly created ones)
         for tname, rows in transformer.table_data.items():
             if tname in full_template["tables"]:
@@ -201,10 +201,10 @@ def generate(template_path, output_dir, year, owner_team="DP"):
         # Restore to MDB
         filename = f"{meet['date']} {meet['name']}.mdb"
         target_mdb = os.path.join(meet_output_dir, filename)
-        
+
         print(f"Restoring to {target_mdb}...")
         restore_db(temp_json, target_mdb)
-        
+
         # Cleanup
         os.remove(temp_json)
 
