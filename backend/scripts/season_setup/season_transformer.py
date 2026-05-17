@@ -267,15 +267,16 @@ class SeasonTransformer:
                         7: 12.0, 8: 11.0, 9: 9.0, 10: 7.0, 11: 6.0, 12: 5.0,
                         13: 4.0, 14: 3.0, 15: 2.0, 16: 1.0
                     }
-                    # Relays (5 places): 40-34-32-30-28
+                    # Relays (8 places): 40-34-32-30-28-26-24-22
                     rel_points = {
-                        1: 40.0, 2: 34.0, 3: 32.0, 4: 30.0, 5: 28.0
+                        1: 40.0, 2: 34.0, 3: 32.0, 4: 30.0, 5: 28.0,
+                        6: 26.0, 7: 24.0, 8: 22.0
                     }
                 else:
                     # Dual meet standard: 5-3-2-1 for individual, 10-6 for relays
                     ind_points = {1: 5.0, 2: 3.0, 3: 2.0, 4: 1.0}
-                    # Relays are usually 2x individual
-                    rel_points = {k: v * 2 for k, v in ind_points.items()}
+                    # Relays: 10, 6
+                    rel_points = {1: 10.0, 2: 6.0}
                 
                 for row in scoring:
                     actual_cols = {k.lower(): k for k in row.keys()}

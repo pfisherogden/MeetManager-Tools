@@ -50,7 +50,7 @@ def test_update_meet(sample_data):
         assert event["Std_lanes"] == "A"
 
 def test_championship_scoring(sample_data):
-    """Ensures Champs scoring uses 16 individual places and 5 relay places."""
+    """Ensures Champs scoring uses 16 individual places and 8 relay places."""
     transformer = SeasonTransformer(sample_data)
     transformer.setup_scoring_and_seeding(is_champs=True)
     
@@ -61,10 +61,28 @@ def test_championship_scoring(sample_data):
     assert float(scoring[11]["ind_score"]) == 5.0
     assert float(scoring[15]["ind_score"]) == 1.0
     
-    # Relays: 1st=40, 5th=28, 6th=0
+    # Relays: 1st=40, 5th=28, 8th=22, 9th=0
     assert float(scoring[0]["rel_score"]) == 40.0
     assert float(scoring[4]["rel_score"]) == 28.0
-    assert float(scoring[5]["rel_score"]) == 0.0
+    assert float(scoring[7]["rel_score"]) == 22.0
+    assert float(scoring[8]["rel_score"]) == 0.0
+
+def test_dual_scoring(sample_data):
+    """Ensures Dual scoring uses 4 individual places and 2 relay places."""
+    transformer = SeasonTransformer(sample_data)
+    transformer.setup_scoring_and_seeding(is_champs=False)
+    
+    scoring = transformer.table_data["Scoring"]
+    
+    # Individual: 1st=5, 4th=1
+    assert float(scoring[0]["ind_score"]) == 5.0
+    assert float(scoring[3]["ind_score"]) == 1.0
+    assert float(scoring[4]["ind_score"]) == 0.0
+    
+    # Relays: 1st=10, 2nd=6, 3rd=0
+    assert float(scoring[0]["rel_score"]) == 10.0
+    assert float(scoring[1]["rel_score"]) == 6.0
+    assert float(scoring[2]["rel_score"]) == 0.0
 
 def test_consolidate_sessions_dual(sample_data):
     transformer = SeasonTransformer(sample_data)

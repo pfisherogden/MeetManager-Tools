@@ -1,10 +1,10 @@
-import argparse
-import copy
-import json
-import logging
 import os
 import sys
+import json
+import logging
+import argparse
 import tempfile
+import copy
 from datetime import datetime, timedelta
 
 # Robustly add the backend/src directory to the Python path
@@ -144,7 +144,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             entry_open = first_meet_date
 
         meet_dt = datetime.strptime(meet["date"], "%Y-%m-%d")
-        deadline_dt = meet_dt - timedelta(days=4)
+        deadline_dt = meet_dt - timedelta(days=2)
         entry_deadline = deadline_dt.strftime("%Y-%m-%d")
 
         # Age up is usually 6/1 of current year
@@ -234,3 +234,18 @@ def generate(template_path, output_dir, year, owner_team="DP"):
         os.remove(temp_json)
 
     print(f"\nDone! All meets generated in {season_data_dir}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--template", required=True, help="Path to blank template MDB")
+    parser.add_argument("--output-dir", required=True, help="Directory to save generated MDBs")
+    parser.add_argument("--year", type=int, default=2026, help="The season year (default: 2026)")
+    parser.add_argument(
+        "--owner-team",
+        default="DP",
+        help="The abbreviation of the host team to preserve in the MDB (default: DP)",
+    )
+    args = parser.parse_args()
+
+    generate(args.template, args.output_dir, args.year, args.owner_team)
