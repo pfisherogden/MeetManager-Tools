@@ -64,6 +64,10 @@ validate-season TEMPLATE +FILES:
     @echo "Validating season setup against historical data..."
     uv run --project MeetManager-Tools python3 backend/scripts/season_setup/validate_historical.py --template {{TEMPLATE}} --historical-files {{FILES}}
 
+test-season-setup:
+    @echo "Running Season Setup logic and export tests..."
+    cd backend && PYTHONPATH=src:scripts/season_setup uv run pytest scripts/season_setup/test_season_transformer.py tests/integration/test_meet_event_export.py tests/reporting/test_meet_event_writer.py
+
 codegen-backend:
     @echo "Regenerating Backend Protos..."
     cd backend && uv run python -m grpc_tools.protoc -I../protos --python_out=src --grpc_python_out=src --pyi_out=src ../protos/meetmanager/v1/meet_manager.proto

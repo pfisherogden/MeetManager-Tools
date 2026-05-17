@@ -1,9 +1,7 @@
+import argparse
+import logging
 import os
 import sys
-import json
-import logging
-import argparse
-from datetime import datetime
 
 # Robustly add the backend/src directory to the Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,8 +10,9 @@ if backend_src_dir not in sys.path:
     sys.path.append(backend_src_dir)
 sys.path.append(script_dir)
 
-from mm_to_json.mm_to_json import MmToJsonConverter
 from season_transformer import SeasonTransformer
+
+from mm_to_json.mm_to_json import MmToJsonConverter
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,7 +22,7 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
     template_conv = MmToJsonConverter(mdb_path=template_mdb)
     full_template = template_conv.export_full_schema()
     full_template["tables"] = {str(k): v for k, v in full_template["tables"].items()}
-    
+
     template_rows = {name: t_def["rows"] for name, t_def in full_template["tables"].items()}
 
     results = []
@@ -37,13 +36,13 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
         # Extract historical metadata
         target_conv = MmToJsonConverter(mdb_path=mdb_path)
         target_meet = target_conv.tables.get("meet").iloc[0]
-        
+
         # Determine name, date, lanes, location
         name = target_meet.get("meet_name1")
         date = target_meet.get("meet_start")
         lanes = int(target_meet.get("meet_numlanes") or 6)
         location = target_meet.get("meet_location")
-        
+
         if hasattr(date, 'timestamp'):
             age_up = f"{date.year}-06-01"
             date_str = date.strftime("%Y-%m-%d")
@@ -57,12 +56,12 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
         import copy
         current_data = copy.deepcopy(template_rows)
         transformer = SeasonTransformer(current_data, table_defs=full_template["tables"])
-        
+
         transformer.purge_data(preserve_team_abbr=owner_team)
         transformer.update_meet(name, date_str, lanes, location=location, age_up=age_up)
         is_champs = "CHAMPS" in str(name).upper() or "CHAMPIONSHIP" in str(name).upper()
         transformer.consolidate_sessions(is_champs=is_champs)
-        
+
         # Compare
         def get_table(data, logical):
             aliases = ["Meet", "MEET", "meet"] if logical == "meet" else ["Session", "SESSIONS", "session"]
@@ -72,7 +71,7 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
 
         transformed_meet = get_table(transformer.table_data, "meet")
         transformed_row = transformed_meet[0]
-        
+
         mismatches = []
         # Case-insensitive check for name
         t_name = None
@@ -80,10 +79,10 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
             if k.lower() == "meet_name1":
                 t_name = v
                 break
-        
+
         if t_name != name:
             mismatches.append(f"Name mismatch: {t_name} != {name}")
-            
+
         # Case-insensitive check for lanes
         t_lanes = None
         for k, v in transformed_row.items():
@@ -93,7 +92,7 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
 
         if t_lanes != lanes:
             mismatches.append(f"Lanes mismatch: {t_lanes} != {lanes}")
-            
+
         t_sessions = len(get_table(transformer.table_data, "session"))
         if not is_champs and t_sessions != 1:
             mismatches.append(f"Session count mismatch: {t_sessions} != 1 for dual meet")

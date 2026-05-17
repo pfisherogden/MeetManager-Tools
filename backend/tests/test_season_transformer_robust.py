@@ -18,10 +18,11 @@ def test_scoring_champs():
     assert scoring[11]["ind_score"] == 5.0
     assert scoring[15]["ind_score"] == 1.0
 
-    # Relays: 5 places (40, 34, 32, 30, 28)
+    # Relays: 8 places (40, 34, 32, 30, 28, 26, 24, 22)
     assert scoring[0]["rel_score"] == 40.0
     assert scoring[4]["rel_score"] == 28.0
-    assert scoring[5]["rel_score"] == 0.0
+    assert scoring[7]["rel_score"] == 22.0
+    assert scoring[8]["rel_score"] == 0.0
 
 
 def test_lane_settings_robust():

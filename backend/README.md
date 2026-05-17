@@ -85,4 +85,10 @@ When running locally with `docker-compose` or `LocalStorageProvider`:
 
 ## API Definition
 See `protos/meetmanager/v1/meet_manager.proto` for the full Service definition.
+
+## Credits & Licensing
+The EV3 and HYV file format generation logic in `mm_to_json.reporting.meet_event_writer` was developed using the following projects as technical references for the Hy-Tek specifications:
+- **[SwimComm/hytek-parser](https://github.com/SwimComm/hytek-parser)** (MIT License)
+- **[swimstandards/swimsnap](https://github.com/swimstandards/swimsnap)** (The Unlicense)
+
 # CI Trigger
