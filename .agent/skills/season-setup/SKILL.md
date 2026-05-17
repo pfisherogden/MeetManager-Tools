@@ -6,34 +6,45 @@ Automates the configuration of Meet Manager (MDB) files for a new swim season us
 ## Pre-requisites
 - **Java Runtime**: Required by Jackcess (run `backend/src/mm_to_json/download_libs.py` if missing).
 - **Template MDB**: A base MDB file from a previous season (e.g., "Meet Manager blank template").
+- **Isolated Workspace**: ALWAYS use `git worktree` in `.worktrees/` for all generation tasks to prevent clobbering your primary branch.
 
 ## Workflow
 
 ### 1. Configuration
 - **Venues**: Update `backend/scripts/season_setup/config/venues.json` with host pool lane counts.
-- **Schedule**: Update the `SCHEDULE_202X` list in `backend/scripts/season_setup/generate_season.py` with meet dates, names, and hosts.
+- **Schedule**: Update `backend/scripts/season_setup/config/schedule.json` with meet dates, names, and hosts.
 
 ### 2. Execution
 Use the `Justfile` targets from the project root:
 
 - **Generate Season**:
   ```bash
-  just generate-season <template_path> <output_dir> [owner_team_abbr]
+  just generate-season <template_path> <output_dir> [year] [owner_team_abbr]
   ```
 - **Validate against History**:
   ```bash
   just validate-season <template_path> <historical_mdb_path>
   ```
+- **Sync to Drive**:
+  ```bash
+  just sync-meets
+  ```
+
+## Core Mandates
+- **Scoring Rules**:
+    - **Dual Meets**: relay scoring is 10-6-0 (Rule 19).
+    - **Championships**: individual scoring is 20-17-16-15-14-13-12-11-9-7-6-5-4-3-2-1 (16 places) and relay scoring is 40-34-32-30-28-26-24-22 (8 places) (Rule 40).
+- **Registration Deadline**: Set the entry deadline to **4 days before the meet** (Tuesday for Saturday meets) to accommodate the internal parent registration window.
+- **Automated Exports**: Every meet generation MUST produce a "Meet Events-" ZIP file containing `.ev3` and `.hyv` files for Team Manager/TeamUnify import. Use `MeetEventWriter`.
 
 ## Verification
 ALWAYS run the hermetic and integration tests after modifying the setup logic:
 ```bash
-uv run --project backend pytest backend/tests/integration/test_season_setup_hermetic.py
-uv run --project backend pytest backend/tests/integration/test_season_setup_full.py
+just test-season-setup
 ```
 
 ## Handling Verification Feedback
-If manual verification in the MeetManager Windows application reveals incorrect settings (e.g., scoring rules not applying correctly, or session metadata missing):
+If manual verification in the MeetManager Windows application reveals incorrect settings:
 
 1.  **Iterate on Transformation**: Modify the `SeasonTransformer` class in `backend/scripts/season_setup/season_transformer.py`. This is the single source of truth for the JSON-to-JSON transformation.
 2.  **Cross-Check Tables**: Use `inspect_template_sessions.py` or similar scripts to identify the exact internal MDB table/column names that MeetManager expects.
@@ -42,10 +53,8 @@ If manual verification in the MeetManager Windows application reveals incorrect 
 ## Best Practices
 - **Date Handling**: All date fields in transformed JSON must be converted to **millisecond timestamps** (integers) before restoration.
 - **Schema Awareness**: Always pass `table_defs` to `SeasonTransformer` when performing transformations. This ensures that even if a table is empty in the template, its columns are correctly mapped during record creation.
-- **Docker First**: Run MDB generation and validation inside the `backend` Docker container. This avoids local JRE/library conflicts and ensures consistent results.
 - **Meet Manager Constants**: Standardize dual meet settings:
     - ID Format: 1 (USAS)
     - Host LSC: CC
     - DQ Codes: H (Custom)
-    - Scoring: 5, 3, 2, 1 (Individual), 10, 6 (Relay)
 - **Mirror Structure**: The generation script automatically creates a layered folder structure mirroring previous years' Google Drive layouts.
