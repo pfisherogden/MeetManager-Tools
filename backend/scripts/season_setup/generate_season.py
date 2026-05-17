@@ -14,11 +14,11 @@ if backend_src_dir not in sys.path:
     sys.path.append(backend_src_dir)
 sys.path.append(script_dir)
 
-from season_transformer import SeasonTransformer
+from season_transformer import SeasonTransformer  # noqa: E402
 
-from mm_to_json.mdb_restorer import restore_db
-from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.reporting.meet_event_writer import MeetEventWriter
+from mm_to_json.mdb_restorer import restore_db  # noqa: E402
+from mm_to_json.mm_to_json import MmToJsonConverter  # noqa: E402
+from mm_to_json.reporting.meet_event_writer import MeetEventWriter  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -6,6 +6,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+
 class SeasonTransformer:
     def __init__(self, table_data: dict[str, list[dict[str, Any]]], table_defs: dict[str, Any] | None = None):
         """
@@ -15,7 +16,7 @@ class SeasonTransformer:
         """
         self.table_data = {str(k): v for k, v in table_data.items()}
         self.table_defs = {str(k): v for k, v in table_defs.items()} if table_defs else {}
-        self.team_ids = {} # Track team abbr -> ID
+        self.team_ids = {}  # Track team abbr -> ID
 
         # Standard table aliases to match MmToJsonConverter logic
         self.table_aliases = {
@@ -141,7 +142,24 @@ class SeasonTransformer:
                 if "std_lanes" in actual_cols:
                     event[actual_cols["std_lanes"]] = "A"
 
-    def update_meet(self, name: str, start_date: str, lanes: int, location: str = "", address: str = "", city: str = "", state: str = "", zip_code: str = "", age_up: str = "2026-06-01", entry_open: str = "", entry_deadline: str = "", owner_team: str = "DP", home_team: str | None = None, away_team: str | None = None, is_champs: bool = False):
+    def update_meet(
+        self,
+        name: str,
+        start_date: str,
+        lanes: int,
+        location: str = "",
+        address: str = "",
+        city: str = "",
+        state: str = "",
+        zip_code: str = "",
+        age_up: str = "2026-06-01",
+        entry_open: str = "",
+        entry_deadline: str = "",
+        owner_team: str = "DP",
+        home_team: str | None = None,
+        away_team: str | None = None,
+        is_champs: bool = False,
+    ):
         """Updates the MEET table metadata across all possible aliases."""
         # First, update all events to match pool lanes
         self.update_event_lanes(lanes)
@@ -181,7 +199,7 @@ class SeasonTransformer:
                 "dual_evenodd": ["dual_evenodd", "DUAL_EVENODD"],
                 "team_evenlanes": ["team_evenlanes", "TEAM_EVENLANES"],
                 "team_oddlanes": ["team_oddlanes", "TEAM_ODDLANES"],
-                "excludententries": ["excludententries_whenimporting", "EXCLUDENTENTRIES_WHENIMPORTING"]
+                "excludententries": ["excludententries_whenimporting", "EXCLUDENTENTRIES_WHENIMPORTING"],
             }
 
             home_id = self.team_ids.get(home_team.upper(), 0) if home_team else 0
@@ -196,9 +214,9 @@ class SeasonTransformer:
                 "location": location,
                 "open": self._date_to_ms(entry_open),
                 "deadline": self._date_to_ms(entry_deadline),
-                "idformat": 1, # USAS
+                "idformat": 1,  # USAS
                 "hostlsc": "CC",
-                "dqcodes": "H", # Custom
+                "dqcodes": "H",  # Custom
                 "indmaxscorers": 0 if is_champs else 4,
                 "relmaxscorers": 1,
                 "eligibility": self._date_to_ms(entry_open),
@@ -212,7 +230,7 @@ class SeasonTransformer:
                 "dual_evenodd": bool(home_team and away_team) if not is_champs else False,
                 "team_evenlanes": home_id if not is_champs else 0,
                 "team_oddlanes": away_id if not is_champs else 0,
-                "excludententries": False
+                "excludententries": False,
             }
 
             # Lane assignments
@@ -262,15 +280,25 @@ class SeasonTransformer:
                     # Championship standard (16 places): 20-17-16-15-14-13-12-11-9-7-6-5-4-3-2-1
                     # Confirmed via 2022-2025 historical data (User feedback)
                     ind_points = {
-                        1: 20.0, 2: 17.0, 3: 16.0, 4: 15.0, 5: 14.0, 6: 13.0,
-                        7: 12.0, 8: 11.0, 9: 9.0, 10: 7.0, 11: 6.0, 12: 5.0,
-                        13: 4.0, 14: 3.0, 15: 2.0, 16: 1.0
+                        1: 20.0,
+                        2: 17.0,
+                        3: 16.0,
+                        4: 15.0,
+                        5: 14.0,
+                        6: 13.0,
+                        7: 12.0,
+                        8: 11.0,
+                        9: 9.0,
+                        10: 7.0,
+                        11: 6.0,
+                        12: 5.0,
+                        13: 4.0,
+                        14: 3.0,
+                        15: 2.0,
+                        16: 1.0,
                     }
                     # Relays (8 places): 40-34-32-30-28-26-24-22
-                    rel_points = {
-                        1: 40.0, 2: 34.0, 3: 32.0, 4: 30.0, 5: 28.0,
-                        6: 26.0, 7: 24.0, 8: 22.0
-                    }
+                    rel_points = {1: 40.0, 2: 34.0, 3: 32.0, 4: 30.0, 5: 28.0, 6: 26.0, 7: 24.0, 8: 22.0}
                 else:
                     # Dual meet standard: 5-3-2-1 for individual, 10-6 for relays
                     ind_points = {1: 5.0, 2: 3.0, 3: 2.0, 4: 1.0}
@@ -318,14 +346,14 @@ class SeasonTransformer:
             9: [5, 6, 4, 7, 3, 8, 2, 9, 1],
             10: [5, 6, 4, 7, 3, 8, 2, 9, 1, 10],
             11: [6, 7, 5, 8, 4, 9, 3, 10, 2, 11, 1],
-            12: [6, 7, 5, 8, 4, 9, 3, 10, 2, 11, 1, 12]
+            12: [6, 7, 5, 8, 4, 9, 3, 10, 2, 11, 1, 12],
         }
 
         new_rows = []
         for tot, order in standard_orders.items():
             row = {"tot_lanes": tot, "Lanes": tot}
             for i in range(1, 13):
-                val = order[i-1] if i <= len(order) else 0
+                val = order[i - 1] if i <= len(order) else 0
                 # Standard Meet Manager column names for StdLanes are usually Order1, Order2...
                 row[f"Order{i}"] = val
                 # Fallback to order_01 etc if that's what's in the template
