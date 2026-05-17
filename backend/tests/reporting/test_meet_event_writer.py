@@ -1,4 +1,3 @@
-import os
 from mm_to_json.reporting.meet_event_writer import MeetEventWriter
 
 
@@ -109,13 +108,14 @@ def test_write_to_zip(tmp_path):
         }
     ]
 
+    import os
+    import zipfile
+
     output_path = str(tmp_path / "test_export.zip")
     writer = MeetEventWriter(meet_info=meet_info, sessions=[], events=events, scoring=[])
     writer.write_to_zip(output_path)
 
     assert os.path.exists(output_path)
-
-    import zipfile
 
     with zipfile.ZipFile(output_path, "r") as zipf:
         namelist = zipf.namelist()
