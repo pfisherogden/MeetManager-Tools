@@ -1,9 +1,8 @@
 import os
 import zipfile
 
-from mm_to_json.reporting.meet_event_writer import MeetEventWriter
-from season_transformer import SeasonTransformer
-
+from season_transformer import SeasonTransformer  # noqa: I001
+from mm_to_json.reporting.meet_event_writer import MeetEventWriter  # noqa: I001
 
 def test_full_export_flow(tmp_path):
     # 1. Start with raw MDB-like data

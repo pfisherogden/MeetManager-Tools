@@ -1,4 +1,7 @@
-from mm_to_json.reporting.meet_event_writer import MeetEventWriter
+import os
+import zipfile
+
+from mm_to_json.reporting.meet_event_writer import MeetEventWriter  # noqa: I001
 
 
 def test_generate_ev3_header():
@@ -107,9 +110,6 @@ def test_write_to_zip(tmp_path):
             "Event_stroke": "A",
         }
     ]
-
-    import os
-    import zipfile
 
     output_path = str(tmp_path / "test_export.zip")
     writer = MeetEventWriter(meet_info=meet_info, sessions=[], events=events, scoring=[])
