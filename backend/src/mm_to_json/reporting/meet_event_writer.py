@@ -70,7 +70,7 @@ class MeetEventWriter:
         fields[10] = "Tri-Valley Swim Lg. C"
         fields[11] = "7.0Gb"
         fields[12] = datetime.now().strftime("%m/%d/%Y")
-        fields[13] = str(self.meet_info.get("entrymax_total", "3"))
+        fields[13] = str(self.meet_info.get("entrymax_total", "4"))
         fields[15] = "0"
 
         # Field 16 seems to be a fixed date in manual exports (06/01/2025)

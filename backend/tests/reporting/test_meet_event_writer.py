@@ -15,9 +15,10 @@ def test_generate_ev3_header():
         "Meet_state": "CA",
         "Meet_zip": "94566",
         "Meet_hostlsc": "CC",
-        "indmax_perath": 2,
-        "relmax_perath": 1,
-        "entry_deadline": "2026-05-26",
+        "indmax_perath": 3,
+        "relmax_perath": 2,
+        "entrymax_total": 4,
+        "entry_deadline": "2026-05-26"
     }
 
     writer = MeetEventWriter(meet_info=meet_info, sessions=[], events=[], scoring=[])
@@ -31,7 +32,10 @@ def test_generate_ev3_header():
     assert parts[6] == "0"
     assert parts[9] == "Created by Hy-Tek's MEET MANAGER"
     assert parts[11] == "7.0Gb"
-    assert parts[20] == "2"  # indmax_perath
+    assert parts[13] == "4" # entrymax_total
+    assert parts[20] == "3" # indmax_perath
+    assert parts[21] == "2" # relmax_perath
+
     assert parts[23] == "05/26/2026"  # entry_deadline
     assert parts[26] == "Pleasanton"
     assert parts[30] == "CC"
