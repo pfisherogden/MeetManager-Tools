@@ -1,10 +1,10 @@
-import os
-import sys
+import argparse
+import copy
 import json
 import logging
-import argparse
+import os
+import sys
 import tempfile
-import copy
 from datetime import datetime, timedelta
 
 # Robustly add the backend/src directory to the Python path
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def load_config():
     config_path = os.path.join(script_dir, "config", "venues.json")
     if os.path.exists(config_path):
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             return json.load(f)
     return {"venues": {}, "teams": {}}
 
@@ -35,7 +35,7 @@ def load_config():
 def load_schedule(year):
     schedule_path = os.path.join(script_dir, "config", "schedule.json")
     if os.path.exists(schedule_path):
-        with open(schedule_path, "r") as f:
+        with open(schedule_path) as f:
             full_schedule = json.load(f)
             return full_schedule.get(str(year))
     return None
