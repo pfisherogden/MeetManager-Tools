@@ -1,5 +1,6 @@
 import os
 import zipfile
+
 from mm_to_json.reporting.meet_event_writer import MeetEventWriter
 
 
@@ -7,7 +8,7 @@ def test_generate_ev3_header():
     meet_info = {
         "Meet_name1": "Test Meet",
         "Meet_location": "Test Pool",
-        "Meet_start": 1779044881084, # Some timestamp
+        "Meet_start": 1779044881084,  # Some timestamp
         "Meet_end": 1779044881084,
         "Calc_date": "2026-06-01",
         "Meet_city": "Pleasanton",
@@ -16,7 +17,7 @@ def test_generate_ev3_header():
         "Meet_hostlsc": "CC",
         "indmax_perath": 2,
         "relmax_perath": 1,
-        "entry_deadline": "2026-05-26"
+        "entry_deadline": "2026-05-26",
     }
 
     writer = MeetEventWriter(meet_info=meet_info, sessions=[], events=[], scoring=[])
@@ -30,8 +31,8 @@ def test_generate_ev3_header():
     assert parts[6] == "0"
     assert parts[9] == "Created by Hy-Tek's MEET MANAGER"
     assert parts[11] == "7.0Gb"
-    assert parts[20] == "2" # indmax_perath
-    assert parts[23] == "05/26/2026" # entry_deadline
+    assert parts[20] == "2"  # indmax_perath
+    assert parts[23] == "05/26/2026"  # entry_deadline
     assert parts[26] == "Pleasanton"
     assert parts[30] == "CC"
 
@@ -62,8 +63,8 @@ def test_generate_ev3_event_record():
     assert parts[10] == "0"
     assert parts[21] == "1"  # Sess Order
     assert parts[22] == "1"  # Session No
-    assert parts[24] == "09:00AM" # Default time
-    assert parts[29] == "4*>" # Relay size with trailer
+    assert parts[24] == "09:00AM"  # Default time
+    assert parts[29] == "4*>"  # Relay size with trailer
 
 
 def test_generate_hyv_header():
@@ -125,7 +126,7 @@ def test_write_to_zip(tmp_path):
     with zipfile.ZipFile(output_path, "r") as zipf:
         namelist = zipf.namelist()
         assert len(namelist) == 2
-        
+
         # Verify content of EV3
         ev3_name = [n for n in namelist if n.endswith(".ev3")][0]
         content = zipf.read(ev3_name).decode("utf-8")

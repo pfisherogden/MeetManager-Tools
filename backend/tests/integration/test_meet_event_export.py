@@ -86,4 +86,3 @@ def test_full_export_flow(tmp_path):
         assert ";1;1;1;09:00AM;Y;0;0;0;4*>" in content
         # Event 2 is individual
         assert ";1;2;2;09:36AM;Y;0;0;0;0*>" in content
-

@@ -72,7 +72,7 @@ class MeetEventWriter:
         fields[12] = datetime.now().strftime("%m/%d/%Y")
         fields[13] = "3"
         fields[15] = "0"
-        
+
         # Field 16 seems to be a fixed date in manual exports (06/01/2025)
         # We'll use 6/1 of the previous year based on meet start
         try:
@@ -80,12 +80,12 @@ class MeetEventWriter:
             fields[16] = f"06/01/{m_start.year - 1}"
         except Exception:
             fields[16] = "06/01/2025"
-            
+
         fields[17] = "0"
         fields[18] = str(self.meet_info.get("indmaxscorers_perteam", "4"))
-        fields[19] = str(self.meet_info.get("relmaxscorers_perteam", "3")) # Manual had 3
-        fields[20] = str(self.meet_info.get("indmax_perath", "2")) # Manual had 2
-        fields[21] = str(self.meet_info.get("relmax_perath", "1")) # Manual had 1
+        fields[19] = str(self.meet_info.get("relmaxscorers_perteam", "3"))  # Manual had 3
+        fields[20] = str(self.meet_info.get("indmax_perath", "2"))  # Manual had 2
+        fields[21] = str(self.meet_info.get("relmax_perath", "1"))  # Manual had 1
         fields[22] = "A"
         fields[23] = self._format_date(self.meet_info.get("entry_deadline"))
         fields[24] = str(self.meet_info.get("Meet_addr1", ""))
@@ -96,8 +96,8 @@ class MeetEventWriter:
         fields[30] = str(self.meet_info.get("Meet_hostlsc", "CC"))
         fields[31] = "N"
         fields[32] = "N"
-        fields[33] = fields[16] # Matches field 16
-        fields[34] = "0000l" # Checksum placeholder
+        fields[33] = fields[16]  # Matches field 16
+        fields[34] = "0000l"  # Checksum placeholder
 
         return ";".join(fields) + "*>"
 
@@ -113,35 +113,38 @@ class MeetEventWriter:
         fields[5] = str(event.get("Event_sex", "X"))
         fields[6] = str(event.get("Low_age", "0"))
         fields[7] = str(event.get("High_Age", "18"))
-        
+
         # Ensure distance is integer
         dist = event.get("Event_dist", 0)
-        try: fields[8] = str(int(float(dist)))
-        except Exception: fields[8] = str(dist)
-        
+        try:
+            fields[8] = str(int(float(dist)))
+        except Exception:
+            fields[8] = str(dist)
+
         fields[9] = str(event.get("Event_stroke", "A"))
         fields[10] = "0"
         fields[13] = "N"  # Not locked
         fields[14] = "0"
-        
+
         fields[21] = str(sess_order)
         fields[22] = str(event.get("Session", "1"))
-        fields[23] = str(event.get("Session", "1")) # Manual had session no in 22 and 23
-        
+        fields[23] = str(event.get("Session", "1"))  # Manual had session no in 22 and 23
+
         # Time mapping
         start_time = "09:00AM"
         if int(event.get("Session", 1)) > 1:
             # Simple heuristic for multi-session start times
             times = ["", "09:00AM", "09:36AM", "10:12AM", "10:48AM", "11:24AM", "12:00PM", "01:00PM"]
             s_idx = int(event.get("Session", 1))
-            if s_idx < len(times): start_time = times[s_idx]
-            
+            if s_idx < len(times):
+                start_time = times[s_idx]
+
         fields[24] = start_time
         fields[25] = "Y"  # Yards
         fields[26] = "0"
         fields[27] = "0"
         fields[28] = "0"
-        
+
         # Relay size (4 for relay, 0 for individual)
         fields[29] = "4" if fields[4] == "R" else "0"
 
@@ -160,8 +163,8 @@ class MeetEventWriter:
         fields[7] = "Hy-Tek Sports Software"
         fields[8] = "7.0Gb"
         fields[9] = "CN"
-        fields[10] = "0000l" # Checksum placeholder
-        
+        fields[10] = "0000l"  # Checksum placeholder
+
         return ";".join(fields)
 
     def _generate_hyv_event_record(self, event: dict[str, Any]) -> str:
@@ -170,23 +173,27 @@ class MeetEventWriter:
         fields = [""] * 18
         fields[0] = str(event.get("Event_no", "0"))
         fields[1] = "F"  # Rnd
-        
+
         sex = str(event.get("Event_sex", "X"))
-        if sex == "G": sex = "F"
-        if sex == "B": sex = "M"
+        if sex == "G":
+            sex = "F"
+        if sex == "B":
+            sex = "M"
         fields[2] = sex
-        
+
         fields[3] = str(event.get("Ind_rel", "I"))
         fields[4] = str(event.get("Low_age", "0"))
         fields[5] = str(event.get("High_Age", "18"))
-        
+
         dist = event.get("Event_dist", 0)
-        try: fields[6] = str(int(float(dist)))
-        except Exception: fields[6] = str(dist)
-        
+        try:
+            fields[6] = str(int(float(dist)))
+        except Exception:
+            fields[6] = str(dist)
+
         fields[7] = self.STROKE_MAP.get(str(event.get("Event_stroke", "A")), "1")
         fields[11] = "0"
-        
+
         return ";".join(fields)
 
     def write_to_zip(self, output_zip_path: str):
