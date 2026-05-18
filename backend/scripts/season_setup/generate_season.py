@@ -141,6 +141,7 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             except Exception:
                 entry_open = "2025-06-01"
         else:
+            # All subsequent meets use the first meet's date to pull current season times
             entry_open = first_meet_date
 
         meet_dt = datetime.strptime(meet["date"], "%Y-%m-%d")
