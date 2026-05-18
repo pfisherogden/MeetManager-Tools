@@ -217,8 +217,8 @@ class SeasonTransformer:
                 "idformat": 1,  # USAS
                 "hostlsc": "CC",
                 "dqcodes": "H",  # Custom
-                "indmaxscorers": 0 if is_champs else 4,
-                "relmaxscorers": 3 if not is_champs else 0,
+                "indmaxscorers": 4,
+                "relmaxscorers": 3,
                 "eligibility": self._date_to_ms(entry_open),
                 "entrymax_total": 4,
                 "indmax_perath": 2,
