@@ -93,9 +93,9 @@ class MeetEventWriter:
 
         fields[17] = "0"
         fields[18] = str(self._get_meet_prop("indmaxscorers_perteam", "4"))
-        fields[19] = str(self._get_meet_prop("relmaxscorers_perteam", "1"))
-        fields[20] = str(self._get_meet_prop("indmax_perath", "3"))
-        fields[21] = str(self._get_meet_prop("relmax_perath", "2"))
+        fields[19] = str(self._get_meet_prop("relmaxscorers_perteam", "3"))
+        fields[20] = str(self._get_meet_prop("indmax_perath", "2"))
+        fields[21] = str(self._get_meet_prop("relmax_perath", "1"))
         fields[22] = "A"
         fields[23] = self._format_date(self._get_meet_prop("entry_deadline"))
         fields[24] = str(self._get_meet_prop("Meet_addr1", ""))
