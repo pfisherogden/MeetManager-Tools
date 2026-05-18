@@ -35,9 +35,15 @@ class MeetEventWriter:
         scoring: list[dict[str, Any]],
     ):
         self.meet_info = meet_info
+        # Pre-calculate lowercase keys for case-insensitive lookup
+        self._meet_info_lower = {k.lower(): v for k, v in meet_info.items()}
         self.sessions = sessions
         self.events = events
         self.scoring = scoring
+
+    def _get_meet_prop(self, prop: str, default: Any = "") -> Any:
+        """Case-insensitive property lookup for meet_info."""
+        return self._meet_info_lower.get(prop.lower(), default)
 
     def _format_date(self, date_val: Any) -> str:
         """Converts millisecond timestamps or ISO strings to MM/DD/YYYY."""
@@ -57,11 +63,11 @@ class MeetEventWriter:
         """Generates the EV3 meet header record."""
         # Reference: Meet Name(0);Location(1);Start(2);End(3);Age-Up(4);Course(5);0(6);0(7);0(8);Software(9);League(10);7.0Gb(11)...
         fields = [""] * 35
-        fields[0] = str(self.meet_info.get("Meet_name1", ""))
-        fields[1] = str(self.meet_info.get("Meet_location", ""))
-        fields[2] = self._format_date(self.meet_info.get("Meet_start"))
-        fields[3] = self._format_date(self.meet_info.get("Meet_end"))
-        fields[4] = self._format_date(self.meet_info.get("Calc_date"))
+        fields[0] = str(self._get_meet_prop("Meet_name1", ""))
+        fields[1] = str(self._get_meet_prop("Meet_location", ""))
+        fields[2] = self._format_date(self._get_meet_prop("Meet_start"))
+        fields[3] = self._format_date(self._get_meet_prop("Meet_end"))
+        fields[4] = self._format_date(self._get_meet_prop("Calc_date"))
         fields[5] = "YO"  # Yards
         fields[6] = "0"
         fields[7] = "0"
@@ -70,30 +76,34 @@ class MeetEventWriter:
         fields[10] = "Tri-Valley Swim Lg. C"
         fields[11] = "7.0Gb"
         fields[12] = datetime.now().strftime("%m/%d/%Y")
-        fields[13] = str(self.meet_info.get("entrymax_total", "4"))
+        fields[13] = str(self._get_meet_prop("entrymax_total", "4"))
         fields[15] = "0"
 
         # Field 16 seems to be a fixed date in manual exports (06/01/2025)
         # We'll use 6/1 of the previous year based on meet start
         try:
-            m_start = datetime.fromtimestamp(self.meet_info["Meet_start"] / 1000)
-            fields[16] = f"06/01/{m_start.year - 1}"
+            m_start_val = self._get_meet_prop("Meet_start")
+            if isinstance(m_start_val, (int, float)):
+                m_start = datetime.fromtimestamp(m_start_val / 1000)
+                fields[16] = f"06/01/{m_start.year - 1}"
+            else:
+                fields[16] = "06/01/2025"
         except Exception:
             fields[16] = "06/01/2025"
 
         fields[17] = "0"
-        fields[18] = str(self.meet_info.get("indmaxscorers_perteam", "4"))
-        fields[19] = str(self.meet_info.get("relmaxscorers_perteam", "3"))  # Manual had 3
-        fields[20] = str(self.meet_info.get("indmax_perath", "2"))  # Manual had 2
-        fields[21] = str(self.meet_info.get("relmax_perath", "1"))  # Manual had 1
+        fields[18] = str(self._get_meet_prop("indmaxscorers_perteam", "4"))
+        fields[19] = str(self._get_meet_prop("relmaxscorers_perteam", "1"))
+        fields[20] = str(self._get_meet_prop("indmax_perath", "3"))
+        fields[21] = str(self._get_meet_prop("relmax_perath", "2"))
         fields[22] = "A"
-        fields[23] = self._format_date(self.meet_info.get("entry_deadline"))
-        fields[24] = str(self.meet_info.get("Meet_addr1", ""))
-        fields[26] = str(self.meet_info.get("Meet_city", "Pleasanton"))
-        fields[27] = str(self.meet_info.get("Meet_state", "CA"))
-        fields[28] = str(self.meet_info.get("Meet_zip", "94566"))
+        fields[23] = self._format_date(self._get_meet_prop("entry_deadline"))
+        fields[24] = str(self._get_meet_prop("Meet_addr1", ""))
+        fields[26] = str(self._get_meet_prop("Meet_city", "Pleasanton"))
+        fields[27] = str(self._get_meet_prop("Meet_state", "CA"))
+        fields[28] = str(self._get_meet_prop("Meet_zip", "94566"))
         fields[29] = "USA"
-        fields[30] = str(self.meet_info.get("Meet_hostlsc", "CC"))
+        fields[30] = str(self._get_meet_prop("Meet_hostlsc", "CC"))
         fields[31] = "N"
         fields[32] = "N"
         fields[33] = fields[16]  # Matches field 16
@@ -154,12 +164,12 @@ class MeetEventWriter:
         """Generates the HYV meet header record."""
         # 11 fields
         fields = [""] * 11
-        fields[0] = str(self.meet_info.get("Meet_name1", ""))
-        fields[1] = self._format_date(self.meet_info.get("Meet_start"))
-        fields[2] = self._format_date(self.meet_info.get("Meet_end"))
-        fields[3] = self._format_date(self.meet_info.get("Calc_date"))
+        fields[0] = str(self._get_meet_prop("Meet_name1", ""))
+        fields[1] = self._format_date(self._get_meet_prop("Meet_start"))
+        fields[2] = self._format_date(self._get_meet_prop("Meet_end"))
+        fields[3] = self._format_date(self._get_meet_prop("Calc_date"))
         fields[4] = "Y"  # Yards
-        fields[5] = str(self.meet_info.get("Meet_location", ""))
+        fields[5] = str(self._get_meet_prop("Meet_location", ""))
         fields[7] = "Hy-Tek Sports Software"
         fields[8] = "7.0Gb"
         fields[9] = "CN"
