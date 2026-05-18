@@ -217,12 +217,12 @@ class SeasonTransformer:
                 "idformat": 1,  # USAS
                 "hostlsc": "CC",
                 "dqcodes": "H",  # Custom
-                "indmaxscorers": 4,
-                "relmaxscorers": 3,
+                "indmaxscorers": 0 if is_champs else 4,
+                "relmaxscorers": 1,
                 "eligibility": self._date_to_ms(entry_open),
                 "entrymax_total": 4,
-                "indmax_perath": 2,
-                "relmax_perath": 1,
+                "indmax_perath": 3,
+                "relmax_perath": 2,
                 "addr1": address,
                 "city": city,
                 "state": state,
