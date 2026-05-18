@@ -158,7 +158,12 @@ All agents MUST follow these workflow phases:
     - **Lane Assignments**: Home teams are assigned to EVEN lanes (2, 4, 6...), and Away teams to ODD lanes (1, 3, 5...), matching the "4-2-6" and "3-5-1" priority rules.
 
     - **Date Format**: The `mdb_restorer` expects date fields to be **millisecond timestamps** (integers) in the JSON source. Providing ISO strings or other formats will lead to empty values or type mismatches in the final MDB.
+    - **Entry-Open Date Logic**: 
+        - For the **first meet** of a season, use `06/01/[PREVIOUS_YEAR]` to allow pulling times from the last full season.
+        - For **subsequent meets**, use the date of the **first meet** of the current season (e.g., `05/30/2026`) to pull only current-season times.
     - **Schema Mapping**: When tables (like `Team`) are empty in the template, `SeasonTransformer` must use explicit `table_defs` to map columns correctly.
-    - **Meet Defaults**: Dual meets should always set `ID Format` to 1 (USAS), `Host LSC` to CC, and `DQ Codes` to 'H' (Custom).
-    - **Scoring**: Standard dual meet scoring is 5-3-2-1 for individuals and 10-6 for relays.
+    - **Meet Defaults & Rule Deviations**: 
+        - **Rule 12 Deviation**: While TVSL Rule 12 limits swimmers to 3 individual events, the historical league MDBs are configured to allow **4 total / 3 individual** entries. Automation MUST match this historical permissive default.
+        - **Scoring**: Standard dual meet scoring is 5-3-2-1 for individuals and 10-6-0 for relays (Rule 19).
+        - **Export Parity**: All EV3/HYV exports MUST use `7.0Gb` version strings and `\r\n` line endings for TeamUnify compatibility.
 - **Action**: Check `.agent/skills/season-setup/SKILL.md` for execution and configuration details.

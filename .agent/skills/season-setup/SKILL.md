@@ -34,8 +34,13 @@ Use the `Justfile` targets from the project root:
 - **Scoring Rules**:
     - **Dual Meets**: relay scoring is 10-6-0 (Rule 19).
     - **Championships**: individual scoring is 20-17-16-15-14-13-12-11-9-7-6-5-4-3-2-1 (16 places) and relay scoring is 40-34-32-30-28-26-24-22 (8 places) (Rule 40).
+- **Entry Limits**: Follow the historical permissive default of **4 total / 3 individual** events per athlete, rather than the stricter written Rule 12.
+- **Entry Open Date**: 
+    - First meet of season: Use **06/01 of the previous year**.
+    - All subsequent meets: Use the **date of the first meet of the current season**.
 - **Registration Deadline**: Set the entry deadline to **4 days before the meet** (Tuesday for Saturday meets) to accommodate the internal parent registration window.
-- **Automated Exports**: Every meet generation MUST produce a "Meet Events-" ZIP file containing `.ev3` and `.hyv` files for Team Manager/TeamUnify import. Use `MeetEventWriter`.
+- **Automated Exports**: Every meet generation MUST produce a "Meet Events-" ZIP file containing `.ev3` and `.hyv` files for Team Manager/TeamUnify import. 
+    - **Parity**: Use `7.0Gb` version strings, `\r\n` line endings, and integer distances. Use the start time heuristic (9:00 AM, 9:36 AM, etc.).
 
 ## Verification
 ALWAYS run the hermetic and integration tests after modifying the setup logic:
