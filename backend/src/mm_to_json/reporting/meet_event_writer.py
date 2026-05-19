@@ -76,7 +76,7 @@ class MeetEventWriter:
         fields[10] = "Tri-Valley Swim Lg. C"
         fields[11] = "7.0Gb"
         fields[12] = datetime.now().strftime("%m/%d/%Y")
-        fields[13] = str(self._get_meet_prop("entrymax_total", "4"))
+        fields[13] = str(self._get_meet_prop("indmax_perath", "3"))
         fields[15] = "0"
 
         # Field 16 seems to be a fixed date in manual exports (06/01/2025)
@@ -92,10 +92,10 @@ class MeetEventWriter:
             fields[16] = "06/01/2025"
 
         fields[17] = "0"
-        fields[18] = str(self._get_meet_prop("indmaxscorers_perteam", "4"))
-        fields[19] = str(self._get_meet_prop("relmaxscorers_perteam", "3"))
-        fields[20] = str(self._get_meet_prop("indmax_perath", "2"))
-        fields[21] = str(self._get_meet_prop("relmax_perath", "1"))
+        fields[18] = str(self._get_meet_prop("entrymax_total", "4"))
+        fields[19] = str(self._get_meet_prop("indmax_perath", "3"))
+        fields[20] = str(self._get_meet_prop("relmax_perath", "2"))
+        fields[21] = str(self._get_meet_prop("relmaxscorers_perteam", "1"))
         fields[22] = "A"
         fields[23] = self._format_date(self._get_meet_prop("entry_deadline"))
         fields[24] = str(self._get_meet_prop("Meet_addr1", ""))

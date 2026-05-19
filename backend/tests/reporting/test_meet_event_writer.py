@@ -32,11 +32,14 @@ def test_generate_ev3_header():
     assert parts[6] == "0"
     assert parts[9] == "Created by Hy-Tek's MEET MANAGER"
     assert parts[11] == "7.0Gb"
-    assert parts[13] == "4"  # entrymax_total
-    assert parts[20] == "3"  # indmax_perath
-    assert parts[21] == "2"  # relmax_perath
+    assert parts[13] == "3" # indmax_perath (legacy/duplicated)
+    assert parts[18] == "4" # entrymax_total
+    assert parts[19] == "3" # indmax_perath
+    assert parts[20] == "2" # relmax_perath
+    assert parts[21] == "1" # relmaxscorers_perteam
 
     assert parts[23] == "05/26/2026"  # entry_deadline
+
     assert parts[26] == "Pleasanton"
     assert parts[30] == "CC"
 
