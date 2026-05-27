@@ -13,10 +13,10 @@ def test_scoring_champs():
     transformer.setup_scoring_and_seeding(is_champs=True)
 
     scoring = table_data["Scoring"]
-    # Individual: 16 places (20, 17, 16, 15, 14, 13, 12, 11, 9, 7, 6, 5, 4, 3, 2, 1)
+    # Individual: 12 places (20, 17, 16, 15, 14, 13, 12, 11, 9, 7, 6, 5)
     assert scoring[0]["ind_score"] == 20.0
     assert scoring[11]["ind_score"] == 5.0
-    assert scoring[15]["ind_score"] == 1.0
+    assert scoring[12]["ind_score"] == 0.0
 
     # Relays: 8 places (40, 34, 32, 30, 28, 26, 24, 22)
     assert scoring[0]["rel_score"] == 40.0
