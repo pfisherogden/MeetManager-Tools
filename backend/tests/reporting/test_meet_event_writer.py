@@ -140,3 +140,28 @@ def test_write_to_zip(tmp_path):
         assert "Test Meet" in content
         # 1;1;F;1;I;F;0;18;50;A;0
         assert "1;1;F;1;I;F;0;18;50;A;0" in content
+
+
+def test_flatten_sessions():
+    """Verifies that flatten_sessions=True forces all EV3 events into Session 1."""
+    meet_info = {"Meet_name1": "Champs", "Meet_start": "2026-07-18"}
+    events = [
+        {"Event_no": 1, "Session": 1, "Ind_rel": "R", "Event_dist": 100, "Event_stroke": "G"},
+        {"Event_no": 13, "Session": 2, "Ind_rel": "I", "Event_dist": 25, "Event_stroke": "A"},
+    ]
+
+    writer = MeetEventWriter(meet_info=meet_info, sessions=[], events=events, scoring=[], flatten_sessions=True)
+    
+    # Event 1 (originally Session 1)
+    record1 = writer._generate_ev3_event_record(events[0], sess_order=1)
+    parts1 = record1.split(";")
+    assert parts1[3] == "1"
+    assert parts1[21] == "1"
+    assert parts1[24] == "09:00AM"
+
+    # Event 13 (originally Session 2)
+    record2 = writer._generate_ev3_event_record(events[1], sess_order=1)
+    parts2 = record2.split(";")
+    assert parts2[3] == "1"  # FLATTENED
+    assert parts2[21] == "1" # FLATTENED
+    assert parts2[24] == "09:36AM"  # Heuristic preserved

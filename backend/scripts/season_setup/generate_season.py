@@ -227,7 +227,9 @@ def generate(template_path, output_dir, year, owner_team="DP"):
             zip_filename = f"Meet Events-{meet['name']}-{m_date}-001.zip"
             target_zip = os.path.join(meet_output_dir, zip_filename)
 
-            writer = MeetEventWriter(meet_info, sessions, events, scoring)
+            writer = MeetEventWriter(
+                meet_info, sessions, events, scoring, flatten_sessions=meet["is_champs"]
+            )
             writer.write_to_zip(target_zip)
             print(f"Exported Team Manager events to {target_zip}")
 

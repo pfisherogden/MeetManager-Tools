@@ -277,8 +277,8 @@ class SeasonTransformer:
             scoring = self.table_data[key]
             if scoring:
                 if is_champs:
-                    # Championship standard (16 places): 20-17-16-15-14-13-12-11-9-7-6-5-4-3-2-1
-                    # Confirmed via 2022-2025 historical data (User feedback)
+                    # Championship standard (12 places for individuals): 20, 17, 16, 15, 14, 13, 12, 11, 9, 7, 6, 5
+                    # Confirmed via user feedback (League forgot to update written rules)
                     ind_points = {
                         1: 20.0,
                         2: 17.0,
@@ -292,10 +292,6 @@ class SeasonTransformer:
                         10: 7.0,
                         11: 6.0,
                         12: 5.0,
-                        13: 4.0,
-                        14: 3.0,
-                        15: 2.0,
-                        16: 1.0,
                     }
                     # Relays (8 places): 40-34-32-30-28-26-24-22
                     rel_points = {1: 40.0, 2: 34.0, 3: 32.0, 4: 30.0, 5: 28.0, 6: 26.0, 7: 24.0, 8: 22.0}

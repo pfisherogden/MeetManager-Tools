@@ -51,16 +51,16 @@ def test_update_meet(sample_data):
         assert event["Std_lanes"] == "A"
 
 def test_championship_scoring(sample_data):
-    """Ensures Champs scoring uses 16 individual places and 8 relay places."""
+    """Ensures Champs scoring uses 12 individual places and 8 relay places."""
     transformer = SeasonTransformer(sample_data)
     transformer.setup_scoring_and_seeding(is_champs=True)
 
     scoring = transformer.table_data["Scoring"]
 
-    # Individual: 1st=20, 12th=5, 16th=1
+    # Individual: 1st=20, 12th=5, 13th=0
     assert float(scoring[0]["ind_score"]) == 20.0
     assert float(scoring[11]["ind_score"]) == 5.0
-    assert float(scoring[15]["ind_score"]) == 1.0
+    assert float(scoring[12]["ind_score"]) == 0.0
 
     # Relays: 1st=40, 5th=28, 8th=22, 9th=0
     assert float(scoring[0]["rel_score"]) == 40.0

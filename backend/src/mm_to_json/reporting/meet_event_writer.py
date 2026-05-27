@@ -33,6 +33,7 @@ class MeetEventWriter:
         sessions: list[dict[str, Any]],
         events: list[dict[str, Any]],
         scoring: list[dict[str, Any]],
+        flatten_sessions: bool = False,
     ):
         self.meet_info = meet_info
         # Pre-calculate lowercase keys for case-insensitive lookup
@@ -40,6 +41,7 @@ class MeetEventWriter:
         self.sessions = sessions
         self.events = events
         self.scoring = scoring
+        self.flatten_sessions = flatten_sessions
 
     def _get_meet_prop(self, prop: str, default: Any = "") -> Any:
         """Case-insensitive property lookup for meet_info."""
@@ -118,7 +120,11 @@ class MeetEventWriter:
         fields[0] = str(event.get("Event_no", "0"))
         fields[1] = str(event.get("Event_no", "0"))
         fields[2] = "F"  # Final
-        fields[3] = str(event.get("Session", "1"))
+        
+        # Optionally flatten sessions to 1 for TeamUnify registration parity
+        sess_id = str(event.get("Session", "1"))
+        fields[3] = "1" if self.flatten_sessions else sess_id
+        
         fields[4] = str(event.get("Ind_rel", "I"))
         fields[5] = str(event.get("Event_sex", "X"))
         fields[6] = str(event.get("Low_age", "0"))
@@ -136,16 +142,16 @@ class MeetEventWriter:
         fields[13] = "N"  # Not locked
         fields[14] = "0"
 
-        fields[21] = str(event.get("Session", "1"))
+        fields[21] = "1" if self.flatten_sessions else sess_id
         fields[22] = str(sess_order)
         fields[23] = "1"
 
-        # Time mapping
+        # Time mapping (Heuristic based on ORIGINAL session ID)
         start_time = "09:00AM"
-        if int(event.get("Session", 1)) > 1:
+        if int(sess_id) > 1:
             # Simple heuristic for multi-session start times
             times = ["", "09:00AM", "09:36AM", "10:12AM", "10:48AM", "11:24AM", "12:00PM", "01:00PM"]
-            s_idx = int(event.get("Session", 1))
+            s_idx = int(sess_id)
             if s_idx < len(times):
                 start_time = times[s_idx]
 
