@@ -32,11 +32,11 @@ def test_generate_ev3_header():
     assert parts[6] == "0"
     assert parts[9] == "Created by Hy-Tek's MEET MANAGER"
     assert parts[11] == "7.0Gb"
-    assert parts[13] == "3" # indmax_perath (legacy/duplicated)
-    assert parts[18] == "4" # entrymax_total
-    assert parts[19] == "3" # indmax_perath
-    assert parts[20] == "2" # relmax_perath
-    assert parts[21] == "1" # relmaxscorers_perteam
+    assert parts[13] == "3"  # indmax_perath (legacy/duplicated)
+    assert parts[18] == "4"  # entrymax_total
+    assert parts[19] == "3"  # indmax_perath
+    assert parts[20] == "2"  # relmax_perath
+    assert parts[21] == "1"  # relmaxscorers_perteam
 
     assert parts[23] == "05/26/2026"  # entry_deadline
 
@@ -151,7 +151,7 @@ def test_flatten_sessions():
     ]
 
     writer = MeetEventWriter(meet_info=meet_info, sessions=[], events=events, scoring=[], flatten_sessions=True)
-    
+
     # Event 1 (originally Session 1)
     record1 = writer._generate_ev3_event_record(events[0], sess_order=1)
     parts1 = record1.split(";")
@@ -163,5 +163,5 @@ def test_flatten_sessions():
     record2 = writer._generate_ev3_event_record(events[1], sess_order=1)
     parts2 = record2.split(";")
     assert parts2[3] == "1"  # FLATTENED
-    assert parts2[21] == "1" # FLATTENED
+    assert parts2[21] == "1"  # FLATTENED
     assert parts2[24] == "09:36AM"  # Heuristic preserved

@@ -120,11 +120,11 @@ class MeetEventWriter:
         fields[0] = str(event.get("Event_no", "0"))
         fields[1] = str(event.get("Event_no", "0"))
         fields[2] = "F"  # Final
-        
+
         # Optionally flatten sessions to 1 for TeamUnify registration parity
         sess_id = str(event.get("Session", "1"))
         fields[3] = "1" if self.flatten_sessions else sess_id
-        
+
         fields[4] = str(event.get("Ind_rel", "I"))
         fields[5] = str(event.get("Event_sex", "X"))
         fields[6] = str(event.get("Low_age", "0"))

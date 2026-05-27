@@ -73,7 +73,7 @@ def test_full_export_flow(tmp_path):
         assert h_parts[5] == "YO"
         assert h_parts[9] == "Created by Hy-Tek's MEET MANAGER"
         assert h_parts[11] == "7.0Gb"
-        
+
         # Rule 12 Registration Limits (Definitive verification of entire flow)
         assert h_parts[13] == "3"  # indmax_perath (legacy)
         assert h_parts[18] == "4"  # entrymax_total
