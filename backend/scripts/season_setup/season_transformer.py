@@ -32,7 +32,304 @@ class SeasonTransformer:
             "divisions": ["Divisions", "DIVISIONS", "divisions"],
             "scoring": ["Scoring", "SCORING", "scoring"],
             "stdlanes": ["StdLanes", "STDLANES", "stdlanes"],
+            "memorizedreports": ["MemorizedReports", "MEMORIZEDREPORTS", "memorizedreports"],
         }
+
+    # Default template for a report row (100 columns)
+    DEFAULT_REPORT = {
+        "Mem_Name": "Unnamed Report",
+        "Mem_Type": 4,  # Program
+        "Num_Columns": 1,
+        "Sort_Order": 0,
+        "Date_Time": 2,
+        "ID_Type": 0,
+        "Top_HowMany": 0,
+        "Num_RelayNames": 4,
+        "Show_StartTimes": 0,
+        "Incl_Records": 1,
+        "Incl_TimeStds": 0,
+        "Incl_QualTimes": 0,
+        "Incl_EvtComments": 0,
+        "Line_ForResults": 0,
+        "Incl_NoEntries": 0,
+        "Incl_PriorResults": 0,
+        "Incl_Rnd1Alt": 0,
+        "Incl_EmptyLanes": 0,
+        "Show_SeedTimes": 1,
+        "Sep_ABFinal": 0,
+        "OneEvent_PerPage": 0,
+        "Ref_Format": 0,
+        "OneHeat_PerPage": 0,
+        "Dbl_Space": 0,
+        "Show_Ranks": 0,
+        "MultiAge_Split": 0,
+        "Incl_QualifiedAlts": 0,
+        "ScrAltExhSpec_Filters": 0,
+        "Incl_Scratches": 0,
+        "Ignore_Psych": 0,
+        "Sess_Row": 1,
+        "Evt_Gender": 0,
+        "Evt_LowAge": 0,
+        "Evt_HighAge": 0,
+        "Team_Abbr": "--",
+        "Evt_Round": 0,
+        "Evt_IndivOrRelay": 0,
+        "Report_Type": 0,
+        "Sort_OrderAthAge": 0,
+        "Incl_AthNoEntries": 0,
+        "Incl_AthNoEntries4Col": 0,
+        "AddApost_ClassYear": 0,
+        "Incl_CompNo": 0,
+        "Incl_CompNo4Col": 0,
+        "AddrSort_ByTeam": 0,
+        "AddrSort_ByZip": 0,
+        "Incl_ScrInEntryCount": 0,
+        "Incl_AltInEntryCount": 0,
+        "Incl_BirthDate": 0,
+        "Incl_TeamAddr": 0,
+        "Incl_Coaches": 0,
+        "AthUseAbbr_ForTeam": 0,
+        "Div_Abbr": "",
+        "Report_Format": 0,
+        "Incl_HeatLane": 0,
+        "Add_LineSpace": 0,
+        "Incl_RegID": 0,
+        "Show_CheckIn": 0,
+        "NumAth_PerPage": 0,
+        "Splits_Choice": 0,
+        "Results_ByHeat": 0,
+        "Page_Break": 0,
+        "Incl_SpecPts": 0,
+        "Incl_TimeTrials": 0,
+        "Incl_NoShows": 0,
+        "Incl_TeamPts": 0,
+        "Low_Lane": 1,
+        "High_Lane": 10,
+        "Score_Female": 0,
+        "Score_Male": 0,
+        "Score_Combined": 0,
+        "Score_CombinedBoth": 0,
+        "BAG_CATS": 0,
+        "Flat_HTML": 0,
+        "DotMatrix_LabelChoice": "",
+        "Laser_LabelChoice": "",
+        "Incl_TeamScore": 0,
+        "Incl_FemaleTeamScore": 0,
+        "Incl_MaleTeamScore": 0,
+        "CombineDivisions_ForTeamPoints": 0,
+        "Incl_DQCodes": 0,
+        "Incl_ReactionTimes": 0,
+        "Incl_Backups": 0,
+        "UseLaser_Label": 0,
+        "UseDQTimesfor_CombinedEvents": 0,
+        "Incl_EntryTimes": 0,
+        "Incl_PriorResultsSplits": 0,
+        "Incl_LogosinFooter": 0,
+        "LaneTimer_Pads": 0,
+        "UseBestTimes_AllRounds": 0,
+        "Qual_Club": 0,
+        "QualClub_Scorers": 0,
+        "PtBreakOut_HighPt": 0,
+        "RTF_export": 0,
+        "Results_ByHeatInclLane": 0,
+        "NoShows_Only": 0,
+        "Scratches_Only": 0,
+        "DQs_Only": 0,
+        "Combined_BothMustScore": 0,
+    }
+
+    AGE_GROUPS = {
+        "6&U": (0, 6),
+        "7-8": (7, 8),
+        "9-10": (9, 10),
+        "11-12": (11, 12),
+        "13-14": (13, 14),
+        "15-18": (15, 18),
+    }
+
+    def create_report_sessions(self):
+        """
+        Creates virtual sessions specifically for memorized reports to handle 'event selection'.
+        Session 1 is always 'All' (Dual) or Champs-specific.
+        We add specialized sessions starting from Sess_no 2.
+        """
+        session_keys = self._get_all_table_keys("session")
+        sessitem_keys = self._get_all_table_keys("sessitem")
+        event_keys = self._get_all_table_keys("event")
+        if not event_keys:
+            return
+
+        events = self.table_data[event_keys[0]]
+        existing_sessions = self.table_data[session_keys[0]]
+        existing_sessitems = self.table_data[sessitem_keys[0]]
+        
+        # Max existing sess_ptr
+        max_ptr = 0
+        for s in existing_sessions:
+            try:
+                max_ptr = max(max_ptr, int(s.get("Sess_ptr") or 0))
+            except (ValueError, TypeError): pass
+        
+        max_no = 0
+        for s in existing_sessions:
+            try:
+                max_no = max(max_no, int(s.get("Sess_no") or 0))
+            except (ValueError, TypeError): pass
+
+        # Definitions for report sessions
+        # (Name, Filter Lambda)
+        defs = [
+            ("Girls (F)", lambda e: str(e.get("Event_sex")).strip().upper() == "G"),
+            ("Boys+Mixed (BMX)", lambda e: str(e.get("Event_sex")).strip().upper() != "G"),
+            ("Lineup: 6&U", lambda e: int(e.get("Low_age") or 0) == 0 and int(e.get("High_Age") or 0) == 6),
+            ("Lineup: 7-8", lambda e: int(e.get("Low_age") or 0) == 7 and int(e.get("High_Age") or 0) == 8),
+            ("Lineup: 9-10", lambda e: int(e.get("Low_age") or 0) == 9 and int(e.get("High_Age") or 0) == 10),
+            ("Lineup: 11-12", lambda e: int(e.get("Low_age") or 0) == 11 and int(e.get("High_Age") or 0) == 12),
+            ("Lineup: 13-14", lambda e: int(e.get("Low_age") or 0) == 13 and int(e.get("High_Age") or 0) == 14),
+            ("Lineup: 15-18", lambda e: int(e.get("Low_age") or 0) == 15 and int(e.get("High_Age") or 0) == 18),
+        ]
+
+        for name, filter_fn in defs:
+            max_no += 1
+            max_ptr += 1
+            new_session = {
+                "Sess_no": max_no,
+                "Sess_ltr": " ",
+                "Sess_ptr": max_ptr,
+                "Sess_day": 1,
+                "Sess_starttime": 32400,
+                "Sess_name": name,
+                "Sess_interval": 15,
+                "Sess_course": "Y",
+                "Sess_entrymax": 0,
+                "Sess_entrymaxind": 0,
+                "Sess_entrymaxrel": 0,
+                "Sess_backinterval": 15,
+                "Sess_divinginterval": 30,
+                "Sess_chaseinterval": 0,
+            }
+            existing_sessions.append(new_session)
+
+            # Link matching events
+            matching_events = [e for e in events if filter_fn(e)]
+            for j, event in enumerate(matching_events, 1):
+                actual_cols = {k.lower(): k for k in event.keys()}
+                e_ptr = event.get(actual_cols.get("event_ptr")) or event.get(actual_cols.get("mtevent"))
+                existing_sessitems.append({
+                    "Sess_order": j,
+                    "Sess_ptr": max_ptr,
+                    "Event_ptr": e_ptr,
+                    "Sess_rnd": "F",
+                    "Rept_type": " ",
+                    "Delay_seconds": 0,
+                    "Alt_With": False,
+                })
+
+        logger.info(f"Created {len(defs)} report-specific virtual sessions")
+
+    def inject_memorized_reports(self, team_abbr: str = "DP"):
+        """Injects standard DPST report presets into the MemorizedReports table."""
+        presets = []
+        
+        # Helper to find Sess_Row index by name
+        # Row 1 is All/Champs. Report sessions start from 2.
+        sess_map = {
+            "Girls": 2,
+            "Boys+Mixed": 3,
+            "6&U": 4,
+            "7-8": 5,
+            "9-10": 6,
+            "11-12": 7,
+            "13-14": 8,
+            "15-18": 9,
+        }
+
+        # 1. Lineup Reports (one for each age group)
+        # These match the "Line up report settings" in DPST Computer Notes
+        for name, (low, high) in self.AGE_GROUPS.items():
+            report = self.DEFAULT_REPORT.copy()
+            report.update(
+                {
+                    "Mem_Name": f"Lineup: {name}",
+                    "Mem_Type": 4,  # Program
+                    "Team_Abbr": team_abbr.upper(),
+                    "Sess_Row": sess_map.get(name, 1),
+                    "Num_Columns": 1,
+                    "Show_SeedTimes": 0,
+                    "Incl_Records": 0,
+                }
+            )
+            presets.append(report)
+
+        # 2. Timer Sheets (DPST standard: 6 events break)
+        report = self.DEFAULT_REPORT.copy()
+        report.update(
+            {"Mem_Name": "Timer Sheets (6/pg)", "Mem_Type": 6, "Add_LineSpace": 1, "Num_RelayNames": 4, "Show_SeedTimes": 1}
+        )
+        presets.append(report)
+
+        # 3. Meet Program (Triple Column - Complete)
+        report = self.DEFAULT_REPORT.copy()
+        report.update(
+            {"Mem_Name": "Program: Complete (3-col)", "Mem_Type": 4, "Num_Columns": 3, "Show_SeedTimes": 1, "Incl_Records": 1}
+        )
+        presets.append(report)
+        
+        # 4. Program for Posting (Girls/Boys variants)
+        # Girls only
+        report = self.DEFAULT_REPORT.copy()
+        report.update({
+            "Mem_Name": "Posting: Girls only",
+            "Mem_Type": 4,
+            "Num_Columns": 2,
+            "Sess_Row": sess_map["Girls"],
+            "Show_SeedTimes": 1,
+            "Incl_Records": 1
+        })
+        presets.append(report)
+
+        # Boys + Mixed
+        report = self.DEFAULT_REPORT.copy()
+        report.update({
+            "Mem_Name": "Posting: Boys+Mixed",
+            "Mem_Type": 4,
+            "Num_Columns": 2,
+            "Sess_Row": sess_map["Boys+Mixed"],
+            "Show_SeedTimes": 1,
+            "Incl_Records": 1
+        })
+        presets.append(report)
+
+        # 5. Results (Coach)
+        report = self.DEFAULT_REPORT.copy()
+        report.update(
+            {
+                "Mem_Name": "Results: Coach",
+                "Mem_Type": 7,
+                "Incl_Scratches": 1,
+                "Incl_NoShows": 1,
+                "Incl_DQCodes": 1,
+                "Show_SeedTimes": 1,
+                "Incl_Records": 1,
+            }
+        )
+        presets.append(report)
+
+        # 6. Super Parents (8&U only for DP)
+        report = self.DEFAULT_REPORT.copy()
+        report.update(
+            {
+                "Mem_Name": "Super Parents (8&U)",
+                "Mem_Type": 4,
+                "Team_Abbr": team_abbr.upper(),
+                "Evt_HighAge": 8,
+                "Num_Columns": 1,
+            }
+        )
+        presets.append(report)
+
+        # Apply to table_data
+        self._set_table("memorizedreports", presets)
 
     def _get_all_table_keys(self, logical_name: str) -> list[str]:
         """Finds all actual keys in table_data that match a logical table name (case-insensitive)."""

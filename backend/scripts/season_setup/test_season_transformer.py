@@ -15,13 +15,14 @@ def sample_data():
         "ATHLETE": [{"Athlete": 1, "First": "John", "Last": "Doe"}],
         "ENTRY": [{"Entry": 1, "Athlete": 1, "MtEvent": 1}],
         "RELAY": [{"RELAY": 1, "TEAM": 1}],
-        "SESSIONS": [{"SESSION": 1, "SessName": "AM"}, {"SESSION": 2, "SessName": "PM"}],
+        "SESSIONS": [{"Sess_no": 1, "Sess_name": "AM", "Sess_ptr": 1}, {"Sess_no": 2, "Sess_name": "PM", "Sess_ptr": 2}],
         "MTEVENT": [
-            {"MtEvent": 1, "MtEv": 1, "Session": 1, "Event_stroke": "E", "Ind_rel": "R", "Num_prelanes": 6, "Std_lanes": " "},
-            {"MtEvent": 2, "MtEv": 2, "Session": 2, "Event_stroke": "A", "Ind_rel": "I", "Num_prelanes": 6, "Std_lanes": " "}
+            {"MtEvent": 1, "MtEv": 1, "Session": 1, "Event_sex": "G", "Event_stroke": "E", "Ind_rel": "R", "Low_age": 0, "High_Age": 6, "Num_prelanes": 6, "Std_lanes": " "},
+            {"MtEvent": 2, "MtEv": 2, "Session": 2, "Event_sex": "B", "Event_stroke": "A", "Ind_rel": "I", "Low_age": 7, "High_Age": 8, "Num_prelanes": 6, "Std_lanes": " "}
         ],
         "Scoring": [{"score_place": i, "ind_score": 0.0, "rel_score": 0.0} for i in range(1, 17)],
-        "StdLanes": []
+        "StdLanes": [],
+        "Sessitem": []
     }
 
 def test_purge_data(sample_data):
@@ -104,9 +105,9 @@ def test_consolidate_sessions_champs(sample_data):
     assert len(transformer.table_data["SESSIONS"]) == 7
 
     events = transformer.table_data["MTEVENT"]
-    # Event 1: Stroke E, Ind_rel R -> Med Relays (Session 1)
+    # Event 1: Sex G, Stroke E, Ind_rel R -> Med Relays (Session 1)
     assert events[0]["Session"] == 1
-    # Event 2: Stroke A, Ind_rel I -> Freestyle (Session 2)
+    # Event 2: Sex B, Stroke A, Ind_rel I -> Freestyle (Session 2)
     assert events[1]["Session"] == 2
 
     # Check Sessitem
@@ -134,3 +135,38 @@ def test_ensure_team_exists(sample_data):
 
     team_codes = [t.get("TCode") or t.get("tcode") for t in transformer.table_data["TEAM"]]
     assert "CW" in team_codes
+
+def test_inject_memorized_reports(sample_data):
+    """Ensures standard report presets are added."""
+    transformer = SeasonTransformer(sample_data)
+    transformer.inject_memorized_reports(team_abbr="DP")
+
+    reports = transformer.table_data["MemorizedReports"]
+    report_names = [r["Mem_Name"] for r in reports]
+
+    assert "Lineup: 6&U" in report_names
+    assert "Results: Coach" in report_names
+    assert "Posting: Girls only" in report_names
+
+    # Check DP filter
+    lineup_6u = next(r for r in reports if r["Mem_Name"] == "Lineup: 6&U")
+    assert lineup_6u["Team_Abbr"] == "DP"
+    assert lineup_6u["Sess_Row"] == 4
+
+def test_create_report_sessions(sample_data):
+    """Ensures report-specific sessions are created and events are linked."""
+    transformer = SeasonTransformer(sample_data)
+    transformer.create_report_sessions()
+
+    sessions = transformer.table_data["SESSIONS"]
+    sess_names = [s.get("Sess_name") or s.get("SessName") for s in sessions]
+
+    assert "Girls (F)" in sess_names
+    assert "Lineup: 6&U" in sess_names
+
+    # Check linkage
+    girls_sess = next(s for s in sessions if s["Sess_name"] == "Girls (F)")
+    sess_ptr = girls_sess["Sess_ptr"]
+
+    items = [i for i in transformer.table_data["Sessitem"] if i["Sess_ptr"] == sess_ptr]
+    assert len(items) == 1  # Event 1 is G
