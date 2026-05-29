@@ -400,3 +400,14 @@ def update_entry_status(
         f"Could not find entry for {'Relay' if is_relay else 'Athlete'} {athlete_id} in Event {event_ptr} (Heat {heat}, Lane {lane}) across all rounds"
     )
     return False
+
+
+def add_memorized_report(db, **kwargs):
+    """
+    Adds a report definition to MemorizedReports table.
+    Expects keywords matching the 100 column names in the table.
+    """
+    # Ensure mandatory fields or defaults if needed
+    # (Though kwargs should ideally have everything)
+    _add_row(db, "MemorizedReports", **kwargs)
+    return True
