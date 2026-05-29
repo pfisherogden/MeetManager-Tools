@@ -147,105 +147,16 @@ class SeasonTransformer:
         "15-18": (15, 18),
     }
 
-    def create_report_sessions(self):
-        """
-        Creates virtual sessions specifically for memorized reports to handle 'event selection'.
-        Session 1 is always 'All' (Dual) or Champs-specific.
-        We add specialized sessions starting from Sess_no 2.
-        """
-        session_keys = self._get_all_table_keys("session")
-        sessitem_keys = self._get_all_table_keys("sessitem")
-        event_keys = self._get_all_table_keys("event")
-        if not event_keys:
-            return
-
-        events = self.table_data[event_keys[0]]
-        existing_sessions = self.table_data[session_keys[0]]
-        existing_sessitems = self.table_data[sessitem_keys[0]]
-        
-        # Max existing sess_ptr
-        max_ptr = 0
-        for s in existing_sessions:
-            try:
-                max_ptr = max(max_ptr, int(s.get("Sess_ptr") or 0))
-            except (ValueError, TypeError): pass
-        
-        max_no = 0
-        for s in existing_sessions:
-            try:
-                max_no = max(max_no, int(s.get("Sess_no") or 0))
-            except (ValueError, TypeError): pass
-
-        # Definitions for report sessions
-        # (Name, Filter Lambda)
-        defs = [
-            ("Girls (F)", lambda e: str(e.get("Event_sex")).strip().upper() == "G"),
-            ("Boys+Mixed (BMX)", lambda e: str(e.get("Event_sex")).strip().upper() != "G"),
-            ("Lineup: 6&U", lambda e: int(e.get("Low_age") or 0) == 0 and int(e.get("High_Age") or 0) == 6),
-            ("Lineup: 7-8", lambda e: int(e.get("Low_age") or 0) == 7 and int(e.get("High_Age") or 0) == 8),
-            ("Lineup: 9-10", lambda e: int(e.get("Low_age") or 0) == 9 and int(e.get("High_Age") or 0) == 10),
-            ("Lineup: 11-12", lambda e: int(e.get("Low_age") or 0) == 11 and int(e.get("High_Age") or 0) == 12),
-            ("Lineup: 13-14", lambda e: int(e.get("Low_age") or 0) == 13 and int(e.get("High_Age") or 0) == 14),
-            ("Lineup: 15-18", lambda e: int(e.get("Low_age") or 0) == 15 and int(e.get("High_Age") or 0) == 18),
-        ]
-
-        for name, filter_fn in defs:
-            max_no += 1
-            max_ptr += 1
-            new_session = {
-                "Sess_no": max_no,
-                "Sess_ltr": " ",
-                "Sess_ptr": max_ptr,
-                "Sess_day": 1,
-                "Sess_starttime": 32400,
-                "Sess_name": name,
-                "Sess_interval": 15,
-                "Sess_course": "Y",
-                "Sess_entrymax": 0,
-                "Sess_entrymaxind": 0,
-                "Sess_entrymaxrel": 0,
-                "Sess_backinterval": 15,
-                "Sess_divinginterval": 30,
-                "Sess_chaseinterval": 0,
-            }
-            existing_sessions.append(new_session)
-
-            # Link matching events
-            matching_events = [e for e in events if filter_fn(e)]
-            for j, event in enumerate(matching_events, 1):
-                actual_cols = {k.lower(): k for k in event.keys()}
-                e_ptr = event.get(actual_cols.get("event_ptr")) or event.get(actual_cols.get("mtevent"))
-                existing_sessitems.append({
-                    "Sess_order": j,
-                    "Sess_ptr": max_ptr,
-                    "Event_ptr": e_ptr,
-                    "Sess_rnd": "F",
-                    "Rept_type": " ",
-                    "Delay_seconds": 0,
-                    "Alt_With": False,
-                })
-
-        logger.info(f"Created {len(defs)} report-specific virtual sessions")
-
     def inject_memorized_reports(self, team_abbr: str = "DP"):
-        """Injects standard DPST report presets into the MemorizedReports table."""
+        """
+        Injects standard DPST report presets into the MemorizedReports table.
+        Uses built-in filters (Gender, Age, Team) to keep everything in Session 1.
+        """
         presets = []
-        
-        # Helper to find Sess_Row index by name
-        # Row 1 is All/Champs. Report sessions start from 2.
-        sess_map = {
-            "Girls": 2,
-            "Boys+Mixed": 3,
-            "6&U": 4,
-            "7-8": 5,
-            "9-10": 6,
-            "11-12": 7,
-            "13-14": 8,
-            "15-18": 9,
-        }
 
         # 1. Lineup Reports (one for each age group)
         # These match the "Line up report settings" in DPST Computer Notes
+        # We use Session 1 (All) but filter by Age and Team
         for name, (low, high) in self.AGE_GROUPS.items():
             report = self.DEFAULT_REPORT.copy()
             report.update(
@@ -253,10 +164,12 @@ class SeasonTransformer:
                     "Mem_Name": f"Lineup: {name}",
                     "Mem_Type": 4,  # Program
                     "Team_Abbr": team_abbr.upper(),
-                    "Sess_Row": sess_map.get(name, 1),
+                    "Evt_LowAge": low,
+                    "Evt_HighAge": high,
                     "Num_Columns": 1,
                     "Show_SeedTimes": 0,
                     "Incl_Records": 0,
+                    "Sess_Row": 1, # Always Session 1
                 }
             )
             presets.append(report)
@@ -264,14 +177,28 @@ class SeasonTransformer:
         # 2. Timer Sheets (DPST standard: 6 events break)
         report = self.DEFAULT_REPORT.copy()
         report.update(
-            {"Mem_Name": "Timer Sheets (6/pg)", "Mem_Type": 6, "Add_LineSpace": 1, "Num_RelayNames": 4, "Show_SeedTimes": 1}
+            {
+                "Mem_Name": "Timer Sheets (6/pg)", 
+                "Mem_Type": 6, 
+                "Add_LineSpace": 1, 
+                "Num_RelayNames": 4, 
+                "Show_SeedTimes": 1,
+                "Sess_Row": 1,
+            }
         )
         presets.append(report)
 
         # 3. Meet Program (Triple Column - Complete)
         report = self.DEFAULT_REPORT.copy()
         report.update(
-            {"Mem_Name": "Program: Complete (3-col)", "Mem_Type": 4, "Num_Columns": 3, "Show_SeedTimes": 1, "Incl_Records": 1}
+            {
+                "Mem_Name": "Program: Complete (3-col)", 
+                "Mem_Type": 4, 
+                "Num_Columns": 3, 
+                "Show_SeedTimes": 1, 
+                "Incl_Records": 1,
+                "Sess_Row": 1,
+            }
         )
         presets.append(report)
         
@@ -282,21 +209,23 @@ class SeasonTransformer:
             "Mem_Name": "Posting: Girls only",
             "Mem_Type": 4,
             "Num_Columns": 2,
-            "Sess_Row": sess_map["Girls"],
+            "Evt_Gender": 2, # Female
             "Show_SeedTimes": 1,
-            "Incl_Records": 1
+            "Incl_Records": 1,
+            "Sess_Row": 1,
         })
         presets.append(report)
 
-        # Boys + Mixed
+        # Boys only
         report = self.DEFAULT_REPORT.copy()
         report.update({
-            "Mem_Name": "Posting: Boys+Mixed",
+            "Mem_Name": "Posting: Boys only",
             "Mem_Type": 4,
             "Num_Columns": 2,
-            "Sess_Row": sess_map["Boys+Mixed"],
+            "Evt_Gender": 1, # Male
             "Show_SeedTimes": 1,
-            "Incl_Records": 1
+            "Incl_Records": 1,
+            "Sess_Row": 1,
         })
         presets.append(report)
 
@@ -311,6 +240,7 @@ class SeasonTransformer:
                 "Incl_DQCodes": 1,
                 "Show_SeedTimes": 1,
                 "Incl_Records": 1,
+                "Sess_Row": 1,
             }
         )
         presets.append(report)
@@ -324,6 +254,7 @@ class SeasonTransformer:
                 "Team_Abbr": team_abbr.upper(),
                 "Evt_HighAge": 8,
                 "Num_Columns": 1,
+                "Sess_Row": 1,
             }
         )
         presets.append(report)

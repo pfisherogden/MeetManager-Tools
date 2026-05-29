@@ -176,6 +176,9 @@ def generate(template_path, output_dir, year, owner_team="DP"):
         transformer.setup_scoring_and_seeding(is_champs=meet["is_champs"])
         transformer.ensure_std_lanes()
 
+        # 6. Memorized Reports
+        transformer.inject_memorized_reports(team_abbr=owner_team)
+
         # Build output_data with transformed rows
         output_data = {"tables": {}}
 

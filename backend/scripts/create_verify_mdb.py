@@ -65,7 +65,6 @@ def create_verify_mdb(template_path, output_mdb):
     transformer.ensure_std_lanes()
     
     # 6. Memorized Reports
-    transformer.create_report_sessions()
     transformer.inject_memorized_reports(team_abbr="DP")
 
     # Save to temp JSON
