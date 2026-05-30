@@ -335,11 +335,13 @@ export function ReportsManager({
 	};
 
 	const applyPreset = (preset: (typeof reportPresets)[0]) => {
-		const newItems: CustomPackItem[] = preset.reports.map((r) => ({
+		const newItems: CustomPackItem[] = preset.reports.map((r: any) => ({
 			id: crypto.randomUUID(),
 			type: r.type,
 			title: r.title,
-			teamFilter: presetTeamFilter === "All Teams" ? "" : presetTeamFilter,
+			teamFilter:
+				r.teamFilter ||
+				(presetTeamFilter === "All Teams" ? "" : presetTeamFilter),
 			genderFilter: r.genderFilter || "Mixed",
 			ageGroupFilter: r.ageGroupFilter || "Open",
 			zebraStriping: r.zebraStriping || false,
@@ -356,22 +358,110 @@ export function ReportsManager({
 		{
 			id: "default",
 			name: "Default Meet Pack",
-			description: "Timer Sheets, targeted Lineups, and Meet Program",
+			description: "Operational reports for meet day (Summer 2025 standard)",
 			reports: [
-				{ type: 8, title: "Lane Timer Sheets" },
 				{
-					type: 2,
-					title: "Girls 10&U Lineups",
+					type: 1,
+					title: "Parent Entry List - DP Only",
+					teamFilter: "DP",
+				},
+				{
+					type: 8,
+					title: "Lane Timer Sheets",
+				},
+				// Lineup Reports (Girls)
+				{
+					type: 4,
+					title: "Lineup: Girls 6&U",
+					teamFilter: "DP",
 					genderFilter: "Girls",
-					ageGroupFilter: "10 & under",
+					ageGroupFilter: "6 & under",
 				},
 				{
-					type: 2,
-					title: "Boys 10&U Lineups",
-					genderFilter: "Boys",
-					ageGroupFilter: "10 & under",
+					type: 4,
+					title: "Lineup: Girls 7-8",
+					teamFilter: "DP",
+					genderFilter: "Girls",
+					ageGroupFilter: "7-8",
 				},
-				{ type: 4, title: "Standard Meet Program" },
+				{
+					type: 4,
+					title: "Lineup: Girls 9-10",
+					teamFilter: "DP",
+					genderFilter: "Girls",
+					ageGroupFilter: "9-10",
+				},
+				{
+					type: 4,
+					title: "Lineup: Girls 11-12",
+					teamFilter: "DP",
+					genderFilter: "Girls",
+					ageGroupFilter: "11-12",
+				},
+				{
+					type: 4,
+					title: "Lineup: Girls 13-14",
+					teamFilter: "DP",
+					genderFilter: "Girls",
+					ageGroupFilter: "13-14",
+				},
+				{
+					type: 4,
+					title: "Lineup: Girls 15-18",
+					teamFilter: "DP",
+					genderFilter: "Girls",
+					ageGroupFilter: "15-18",
+				},
+				// Lineup Reports (Boys+Mixed)
+				{
+					type: 4,
+					title: "Lineup: Boys 6&U",
+					teamFilter: "DP",
+					genderFilter: "Boys",
+					ageGroupFilter: "6 & under",
+				},
+				{
+					type: 4,
+					title: "Lineup: Boys 7-8",
+					teamFilter: "DP",
+					genderFilter: "Boys",
+					ageGroupFilter: "7-8",
+				},
+				{
+					type: 4,
+					title: "Lineup: Boys 9-10",
+					teamFilter: "DP",
+					genderFilter: "Boys",
+					ageGroupFilter: "9-10",
+				},
+				{
+					type: 4,
+					title: "Lineup: Boys 11-12",
+					teamFilter: "DP",
+					genderFilter: "Boys",
+					ageGroupFilter: "11-12",
+				},
+				{
+					type: 4,
+					title: "Lineup: Boys 13-14",
+					teamFilter: "DP",
+					genderFilter: "Boys",
+					ageGroupFilter: "13-14",
+				},
+				{
+					type: 4,
+					title: "Lineup: Boys 15-18",
+					teamFilter: "DP",
+					genderFilter: "Boys",
+					ageGroupFilter: "15-18",
+				},
+				// Posting Programs
+				{ type: 4, title: "Posting: Girls only", genderFilter: "Girls" },
+				{ type: 4, title: "Posting: Boys+Mixed", genderFilter: "Boys" },
+				// Operational
+				{ type: 9, title: "Stroke & Turn Program" },
+				{ type: 4, title: "Computer Team Program" },
+				{ type: 4, title: "Complete Meet Program" },
 			],
 		},
 		{

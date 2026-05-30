@@ -167,7 +167,10 @@ class ReportDataExtractor:
         if team:
             parts.append(f"Team: {team}")
         if gender and gender.lower() != "mixed":
-            parts.append(f"Gender: {gender}")
+            g_text = gender
+            if gender.lower() == "boys":
+                g_text = "Boys+Mixed"
+            parts.append(f"Gender: {g_text}")
         if age and age.lower() != "open":
             parts.append(f"Age: {age}")
         return " - ".join(parts)
@@ -461,11 +464,15 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if (
-                    target_g != "X"
-                    and self._normalize_gender(evt_gender) != target_g
-                    and self._normalize_gender(evt_gender) != "X"
-                ):
+                if target_g == "F":
+                    # Girls ONLY (Strict)
+                    if self._normalize_gender(evt_gender) != "F":
+                        continue
+                elif target_g == "M":
+                    # Boys + Mixed
+                    if self._normalize_gender(evt_gender) == "F":
+                        continue
+                elif target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -593,11 +600,15 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if (
-                    target_g != "X"
-                    and self._normalize_gender(evt_gender) != target_g
-                    and self._normalize_gender(evt_gender) != "X"
-                ):
+                if target_g == "F":
+                    # Girls ONLY (Strict)
+                    if self._normalize_gender(evt_gender) != "F":
+                        continue
+                elif target_g == "M":
+                    # Boys + Mixed
+                    if self._normalize_gender(evt_gender) == "F":
+                        continue
+                elif target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -839,11 +850,15 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if (
-                    target_g != "X"
-                    and self._normalize_gender(evt_gender) != target_g
-                    and self._normalize_gender(evt_gender) != "X"
-                ):
+                if target_g == "F":
+                    # Girls ONLY (Strict)
+                    if self._normalize_gender(evt_gender) != "F":
+                        continue
+                elif target_g == "M":
+                    # Boys + Mixed
+                    if self._normalize_gender(evt_gender) == "F":
+                        continue
+                elif target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -948,11 +963,15 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
-                if (
-                    target_g != "X"
-                    and self._normalize_gender(evt_gender) != target_g
-                    and self._normalize_gender(evt_gender) != "X"
-                ):
+                if target_g == "F":
+                    # Girls ONLY (Strict)
+                    if self._normalize_gender(evt_gender) != "F":
+                        continue
+                elif target_g == "M":
+                    # Boys + Mixed
+                    if self._normalize_gender(evt_gender) == "F":
+                        continue
+                elif target_g != "X" and self._normalize_gender(evt_gender) != target_g:
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":

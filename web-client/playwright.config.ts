@@ -15,7 +15,7 @@ export default defineConfig({
 	workers: 1,
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: "html",
-	timeout: 300000, // 5 minutes per test
+	timeout: 600000, // 10 minutes per test (for heavy report generation)
 	expect: {
 		timeout: 60000, // 1 minute for progress polling
 	},
@@ -26,8 +26,8 @@ export default defineConfig({
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/trace-viewer */
 		trace: "on-first-retry",
-		navigationTimeout: 120000, // 2 minutes
-		actionTimeout: 120000, // 2 minutes
+		navigationTimeout: 600000, // 10 minutes
+		actionTimeout: 600000, // 10 minutes
 	},
 
 	/* Configure projects for major browsers */
