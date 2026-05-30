@@ -1,8 +1,9 @@
-
 import unittest
 from unittest.mock import MagicMock
+
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
+
 
 class TestGenderFiltering(unittest.TestCase):
     def setUp(self):
@@ -20,7 +21,7 @@ class TestGenderFiltering(unittest.TestCase):
                             "gender": "F",
                             "eventDesc": "Girls 50 Free",
                             "isRelay": False,
-                            "entries": [{"name": "Jane", "ath_no": 1, "team": "DP", "athleteSex": "F"}]
+                            "entries": [{"name": "Jane", "ath_no": 1, "team": "DP", "athleteSex": "F"}],
                         },
                         {
                             "eventNum": 2,
@@ -28,7 +29,7 @@ class TestGenderFiltering(unittest.TestCase):
                             "gender": "M",
                             "eventDesc": "Boys 50 Free",
                             "isRelay": False,
-                            "entries": [{"name": "John", "ath_no": 2, "team": "DP", "athleteSex": "M"}]
+                            "entries": [{"name": "John", "ath_no": 2, "team": "DP", "athleteSex": "M"}],
                         },
                         {
                             "eventNum": 3,
@@ -36,16 +37,16 @@ class TestGenderFiltering(unittest.TestCase):
                             "gender": "X",
                             "eventDesc": "Mixed Relay",
                             "isRelay": True,
-                            "entries": [{"name": "Mixed Team", "relayLtr": "A", "team": "DP"}]
-                        }
-                    ]
+                            "entries": [{"name": "Mixed Team", "relayLtr": "A", "team": "DP"}],
+                        },
+                    ],
                 }
-            ]
+            ],
         }
         self.converter = MagicMock(spec=MmToJsonConverter)
         # extractor calls self.converter.convert()
         self.converter.convert.return_value = self.mock_full_data
-        
+
         self.extractor = ReportDataExtractor(self.converter)
 
     def test_girls_filter_strict(self):
@@ -65,6 +66,7 @@ class TestGenderFiltering(unittest.TestCase):
         data = self.extractor.extract_meet_program_data(gender_filter="Mixed")
         event_nums = [g["header"].split()[1] for g in data["groups"]]
         self.assertEqual(event_nums, ["1", "2", "3"])
+
 
 if __name__ == "__main__":
     unittest.main()
