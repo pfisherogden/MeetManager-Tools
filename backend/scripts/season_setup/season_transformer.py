@@ -216,13 +216,13 @@ class SeasonTransformer:
         })
         presets.append(report)
 
-        # Boys only
+        # Boys + Mixed
         report = self.DEFAULT_REPORT.copy()
         report.update({
-            "Mem_Name": "Posting: Boys only",
+            "Mem_Name": "Posting: Boys+Mixed",
             "Mem_Type": 4,
             "Num_Columns": 2,
-            "Evt_Gender": 1, # Male
+            "Evt_Gender": 0, # All/Boys+Mixed
             "Show_SeedTimes": 1,
             "Incl_Records": 1,
             "Sess_Row": 1,

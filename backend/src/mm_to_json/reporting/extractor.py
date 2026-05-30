@@ -392,10 +392,16 @@ class ReportDataExtractor:
 
                     names = []
                     if "relayAthletes" in r:
-                        names = [
-                            f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
-                            for a in r["relayAthletes"]
-                        ]
+                        is_mixed = str(r.get("event_sex", "")).upper() == "X"
+                        for a in r["relayAthletes"]:
+                            age_val = a.get("age", "")
+                            age_str = str(age_val)
+                            if is_mixed and age_val:
+                                gender_pref = str(a.get("athleteSex", ""))[:1].upper()
+                                age_str = f"{gender_pref}{age_str}"
+                            names.append(
+                                f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()} {age_str}".strip()
+                            )
                     else:
                         names = [n.strip() for n in r.get("name", "").split(",")]
 
@@ -506,10 +512,16 @@ class ReportDataExtractor:
                         names = []
                         if show_relay_swimmers:
                             if "relayAthletes" in entry:
-                                names = [
-                                    f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
-                                    for a in entry["relayAthletes"]
-                                ]
+                                is_mixed = str(evt.get("gender", "")).upper() == "X"
+                                for a in entry["relayAthletes"]:
+                                    age_val = a.get("age", "")
+                                    age_str = str(age_val)
+                                    if is_mixed and age_val:
+                                        gender_pref = str(a.get("athleteSex", ""))[:1].upper()
+                                        age_str = f"{gender_pref}{age_str}"
+                                    names.append(
+                                        f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()} {age_str}".strip()
+                                    )
                             else:
                                 names = [n.strip() for n in entry.get("name", "").split(",")]
                         sub_items.append(

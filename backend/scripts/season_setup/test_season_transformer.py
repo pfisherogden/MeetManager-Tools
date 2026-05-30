@@ -147,6 +147,7 @@ def test_inject_memorized_reports(sample_data):
     assert "Lineup: 6&U" in report_names
     assert "Results: Coach" in report_names
     assert "Posting: Girls only" in report_names
+    assert "Posting: Boys+Mixed" in report_names
 
     # Check DP filter
     lineup_6u = next(r for r in reports if r["Mem_Name"] == "Lineup: 6&U")

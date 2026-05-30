@@ -1023,11 +1023,20 @@ class MmToJsonConverter:
                     team_no = self._safe_int(row.get("team_no") or row.get("team1"))
 
                     team_info = self.get_team_info(team_no)
+
+                    # Support for preferred name / short name (Pref_name in Schema A)
+                    first_name = self._get_val(row, "first_name") or self._get_val(row, "first")
+                    pref_name = self._get_val(row, "pref_name")
+                    if pref_name and str(pref_name).strip():
+                        first_name = str(pref_name).strip()
+
+                    last_name = self._get_val(row, "last_name") or self._get_val(row, "last")
+
                     self.cache_athlete_map[aid] = {
                         "athleteId": aid,
-                        "firstName": self._get_val(row, "first_name") or self._get_val(row, "first"),
-                        "lastName": self._get_val(row, "last_name") or self._get_val(row, "last"),
-                        "name": f"{self._get_val(row, 'first_name') or self._get_val(row, 'first')} {self._get_val(row, 'last_name') or self._get_val(row, 'last')}",
+                        "firstName": first_name,
+                        "lastName": last_name,
+                        "name": f"{first_name} {last_name}",
                         "age": self._safe_int(row.get("ath_age") or row.get("age")),
                         "athleteSex": self._get_val(row, "sex"),
                         "schoolYear": self._get_val(row, "schl_yr") or self._get_val(row, "class"),
@@ -1088,7 +1097,7 @@ class MmToJsonConverter:
             val = float(num)
             if val <= 0:
                 return "NT"
-            return f"{val:.3f}"
+            return f"{val:.2f}"
         except (ValueError, TypeError):
             return "NT"
 
@@ -1106,7 +1115,7 @@ class MmToJsonConverter:
             val = float(time_val or 0.0)
             if val <= 0:
                 return "NT"
-            return f"{val:.3f}"
+            return f"{val:.2f}"
         except (ValueError, TypeError):
             return "NT"
 
@@ -1124,15 +1133,15 @@ class MmToJsonConverter:
         try:
             val = float(time_str)
             seconds = int(val)
-            # Support thousandths
-            ms = int(round((val - seconds) * 1000))
+            # Support hundredths
+            ms = int(round((val - seconds) * 100))
             minutes = seconds // 60
             rem_seconds = seconds % 60
 
             if minutes > 0:
-                return f"{minutes}:{rem_seconds:02d}.{ms:03d}"
+                return f"{minutes}:{rem_seconds:02d}.{ms:02d}"
             else:
-                return f"{rem_seconds:02d}.{ms:03d}"
+                return f"{rem_seconds:02d}.{ms:02d}"
         except Exception:
             return time_str
 

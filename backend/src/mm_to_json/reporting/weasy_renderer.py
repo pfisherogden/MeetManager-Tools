@@ -3,6 +3,7 @@ import datetime
 import os
 from typing import Any
 
+import pytz
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
@@ -28,10 +29,11 @@ class WeasyRenderer:
         render_data = copy.copy(data)
         render_data["css_content"] = css_content
         render_data["playwright"] = False
-        import pytz
 
         tz = pytz.timezone("America/Los_Angeles")
-        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%I:%M %p %Y/%m/%d")
+        # Format like MM: "2:17 PM 5/29/2026"
+        # %-m and %-d remove leading zeros on Linux/Unix
+        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%-I:%M %p %-m/%-d/%Y")
 
         return template.render(**render_data)
 

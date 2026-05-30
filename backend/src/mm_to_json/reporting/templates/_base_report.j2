@@ -26,12 +26,24 @@
         <table class="header-table">
             <tr class="header-top">
                 <td class="header-left-col">
-                    <div class="header-meet-name">{{ meet_name|default('Tri-Valley Swim League') }}</div>
+                    <div class="header-meet-name">Tri-Valley Swim Lg. C</div>
+                </td>
+                <td class="header-right-col">
+                    <div class="header-software">HY-TEK's MEET MANAGER 7.0 - {{ generation_time }} Page <span class="page-counter"></span></div>
+                </td>
+            </tr>
+            <tr>
+                <td class="header-left-col">
+                    <div class="header-meet-info">{{ meet_name }}</div>
+                </td>
+                <td class="header-right-col">
+                </td>
+            </tr>
+            <tr>
+                <td class="header-left-col">
                     <div class="header-sub-title">{{ sub_title }}</div>
                 </td>
                 <td class="header-right-col">
-                    <div class="header-timestamp">MM-Tools - {{ generation_time }}</div>
-                    <div class="header-page-num">Page <span class="page-counter"></span></div>
                 </td>
             </tr>
         </table>
