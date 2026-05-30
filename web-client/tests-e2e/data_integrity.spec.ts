@@ -106,8 +106,8 @@ test.describe("Data Integrity and UI Rendering", () => {
 			await expect(page.getByText(/Your pack is empty/i)).toBeVisible();
 		}
 
-		// 2. Select "Default Meet Pack" preset
-		const presetBtn = page.getByTestId("preset-apply-default");
+		// 2. Select "Test Bundle (Fast)" preset
+		const presetBtn = page.getByTestId("preset-apply-test");
 		await expect(presetBtn).toBeVisible();
 		await presetBtn.click();
 
