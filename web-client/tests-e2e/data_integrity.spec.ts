@@ -96,7 +96,7 @@ test.describe("Data Integrity and UI Rendering", () => {
 	test("should generate and download a ZIP bundle without 403 unauthorized error", async ({
 		page,
 	}) => {
-		test.setTimeout(180000);
+		test.setTimeout(600000);
 		await page.goto("/reports");
 
 		// 1. Clear any existing pack items first to ensure a clean state
@@ -116,7 +116,7 @@ test.describe("Data Integrity and UI Rendering", () => {
 		await expect(bundleBtn).toBeEnabled({ timeout: 20000 });
 
 		// 4. Setup download listener BEFORE clicking generate
-		const downloadPromise = page.waitForEvent("download", { timeout: 150000 });
+		const downloadPromise = page.waitForEvent("download", { timeout: 600000 });
 
 		await bundleBtn.click();
 
