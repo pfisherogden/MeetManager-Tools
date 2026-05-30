@@ -1,6 +1,8 @@
 import unittest
+
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
+
 
 class TestReportingComprehensive(unittest.TestCase):
     def setUp(self):
@@ -105,6 +107,7 @@ class TestReportingComprehensive(unittest.TestCase):
         self.assertEqual(entries[1]["time"], "30.10")
         self.assertEqual(entries[0]["place"], "1")
         self.assertEqual(entries[1]["place"], "2")
+
 
 if __name__ == "__main__":
     unittest.main()

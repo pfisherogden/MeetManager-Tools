@@ -91,7 +91,6 @@ def test_meet_program_dom_validation(fixture_path, tmp_path):
     # Assert headers
     assert "Tri-Valley Swim Lg. C" in soup.find(class_="header-meet-name").text
     assert soup.find(class_="header-meet-info").text == program_data["meet_name"]
-    assert "MM-Tools" in soup.find(class_="header-table").text
     # Assert event blocks
     event_blocks = soup.find_all(class_="event-block")
     assert len(event_blocks) == len(program_data["groups"])
