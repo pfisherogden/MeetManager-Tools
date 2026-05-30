@@ -1,8 +1,6 @@
 import unittest
-
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.extractor import ReportDataExtractor
-
 
 class TestReportingComprehensive(unittest.TestCase):
     def setUp(self):
@@ -25,41 +23,44 @@ class TestReportingComprehensive(unittest.TestCase):
                     "event_no": 1,
                     "event_ptr": 1,
                     "ind_rel": "I",
-                    "event_gender": "M",
-                    "event_sex": "Boys",
+                    "event_gender": "X",
+                    "event_sex": "X",
                     "event_dist": 50,
                     "event_stroke": "A",
-                    "low_age": 11,
-                    "high_age": 12,
+                    "low_age": 9,
+                    "high_age": 10,
                     "num_finlanes": 6,
                     "event_rounds": 1,
                 }
             ],
             "athlete": [
-                {"ath_no": 1, "first_name": "Alice", "last_name": "Athlete", "ath_age": 11, "team_no": 1, "sex": "F"},
-                {"ath_no": 2, "first_name": "Bob", "last_name": "Swimmer", "ath_age": 12, "team_no": 1, "sex": "M"},
+                {"ath_no": 1, "first_name": "John", "last_name": "Doe", "ath_age": 10, "team_no": 1, "sex": "M"},
+                {"ath_no": 2, "first_name": "Jane", "last_name": "Smith", "ath_age": 9, "team_no": 2, "sex": "F"},
             ],
-            "team": [{"team_no": 1, "team_abbr": "TST", "team_name": "Test Team"}],
+            "team": [
+                {"team_no": 1, "team_abbr": "DP", "team_name": "Del Prado Stingrays"},
+                {"team_no": 2, "team_abbr": "FAST", "team_name": "FAST Dolphins"},
+            ],
             "entry": [
                 {
                     "event_ptr": 1,
                     "ath_no": 1,
                     "fin_heat": 1,
                     "fin_lane": 1,
-                    "convseed_time": 30.5,
-                    "fin_time": 29.5,
-                    "fin_stat": "",
-                    "fin_place": 1,
+                    "convseed_time": 31.2,
+                    "fin_time": 30.1,
+                    "fin_place": 2,
+                    "team_no": 1,
                 },
                 {
                     "event_ptr": 1,
                     "ath_no": 2,
                     "fin_heat": 1,
                     "fin_lane": 2,
-                    "convseed_time": 32.0,
-                    "fin_time": 31.0,
-                    "fin_stat": "",
-                    "fin_place": 2,
+                    "convseed_time": 30.5,
+                    "fin_time": 29.5,
+                    "fin_place": 1,
+                    "team_no": 2,
                 },
             ],
             "relay": [],
@@ -77,15 +78,14 @@ class TestReportingComprehensive(unittest.TestCase):
         self.assertIn("Event 1", group["header"])
         entries = group["sub_items"]
         self.assertEqual(len(entries), 2)
-        # Sorted by seed time: 30.5 should be first
-        self.assertEqual(entries[0]["time"], "30.500")
-        self.assertEqual(entries[1]["time"], "32.000")
+        # Sorted by seed time: 30.50 should be first
+        self.assertEqual(entries[0]["time"], "30.50")
+        self.assertEqual(entries[1]["time"], "31.20")
 
     def test_extract_timer_sheets_data(self):
         data = self.extractor.extract_timer_sheets_data()
         self.assertEqual(len(data["groups"]), 1)
         group = data["groups"][0]
-        # Timer sheets structure: group -> heats -> list of heat objects with header
         self.assertTrue(len(group["heats"]) > 0)
         heat = group["heats"][0]
         self.assertIn("Heat 1", heat["header"])
@@ -101,11 +101,10 @@ class TestReportingComprehensive(unittest.TestCase):
         entries = group["sub_items"]
         self.assertEqual(len(entries), 2)
         # Sorted by results time: 29.50 should be first
-        self.assertEqual(entries[0]["time"], "29.500")
+        self.assertEqual(entries[0]["time"], "29.50")
+        self.assertEqual(entries[1]["time"], "30.10")
         self.assertEqual(entries[0]["place"], "1")
-        self.assertEqual(entries[1]["time"], "31.000")
         self.assertEqual(entries[1]["place"], "2")
-
 
 if __name__ == "__main__":
     unittest.main()

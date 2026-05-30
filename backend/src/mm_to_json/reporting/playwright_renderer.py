@@ -3,6 +3,7 @@ import datetime
 import os
 from typing import Any
 
+import pytz
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
@@ -28,10 +29,10 @@ class PlaywrightRenderer:
         render_data = copy.copy(data)
         render_data["css_content"] = css_content
         render_data["playwright"] = True
-        import pytz
 
         tz = pytz.timezone("America/Los_Angeles")
-        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%I:%M %p %Y/%m/%d")
+        # Format like MM: "2:17 PM 5/29/2026"
+        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%-I:%M %p %-m/%-d/%Y")
 
         return template.render(**render_data)
 
@@ -50,18 +51,20 @@ class PlaywrightRenderer:
             # Native Header Template (Chromium specific)
             # Use data-passed titles or fallback
             display_meet = meet_name or "Meet Manager Tools"
-            display_sub = sub_title or "Report"
+
+            tz = pytz.timezone("America/Los_Angeles")
+            gen_time = datetime.datetime.now(tz).strftime("%-I:%M %p %-m/%-d/%Y")
 
             header_html = f"""
             <div style="font-family: Helvetica, Arial, sans-serif; font-size: 8pt; width: 100%; margin: 0 0.5in; border-bottom: 0.5pt solid #000; padding-bottom: 3pt;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%;">
                     <div style="text-align: left;">
-                        <div style="font-weight: bold;">{display_meet}</div>
-                        <div>{display_sub}</div>
+                        <div style="font-weight: bold;">Tri-Valley Swim Lg. C</div>
+                        <div>{display_meet}</div>
                     </div>
                     <div style="text-align: right;">
-                        <div>MM-Tools</div>
-                        <div>Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
+                        <div>HY-TEK's MEET MANAGER 7.0 - {gen_time}</div>
+                        <div>Page <span class="pageNumber"></span></div>
                     </div>
                 </div>
             </div>

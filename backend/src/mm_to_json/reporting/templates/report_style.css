@@ -47,6 +47,26 @@ body {
     white-space: nowrap;
 }
 
+.header-meet-name {
+    font-weight: bold;
+    font-size: 10pt;
+}
+
+.header-software {
+    text-align: right;
+    font-size: 8pt;
+}
+
+.header-meet-info {
+    font-size: 9pt;
+    margin-top: 1pt;
+}
+
+.header-sub-title {
+    font-size: 9pt;
+    margin-top: 1pt;
+}
+
 .header-right-col {
     text-align: right;
     vertical-align: top;
@@ -77,7 +97,6 @@ body {
     font-size: 9.5pt;
     padding: 3pt 4pt;
     border: 1pt solid #999;
-    text-transform: uppercase;
     text-align: left;
     width: 100%;
     break-after: avoid;
@@ -93,7 +112,6 @@ body {
     width: 100%;
     font-size: 7pt;
     color: #666;
-    text-transform: uppercase;
     border-bottom: 0.5pt solid #eee;
     padding: 2pt 0;
     font-weight: bold;
@@ -189,6 +207,10 @@ body {
     table-layout: fixed;
 }
 
+.div-relay-swimmers-row {
+    font-size: 8.5pt;
+}
+
 .div-swimmers-container {
     display: table-cell;
 }
@@ -223,6 +245,7 @@ body {
     line-height: 1.2;
     width: auto;
     vertical-align: bottom;
+    font-size: 8.5pt;
 }
 
 .relay-dq-line {
