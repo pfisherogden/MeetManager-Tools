@@ -794,6 +794,7 @@ class MmToJsonConverter:
                                 "psTime": entry_info["time"],
                                 "finalTime": entry_info["time"],
                                 "place": entry_info["place"],
+                                "status": entry_info["status"],
                                 "isRelay": False,
                                 "athleteId": ath_no,
                                 "teamId": athlete["teamId"],
@@ -887,6 +888,7 @@ class MmToJsonConverter:
                             "psTime": entry_info["time"],
                             "finalTime": entry_info["time"],
                             "place": entry_info["place"],
+                            "status": entry_info["status"],
                             "isRelay": True,
                             "athleteId": self._safe_int(row.get("relay_no")),
                             "relayLtr": relay_ltr,
@@ -923,6 +925,7 @@ class MmToJsonConverter:
         if round_ltr == "P":
             info["heat"] = pre_heat
             info["lane"] = pre_lane
+            info["status"] = pre_stat.upper().strip()
             info["time"] = self.time_to_string(pre_time, pre_stat)
         else:
             # Fallback to pre-heat/lane if fin-heat is zero (common in E2E mock data)
@@ -932,6 +935,7 @@ class MmToJsonConverter:
             # Use fin_time if available, otherwise pre_time if we fell back
             actual_time = fin_time if (fin_heat != 0 or not pre_heat) else pre_time
             actual_stat = fin_stat if (fin_heat != 0 or not pre_heat) else pre_stat
+            info["status"] = actual_stat.upper().strip()
             info["time"] = self.time_to_string(actual_time, actual_stat)
 
         if stroke != "Diving":
@@ -1038,7 +1042,7 @@ class MmToJsonConverter:
                         "lastName": last_name,
                         "name": f"{first_name} {last_name}",
                         "age": self._safe_int(row.get("ath_age") or row.get("age")),
-                        "athleteSex": self._get_val(row, "sex"),
+                        "athleteSex": self._get_val(row, "ath_sex") or self._get_val(row, "sex"),
                         "schoolYear": self._get_val(row, "schl_yr") or self._get_val(row, "class"),
                         "teamName": team_info["name"],
                         "teamCode": team_info["abbr"],
@@ -1103,13 +1107,14 @@ class MmToJsonConverter:
 
     def time_to_string(self, time_val, status):
         # logic from util.h
-        if status and status.upper() == "SCR":
+        s = str(status or "").upper().strip()
+        if s in ["SCR", "R"]:
             return "SCR"
-        if status and status.upper() == "DNS":
+        if s == "DNS":
             return "DNS"
-        if status and status.upper() == "DNF":
+        if s == "DNF":
             return "DNF"
-        if status and status.upper() == "DQ":
+        if s in ["DQ", "Q"]:
             return "DQ"
         try:
             val = float(time_val or 0.0)
