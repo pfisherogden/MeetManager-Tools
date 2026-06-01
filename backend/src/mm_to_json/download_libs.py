@@ -39,6 +39,11 @@ def download_libs(target_dir):
 
 
 def check_and_download_jre(base_dir):
+    jre_dir = os.path.join(base_dir, "jre")
+    if os.path.exists(jre_dir):
+        logger.info(f"Local JRE already exists at {jre_dir}")
+        return
+
     # Check if a JVM is already found by jpype
     import jpype
 
@@ -49,11 +54,6 @@ def check_and_download_jre(base_dir):
             return
     except Exception:
         pass
-
-    jre_dir = os.path.join(base_dir, "jre")
-    if os.path.exists(jre_dir):
-        logger.info(f"Local JRE already exists at {jre_dir}")
-        return
 
     sys_plat = platform.system().lower()
     if sys_plat == "darwin":
