@@ -7,6 +7,16 @@ logger = logging.getLogger(__name__)
 
 
 class StorageProvider(ABC):
+    def _sanitize_path(self, path: str) -> str:
+        """Masks sensitive parts of the path (e.g. UIDs)."""
+        if path.startswith("users/"):
+            parts = path.split("/")
+            if len(parts) > 1:
+                uid = parts[1]
+                masked_uid = f"{uid[:4]}...{uid[-4:]}" if len(uid) > 8 else "***"
+                return "/".join(["users", masked_uid] + parts[2:])
+        return path
+
     @abstractmethod
     def list_files(self, prefix: str) -> list[str]:
         pass
@@ -50,16 +60,6 @@ class LocalStorageProvider(StorageProvider):
             raise PermissionError(f"Path traversal attempt detected: {path}")
 
         return full_path
-
-    def _sanitize_path(self, path: str) -> str:
-        """Masks sensitive parts of the path (e.g. UIDs)."""
-        if path.startswith("users/"):
-            parts = path.split("/")
-            if len(parts) > 1:
-                uid = parts[1]
-                masked_uid = f"{uid[:4]}...{uid[-4:]}" if len(uid) > 8 else "***"
-                return "/".join(["users", masked_uid] + parts[2:])
-        return path
 
     def list_files(self, prefix: str) -> list[str]:
         full_prefix_path = self._get_full_path(prefix)
