@@ -28,7 +28,10 @@ class MmToJsonConverter:
             if not password:
                 password = os.environ.get("MM_DB_PASSWORD")
 
-            logger.info(f"Loading database: {mdb_path}")
+            # Sanitize path for logging
+            display_path = os.path.basename(mdb_path)
+            logger.info(f"Loading database: {display_path}")
+            logger.debug(f"DEBUG: Full MDB path: {mdb_path}")
 
             # Initialize Jackcess
             if mdb_writer:
@@ -203,9 +206,9 @@ class MmToJsonConverter:
                         logger.info("Detected Schema Type B (MTEVENT structure)")
 
                     rows: Any = self._read_table_jackcess(found_name)  # type: ignore
-                except Exception as e:
-                    logger.error(f"Failed to parse table {found_name}: {e}")
-                    logger.error("SKIPPING TABLE due to parse error.")
+                except Exception:
+                    logger.error(f"Failed to parse table {logical} (physical: {found_name})")
+                    logger.debug(f"Parse error details for {logical}", exc_info=True)
                     rows = None
 
                 df = pd.DataFrame(rows)
@@ -1329,7 +1332,7 @@ def main():
             elif args.report_type == "timers":
                 rg.generate_timer_sheets(out_path)
 
-            logger.info(f"Successfully generated report to {out_path}")
+            logger.info(f"Successfully generated report to {os.path.basename(out_path)}")
             return
 
         if args.raw:
@@ -1344,7 +1347,7 @@ def main():
         with open(out_path, "w") as f:
             json.dump(data, f, indent=4, default=json_serial)
 
-        logger.info(f"Successfully converted to {out_path}")
+        logger.info(f"Successfully converted to {os.path.basename(out_path)}")
 
     except Exception as e:
         logger.error(f"Error during conversion: {e}")

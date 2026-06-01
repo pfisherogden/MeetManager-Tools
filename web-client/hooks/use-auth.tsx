@@ -55,18 +55,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				pathname.startsWith("/api/data");
 
 			if (!isPublicPath) {
-				console.log(
-					`[AuthProvider] Redirecting unauthenticated user from ${pathname} to /login`,
-				);
+				if (process.env.NODE_ENV !== "production") {
+					console.log(
+						`[AuthProvider] Redirecting unauthenticated user from ${pathname} to /login`,
+					);
+				}
 				router.push(`/login?returnUrl=${encodeURIComponent(pathname)}`);
 			}
 		}
 	}, [user, loading, pathname, router, isAuthDisabled]);
 
 	useEffect(() => {
-		console.log(
-			`[AuthProvider] Init: isAuthDisabled=${isAuthDisabled}, bypass=${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`,
-		);
+		if (process.env.NODE_ENV !== "production") {
+			console.log(
+				`[AuthProvider] Init: isAuthDisabled=${isAuthDisabled}, bypass=${process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS}`,
+			);
+		}
 	}, [isAuthDisabled]);
 
 	useEffect(() => {
@@ -79,7 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			const storedUid = Cookies.get("x-user-id");
 			const mockUid = storedUid || "e2e-default-user";
 
-			console.log(`[AuthProvider] E2E Bypass Active. UID: ${mockUid}`);
+			if (process.env.NODE_ENV !== "production") {
+				console.log(`[AuthProvider] E2E Bypass Active. UID: ${mockUid}`);
+			}
 
 			const mockUser = {
 				uid: mockUid,

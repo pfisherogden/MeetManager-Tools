@@ -20,9 +20,11 @@ export async function POST(request: NextRequest) {
 		const paramUid = searchParams.get("uid");
 		const userId = headerUserId || paramUid || "e2e-bypass-user";
 
-		console.log(
-			`API SUBMIT-DQ: Received request. UserID: ${userId}, Token Provided: ${token ? "YES" : "NO"}`,
-		);
+		if (process.env.NODE_ENV !== "production") {
+			console.log(
+				`API SUBMIT-DQ: Received request. UserID: ${userId}, Token Provided: ${token ? "YES" : "NO"}`,
+			);
+		}
 
 		// Basic security check
 		const configuredToken = process.env.DATA_ACCESS_TOKEN;

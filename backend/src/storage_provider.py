@@ -51,11 +51,21 @@ class LocalStorageProvider(StorageProvider):
 
         return full_path
 
+    def _sanitize_path(self, path: str) -> str:
+        """Masks sensitive parts of the path (e.g. UIDs)."""
+        if path.startswith("users/"):
+            parts = path.split("/")
+            if len(parts) > 1:
+                uid = parts[1]
+                masked_uid = f"{uid[:4]}...{uid[-4:]}" if len(uid) > 8 else "***"
+                return "/".join(["users", masked_uid] + parts[2:])
+        return path
+
     def list_files(self, prefix: str) -> list[str]:
         full_prefix_path = self._get_full_path(prefix)
-        logger.info(f"LocalStorageProvider: list_files(prefix={prefix}) -> {full_prefix_path}")
+        logger.debug(f"LocalStorageProvider: list_files(prefix={self._sanitize_path(prefix)})")
         if not os.path.exists(full_prefix_path):
-            logger.info(f"LocalStorageProvider: path does not exist: {full_prefix_path}")
+            logger.debug(f"LocalStorageProvider: path does not exist: {self._sanitize_path(prefix)}")
             return []
 
         files = []
@@ -63,32 +73,32 @@ class LocalStorageProvider(StorageProvider):
             for filename in filenames:
                 rel_path = os.path.relpath(os.path.join(root, filename), self.base_dir)
                 files.append(rel_path)
-        logger.info(f"LocalStorageProvider: found {len(files)} files: {files}")
+        logger.debug(f"LocalStorageProvider: found {len(files)} files")
         return files
 
     def upload_file(self, local_path: str, remote_path: str) -> None:
         dest = self._get_full_path(remote_path)
-        logger.info(f"LocalStorageProvider: upload_file(local={local_path}, remote={remote_path}) -> dest={dest}")
+        logger.debug(f"LocalStorageProvider: upload_file to {self._sanitize_path(remote_path)}")
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copy2(local_path, dest)
-        logger.info(f"LocalStorageProvider: successfully saved to {dest}")
+        logger.debug(f"LocalStorageProvider: successfully saved to {self._sanitize_path(remote_path)}")
 
     def download_file(self, remote_path: str, local_path: str) -> None:
         src = self._get_full_path(remote_path)
-        logger.info(f"LocalStorageProvider: download_file(remote={remote_path}, local={local_path}) -> src={src}")
+        logger.debug(f"LocalStorageProvider: download_file {self._sanitize_path(remote_path)}")
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         shutil.copy2(src, local_path)
 
     def delete_file(self, remote_path: str) -> None:
         path = self._get_full_path(remote_path)
-        logger.info(f"LocalStorageProvider: delete_file(remote={remote_path}) -> {path}")
+        logger.debug(f"LocalStorageProvider: delete_file {self._sanitize_path(remote_path)}")
         if os.path.exists(path):
             os.remove(path)
 
     def exists(self, remote_path: str) -> bool:
         path = self._get_full_path(remote_path)
         res = os.path.exists(path)
-        logger.info(f"LocalStorageProvider: exists(remote={remote_path}) -> {path}: {res}")
+        logger.debug(f"LocalStorageProvider: exists({self._sanitize_path(remote_path)}) -> {res}")
         return res
 
     def get_last_modified(self, remote_path: str) -> float:
@@ -179,12 +189,13 @@ class GCSStorageProvider(StorageProvider):
                 credentials=self.client._credentials,
             )
 
-            logger.info(f"Generated signed URL for {remote_path} (SA: {self.service_account_email})")
+            logger.debug(f"Generated signed URL for {self._sanitize_path(remote_path)} (SA: {self.service_account_email})")
             return url
-        except Exception as e:
+        except Exception:
             # Fallback to relative API path that the frontend can handle
             # The frontend knows how to append its own origin and token
-            logger.warning(f"Failed to generate signed URL for {remote_path}: {e}")
+            logger.warning(f"Failed to generate signed URL for {self._sanitize_path(remote_path)} (Check IAM roles)")
+
             import urllib.parse
 
             safe_path = urllib.parse.quote(remote_path)

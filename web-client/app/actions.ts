@@ -14,7 +14,9 @@ async function getAuthMetadata() {
 	// Fallback for local development or E2E bypass
 	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" && !userId) {
 		userId = "e2e-bypass-user";
-		console.log(`DEBUG: E2E Auth Bypass triggered for user: ${userId}`);
+		if (process.env.NODE_ENV !== "production") {
+			console.log(`DEBUG: E2E Auth Bypass triggered for user: ${userId}`);
+		}
 	}
 
 	if (!userId) {

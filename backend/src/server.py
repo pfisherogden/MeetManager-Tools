@@ -412,7 +412,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         config = json.load(f)
                         return config
                 except Exception as e:
-                    logging.debug(f"DEBUG: Failed to load user config for {uid}: {e}")
+                    logging.debug(f"DEBUG: Failed to load user config for {self._mask_uid(uid)}: {e}")
                 finally:
                     if os.path.exists(tmp_path):
                         os.remove(tmp_path)
@@ -455,7 +455,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             storage_exists = self.storage.exists(user_path)
 
             if is_e2e:
-                logging.info(f"E2E: uid={uid}, file={user_path}, exists={storage_exists}")
+                logging.debug(f"E2E: uid={self._mask_uid(uid)}, file={self._mask_path(user_path)}, exists={storage_exists}")
 
             # Check cache (Skip if E2E)
             if not is_e2e and uid in self._user_cache:
@@ -468,14 +468,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     try:
                         mtime = self.storage.get_last_modified(user_path)
                         if mtime == entry["mtime"]:
-                            logging.debug(f"DEBUG: Returning cached data for {uid}/{filename}")
+                            logging.debug(f"DEBUG: Returning cached data for {self._mask_uid(uid)}/{filename}")
                             return entry["data"], config
                         else:
                             logging.debug(
                                 f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})"
                             )
                     except Exception as e:
-                        logging.debug(f"DEBUG: Cache check error for {uid}/{filename}: {e}")
+                        logging.debug(f"DEBUG: Cache check error for {self._mask_uid(uid)}/{filename}: {e}")
                         pass  # Force reload on error
 
             if not storage_exists:
@@ -491,7 +491,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             else:
                 logging.debug(f"DEBUG: Found user file at {user_path}")
 
-            logging.debug(f"DEBUG: Loading data from {user_path}...")
+            logging.debug(f"DEBUG: Loading data from {self._mask_path(user_path)}...")
             with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
                 tmp_path = tmp.name
                 tmp.close()  # Close to avoid locking
@@ -518,15 +518,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     # Evict oldest if limit exceeded
                     if len(self._user_cache) > MAX_CACHE_SIZE:
                         oldest_uid, _ = self._user_cache.popitem(last=False)
-                        logging.debug(f"DEBUG: Evicted {oldest_uid} from user cache to save memory")
+                        logging.debug(f"DEBUG: Evicted {self._mask_uid(oldest_uid)} from user cache to save memory")
 
-                    logging.debug(f"DEBUG: Data loaded and cached for {uid}/{filename} (mtime: {mtime})")
+                    logging.debug(f"DEBUG: Data loaded and cached for {self._mask_uid(uid)}/{filename} (mtime: {mtime})")
                 except Exception as e:
-                    logging.debug(f"DEBUG: Failed to update cache for {uid}/{filename}: {e}")
+                    logging.debug(f"DEBUG: Failed to update cache for {self._mask_uid(uid)}/{filename}: {e}")
 
                 return cache, config
             except Exception as e:
-                logging.error(f"DEBUG: Error loading data from {user_path}: {e}")
+                logging.error(f"DEBUG: Error loading data from {self._mask_path(user_path)}: {e}")
                 return {}, config
             finally:
                 if os.path.exists(tmp_path):
@@ -583,17 +583,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if not filename:
                 filename = "uploaded.mdb"
 
-            logging.info(f"UploadDataset: Final filename for {uid} is {filename}")
+            logging.info(f"UploadDataset: Final filename for {self._mask_uid(uid)} is {filename}")
             # Upload to storage provider
             user_path = os.path.join("users", uid, filename)
-            logging.info(f"UploadDataset: Targeting user_path={user_path} for {uid}")
+            logging.info(f"UploadDataset: Targeting user_path={self._mask_path(user_path)} for {self._mask_uid(uid)}")
 
             # For LocalStorageProvider, print absolute path for debugging
             if hasattr(self.storage, "base_dir"):
-                abs_user_path = os.path.abspath(os.path.join(self.storage.base_dir, user_path))
-                logging.info(f"UploadDataset: saving to {user_path} (abs: {abs_user_path}) for {uid}")
+                logging.info(f"UploadDataset: saving to {self._mask_path(user_path)} (abs masked) for {self._mask_uid(uid)}")
             else:
-                logging.info(f"UploadDataset: saving to {user_path} for {uid}")
+                logging.info(f"UploadDataset: saving to {self._mask_path(user_path)} for {self._mask_uid(uid)}")
 
             suffix = os.path.splitext(filename)[1]
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -612,7 +611,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
-            logging.info(f"Saved uploaded file to {user_path}")
+            logging.info(f"Saved uploaded file to {self._mask_path(user_path)}")
 
             with self._lock:
                 # Update active dataset in config
@@ -623,7 +622,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 # INVALIDATE CACHE so next data load uses the new file
                 if uid in self._user_cache:
                     del self._user_cache[uid]
-                    logging.info(f"Invalidated cache for user {uid} due to UploadDataset")
+                    logging.info(f"Invalidated cache for user {self._mask_uid(uid)} due to UploadDataset")
 
                 # Invalidate cache to force reload of the new dataset
                 if uid in self._user_cache:
@@ -718,6 +717,24 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     return d[actual_key]
         return default
 
+    def _mask_path(self, path: str) -> str:
+        """Masks sensitive parts of a path for safe logging."""
+        if not path:
+            return ""
+        if path.startswith("users/"):
+            parts = path.split("/")
+            if len(parts) > 1:
+                uid = parts[1]
+                masked_uid = self._mask_uid(uid)
+                return "/".join(["users", masked_uid] + parts[2:])
+        return path
+
+    def _mask_uid(self, uid: str) -> str:
+        """Masks a UID for safe logging."""
+        if not uid or len(uid) < 8:
+            return "***"
+        return f"{uid[:4]}...{uid[-4:]}"
+
     def GetMeets(self, request, context):
         request = request or pb2.GetMeetsRequest()
         cache, _ = self._load_user_data(context)
@@ -726,7 +743,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         data = self._get_table(cache, "meet")
 
         if not data and cache:
-            logging.warning(f"GetMeets: No 'meet' table found for {uid}. Available tables: {list(cache.keys())}")
+            logging.warning(f"GetMeets: No 'meet' table found for {self._mask_uid(uid)}. Available tables: {list(cache.keys())}")
 
         meets = []
         for item in data:
@@ -757,7 +774,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         data = self._get_table(cache, "team")
         athletes = self._get_table(cache, "athlete")
 
-        logging.debug(f"DEBUG: GetTeams for user {uid}, found {len(data)} teams")
+        logging.debug(f"DEBUG: GetTeams for user {self._mask_uid(uid)}, found {len(data)} teams")
 
         # Count athletes per team
         ath_counts: dict[int, int] = {}
@@ -1061,14 +1078,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         config = self._load_user_config(context)
         active_file = config.get("active_dataset", SOURCE_FILE)
 
-        logging.info(f"ListDatasets: uid={uid}, active_file={active_file}")
+        logging.info(f"ListDatasets: uid={self._mask_uid(uid)}, active_file={active_file}")
         datasets = []
         try:
             # List files from users/[uid]/
             user_prefix = os.path.join("users", uid)
             if hasattr(self.storage, "_get_full_path"):
-                full_path = self.storage._get_full_path(user_prefix)
-                logging.info(f"ListDatasets: Checking local path: {full_path}")
+                logging.info("ListDatasets: Checking local path")
 
             # Retry loop for eventual consistency in CI environments            files = []
             for attempt in range(5):
@@ -1076,10 +1092,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if files:
                     break
                 if attempt < 4:
-                    logging.info(f"ListDatasets: No files found for {uid}, retrying in 2s...")
+                    logging.info(f"ListDatasets: No files found for {self._mask_uid(uid)}, retrying in 2s...")
                     time.sleep(2)
 
-            logging.info(f"ListDatasets: Found {len(files)} files in {user_prefix}: {files}")
+            logging.info(f"ListDatasets: Found {len(files)} files in {self._mask_path(user_prefix)}: {files}")
 
             # Also include default Sample_Data.json if it exists and user has no files?
             # For simplicity, let's just list user's files
@@ -1126,16 +1142,16 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         user_path = os.path.join("users", uid, filename)
         exists = self.storage.exists(user_path)
-        logging.info(f"SetActiveDataset: uid={uid}, filename={filename}, user_path={user_path}, exists={exists}")
+        logging.info(f"SetActiveDataset: uid={self._mask_uid(uid)}, filename={filename}, user_path={self._mask_path(user_path)}, exists={exists}")
 
         if not exists and not (filename == SOURCE_FILE and self.storage.exists(SOURCE_FILE)):
-            logging.warning(f"SetActiveDataset: File {filename} NOT FOUND in user directory for {uid}")
+            logging.warning(f"SetActiveDataset: File {filename} NOT FOUND in user directory for {self._mask_uid(uid)}")
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"File {filename} not found.")
             return pb2.SetActiveDatasetResponse()
 
         with self._lock:
-            logging.info(f"Switching user {uid} dataset to {filename}...")
+            logging.info(f"Switching user {self._mask_uid(uid)} dataset to {filename}...")
             # Update config
             config = self._load_user_config(context)
             config["active_dataset"] = filename
@@ -1152,7 +1168,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # FORCE SYNCHRONOUS EXTRACTION:
             # This ensures the database is fully populated before returning to the caller.
             # Critical for E2E/CI reliability.
-            logging.info(f"SetActiveDataset: Forcing synchronous extraction for {uid}/{filename}...")
+            logging.debug(f"SetActiveDataset: Forcing synchronous extraction for {self._mask_uid(uid)}/{filename}...")
             try:
                 self._load_user_data(context)
                 # Clear cache AGAIN after extraction if it's an E2E-like environment
@@ -1161,9 +1177,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata or "x-user-id" in metadata:
                     if uid in self._user_cache:
                         del self._user_cache[uid]
-                logging.info(f"SetActiveDataset: Extraction complete for {uid}/{filename}")
+                logging.debug(f"SetActiveDataset: Extraction complete for {self._mask_uid(uid)}/{filename}")
             except Exception as e:
-                logging.error(f"SetActiveDataset: Extraction failed for {uid}/{filename}: {e}")
+                logging.error(f"SetActiveDataset: Extraction failed for {self._mask_uid(uid)}/{filename}: {e}")
                 # Reset config if extraction failed to prevent a broken active dataset
                 config["active_dataset"] = SOURCE_FILE
                 self._save_user_config(context, config)
@@ -2137,11 +2153,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
         uid = request.uid
 
-        logging.info(f"SyncDQs: Received request for UID: {uid}, Payload length: {len(request.dqs_json)}")
+        logging.info(f"SyncDQs: Received request for UID: {self._mask_uid(uid)}, Payload length: {len(request.dqs_json)}")
 
         if token and request.access_token == token:
             uid = request.uid
-            logging.info(f"SyncDQs: Authenticated via system token for user {uid}")
+            logging.info(f"SyncDQs: Authenticated via system token for user {self._mask_uid(uid)}")
         else:
             uid = self._check_auth(context)
 
@@ -2171,7 +2187,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if active_filename and active_filename.lower().endswith(".mdb"):
                 dataset_path = os.path.join("users", uid, active_filename)
                 if self.storage.exists(dataset_path):
-                    logging.info(f"Syncing DQs to MDB: {dataset_path} for user {uid}")
+                    logging.info(f"Syncing DQs to MDB: {self._mask_path(dataset_path)} for user {self._mask_uid(uid)}")
 
                     # Download MDB to local temp for writing
                     with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp_mdb:
@@ -2242,7 +2258,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             # Force cache invalidation so Next.js/Web-Client sees the DQ
                             if uid in self._user_cache:
                                 del self._user_cache[uid]
-                            logging.info(f"Successfully updated {updated_count} entries in MDB for {uid}")
+                            logging.info(f"Successfully updated {updated_count} entries in MDB for {self._mask_uid(uid)}")
                         finally:
                             try:
                                 db.close()
@@ -2252,7 +2268,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         if os.path.exists(tmp_mdb_path):
                             os.remove(tmp_mdb_path)
 
-            logging.info(f"Synced {len(dqs)} DQs for user {uid}")
+            logging.info(f"Synced {len(dqs)} DQs for user {self._mask_uid(uid)}")
             return pb2.SyncDQsResponse(success=True, message=f"Synced {len(dqs)} items")
         except Exception as e:
             logging.error(f"Sync failed: {e}")
