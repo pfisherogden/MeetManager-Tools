@@ -38,8 +38,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 # Verify the ID token
                 decoded_token = auth.verify_id_token(token)
                 uid = decoded_token["uid"]
-            except Exception as e:
-                logger.warning(f"Failed to verify ID token: {e}")
+            except Exception:
+                logger.warning("Failed to verify ID token (expired or invalid)")
                 # We could abort here, but let's just pass None and let the servicer decide
                 # or abort if it's a strictly protected method.
                 pass
@@ -104,8 +104,8 @@ class FirebaseAuthInterceptor(grpc.ServerInterceptor):
                 else:
                     decoded_token = auth.verify_id_token(token)
                     uid = decoded_token["uid"]
-            except Exception as e:
-                logger.warning(f"Invalid token: {e}")
+            except Exception:
+                logger.warning("Invalid token provided")
 
         handler = continuation(handler_call_details)
         if handler is None:

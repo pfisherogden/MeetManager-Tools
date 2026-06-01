@@ -27,13 +27,17 @@ if (typeof window === "undefined") {
 	rawHost = `localhost:${port}`;
 }
 
-console.log(
-	`E2E DEBUG: mm-client connecting to rawHost: ${rawHost} (Mode: ${typeof window === "undefined" ? "Server" : "Client"})`,
-);
+if (process.env.NODE_ENV !== "production") {
+	console.log(
+		`E2E DEBUG: mm-client connecting to rawHost: ${rawHost} (Mode: ${typeof window === "undefined" ? "Server" : "Client"})`,
+	);
+}
 
 // Strip protocol if present (e.g. from http://backend:8080)
 const host = rawHost.replace(/^https?:\/\//, "");
-console.log(`E2E DEBUG: mm-client channel host: ${host}`);
+if (process.env.NODE_ENV !== "production") {
+	console.log(`E2E DEBUG: mm-client channel host: ${host}`);
+}
 
 // Create a middleware to add the token and x-user-id to every request
 const authMiddleware = async function* (call: any, options: any) {

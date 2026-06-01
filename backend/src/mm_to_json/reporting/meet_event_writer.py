@@ -245,5 +245,7 @@ class MeetEventWriter:
             zipf.writestr(ev3_filename, "\r\n".join(ev3_content) + "\r\n")
             zipf.writestr(hyv_filename, "\r\n".join(hyv_content) + "\r\n")
 
-        logger.info(f"Generated meet events ZIP: {output_zip_path}")
+        import os
+
+        logger.info(f"Generated meet events ZIP: {os.path.basename(output_zip_path)}")
         return output_zip_path
