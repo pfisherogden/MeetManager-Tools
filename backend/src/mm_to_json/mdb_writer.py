@@ -24,25 +24,30 @@ def ensure_jvm_started():
 
     # Discover JVM path
     jvm_path = None
-    try:
-        jvm_path = jpype.getDefaultJVMPath()
-    except Exception:
-        # Try local JRE
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        local_jre = os.path.join(base_dir, "jre")
-        if os.path.exists(local_jre):
-            # macOS Corretto location: jre/Contents/Home/lib/server/libjvm.dylib
-            # Linux Corretto location: jre/lib/server/libjvm.so
-            import platform
 
-            if platform.system() == "Darwin":
-                potential = os.path.join(local_jre, "Contents", "Home", "lib", "server", "libjvm.dylib")
-            else:
-                potential = os.path.join(local_jre, "lib", "server", "libjvm.so")
+    # 1. Try local JRE first to avoid system warnings on macOS
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    local_jre = os.path.join(base_dir, "jre")
+    if os.path.exists(local_jre):
+        # macOS Corretto location: jre/Contents/Home/lib/server/libjvm.dylib
+        # Linux Corretto location: jre/lib/server/libjvm.so
+        import platform
 
-            if os.path.exists(potential):
-                jvm_path = potential
-                logger.debug(f"Using local JRE at {jvm_path}")
+        if platform.system() == "Darwin":
+            potential = os.path.join(local_jre, "Contents", "Home", "lib", "server", "libjvm.dylib")
+        else:
+            potential = os.path.join(local_jre, "lib", "server", "libjvm.so")
+
+        if os.path.exists(potential):
+            jvm_path = potential
+            logger.debug(f"Using local JRE at {jvm_path}")
+
+    # 2. Fallback to system default if no local JRE
+    if not jvm_path:
+        try:
+            jvm_path = jpype.getDefaultJVMPath()
+        except Exception as e:
+            logger.debug(f"Failed to get default JVM path: {e}")
 
     if not jvm_path:
         raise RuntimeError("Java Runtime (JRE) not found. Please install Java or run download_libs.py.")
