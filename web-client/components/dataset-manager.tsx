@@ -122,7 +122,9 @@ export function DatasetManager() {
 		}
 
 		if (process.env.NODE_ENV !== "production") {
-			console.log(`E2E DEBUG: Uploading file: ${file.name}, size: ${file.size}`);
+			console.log(
+				`E2E DEBUG: Uploading file: ${file.name}, size: ${file.size}`,
+			);
 		}
 		setIsUploading(true);
 		const formData = new FormData();
