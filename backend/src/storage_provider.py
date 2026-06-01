@@ -189,7 +189,9 @@ class GCSStorageProvider(StorageProvider):
                 credentials=self.client._credentials,
             )
 
-            logger.debug(f"Generated signed URL for {self._sanitize_path(remote_path)} (SA: {self.service_account_email})")
+            logger.debug(
+                f"Generated signed URL for {self._sanitize_path(remote_path)} (SA: {self.service_account_email})"
+            )
             return url
         except Exception:
             # Fallback to relative API path that the frontend can handle

@@ -455,7 +455,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             storage_exists = self.storage.exists(user_path)
 
             if is_e2e:
-                logging.debug(f"E2E: uid={self._mask_uid(uid)}, file={self._mask_path(user_path)}, exists={storage_exists}")
+                logging.debug(
+                    f"E2E: uid={self._mask_uid(uid)}, file={self._mask_path(user_path)}, exists={storage_exists}"
+                )
 
             # Check cache (Skip if E2E)
             if not is_e2e and uid in self._user_cache:
@@ -520,7 +522,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         oldest_uid, _ = self._user_cache.popitem(last=False)
                         logging.debug(f"DEBUG: Evicted {self._mask_uid(oldest_uid)} from user cache to save memory")
 
-                    logging.debug(f"DEBUG: Data loaded and cached for {self._mask_uid(uid)}/{filename} (mtime: {mtime})")
+                    logging.debug(
+                        f"DEBUG: Data loaded and cached for {self._mask_uid(uid)}/{filename} (mtime: {mtime})"
+                    )
                 except Exception as e:
                     logging.debug(f"DEBUG: Failed to update cache for {self._mask_uid(uid)}/{filename}: {e}")
 
@@ -590,7 +594,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             # For LocalStorageProvider, print absolute path for debugging
             if hasattr(self.storage, "base_dir"):
-                logging.info(f"UploadDataset: saving to {self._mask_path(user_path)} (abs masked) for {self._mask_uid(uid)}")
+                logging.info(
+                    f"UploadDataset: saving to {self._mask_path(user_path)} (abs masked) for {self._mask_uid(uid)}"
+                )
             else:
                 logging.info(f"UploadDataset: saving to {self._mask_path(user_path)} for {self._mask_uid(uid)}")
 
@@ -743,7 +749,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         data = self._get_table(cache, "meet")
 
         if not data and cache:
-            logging.warning(f"GetMeets: No 'meet' table found for {self._mask_uid(uid)}. Available tables: {list(cache.keys())}")
+            logging.warning(
+                f"GetMeets: No 'meet' table found for {self._mask_uid(uid)}. Available tables: {list(cache.keys())}"
+            )
 
         meets = []
         for item in data:
@@ -1142,7 +1150,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         user_path = os.path.join("users", uid, filename)
         exists = self.storage.exists(user_path)
-        logging.info(f"SetActiveDataset: uid={self._mask_uid(uid)}, filename={filename}, user_path={self._mask_path(user_path)}, exists={exists}")
+        logging.info(
+            f"SetActiveDataset: uid={self._mask_uid(uid)}, filename={filename}, user_path={self._mask_path(user_path)}, exists={exists}"
+        )
 
         if not exists and not (filename == SOURCE_FILE and self.storage.exists(SOURCE_FILE)):
             logging.warning(f"SetActiveDataset: File {filename} NOT FOUND in user directory for {self._mask_uid(uid)}")
@@ -2153,7 +2163,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
         uid = request.uid
 
-        logging.info(f"SyncDQs: Received request for UID: {self._mask_uid(uid)}, Payload length: {len(request.dqs_json)}")
+        logging.info(
+            f"SyncDQs: Received request for UID: {self._mask_uid(uid)}, Payload length: {len(request.dqs_json)}"
+        )
 
         if token and request.access_token == token:
             uid = request.uid
@@ -2258,7 +2270,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                             # Force cache invalidation so Next.js/Web-Client sees the DQ
                             if uid in self._user_cache:
                                 del self._user_cache[uid]
-                            logging.info(f"Successfully updated {updated_count} entries in MDB for {self._mask_uid(uid)}")
+                            logging.info(
+                                f"Successfully updated {updated_count} entries in MDB for {self._mask_uid(uid)}"
+                            )
                         finally:
                             try:
                                 db.close()

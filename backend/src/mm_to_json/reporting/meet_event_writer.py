@@ -246,5 +246,6 @@ class MeetEventWriter:
             zipf.writestr(hyv_filename, "\r\n".join(hyv_content) + "\r\n")
 
         import os
+
         logger.info(f"Generated meet events ZIP: {os.path.basename(output_zip_path)}")
         return output_zip_path
