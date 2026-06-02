@@ -130,6 +130,11 @@ format-frontend-check:
     @echo "Checking frontend formatting..."
     cd web-client && npm run format:check
 
+# Export CTS Scoreboard Start Lists and Dolphin Events from an MDB file
+export-cts mdb_file: setup-java
+    @echo "Exporting CTS data from {{mdb_file}}..."
+    cd backend && PYTHONPATH=src uv run python -m mm_to_json.mm_to_json {{mdb_file}} --cts-export
+
 # Run all tests (enforces linting first)
 test: codegen lint test-backend test-frontend test-e2e
 
