@@ -144,7 +144,7 @@ setup-java:
 
 test-backend-local: setup-java codegen
     @echo "Running Backend Tests locally..."
-    cd backend && PYTHONPATH=src uv run pytest tests/
+    cd backend && PYTHONPATH=src:scripts/season_setup uv run pytest tests/
 
 test-frontend: codegen
     @echo "Running Frontend Tests..."
@@ -283,7 +283,7 @@ verify-fast: lint test-backend-fast test-frontend-fast verify-mobile
 # Fast backend tests (skips codegen)
 test-backend-fast:
     @echo "Running Backend Tests locally (skipping codegen)..."
-    cd backend && DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_FALLBACK_LIBRARY_PATH PYTHONPATH=src uv run pytest tests/
+    cd backend && DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_FALLBACK_LIBRARY_PATH PYTHONPATH=src:scripts/season_setup uv run pytest tests/
 
 # Fast frontend tests (skips codegen)
 test-frontend-fast:
