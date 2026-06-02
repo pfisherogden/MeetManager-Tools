@@ -341,12 +341,18 @@ class PDFRenderer:
     def _create_results_table(self, sub_items, aw):
         w_place = 0.08 * aw
         w_age = 0.08 * aw
-        w_time = 0.15 * aw
+        w_time = 0.18 * aw
         w_seed = 0.15 * aw
         w_team = 0.15 * aw
         w_name = aw - w_place - w_age - w_team - w_seed - w_time
+
         grid_data = []
+
         for s in sub_items:
+            time_val = s.get("time", "")
+            if s.get("status") == "DQ" and s.get("dq_code"):
+                time_val = f"{time_val} ({s['dq_code']})"
+
             grid_data.append(
                 [
                     s.get("place", ""),
@@ -354,7 +360,7 @@ class PDFRenderer:
                     s.get("age", ""),
                     s.get("team", ""),
                     s.get("seed", ""),
-                    s.get("time", ""),
+                    time_val,
                 ]
             )
         t = Table(grid_data, colWidths=[w_place, w_name, w_age, w_team, w_seed, w_time])

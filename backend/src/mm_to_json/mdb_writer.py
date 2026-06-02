@@ -375,9 +375,15 @@ def update_entry_status(
         if c.findFirstRow(criteria):
             row = c.getCurrentRow()
 
-            # Update status
+            # Update status (Map to MM internal codes)
+            mm_stat = status
+            if status == "DQ":
+                mm_stat = "Q"
+            elif status == "SCR":
+                mm_stat = "R"
+
             stat_col = "Pre_stat" if r_type == "P" else ("Fin_stat" if r_type == "F" else "Sem_stat")
-            row.put(stat_col, status)
+            row.put(stat_col, mm_stat)
 
             # Update DQ code if provided
             if dq_code:
