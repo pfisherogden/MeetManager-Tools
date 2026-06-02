@@ -1294,6 +1294,11 @@ def main():
         help="Generate a PDF report instead of JSON.",
     )
     parser.add_argument(
+        "--cts-export",
+        action="store_true",
+        help="Export CTS Scoreboard Start Lists (.scb) and Dolphin Events (.csv).",
+    )
+    parser.add_argument(
         "--report-type",
         choices=["psych", "entries", "lineups", "results", "timers", "program"],
         default="program",
@@ -1333,6 +1338,23 @@ def main():
                 rg.generate_timer_sheets(out_path)
 
             logger.info(f"Successfully generated report to {os.path.basename(out_path)}")
+            return
+
+        if args.cts_export:
+            from .reporting.cts_writer import CTSScoreboardWriter
+
+            data = converter.convert()
+            base_name = os.path.splitext(os.path.basename(args.mdb_file))[0]
+            cts_dir = os.path.join(args.output_dir, f"{base_name}_CTS")
+
+            # Flatten sessions to get a list of all events
+            all_events = []
+            for session in data.get("sessions", []):
+                all_events.extend(session.get("events", []))
+
+            writer = CTSScoreboardWriter(data, all_events)
+            writer.generate_all(cts_dir)
+            logger.info(f"Successfully exported CTS data to {cts_dir}")
             return
 
         if args.raw:
