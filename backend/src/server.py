@@ -289,6 +289,33 @@ def _process_single_report_process(
                 show_dq_lines=(rtype == "judge_sheets"),
             )
             template = "meet_program.j2"
+        elif rtype == "cts_export":
+            from mm_to_json.reporting.cts_writer import CTSScoreboardWriter
+
+            # Flatten sessions to get a list of all events
+            all_events = []
+            for session in full_data.get("sessions", []):
+                all_events.extend(session.get("events", []))
+
+            # CTS export generates multiple files. We'll return them as a list of dicts.
+            with tempfile.TemporaryDirectory() as cts_tmp_dir:
+                writer = CTSScoreboardWriter(full_data, all_events)
+                writer.generate_all(cts_tmp_dir)
+
+                # Read all files from the temp dir
+                files = []
+                for filename in os.listdir(cts_tmp_dir):
+                    with open(os.path.join(cts_tmp_dir, filename), "rb") as f:
+                        files.append({"filename": filename, "content": f.read()})
+
+                return {
+                    "success": True,
+                    "files": files,  # Multiple files for bundling
+                    "rtype": rtype,
+                    "idx": idx,
+                    "load_duration": load_duration,
+                    "render_duration": 0,
+                }
         if report_data:
             report_data["zebra_striping"] = zebra_striping
             if is_html:
@@ -1680,6 +1707,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
                 pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
+                pb2.REPORT_TYPE_CTS_EXPORT: "cts_export",
             }
 
             from mm_to_json.mm_to_json import MmToJsonConverter
@@ -1718,19 +1746,32 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 logging.error(f"Report generation failed in worker: {res.get('error')}")
                 return pb2.GenerateReportResponse(success=False, message=res["error"])
 
-            pdf_bytes = res["content"] if res["filename"].endswith(".pdf") else b""
-            html_str = res["content"].decode("utf-8") if res["filename"].endswith(".html") else ""
+            content_bytes = b""
+            filename = ""
+            html_str = ""
 
-            logging.info(
-                f"Report generated: {res['filename']} (PDF: {len(pdf_bytes)} bytes, HTML: {len(html_str)} chars)"
-            )
+            if "files" in res:
+                # Handle multiple files (e.g. CTS export) by zipping them
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    for f in res["files"]:
+                        zip_file.writestr(f["filename"], f["content"])
+                content_bytes = zip_buffer.getvalue()
+                filename = f"{res['rtype']}_export.zip"
+            else:
+                content_bytes = res["content"]
+                filename = res["filename"]
+                if filename.endswith(".html"):
+                    html_str = content_bytes.decode("utf-8")
+
+            logging.info(f"Report generated: {filename} ({len(content_bytes)} bytes)")
 
             return pb2.GenerateReportResponse(
                 success=True,
                 message="Report generated successfully",
-                pdf_content=pdf_bytes,
-                filename=res["filename"],
-                html_content=html_str,
+                pdf_content=content_bytes if not filename.endswith(".html") else b"",
+                filename=filename,
+                html_content=html_str if html_str else None,
             )
 
         except Exception as e:
@@ -1791,6 +1832,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
                 pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
+                pb2.REPORT_TYPE_CTS_EXPORT: "cts_export",
             }
 
             # Convert data once in main process
@@ -1860,7 +1902,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     for i, future in enumerate(tasks):
                         res = future.result()
                         if res.get("success"):
-                            zip_file.writestr(res["filename"], res["content"])
+                            if "files" in res:
+                                # Handle multiple files (e.g. CTS export)
+                                for f in res["files"]:
+                                    # Put them in a subdirectory to keep the ZIP organized
+                                    zip_file.writestr(f"CTS_Export/{f['filename']}", f["content"])
+                            else:
+                                zip_file.writestr(res["filename"], res["content"])
+
                             logging.info(
                                 f"Job {job_id}: Report {i + 1}/{total_reports} ({res.get('rtype')}) added to bundle"
                             )

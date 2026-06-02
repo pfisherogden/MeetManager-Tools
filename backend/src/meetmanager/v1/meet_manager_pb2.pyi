@@ -27,6 +27,7 @@ class ReportType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REPORT_TYPE_ENTRIES_CLUB: _ClassVar[ReportType]
     REPORT_TYPE_LANE_TIMER_SHEETS: _ClassVar[ReportType]
     REPORT_TYPE_JUDGE_SHEETS: _ClassVar[ReportType]
+    REPORT_TYPE_CTS_EXPORT: _ClassVar[ReportType]
 
 class RendererType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -48,6 +49,7 @@ REPORT_TYPE_ENTRIES_HYTEK: ReportType
 REPORT_TYPE_ENTRIES_CLUB: ReportType
 REPORT_TYPE_LANE_TIMER_SHEETS: ReportType
 REPORT_TYPE_JUDGE_SHEETS: ReportType
+REPORT_TYPE_CTS_EXPORT: ReportType
 RENDERER_TYPE_UNSPECIFIED: RendererType
 RENDERER_TYPE_WEASYPRINT: RendererType
 RENDERER_TYPE_PLAYWRIGHT: RendererType
