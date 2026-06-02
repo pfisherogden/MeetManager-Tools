@@ -58,7 +58,7 @@ class CTSScoreboardWriter:
         lines = [f"#{num} {desc}"]
 
         # Group entries by heat
-        heats = {}
+        heats: dict[int, dict[int, dict[str, Any]]] = {}
         max_heat = 0
         for entry in entries:
             h = entry.get("heat", 0)
