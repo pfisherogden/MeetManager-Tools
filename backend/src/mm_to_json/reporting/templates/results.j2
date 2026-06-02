@@ -58,7 +58,12 @@
                     <td class="col-name">{{ item.name }}</td>
                     <td class="col-age">{{ item.age }}</td>
                     <td class="col-team">{{ item.team }}</td>
-                    <td class="col-time">{{ item.time }}</td>
+                    <td class="col-time">
+                        {{ item.time }}
+                        {% if item.status == 'DQ' and item.dq_code %}
+                            ({{ item.dq_code }})
+                        {% endif %}
+                    </td>
                     <td class="col-pts">{{ item.points }}</td>
                 </tr>
                 {% endfor %}

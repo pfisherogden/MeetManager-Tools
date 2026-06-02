@@ -798,6 +798,7 @@ class MmToJsonConverter:
                                 "finalTime": entry_info["time"],
                                 "place": entry_info["place"],
                                 "status": entry_info["status"],
+                                "dqCode": entry_info["dqCode"],
                                 "isRelay": False,
                                 "athleteId": ath_no,
                                 "teamId": athlete["teamId"],
@@ -892,6 +893,7 @@ class MmToJsonConverter:
                             "finalTime": entry_info["time"],
                             "place": entry_info["place"],
                             "status": entry_info["status"],
+                            "dqCode": entry_info["dqCode"],
                             "isRelay": True,
                             "athleteId": self._safe_int(row.get("relay_no")),
                             "relayLtr": relay_ltr,
@@ -914,12 +916,14 @@ class MmToJsonConverter:
         pre_heat = self._safe_int(row.get("pre_heat"))
         pre_lane = self._safe_int(row.get("pre_lane"))
         pre_time = float(row.get("pre_time", 0.0) or 0.0)
-        pre_stat = str(row.get("pre_stat", "") or "")
+        pre_stat = str(row.get("pre_stat", "") or "").upper().strip()
+        pre_dqcode = str(row.get("pre_dqcode", "") or "").strip()
 
         fin_heat = self._safe_int(row.get("fin_heat"))
         fin_lane = self._safe_int(row.get("fin_lane"))
         fin_time = float(row.get("fin_time", 0.0) or 0.0)
-        fin_stat = str(row.get("fin_stat", "") or "")
+        fin_stat = str(row.get("fin_stat", "") or "").upper().strip()
+        fin_dqcode = str(row.get("fin_dqcode", "") or "").strip()
 
         info = {}
         info["seed"] = self.num_to_string(seed_time) if seed_time > 0 else "NT"
@@ -928,7 +932,8 @@ class MmToJsonConverter:
         if round_ltr == "P":
             info["heat"] = pre_heat
             info["lane"] = pre_lane
-            info["status"] = pre_stat.upper().strip()
+            info["status"] = self._normalize_status(pre_stat)
+            info["dqCode"] = pre_dqcode
             info["time"] = self.time_to_string(pre_time, pre_stat)
         else:
             # Fallback to pre-heat/lane if fin-heat is zero (common in E2E mock data)
@@ -938,7 +943,10 @@ class MmToJsonConverter:
             # Use fin_time if available, otherwise pre_time if we fell back
             actual_time = fin_time if (fin_heat != 0 or not pre_heat) else pre_time
             actual_stat = fin_stat if (fin_heat != 0 or not pre_heat) else pre_stat
-            info["status"] = actual_stat.upper().strip()
+            actual_dqcode = fin_dqcode if (fin_heat != 0 or not pre_heat) else pre_dqcode
+
+            info["status"] = self._normalize_status(actual_stat)
+            info["dqCode"] = actual_dqcode
             info["time"] = self.time_to_string(actual_time, actual_stat)
 
         if stroke != "Diving":
@@ -1096,6 +1104,18 @@ class MmToJsonConverter:
                     if name:
                         self.cache_division_map[did] = name
         return self.cache_division_map.get(div_no, "")
+
+    def _normalize_status(self, stat: str) -> str:
+        s = str(stat or "").upper().strip()
+        if s in ["SCR", "R"]:
+            return "SCR"
+        if s == "DNS":
+            return "DNS"
+        if s == "DNF":
+            return "DNF"
+        if s in ["DQ", "Q"]:
+            return "DQ"
+        return s
 
     def num_to_string(self, num):
         if num is None or num == "":

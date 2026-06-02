@@ -541,6 +541,8 @@ class ReportDataExtractor:
                                 "time": seed_time,
                                 "swimmers": names,
                                 "is_relay": True,
+                                "status": entry.get("status", ""),
+                                "dqCode": entry.get("dqCode", ""),
                             }
                         )
                     else:
@@ -557,6 +559,8 @@ class ReportDataExtractor:
                                 "team_color": self.team_color_map.get(entry.get("team", ""), ""),
                                 "time": seed_time,
                                 "is_relay": False,
+                                "status": entry.get("status", ""),
+                                "dqCode": entry.get("dqCode", ""),
                             }
                         )
                 heat_items.append({"header": f"Heat {h} of {sorted_heats[-1]} Finals", "sub_items": sub_items})
@@ -667,6 +671,7 @@ class ReportDataExtractor:
                 {
                     "header": f"Event {evt_num}  {evt_desc}",
                     "sub_items": sub_items,
+                    "items": [{"header": "", "sub_items": sub_items}],
                 }
             )
 
@@ -1017,8 +1022,11 @@ class ReportDataExtractor:
                     "team": e.get("team", ""),
                     "team_color": self.team_color_map.get(e.get("team", ""), ""),
                     "age": str(self._safe_int(e.get("age", 0))),
-                    "time": e.get("finalTime", e.get("seedTime", "")),
+                    "seed": e.get("seedTime", ""),
+                    "time": e.get("finalTime", ""),
                     "points": str(self._safe_int(e.get("points", 0))),
+                    "status": e.get("status", ""),
+                    "dq_code": e.get("dqCode", ""),
                 }
                 for e in sorted_entries
             ]
@@ -1026,6 +1034,7 @@ class ReportDataExtractor:
                 {
                     "header": f"Event {evt_num}  {evt_desc}",
                     "sub_items": sub_items,
+                    "items": [{"header": "", "sub_items": sub_items}],
                 }
             )
 
