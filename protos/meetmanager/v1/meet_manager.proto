@@ -600,6 +600,8 @@ enum ReportType {
   REPORT_TYPE_LANE_TIMER_SHEETS = 8;
   // REPORT_TYPE_JUDGE_SHEETS is a meet program with DQ lines for S&T judges.
   REPORT_TYPE_JUDGE_SHEETS = 9;
+  // REPORT_TYPE_CTS_EXPORT is a collection of .scb files and an events.csv for CTS/Dolphin.
+  REPORT_TYPE_CTS_EXPORT = 10;
 }
 
 // GenerateReportRequest specifies the parameters for report generation.

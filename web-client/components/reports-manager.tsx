@@ -107,6 +107,11 @@ const reportTypes = [
 		name: "Judge Sheets",
 		description: "Official sheets for S&T judges with DQ lines.",
 	},
+	{
+		id: 10,
+		name: "CTS Scoreboard Export",
+		description: "Scoreboard start lists (.scb) and Dolphin events (.csv).",
+	},
 ];
 
 interface CustomPackItem {
@@ -449,6 +454,7 @@ export function ReportsManager({
 				{ type: 9, title: "Stroke & Turn Program" },
 				{ type: 4, title: "Computer Team Program" },
 				{ type: 4, title: "Complete Meet Program" },
+				{ type: 10, title: "CTS Scoreboard Export" },
 			],
 		},
 		{

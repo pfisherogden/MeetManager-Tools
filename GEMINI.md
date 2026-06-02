@@ -59,7 +59,9 @@ The instructions found in `GEMINI.md` and associated `SKILL.md` files are founda
 - **Feature**: Direct export of `.scb` (Start List) and `events.csv` files from MDB.
 - **Wahoo Results Compatibility**: Files are named `E{event_num:03}.scb` as required by Wahoo! Results.
 - **Dolphin UI Compatibility**: Generates `events.csv` in the format `num,desc,heats,1,A`.
-- **Usage**: `just export-cts path/to/meet.mdb`. Output is in `[MDB_NAME]_CTS/` directory.
+- **Frontend Integration**: Available as a report type in the "Reports" tab and included in the "Default Meet Pack".
+- **Usage (CLI)**: `just export-cts path/to/meet.mdb`. Output is in `[MDB_NAME]_CTS/` directory.
+- **Usage (UI)**: Add "CTS Scoreboard Export" to your report pack or select it as a single report to download a ZIP of all scoreboard files.
 
 ## Project Workflow (Mandatory)
 
