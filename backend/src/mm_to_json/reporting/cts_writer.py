@@ -4,6 +4,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+
 class CTSScoreboardWriter:
     """
     Generates Colorado Time Systems (CTS) Scoreboard files (.scb) for Wahoo Results
@@ -17,10 +18,10 @@ class CTSScoreboardWriter:
     def generate_all(self, output_dir: str):
         """Generates all .scb files and the events.csv file in the target directory."""
         os.makedirs(output_dir, exist_ok=True)
-        
+
         # 1. Generate events.csv (for Dolphin UI)
         self.generate_dolphin_events(os.path.join(output_dir, "events.csv"))
-        
+
         # 2. Generate E{num:03}.scb for each event (for Wahoo Results)
         for event in self.events:
             event_num = event.get("eventNum", 0)
@@ -34,15 +35,15 @@ class CTSScoreboardWriter:
         for event in self.events:
             num = event.get("eventNum", 0)
             desc = event.get("eventDesc", "").upper()
-            
+
             # Count heats
             entries = event.get("entries", [])
             max_heat = 0
             for entry in entries:
                 max_heat = max(max_heat, entry.get("heat", 0))
-            
+
             lines.append(f"{num},{desc},{max_heat},1,A")
-        
+
         with open(output_path, "w", encoding="cp1252") as f:
             f.write("\n".join(lines) + "\n")
         logger.info(f"Generated {output_path}")
@@ -52,16 +53,17 @@ class CTSScoreboardWriter:
         num = event.get("eventNum", 0)
         desc = event.get("eventDesc", "").upper()
         entries = event.get("entries", [])
-        
+
         # First line: #<num> <description>
         lines = [f"#{num} {desc}"]
-        
+
         # Group entries by heat
         heats = {}
         max_heat = 0
         for entry in entries:
             h = entry.get("heat", 0)
-            if h <= 0: continue
+            if h <= 0:
+                continue
             max_heat = max(max_heat, h)
             if h not in heats:
                 heats[h] = {}
@@ -80,7 +82,7 @@ class CTSScoreboardWriter:
                 else:
                     # Blank lane
                     lines.append(" " * 38)
-        
+
         with open(output_path, "w", encoding="cp1252") as f:
             f.write("\n".join(lines) + "\n")
         # No info log here to avoid cluttering, we'll log at the end

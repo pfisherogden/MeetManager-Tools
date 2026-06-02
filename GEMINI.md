@@ -55,6 +55,12 @@ The instructions found in `GEMINI.md` and associated `SKILL.md` files are founda
 - **Rule**: Use `DATA_ACCESS_TOKEN` for authorized program data access by the Judge SPA.
 - **Setup**: In production (GCP), add `DATA_ACCESS_TOKEN` to Secrets Manager and expose it as an environment variable to both frontend and backend services. For local development, it defaults to a fallback value.
 
+### 11. CTS Scoreboard Start Lists
+- **Feature**: Direct export of `.scb` (Start List) and `events.csv` files from MDB.
+- **Wahoo Results Compatibility**: Files are named `E{event_num:03}.scb` as required by Wahoo! Results.
+- **Dolphin UI Compatibility**: Generates `events.csv` in the format `num,desc,heats,1,A`.
+- **Usage**: `just export-cts path/to/meet.mdb`. Output is in `[MDB_NAME]_CTS/` directory.
+
 ## Project Workflow (Mandatory)
 
 All agents MUST follow these workflow phases:
