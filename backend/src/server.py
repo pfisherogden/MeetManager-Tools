@@ -45,13 +45,50 @@ from storage_provider import GCSStorageProvider, LocalStorageProvider, StoragePr
 log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
 log_level = getattr(logging, log_level_str, logging.INFO)
 
-logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+
+class JsonFormatter(logging.Formatter):
+    """Simple JSON formatter for Cloud Run structured logging."""
+
+    def format(self, record):
+        log_record = {
+            "severity": record.levelname,
+            "message": record.getMessage(),
+            "name": record.name,
+            "time": self.formatTime(record, self.datefmt),
+        }
+        if record.exc_info:
+            log_record["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_record)
+
+
+if os.getenv("K_SERVICE"):
+    # Running in Cloud Run, use JSON formatting
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    logging.root.handlers = [handler]
+    logging.root.setLevel(log_level)
+else:
+    logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
 
 # Suppress verbose third-party loggers unless explicitly requested
 if log_level_str != "DEBUG":
     logging.getLogger("fontTools").setLevel(logging.WARNING)
     logging.getLogger("weasyprint").setLevel(logging.WARNING)
     logging.getLogger("jpype").setLevel(logging.WARNING)
+
+
+def _get_data_access_token() -> str:
+    """Helper to retrieve the access token, logging an error if fallback is used in production."""
+    token = os.getenv("DATA_ACCESS_TOKEN")
+    if not token or not token.strip():
+        fallback = "mmtools-default-secret-2024"
+        if os.getenv("K_SERVICE"):
+            logging.error(
+                "CRITICAL: DATA_ACCESS_TOKEN is not set in production! Falling back to insecure default secret."
+            )
+        return fallback
+    return token.strip()
+
 
 # Defines where the source JSON data lives
 DATA_DIR = "../data"
@@ -1976,7 +2013,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             is_unsigned_gcs = "storage.googleapis.com" in bundle_url and "?" not in bundle_url
 
             if is_relative or is_unsigned_gcs:
-                token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
+                token = _get_data_access_token()
                 import urllib.parse
 
                 safe_bundle_path = urllib.parse.quote(bundle_rel_path)
@@ -2179,7 +2216,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Generate URLs
             # Use the /api/data proxy for the program_url to avoid direct GCS signed URL issues.
             # This works statelessly using the DATA_ACCESS_TOKEN.
-            token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
+            token = _get_data_access_token()
 
             # Use frontend_url from request if provided, otherwise environment variables
             if request.frontend_url:
@@ -2231,7 +2268,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def SyncDQs(self, request, context):
         # System-level bypass for stateless sync from mobile apps (authenticated by web-client proxy)
-        token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
+        token = _get_data_access_token()
         uid = request.uid
 
         logging.info(
@@ -2365,7 +2402,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         if not is_sample:
             # System-level bypass for stateless access
-            token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"
+            token = _get_data_access_token()
             if token and request.token == token:
                 # Authorized via system token, skip uid check for the path prefix
                 # but we should still validate it's within 'users/'
