@@ -602,6 +602,8 @@ enum ReportType {
   REPORT_TYPE_JUDGE_SHEETS = 9;
   // REPORT_TYPE_CTS_EXPORT is a collection of .scb files and an events.csv for CTS/Dolphin.
   REPORT_TYPE_CTS_EXPORT = 10;
+  // REPORT_TYPE_CHECK_IN_SHEET is a spreadsheet for swimmer check-in with checkboxes.
+  REPORT_TYPE_CHECK_IN_SHEET = 11;
 }
 
 // GenerateReportRequest specifies the parameters for report generation.

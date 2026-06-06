@@ -316,6 +316,26 @@ def _process_single_report_process(
                     "load_duration": load_duration,
                     "render_duration": 0,
                 }
+        elif rtype == "check_in_sheet":
+            from mm_to_json.reporting.check_in_writer import SwimmerCheckInWriter
+
+            check_in_data = extractor.extract_check_in_data(team_filter=report_req_team_filter)
+            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as xlsx_tmp:
+                check_in_writer = SwimmerCheckInWriter(check_in_data, title=title)
+                check_in_writer.generate(xlsx_tmp.name)
+                with open(xlsx_tmp.name, "rb") as f:
+                    content = f.read()
+                os.unlink(xlsx_tmp.name)
+
+            return {
+                "success": True,
+                "content": content,
+                "filename": f"{title.replace(' ', '_')}_{idx}.xlsx" if title else f"check_in_{idx}.xlsx",
+                "rtype": rtype,
+                "idx": idx,
+                "load_duration": load_duration,
+                "render_duration": 0,
+            }
         if report_data:
             report_data["zebra_striping"] = zebra_striping
             if is_html:
@@ -1708,6 +1728,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
                 pb2.REPORT_TYPE_CTS_EXPORT: "cts_export",
+                pb2.REPORT_TYPE_CHECK_IN_SHEET: "check_in_sheet",
             }
 
             from mm_to_json.mm_to_json import MmToJsonConverter
@@ -1833,6 +1854,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
                 pb2.REPORT_TYPE_CTS_EXPORT: "cts_export",
+                pb2.REPORT_TYPE_CHECK_IN_SHEET: "check_in_sheet",
             }
 
             # Convert data once in main process

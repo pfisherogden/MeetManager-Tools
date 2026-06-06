@@ -464,15 +464,16 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
+                norm_evt_g = self._normalize_gender(evt_gender)
                 if target_g == "F":
-                    # Girls ONLY (Strict)
-                    if self._normalize_gender(evt_gender) != "F":
+                    # Include Girls (F) and Mixed (X)
+                    if norm_evt_g == "M":
                         continue
                 elif target_g == "M":
-                    # Boys + Mixed
-                    if self._normalize_gender(evt_gender) == "F":
+                    # Include Boys (M) and Mixed (X)
+                    if norm_evt_g == "F":
                         continue
-                elif target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                elif target_g != "X" and norm_evt_g != target_g:
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -604,15 +605,16 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
+                norm_evt_g = self._normalize_gender(evt_gender)
                 if target_g == "F":
-                    # Girls ONLY (Strict)
-                    if self._normalize_gender(evt_gender) != "F":
+                    # Include Girls (F) and Mixed (X)
+                    if norm_evt_g == "M":
                         continue
                 elif target_g == "M":
-                    # Boys + Mixed
-                    if self._normalize_gender(evt_gender) == "F":
+                    # Include Boys (M) and Mixed (X)
+                    if norm_evt_g == "F":
                         continue
-                elif target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                elif target_g != "X" and norm_evt_g != target_g:
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -855,15 +857,16 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
+                norm_evt_g = self._normalize_gender(evt_gender)
                 if target_g == "F":
-                    # Girls ONLY (Strict)
-                    if self._normalize_gender(evt_gender) != "F":
+                    # Include Girls (F) and Mixed (X)
+                    if norm_evt_g == "M":
                         continue
                 elif target_g == "M":
-                    # Boys + Mixed
-                    if self._normalize_gender(evt_gender) == "F":
+                    # Include Boys (M) and Mixed (X)
+                    if norm_evt_g == "F":
                         continue
-                elif target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                elif target_g != "X" and norm_evt_g != target_g:
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -968,15 +971,16 @@ class ReportDataExtractor:
 
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
+                norm_evt_g = self._normalize_gender(evt_gender)
                 if target_g == "F":
-                    # Girls ONLY (Strict)
-                    if self._normalize_gender(evt_gender) != "F":
+                    # Include Girls (F) and Mixed (X)
+                    if norm_evt_g == "M":
                         continue
                 elif target_g == "M":
-                    # Boys + Mixed
-                    if self._normalize_gender(evt_gender) == "F":
+                    # Include Boys (M) and Mixed (X)
+                    if norm_evt_g == "F":
                         continue
-                elif target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                elif target_g != "X" and norm_evt_g != target_g:
                     continue
 
             if age_group_filter and age_group_filter.lower() != "open":
@@ -1046,6 +1050,59 @@ class ReportDataExtractor:
             "sub_title": sub_title,
             "groups": report_groups,
         }
+
+    def extract_check_in_data(self, team_filter: str | None = None) -> list[dict[str, Any]]:
+        """Extract unique list of swimmers for check-in sheet."""
+        df_ath = self.converter.tables.get("athlete", None)
+        if df_ath is None or df_ath.empty:
+            return []
+
+        check_in_list = []
+
+        # We need all athlete IDs to look them up via converter
+        # Schema A: ath_no, Schema B: athlete
+        ath_id_col = "ath_no" if "ath_no" in df_ath.columns else "athlete"
+        ath_ids = df_ath[ath_id_col].tolist()
+
+        for aid in ath_ids:
+            a = self.converter.get_athlete_by_number(aid)
+            if not a:
+                continue
+
+            # Filter by team if requested
+            if team_filter:
+                if a.get("teamName") != team_filter and a.get("teamCode") != team_filter:
+                    continue
+
+            check_in_list.append(
+                {
+                    "First Name": a.get("firstName", "").strip(),
+                    "Last Name": a.get("lastName", "").strip(),
+                    "Preferred Name": a.get("firstName", "").strip(),  # get_athlete_by_number already handles pref_name
+                    "Gender": self._normalize_gender(a.get("athleteSex", "")),
+                    "Age": self._safe_int(a.get("age", 0)),
+                    "Team": a.get("teamName", ""),
+                    "Age Group": self._get_age_group_from_age(self._safe_int(a.get("age", 0))),
+                }
+            )
+
+        # Sort by Last Name, then First Name
+        check_in_list.sort(key=lambda x: (x["Last Name"], x["First Name"]))
+        return check_in_list
+
+    def _get_age_group_from_age(self, age: int) -> str:
+        """Helper to determine standard age group string from numeric age."""
+        if age <= 6:
+            return "6 & under"
+        if age <= 8:
+            return "7-8"
+        if age <= 10:
+            return "9-10"
+        if age <= 12:
+            return "11-12"
+        if age <= 14:
+            return "13-14"
+        return "15-18"
 
     def _safe_int(self, val, default=0):
         try:

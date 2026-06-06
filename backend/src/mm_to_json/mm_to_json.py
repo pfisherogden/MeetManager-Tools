@@ -1320,7 +1320,7 @@ def main():
     )
     parser.add_argument(
         "--report-type",
-        choices=["psych", "entries", "lineups", "results", "timers", "program"],
+        choices=["psych", "entries", "lineups", "results", "timers", "program", "check_in"],
         default="program",
         help="Type of report to generate.",
     )
@@ -1344,7 +1344,8 @@ def main():
 
             # Determine output filename
             base_name = os.path.splitext(os.path.basename(args.mdb_file))[0]
-            out_path = os.path.join(args.output_dir, f"{base_name}_{args.report_type}.pdf")
+            ext = ".xlsx" if args.report_type == "check_in" else ".pdf"
+            out_path = os.path.join(args.output_dir, f"{base_name}_{args.report_type}{ext}")
 
             if args.report_type == "psych":
                 rg.generate_psych_sheet(out_path)
@@ -1356,6 +1357,8 @@ def main():
                 rg.generate_meet_results(out_path)
             elif args.report_type == "timers":
                 rg.generate_timer_sheets(out_path)
+            elif args.report_type == "check_in":
+                rg.generate_check_in_sheet(out_path)
 
             logger.info(f"Successfully generated report to {os.path.basename(out_path)}")
             return
