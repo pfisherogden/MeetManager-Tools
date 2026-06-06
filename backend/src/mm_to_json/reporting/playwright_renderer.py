@@ -56,7 +56,7 @@ class PlaywrightRenderer:
             gen_time = datetime.datetime.now(tz).strftime("%-I:%M %p %-m/%-d/%Y")
 
             header_html = f"""
-            <div style="font-family: Helvetica, Arial, sans-serif; font-size: 8pt; width: 100%; margin: 0 0.5in; border-bottom: 0.5pt solid #000; padding-bottom: 3pt;">
+            <div style="font-family: Helvetica, Arial, sans-serif; font-size: 8pt; width: 100%; margin: 0 0.5in; border-bottom: 0.5pt solid #000; padding-top: 0.4in; padding-bottom: 3pt;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%;">
                     <div style="text-align: left;">
                         <div style="font-weight: bold;">Tri-Valley Swim Lg. C</div>
@@ -64,6 +64,7 @@ class PlaywrightRenderer:
                     </div>
                     <div style="text-align: right;">
                         <div>HY-TEK's MEET MANAGER 7.0 - {gen_time}</div>
+                        <div style="font-weight: bold;">{sub_title}</div>
                         <div>Page <span class="pageNumber"></span></div>
                     </div>
                 </div>
@@ -79,7 +80,7 @@ class PlaywrightRenderer:
                 display_header_footer=True,
                 header_template=header_html,
                 footer_template='<div style="font-size: 8pt; width: 100%; text-align: center; margin: 0 0.5in;"></div>',
-                margin={"top": "0.8in", "bottom": "0.5in", "left": "0.5in", "right": "0.5in"},
+                margin={"top": "1.3in", "bottom": "0.5in", "left": "0.5in", "right": "0.5in"},
             )
 
             browser.close()

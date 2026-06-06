@@ -112,6 +112,11 @@ const reportTypes = [
 		name: "CTS Scoreboard Export",
 		description: "Scoreboard start lists (.scb) and Dolphin events (.csv).",
 	},
+	{
+		id: 11,
+		name: "Swimmer Check-in Sheet",
+		description: "Excel spreadsheet for swimmer check-in and scratch tracking.",
+	},
 ];
 
 interface CustomPackItem {
@@ -392,24 +397,6 @@ export function ReportsManager({
 					genderFilter: "Girls",
 					ageGroupFilter: "9-10",
 				},
-				{
-					type: 4,
-					title: "Lineup: Girls 11-12",
-					genderFilter: "Girls",
-					ageGroupFilter: "11-12",
-				},
-				{
-					type: 4,
-					title: "Lineup: Girls 13-14",
-					genderFilter: "Girls",
-					ageGroupFilter: "13-14",
-				},
-				{
-					type: 4,
-					title: "Lineup: Girls 15-18",
-					genderFilter: "Girls",
-					ageGroupFilter: "15-18",
-				},
 				// Lineup Reports (Boys+Mixed)
 				{
 					type: 4,
@@ -428,24 +415,6 @@ export function ReportsManager({
 					title: "Lineup: Boys 9-10",
 					genderFilter: "Boys",
 					ageGroupFilter: "9-10",
-				},
-				{
-					type: 4,
-					title: "Lineup: Boys 11-12",
-					genderFilter: "Boys",
-					ageGroupFilter: "11-12",
-				},
-				{
-					type: 4,
-					title: "Lineup: Boys 13-14",
-					genderFilter: "Boys",
-					ageGroupFilter: "13-14",
-				},
-				{
-					type: 4,
-					title: "Lineup: Boys 15-18",
-					genderFilter: "Boys",
-					ageGroupFilter: "15-18",
 				},
 				// Posting Programs
 				{ type: 4, title: "Posting: Girls only", genderFilter: "Girls" },
@@ -495,9 +464,9 @@ export function ReportsManager({
 	];
 
 	return (
-		<div className="p-6 space-y-8 max-w-7xl mx-auto">
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-				<div className="lg:col-span-2 space-y-6">
+		<div className="p-6 space-y-8 max-w-6xl mx-auto">
+			<div className="grid grid-cols-1 2xl:grid-cols-3 gap-8">
+				<div className="2xl:col-span-2 space-y-6">
 					<Card className="shadow-lg border-primary/10">
 						<CardHeader className="bg-primary/5">
 							<div className="flex items-center gap-2">

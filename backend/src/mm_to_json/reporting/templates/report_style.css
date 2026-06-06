@@ -1,7 +1,7 @@
 @page {
     size: letter;
     margin: 0.5in;
-    margin-top: 0.7in; /* Increased margin to fit header */
+    margin-top: 1.25in; /* Increased margin to fit header and safe zone */
     
     @top-left { width: 0; content: ""; }
     @top-right { width: 0; content: ""; }
@@ -28,6 +28,7 @@ body {
     position: running(header);
     width: 100%;
     border-bottom: 1pt solid #000;
+    padding-top: 0.4in; /* Shift header down for safe zone */
     padding-bottom: 3pt;
     margin-bottom: 10pt;
     display: block;

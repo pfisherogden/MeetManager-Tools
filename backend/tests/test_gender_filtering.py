@@ -49,11 +49,11 @@ class TestGenderFiltering(unittest.TestCase):
 
         self.extractor = ReportDataExtractor(self.converter)
 
-    def test_girls_filter_strict(self):
-        # Girls filter should ONLY show event 1
+    def test_girls_filter_includes_mixed(self):
+        # Girls filter should now show event 1 AND event 3 (Mixed)
         data = self.extractor.extract_meet_program_data(gender_filter="Girls")
         event_nums = [g["header"].split()[1] for g in data["groups"]]
-        self.assertEqual(event_nums, ["1"])
+        self.assertEqual(event_nums, ["1", "3"])
 
     def test_boys_filter_includes_mixed(self):
         # Boys filter should show event 2 AND event 3 (Mixed)

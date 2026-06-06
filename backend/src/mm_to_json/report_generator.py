@@ -65,6 +65,14 @@ class ReportGenerator:
         renderer = PDFRenderer(output_path, config)
         renderer.render(data)
 
+    def generate_check_in_sheet(self, output_path):
+        logger.info(f"Generating Swimmer Check-in Sheet to {output_path}")
+        from .reporting.check_in_writer import SwimmerCheckInWriter
+
+        data = self.extractor.extract_check_in_data()
+        writer = SwimmerCheckInWriter(data, title=self.custom_title)
+        writer.generate(output_path)
+
     # Legacy method names if needed
     def generate_lineup_sheets(self, output_path):
         self.generate_meet_program(output_path)
