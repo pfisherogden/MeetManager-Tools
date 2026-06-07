@@ -84,6 +84,8 @@ class SwimmerCheckInWriter:
             ]
 
             for label, gender_code, age_group in groups:
+                if df.empty:
+                    continue
                 subset = df[(df["Gender"] == gender_code) & (df["Age Group"] == age_group)]
                 if subset.empty:
                     continue
@@ -174,6 +176,8 @@ class SwimmerCheckInWriter:
             ]
 
             for label, gender_code, age_group in groups:
+                if df.empty:
+                    continue
                 subset = df[(df["Gender"] == gender_code) & (df["Age Group"] == age_group)]
                 if subset.empty:
                     continue
