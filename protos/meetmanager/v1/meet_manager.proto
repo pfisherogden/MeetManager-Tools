@@ -109,6 +109,8 @@ message GetJobStatusResponse {
   string message = 3;
   // bundle_url is the URL to download the result (if completed).
   string bundle_url = 4;
+  // google_sheet_url is a list of URLs for any generated Google Sheets in this job.
+  repeated string google_sheet_urls = 5;
 }
 
 // GetFileRequest specifies the path of the file to retrieve.
@@ -642,6 +644,8 @@ message GenerateReportResponse {
   string filename = 4;
   // html_content is the raw HTML of the generated report.
   optional string html_content = 5;
+  // google_sheet_url is the URL of a generated Google Sheet (if applicable).
+  optional string google_sheet_url = 6;
 }
 
 // RendererType specifies which engine to use for PDF generation.

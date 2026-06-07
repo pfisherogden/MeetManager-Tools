@@ -63,16 +63,18 @@ class GetJobStatusRequest(_message.Message):
     def __init__(self, job_id: _Optional[str] = ...) -> None: ...
 
 class GetJobStatusResponse(_message.Message):
-    __slots__ = ("status", "progress", "message", "bundle_url")
+    __slots__ = ("status", "progress", "message", "bundle_url", "google_sheet_urls")
     STATUS_FIELD_NUMBER: _ClassVar[int]
     PROGRESS_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     BUNDLE_URL_FIELD_NUMBER: _ClassVar[int]
+    GOOGLE_SHEET_URLS_FIELD_NUMBER: _ClassVar[int]
     status: JobStatus
     progress: float
     message: str
     bundle_url: str
-    def __init__(self, status: _Optional[_Union[JobStatus, str]] = ..., progress: _Optional[float] = ..., message: _Optional[str] = ..., bundle_url: _Optional[str] = ...) -> None: ...
+    google_sheet_urls: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, status: _Optional[_Union[JobStatus, str]] = ..., progress: _Optional[float] = ..., message: _Optional[str] = ..., bundle_url: _Optional[str] = ..., google_sheet_urls: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class GetFileRequest(_message.Message):
     __slots__ = ("path", "token")
@@ -593,18 +595,20 @@ class GenerateReportRequest(_message.Message):
     def __init__(self, type: _Optional[_Union[ReportType, str]] = ..., title: _Optional[str] = ..., team_filter: _Optional[str] = ..., gender_filter: _Optional[str] = ..., age_group_filter: _Optional[str] = ..., columns_on_page: _Optional[int] = ..., show_relay_swimmers: bool = ..., zebra_striping: bool = ..., renderer_type: _Optional[_Union[RendererType, str]] = ..., html_preview: bool = ...) -> None: ...
 
 class GenerateReportResponse(_message.Message):
-    __slots__ = ("success", "message", "pdf_content", "filename", "html_content")
+    __slots__ = ("success", "message", "pdf_content", "filename", "html_content", "google_sheet_url")
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     PDF_CONTENT_FIELD_NUMBER: _ClassVar[int]
     FILENAME_FIELD_NUMBER: _ClassVar[int]
     HTML_CONTENT_FIELD_NUMBER: _ClassVar[int]
+    GOOGLE_SHEET_URL_FIELD_NUMBER: _ClassVar[int]
     success: bool
     message: str
     pdf_content: bytes
     filename: str
     html_content: str
-    def __init__(self, success: bool = ..., message: _Optional[str] = ..., pdf_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., html_content: _Optional[str] = ...) -> None: ...
+    google_sheet_url: str
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., pdf_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., html_content: _Optional[str] = ..., google_sheet_url: _Optional[str] = ...) -> None: ...
 
 class GenerateReportBundleRequest(_message.Message):
     __slots__ = ("reports", "bundle_name", "renderer_type", "frontend_url")
