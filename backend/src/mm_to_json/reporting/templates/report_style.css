@@ -87,7 +87,7 @@ body {
 }
 
 .event-block {
-    margin-bottom: 15pt;
+    margin-bottom: 10pt;
     width: 100%;
     /* Allow events to span columns/pages */
 }
@@ -96,7 +96,7 @@ body {
     background-color: #f0f0f0;
     font-weight: bold;
     font-size: 9.5pt;
-    padding: 3pt 4pt;
+    padding: 2pt 4pt;
     border: 1pt solid #999;
     text-align: left;
     width: 100%;
@@ -114,9 +114,9 @@ body {
     font-size: 7pt;
     color: #666;
     border-bottom: 0.5pt solid #eee;
-    padding: 2pt 0;
+    padding: 1pt 0;
     font-weight: bold;
-    margin-top: 2pt;
+    margin-top: 1pt;
     break-after: avoid;
     table-layout: fixed;
 }
@@ -124,8 +124,8 @@ body {
 .heat-header-row {
     font-weight: bold;
     font-size: 8.5pt;
-    margin-top: 6pt;
-    margin-bottom: 3pt;
+    margin-top: 4pt;
+    margin-bottom: 2pt;
     border-bottom: 1pt solid #ccc;
     padding: 1pt 2pt;
     width: 100%;
@@ -141,9 +141,9 @@ body {
     display: table;
     width: 100%;
     max-width: 255pt;
-    padding: 2pt 0;
+    padding: 1pt 0;
     font-size: 8.5pt;
-    min-height: 14pt;
+    min-height: 12pt;
     table-layout: fixed;
 }
 .div-col {
@@ -202,7 +202,7 @@ body {
     display: table;
     width: 100%;
     max-width: 255pt;
-    padding-bottom: 3pt;
+    padding-bottom: 1pt;
     font-size: 8.5pt;
     color: #333;
     table-layout: fixed;

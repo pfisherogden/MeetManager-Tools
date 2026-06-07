@@ -16,10 +16,11 @@ import zipfile
 from collections import OrderedDict
 from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor
-from typing import Any
+from typing import Any, cast
 
 import grpc
 import msgpack
+from firebase_admin import auth
 
 # Import generated classes
 try:
@@ -77,6 +78,25 @@ if log_level_str != "DEBUG":
     logging.getLogger("jpype").setLevel(logging.WARNING)
 
 
+# Defines where the source JSON data lives
+DATA_DIR = "../data"
+SOURCE_FILE = "Sample_Data.json"
+CONFIG_FILE = "config.json"
+MAX_CACHE_SIZE = 3  # Keep only the last 3 users' data in memory
+
+
+def _get_user_email(uid: str) -> str | None:
+    """Helper to get user email from Firebase for sharing."""
+    if uid == "dev-user" or not os.getenv("K_SERVICE"):
+        return os.getenv("DEV_USER_EMAIL")
+    try:
+        user = auth.get_user(uid)
+        return user.email
+    except Exception as e:
+        logging.warning(f"Failed to get email for user {uid}: {e}")
+        return None
+
+
 def _get_data_access_token() -> str:
     """Helper to retrieve the access token, logging an error if fallback is used in production."""
     token = os.getenv("DATA_ACCESS_TOKEN")
@@ -88,13 +108,6 @@ def _get_data_access_token() -> str:
             )
         return fallback
     return token.strip()
-
-
-# Defines where the source JSON data lives
-DATA_DIR = "../data"
-SOURCE_FILE = "Sample_Data.json"
-CONFIG_FILE = "config.json"
-MAX_CACHE_SIZE = 3  # Keep only the last 3 users' data in memory
 
 
 class JobManager:
@@ -224,6 +237,7 @@ def _process_single_report_process(
     renderer_type=None,
     html_preview=False,
     idx=0,
+    user_email=None,
 ):
     import datetime
     import logging
@@ -357,9 +371,20 @@ def _process_single_report_process(
             from mm_to_json.reporting.check_in_writer import SwimmerCheckInWriter
 
             check_in_data = extractor.extract_check_in_data(team_filter=report_req_team_filter)
+
+            # 1. Try to generate Google Sheet (if email provided)
+            gs_url = None
+            if user_email:
+                try:
+                    gs_writer = SwimmerCheckInWriter(check_in_data, title=title)
+                    gs_url = gs_writer.generate_google_sheet(user_email=user_email)
+                except Exception as e:
+                    logging.warning(f"Google Sheet generation failed, but will still provide Excel backup: {e}")
+
+            # 2. Generate Excel Backup
             with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as xlsx_tmp:
-                check_in_writer = SwimmerCheckInWriter(check_in_data, title=title)
-                check_in_writer.generate(xlsx_tmp.name)
+                excel_writer = SwimmerCheckInWriter(check_in_data, title=title)
+                excel_writer.generate_excel_backup(xlsx_tmp.name)
                 with open(xlsx_tmp.name, "rb") as f:
                     content = f.read()
                 os.unlink(xlsx_tmp.name)
@@ -368,6 +393,8 @@ def _process_single_report_process(
                 "success": True,
                 "content": content,
                 "filename": f"{title.replace(' ', '_')}_{idx}.xlsx" if title else f"check_in_{idx}.xlsx",
+                "message": f"Google Sheet: {gs_url}" if gs_url else "Excel Backup generated",
+                "gs_url": gs_url,
                 "rtype": rtype,
                 "idx": idx,
                 "load_duration": load_duration,
@@ -1779,6 +1806,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 msgpack_path = msgpack_tmp.name
                 msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
 
+            # Get user email for sharing (if applicable)
+            user_email = _get_user_email(cast(str, uid))
+
             try:
                 res = _process_single_report_process(
                     request.type,
@@ -1794,6 +1824,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     rtype_map,
                     request.renderer_type if hasattr(request, "renderer_type") else None,
                     getattr(request, "html_preview", False),
+                    user_email=user_email,
                 )
             finally:
                 # Cleanup msgpack file
@@ -1917,6 +1948,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 # Store report requests for re-mapping results later
                 report_reqs = list(request.reports)
 
+                # Get user email for sharing
+                user_email = _get_user_email(cast(str, uid))
+
                 with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
                     for idx, report_req in enumerate(report_reqs):
                         tasks.append(
@@ -1936,6 +1970,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                                 request.renderer_type if hasattr(request, "renderer_type") else None,
                                 False,  # html_preview
                                 idx,
+                                user_email=user_email,
                             )
                         )
 

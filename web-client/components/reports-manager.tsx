@@ -424,6 +424,7 @@ export function ReportsManager({
 				{ type: 4, title: "Computer Team Program" },
 				{ type: 4, title: "Complete Meet Program" },
 				{ type: 10, title: "CTS Scoreboard Export" },
+				{ type: 11, title: "Swimmer Check-in Sheet" },
 			],
 		},
 		{
