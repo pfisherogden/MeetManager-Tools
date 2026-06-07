@@ -1118,7 +1118,9 @@ class ReportDataExtractor:
 
             # Filter by team if requested
             if team_filter:
-                if a.get("teamName") != team_filter and a.get("teamCode") != team_filter:
+                # Build a temporary entry-like object for _matches_team_filter
+                temp_entry = {"team": a.get("teamName", ""), "teamCode": a.get("teamCode", "")}
+                if not self._matches_team_filter(temp_entry, team_filter):
                     continue
 
             check_in_list.append(

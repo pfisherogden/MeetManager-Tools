@@ -207,7 +207,19 @@ export function ReportsManager({
 					if (downloadTriggered.current !== jobId && status.bundleUrl) {
 						downloadTriggered.current = jobId;
 						window.location.href = status.bundleUrl;
-						toast.success("Custom pack generated successfully");
+
+						// Also open any google sheets
+						if (status.googleSheetUrls && status.googleSheetUrls.length > 0) {
+							for (const url of status.googleSheetUrls) {
+								window.open(url, "_blank");
+							}
+						}
+
+						toast.success(
+							status.googleSheetUrls && status.googleSheetUrls.length > 0
+								? "Pack generated! Check-in sheets opened in new tabs."
+								: "Custom pack generated successfully",
+						);
 					}
 				} else if (status.status === 4) {
 					// FAILED
@@ -247,6 +259,12 @@ export function ReportsManager({
 			});
 
 			if (result.success) {
+				// 1. Handle Google Sheet
+				if (result.googleSheetUrl) {
+					window.open(result.googleSheetUrl, "_blank");
+				}
+
+				// 2. Handle HTML Preview
 				if ((selectedType === 5 || htmlPreviewMode) && result.htmlContent) {
 					const win = window.open("", "_blank");
 					if (win) {

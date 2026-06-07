@@ -171,6 +171,7 @@ class JobManager:
         progress: float | None = None,
         message: str | None = None,
         bundle_url: str | None = None,
+        google_sheet_urls: list[str] | None = None,
     ) -> None:
         if self.use_firestore:
             from firebase_admin import firestore
@@ -185,6 +186,8 @@ class JobManager:
                 updates["message"] = message
             if bundle_url is not None:
                 updates["bundle_url"] = bundle_url
+            if google_sheet_urls is not None:
+                updates["google_sheet_urls"] = google_sheet_urls
             doc_ref.update(updates)
         else:
             with self.lock:
@@ -199,6 +202,8 @@ class JobManager:
                         updates["message"] = message
                     if bundle_url is not None:
                         updates["bundle_url"] = bundle_url
+                    if google_sheet_urls is not None:
+                        updates["google_sheet_urls"] = google_sheet_urls
                     self.in_memory_jobs[job_id].update(updates)
 
     def get_job(self, job_id: str) -> dict[str, Any] | None:
@@ -1861,6 +1866,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pdf_content=content_bytes if not filename.endswith(".html") else b"",
                 filename=filename,
                 html_content=html_str if html_str else None,
+                google_sheet_url=res.get("gs_url"),
             )
 
         except Exception as e:
@@ -1992,10 +1998,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
                 # BUNDLING: Create ZIP in original order
                 zip_buffer = io.BytesIO()
+                gs_urls = []
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     for i, future in enumerate(tasks):
                         res = future.result()
                         if res.get("success"):
+                            if "gs_url" in res and res["gs_url"]:
+                                gs_urls.append(res["gs_url"])
+
                             if "files" in res:
                                 # Handle multiple files (e.g. CTS export)
                                 for f in res["files"]:
@@ -2064,7 +2074,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
             # ATOMIC UPDATE: Set everything at once to prevent race with poller
             self.job_manager.update_job(
-                job_id, status=pb2.JOB_STATUS_COMPLETED, progress=1.0, message="Complete", bundle_url=bundle_url
+                job_id,
+                status=pb2.JOB_STATUS_COMPLETED,
+                progress=1.0,
+                message="Complete",
+                bundle_url=bundle_url,
+                google_sheet_urls=gs_urls,
             )
 
         except Exception as e:
@@ -2083,12 +2098,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         # Ensure we return a string for bundle_url
         b_url = job.get("bundle_url") or ""
+        gs_urls = job.get("google_sheet_urls") or []
 
         return pb2.GetJobStatusResponse(
             status=job["status"],
             progress=job["progress"],
             message=job["message"],
             bundle_url=b_url,
+            google_sheet_urls=gs_urls,
         )
 
     def GetSessions(self, request, context):
