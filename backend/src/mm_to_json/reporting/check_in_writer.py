@@ -1,47 +1,163 @@
+import logging
 import os
 from typing import Any
 
+import gspread
 import pandas as pd
+from google.auth import default
+
+logger = logging.getLogger(__name__)
 
 
 class SwimmerCheckInWriter:
-    """Generates an Excel spreadsheet for swimmer check-in with synced tabs."""
+    """Generates a Google Spreadsheet or Excel for swimmer check-in."""
 
     def __init__(self, check_in_data: list[dict[str, Any]], title: str = "Swimmer Check-in"):
         self.data = check_in_data
         self.title = title
 
-    def generate(self, output_path: str):
-        """Generates the multi-tab Excel file."""
-        df = pd.DataFrame(self.data)
+    def generate_google_sheet(self, user_email: str | None = None) -> str:
+        """
+        Creates a Google Sheet and returns the URL.
+        Optionally shares it with the user_email.
+        """
+        try:
+            # 1. Authenticate
+            credentials, _ = default(
+                scopes=[
+                    "https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive",
+                ]
+            )
+            gc = gspread.authorize(credentials)
 
-        # Add columns for tracking
+            # 2. Create Spreadsheet
+            sheet_title = f"{self.title} - {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}"
+            sh = gc.create(sheet_title)
+
+            # 3. Share with user if provided
+            if user_email:
+                try:
+                    sh.share(user_email, perm_type="user", role="writer")
+                    logger.info(f"Shared check-in sheet with {user_email}")
+                except Exception as e:
+                    logger.warning(f"Failed to share sheet with {user_email}: {e}")
+
+            # 4. Prepare Data
+            df = pd.DataFrame(self.data)
+            df.insert(0, "ID", range(1, len(df) + 1))
+            df["Present"] = ""
+            df["Scratch"] = ""
+
+            # 5. Populate Main Sheet
+            main_ws = sh.sheet1
+            main_ws.update_title("Main")
+
+            data_list = [df.columns.values.tolist()] + df.values.tolist()
+            main_ws.update(data_list)
+
+            # Formatting Main
+            main_ws.format(
+                "A1:J1",
+                {
+                    "horizontalAlignment": "CENTER",
+                    "textFormat": {"bold": True, "foregroundColor": {"red": 1.0, "green": 1.0, "blue": 1.0}},
+                    "backgroundColor": {"red": 0.2, "green": 0.2, "blue": 0.2},
+                },
+            )
+            main_ws.freeze(rows=1)
+
+            # 6. Add Filtered Tabs
+            groups = [
+                ("Girls", "F", "6 & under"),
+                ("Boys", "M", "6 & under"),
+                ("Girls", "F", "7-8"),
+                ("Boys", "M", "7-8"),
+                ("Girls", "F", "9-10"),
+                ("Boys", "M", "9-10"),
+                ("Girls", "F", "11-12"),
+                ("Boys", "M", "11-12"),
+                ("Girls", "F", "13-14"),
+                ("Boys", "M", "13-14"),
+                ("Girls", "F", "15-18"),
+                ("Boys", "M", "15-18"),
+            ]
+
+            for label, gender_code, age_group in groups:
+                subset = df[(df["Gender"] == gender_code) & (df["Age Group"] == age_group)]
+                if subset.empty:
+                    continue
+
+                ws_name = f"{label} {age_group}"[:31]
+                ws = sh.add_worksheet(title=ws_name, rows=len(subset) + 1, cols=10)
+
+                subset_indices = subset.index.tolist()
+                header = df.columns.values.tolist()
+                rows = [header]
+                for idx in subset_indices:
+                    row_data = df.iloc[idx].values.tolist()
+                    main_row = idx + 2
+                    row_data[8] = f"=Main!I{main_row}"
+                    row_data[9] = f"=Main!J{main_row}"
+                    rows.append(row_data)
+
+                ws.update(rows, raw=False)
+                ws.format(
+                    "A1:J1", {"textFormat": {"bold": True}, "backgroundColor": {"red": 0.8, "green": 0.8, "blue": 0.8}}
+                )
+                ws.freeze(rows=1)
+
+            # 7. Add Scratches Tab
+            scratches_ws = sh.add_worksheet(title="All Scratches", rows=100, cols=10)
+            scratches_ws.update([df.columns.values.tolist()])
+            last_row = len(df) + 1
+            filter_formula = f'=FILTER(Main!A2:J{last_row}, Main!J2:J{last_row}="X")'
+            # Use update with raw=False for formulas
+            scratches_ws.update(values=[[filter_formula]], range_name="A2", raw=False)
+            scratches_ws.format(
+                "A1:J1", {"textFormat": {"bold": True}, "backgroundColor": {"red": 1.0, "green": 0.8, "blue": 0.8}}
+            )
+
+            return sh.url
+
+        except Exception as e:
+            logger.error(f"Failed to generate Google Sheet: {e}", exc_info=True)
+            raise
+
+    def generate_excel_backup(self, output_path: str):
+        """Generates the Excel file with print-friendly formatting."""
+        df = pd.DataFrame(self.data)
+        df.insert(0, "ID", range(1, len(df) + 1))
         df["Present"] = ""
         df["Scratch"] = ""
 
-        # Ensure directory exists
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
-        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-            # 1. Main Master Sheet
-            # Add an index column for stable referencing
-            df.insert(0, "ID", range(1, len(df) + 1))
-            df.to_excel(writer, sheet_name="Main", index=False)
+        with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
+            workbook = writer.book
 
+            # Formats
+            header_fmt = workbook.add_format({"bold": True, "bg_color": "#D3D3D3", "border": 1})
+
+            # 1. Main Sheet
+            df.to_excel(writer, sheet_name="Main", index=False)
             main_sheet = writer.sheets["Main"]
 
-            # Data validation for Present/Scratch
-            from openpyxl.worksheet.datavalidation import DataValidation
+            # Apply header format
+            for col_num, value in enumerate(df.columns.values):
+                main_sheet.write(0, col_num, value, header_fmt)
 
-            dv = DataValidation(type="list", formula1='"X,"', allow_blank=True)
-            main_sheet.add_data_validation(dv)
+            # Set column widths
+            main_sheet.set_column("A:A", 5)  # ID
+            main_sheet.set_column("B:D", 15)  # Names
+            main_sheet.set_column("E:F", 8)  # Gender/Age
+            main_sheet.set_column("G:G", 25)  # Team
+            main_sheet.set_column("H:H", 15)  # Age Group
+            main_sheet.set_column("I:J", 10)  # Present/Scratch
 
-            # Columns I and J are Present and Scratch (0-indexed: 8 and 9)
-            last_row = len(df) + 1
-            dv.add(f"I2:J{last_row}")
+            main_sheet.freeze_panes(1, 0)
 
-            # 2. Filtered Tabs by Age/Gender
-            # Mapping from display name to internal codes
+            # 2. Filtered Tabs
             groups = [
                 ("Girls", "F", "6 & under"),
                 ("Boys", "M", "6 & under"),
@@ -64,22 +180,39 @@ class SwimmerCheckInWriter:
 
                 sheet_name = f"{label} {age_group}"[:31]
                 subset_indices = subset.index
-
                 subset.to_excel(writer, sheet_name=sheet_name, index=False)
                 ws = writer.sheets[sheet_name]
 
-                # Replace Present/Scratch columns with formulas pointing back to Main
-                for i, original_idx in enumerate(subset_indices):
-                    excel_row = i + 2  # 1-based, plus header
-                    main_excel_row = original_idx + 2
-                    ws.cell(row=excel_row, column=9).value = f"=Main!I{main_excel_row}"
-                    ws.cell(row=excel_row, column=10).value = f"=Main!J{main_excel_row}"
+                # Headers
+                for col_num, value in enumerate(df.columns.values):
+                    ws.write(0, col_num, value, header_fmt)
 
-            # 3. Dynamic "All Scratches" Tab
+                # Column Widths
+                ws.set_column("A:A", 5)
+                ws.set_column("B:D", 15)
+                ws.set_column("E:F", 8)
+                ws.set_column("G:G", 25)
+                ws.set_column("H:H", 15)
+                ws.set_column("I:J", 10)
+
+                # Formulas for sync
+                for i, original_idx in enumerate(subset_indices):
+                    excel_row = i + 1  # xlsxwriter is 0-indexed for rows, but 0 is header
+                    main_excel_row = original_idx + 2  # Excel is 1-indexed
+                    ws.write_formula(excel_row, 8, f"=Main!I{main_excel_row}")
+                    ws.write_formula(excel_row, 9, f"=Main!J{main_excel_row}")
+
+            # 3. All Scratches
             scratches_df = pd.DataFrame(columns=df.columns)
             scratches_df.to_excel(writer, sheet_name="All Scratches", index=False)
             ws_scratches = writer.sheets["All Scratches"]
-            # Modern FILTER formula
-            ws_scratches["A2"] = f'=_xlfn._xlws.FILTER(Main!A2:J{last_row}, Main!J2:J{last_row}="X", "No Scratches")'
+            for col_num, value in enumerate(df.columns.values):
+                ws_scratches.write(0, col_num, value, header_fmt)
+
+            # Formula (Note: FILTER is an array formula)
+            last_row = len(df) + 1
+            ws_scratches.write_dynamic_array_formula(
+                1, 0, last_row, 9, f'=FILTER(Main!A2:J{last_row}, Main!J2:J{last_row}="X", "No Scratches")'
+            )
 
         return output_path

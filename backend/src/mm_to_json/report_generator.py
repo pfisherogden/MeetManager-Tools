@@ -71,7 +71,7 @@ class ReportGenerator:
 
         data = self.extractor.extract_check_in_data()
         writer = SwimmerCheckInWriter(data, title=self.custom_title)
-        writer.generate(output_path)
+        writer.generate_excel_backup(output_path)
 
     # Legacy method names if needed
     def generate_lineup_sheets(self, output_path):
