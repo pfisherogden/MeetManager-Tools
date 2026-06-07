@@ -37,7 +37,18 @@ class TestGenderFiltering(unittest.TestCase):
                             "gender": "X",
                             "eventDesc": "Mixed Relay",
                             "isRelay": True,
-                            "entries": [{"name": "Mixed Team", "relayLtr": "A", "team": "DP"}],
+                            "entries": [
+                                {
+                                    "name": "Mixed Team",
+                                    "relayLtr": "A",
+                                    "team": "DP",
+                                    "isRelay": True,
+                                    "relayAthletes": [
+                                        {"name": "Jane", "athleteSex": "F"},
+                                        {"name": "John", "athleteSex": "M"},
+                                    ],
+                                }
+                            ],
                         },
                     ],
                 }

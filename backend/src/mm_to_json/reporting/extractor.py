@@ -127,6 +127,25 @@ class ReportDataExtractor:
 
         return False
 
+    def _has_gender_participation(self, entries: list[dict[str, Any]], target_gender: str) -> bool:
+        """Checks if any entry in the list contains a swimmer of the target gender."""
+        for e in entries:
+            if not e:
+                continue
+
+            if e.get("isRelay"):
+                # Check relayAthletes (preferred) or members/swimmers
+                relay_athletes = e.get("relayAthletes", [])
+                for a in relay_athletes:
+                    a_sex = self._normalize_gender(a.get("athleteSex") or a.get("gender"))
+                    if a_sex == target_gender:
+                        return True
+            else:
+                a_sex = self._normalize_gender(e.get("athleteSex"))
+                if a_sex == target_gender:
+                    return True
+        return False
+
     def _normalize_gender(self, gender: str | None) -> str:
         """Normalize gender string to M, F, or X. Return 'X' if no filtering is desired."""
         if not gender:
@@ -462,6 +481,10 @@ class ReportDataExtractor:
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
+            # Team filter applied early for participation check
+            if team_filter:
+                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
+
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
                 norm_evt_g = self._normalize_gender(evt_gender)
@@ -476,13 +499,16 @@ class ReportDataExtractor:
                 elif target_g != "X" and norm_evt_g != target_g:
                     continue
 
+                # Precise Mixed participation check: only if the target gender is actually in the entries
+                if norm_evt_g == "X" and target_g != "X":
+                    if not self._has_gender_participation(entries, target_g):
+                        continue
+
             if age_group_filter and age_group_filter.lower() != "open":
                 evt_age_str = self._format_age(evt_min_age, evt_max_age)
                 if evt_age_str.lower() != age_group_filter.lower():
                     continue
 
-            if team_filter:
-                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
             if gender_filter:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
@@ -603,6 +629,10 @@ class ReportDataExtractor:
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
+            # Team filter applied early for participation check
+            if team_filter:
+                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
+
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
                 norm_evt_g = self._normalize_gender(evt_gender)
@@ -617,13 +647,16 @@ class ReportDataExtractor:
                 elif target_g != "X" and norm_evt_g != target_g:
                     continue
 
+                # Precise Mixed participation check: only if the target gender is actually in the entries
+                if norm_evt_g == "X" and target_g != "X":
+                    if not self._has_gender_participation(entries, target_g):
+                        continue
+
             if age_group_filter and age_group_filter.lower() != "open":
                 evt_age_str = self._format_age(evt_min_age, evt_max_age)
                 if evt_age_str.lower() != age_group_filter.lower():
                     continue
 
-            if team_filter:
-                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
             if gender_filter:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
@@ -855,6 +888,10 @@ class ReportDataExtractor:
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
+            # Team filter applied early for participation check
+            if team_filter:
+                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
+
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
                 norm_evt_g = self._normalize_gender(evt_gender)
@@ -869,13 +906,16 @@ class ReportDataExtractor:
                 elif target_g != "X" and norm_evt_g != target_g:
                     continue
 
+                # Precise Mixed participation check: only if the target gender is actually in the entries
+                if norm_evt_g == "X" and target_g != "X":
+                    if not self._has_gender_participation(entries, target_g):
+                        continue
+
             if age_group_filter and age_group_filter.lower() != "open":
                 evt_age_str = self._format_age(evt_min_age, evt_max_age)
                 if evt_age_str.lower() != age_group_filter.lower():
                     continue
 
-            if team_filter:
-                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
             if gender_filter:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
@@ -969,6 +1009,10 @@ class ReportDataExtractor:
             evt_min_age = self._safe_int(evt.get("minAge", 0))
             evt_max_age = self._safe_int(evt.get("maxAge", 109))
 
+            # Team filter applied early for participation check
+            if team_filter:
+                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
+
             if gender_filter:
                 target_g = self._normalize_gender(gender_filter)
                 norm_evt_g = self._normalize_gender(evt_gender)
@@ -983,13 +1027,16 @@ class ReportDataExtractor:
                 elif target_g != "X" and norm_evt_g != target_g:
                     continue
 
+                # Precise Mixed participation check: only if the target gender is actually in the entries
+                if norm_evt_g == "X" and target_g != "X":
+                    if not self._has_gender_participation(entries, target_g):
+                        continue
+
             if age_group_filter and age_group_filter.lower() != "open":
                 evt_age_str = self._format_age(evt_min_age, evt_max_age)
                 if evt_age_str.lower() != age_group_filter.lower():
                     continue
 
-            if team_filter:
-                entries = [e for e in entries if e and self._matches_team_filter(e, team_filter)]
             if gender_filter:
                 filtered = []
                 target_g = self._normalize_gender(gender_filter)
