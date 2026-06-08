@@ -394,10 +394,28 @@ def _process_single_report_process(
                     content = f.read()
                 os.unlink(xlsx_tmp.name)
 
+            # 3. Build Result
+            res_files = []
+            # Main Excel File
+            filename = f"{title.replace(' ', '_')}_{idx}.xlsx" if title else f"check_in_{idx}.xlsx"
+            res_files.append({"filename": filename, "content": content})
+
+            # Google Sheet Shortcut
+            if gs_url:
+                shortcut_name = f"OPEN_GOOGLE_SHEET_{filename.replace('.xlsx', '.html')}"
+                with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as html_tmp:
+                    shortcut_writer = SwimmerCheckInWriter(check_in_data, title=title)
+                    shortcut_writer.generate_google_sheet_shortcut(gs_url, html_tmp.name)
+                    with open(html_tmp.name, "rb") as f:
+                        shortcut_content = f.read()
+                    os.unlink(html_tmp.name)
+                res_files.append({"filename": shortcut_name, "content": shortcut_content})
+
             return {
                 "success": True,
-                "content": content,
-                "filename": f"{title.replace(' ', '_')}_{idx}.xlsx" if title else f"check_in_{idx}.xlsx",
+                "files": res_files,  # Multiple files for bundling
+                "content": content,  # Primary file for single download
+                "filename": filename,
                 "message": f"Google Sheet: {gs_url}" if gs_url else "Excel Backup generated",
                 "gs_url": gs_url,
                 "rtype": rtype,

@@ -126,6 +126,34 @@ class SwimmerCheckInWriter:
             logger.error(f"Failed to generate Google Sheet: {e}", exc_info=True)
             raise
 
+    def generate_google_sheet_shortcut(self, gs_url: str, output_path: str) -> str:
+        """Generates a small HTML file that redirects to the Google Sheet."""
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Redirecting to Google Sheet...</title>
+            <meta http-equiv="refresh" content="0; url={gs_url}">
+            <style>
+                body {{ font-family: sans-serif; text-align: center; padding: 50px; color: #333; }}
+                .loader {{ border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; margin: 20px auto; }}
+                @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+                a {{ color: #3498db; text-decoration: none; font-weight: bold; }}
+            </style>
+        </head>
+        <body>
+            <h2>Opening Swimmer Check-in Sheet...</h2>
+            <div class="loader"></div>
+            <p>If you are not redirected automatically, <a href="{gs_url}">click here to open the sheet</a>.</p>
+            <p style="font-size: 0.8em; color: #666; margin-top: 30px;">(This is a live native Google Sheet shared with your account)</p>
+        </body>
+        </html>
+        """
+        with open(output_path, "w") as f:
+            f.write(html)
+        return output_path
+
     def generate_excel_backup(self, output_path: str):
         """Generates the Excel file with print-friendly formatting."""
         df = pd.DataFrame(self.data)
