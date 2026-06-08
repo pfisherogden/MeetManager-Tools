@@ -610,19 +610,19 @@ export function ReportsManager({
 								Commonly used combinations of reports for specific meet roles.
 							</CardDescription>
 						</CardHeader>
-						<CardContent className="grid gap-4 p-6">
+						<CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-6">
 							{reportPresets.map((preset) => (
 								<div
 									key={preset.id}
-									className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors gap-4"
+									className="flex flex-col justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors gap-4"
 								>
 									<div className="space-y-1">
 										<h4 className="font-bold text-sm">{preset.name}</h4>
-										<p className="text-xs text-muted-foreground">
+										<p className="text-xs text-muted-foreground line-clamp-2">
 											{preset.description}
 										</p>
 										<div className="flex flex-wrap gap-1.5 mt-2">
-											{preset.reports.map((r, _i) => (
+											{preset.reports.slice(0, 4).map((r, _i) => (
 												<span
 													key={`${r.type}-${r.title.replace(/\s+/g, "-")}`}
 													className="px-2 py-0.5 bg-muted rounded text-[9px] font-medium"
@@ -630,6 +630,11 @@ export function ReportsManager({
 													{r.title}
 												</span>
 											))}
+											{preset.reports.length > 4 && (
+												<span className="text-[9px] text-muted-foreground font-medium px-1">
+													+{preset.reports.length - 4} more
+												</span>
+											)}
 										</div>
 									</div>
 									<Button
@@ -637,7 +642,7 @@ export function ReportsManager({
 										variant="secondary"
 										onClick={() => applyPreset(preset)}
 										data-testid={`preset-apply-${preset.id}`}
-										className="w-full sm:w-auto shrink-0"
+										className="w-full shrink-0 mt-auto"
 									>
 										Apply to Builder
 									</Button>
