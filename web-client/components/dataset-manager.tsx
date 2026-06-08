@@ -234,7 +234,8 @@ export function DatasetManager() {
 							onChange={handleUpload}
 							accept=".json,.mdb"
 							data-testid="dataset-file-input"
-						/>
+							/>
+
 						<Button
 							onClick={() => fileInputRef.current?.click()}
 							disabled={isUploading}
