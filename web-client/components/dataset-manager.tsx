@@ -232,9 +232,10 @@ export function DatasetManager() {
 							className="absolute w-px h-px opacity-0"
 							ref={fileInputRef}
 							onChange={handleUpload}
-							accept=".json"
+							accept=".json,.mdb"
 							data-testid="dataset-file-input"
-						/>
+							/>
+
 						<Button
 							onClick={() => fileInputRef.current?.click()}
 							disabled={isUploading}
