@@ -1040,7 +1040,8 @@ class MmToJsonConverter:
                     team_info = self.get_team_info(team_no)
 
                     # Support for preferred name / short name (Pref_name in Schema A)
-                    first_name = self._get_val(row, "first_name") or self._get_val(row, "first")
+                    original_first_name = self._get_val(row, "first_name") or self._get_val(row, "first")
+                    first_name = original_first_name
                     pref_name = self._get_val(row, "pref_name")
                     if pref_name and str(pref_name).strip():
                         first_name = str(pref_name).strip()
@@ -1050,6 +1051,7 @@ class MmToJsonConverter:
                     self.cache_athlete_map[aid] = {
                         "athleteId": aid,
                         "firstName": first_name,
+                        "legalName": original_first_name,
                         "lastName": last_name,
                         "name": f"{first_name} {last_name}",
                         "age": self._safe_int(row.get("ath_age") or row.get("age")),

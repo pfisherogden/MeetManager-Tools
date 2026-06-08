@@ -43,9 +43,16 @@ class SwimmerCheckInWriter:
                 except Exception as e:
                     logger.warning(f"Failed to share sheet with {user_email}: {e}")
 
+            # Make it readable by anyone with the link
+            try:
+                # Type safe way to share with 'anyone'
+                sh.share("", perm_type="anyone", role="reader")
+            except Exception as e:
+                logger.warning(f"Failed to make sheet public-read: {e}")
+
             # 4. Prepare Data
             df = pd.DataFrame(self.data)
-            df.insert(0, "ID", range(1, len(df) + 1))
+            # Add status columns
             df["Present"] = ""
             df["Scratch"] = ""
 
@@ -58,7 +65,7 @@ class SwimmerCheckInWriter:
 
             # Formatting Main
             main_ws.format(
-                "A1:J1",
+                "A1:Q1",
                 {
                     "horizontalAlignment": "CENTER",
                     "textFormat": {"bold": True, "foregroundColor": {"red": 1.0, "green": 1.0, "blue": 1.0}},
@@ -68,56 +75,57 @@ class SwimmerCheckInWriter:
             main_ws.freeze(rows=1)
 
             # 6. Add Filtered Tabs
-            groups = [
-                ("Girls", "F", "6 & under"),
-                ("Boys", "M", "6 & under"),
-                ("Girls", "F", "7-8"),
-                ("Boys", "M", "7-8"),
-                ("Girls", "F", "9-10"),
-                ("Boys", "M", "9-10"),
-                ("Girls", "F", "11-12"),
-                ("Boys", "M", "11-12"),
-                ("Girls", "F", "13-14"),
-                ("Boys", "M", "13-14"),
-                ("Girls", "F", "15-18"),
-                ("Boys", "M", "15-18"),
-            ]
+            age_groups = ["6 & under", "7-8", "9-10", "11-12", "13-14", "15-18"]
 
-            for label, gender_code, age_group in groups:
-                if df.empty:
-                    continue
-                subset = df[(df["Gender"] == gender_code) & (df["Age Group"] == age_group)]
+            for age_group in age_groups:
+                subset = df[df["Age Group"] == age_group]
                 if subset.empty:
                     continue
 
-                ws_name = f"{label} {age_group}"[:31]
-                ws = sh.add_worksheet(title=ws_name, rows=len(subset) + 1, cols=10)
+                # Sort by Gender, then Preferred Name
+                subset = subset.sort_values(by=["Gender", "Preferred Name"])
+
+                ws_name = age_group[:31]
+                ws = sh.add_worksheet(title=ws_name, rows=len(subset) + 1, cols=17)
 
                 subset_indices = subset.index.tolist()
                 header = df.columns.values.tolist()
                 rows = [header]
                 for idx in subset_indices:
                     row_data = df.iloc[idx].values.tolist()
+                    # Present/Scratch are the last two columns (indices 15 and 16, column P and Q)
                     main_row = idx + 2
-                    row_data[8] = f"=Main!I{main_row}"
-                    row_data[9] = f"=Main!J{main_row}"
+                    row_data[15] = f"=Main!P{main_row}"
+                    row_data[16] = f"=Main!Q{main_row}"
                     rows.append(row_data)
 
                 ws.update(rows, raw=False)
                 ws.format(
-                    "A1:J1", {"textFormat": {"bold": True}, "backgroundColor": {"red": 0.8, "green": 0.8, "blue": 0.8}}
+                    "A1:Q1", {"textFormat": {"bold": True}, "backgroundColor": {"red": 0.8, "green": 0.8, "blue": 0.8}}
                 )
                 ws.freeze(rows=1)
 
-            # 7. Add Scratches Tab
-            scratches_ws = sh.add_worksheet(title="All Scratches", rows=100, cols=10)
-            scratches_ws.update([df.columns.values.tolist()])
+            # 7. Dynamic Tabs (All Scratches, Pending)
             last_row = len(df) + 1
-            filter_formula = f'=FILTER(Main!A2:J{last_row}, Main!J2:J{last_row}="X")'
-            # Use update with raw=False for formulas
-            scratches_ws.update(values=[[filter_formula]], range_name="A2", raw=False)
+
+            # All Scratches
+            scratches_ws = sh.add_worksheet(title="All Scratches", rows=100, cols=17)
+            scratches_ws.update([df.columns.values.tolist()])
+            # Column Q (17) is Scratch
+            filter_scratches = f'=FILTER(Main!A2:Q{last_row}, Main!Q2:Q{last_row}="X")'
+            scratches_ws.update(values=[[filter_scratches]], range_name="A2", raw=False)
             scratches_ws.format(
-                "A1:J1", {"textFormat": {"bold": True}, "backgroundColor": {"red": 1.0, "green": 0.8, "blue": 0.8}}
+                "A1:Q1", {"textFormat": {"bold": True}, "backgroundColor": {"red": 1.0, "green": 0.8, "blue": 0.8}}
+            )
+
+            # Pending (Neither Present nor Scratch)
+            pending_ws = sh.add_worksheet(title="Pending", rows=200, cols=17)
+            pending_ws.update([df.columns.values.tolist()])
+            # Column P (16) is Present, Q (17) is Scratch
+            filter_pending = f'=FILTER(Main!A2:Q{last_row}, Main!P2:P{last_row}="", Main!Q2:Q{last_row}="")'
+            pending_ws.update(values=[[filter_pending]], range_name="A2", raw=False)
+            pending_ws.format(
+                "A1:Q1", {"textFormat": {"bold": True}, "backgroundColor": {"red": 0.9, "green": 0.9, "blue": 0.8}}
             )
 
             return sh.url
@@ -157,7 +165,6 @@ class SwimmerCheckInWriter:
     def generate_excel_backup(self, output_path: str):
         """Generates the Excel file with print-friendly formatting."""
         df = pd.DataFrame(self.data)
-        df.insert(0, "ID", range(1, len(df) + 1))
         df["Present"] = ""
         df["Scratch"] = ""
 
@@ -165,74 +172,48 @@ class SwimmerCheckInWriter:
 
         with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
             workbook = writer.book
-
-            # Formats
             header_fmt = workbook.add_format({"bold": True, "bg_color": "#D3D3D3", "border": 1})
 
             # 1. Main Sheet
             df.to_excel(writer, sheet_name="Main", index=False)
             main_sheet = writer.sheets["Main"]
-
-            # Apply header format
             for col_num, value in enumerate(df.columns.values):
                 main_sheet.write(0, col_num, value, header_fmt)
 
-            # Set column widths
             main_sheet.set_column("A:A", 5)  # ID
             main_sheet.set_column("B:D", 15)  # Names
-            main_sheet.set_column("E:F", 8)  # Gender/Age
             main_sheet.set_column("G:G", 25)  # Team
-            main_sheet.set_column("H:H", 15)  # Age Group
-            main_sheet.set_column("I:J", 10)  # Present/Scratch
-
+            main_sheet.set_column("I:O", 5)  # Stroke participation
+            main_sheet.set_column("P:Q", 10)  # Present/Scratch
             main_sheet.freeze_panes(1, 0)
 
             # 2. Filtered Tabs
-            groups = [
-                ("Girls", "F", "6 & under"),
-                ("Boys", "M", "6 & under"),
-                ("Girls", "F", "7-8"),
-                ("Boys", "M", "7-8"),
-                ("Girls", "F", "9-10"),
-                ("Boys", "M", "9-10"),
-                ("Girls", "F", "11-12"),
-                ("Boys", "M", "11-12"),
-                ("Girls", "F", "13-14"),
-                ("Boys", "M", "13-14"),
-                ("Girls", "F", "15-18"),
-                ("Boys", "M", "15-18"),
-            ]
+            age_groups = ["6 & under", "7-8", "9-10", "11-12", "13-14", "15-18"]
 
-            for label, gender_code, age_group in groups:
-                if df.empty:
-                    continue
-                subset = df[(df["Gender"] == gender_code) & (df["Age Group"] == age_group)]
+            for age_group in age_groups:
+                subset = df[df["Age Group"] == age_group]
                 if subset.empty:
                     continue
 
-                sheet_name = f"{label} {age_group}"[:31]
+                subset = subset.sort_values(by=["Gender", "Preferred Name"])
+
+                sheet_name = age_group[:31]
                 subset_indices = subset.index
                 subset.to_excel(writer, sheet_name=sheet_name, index=False)
                 ws = writer.sheets[sheet_name]
 
-                # Headers
                 for col_num, value in enumerate(df.columns.values):
                     ws.write(0, col_num, value, header_fmt)
 
-                # Column Widths
-                ws.set_column("A:A", 5)
-                ws.set_column("B:D", 15)
-                ws.set_column("E:F", 8)
                 ws.set_column("G:G", 25)
-                ws.set_column("H:H", 15)
-                ws.set_column("I:J", 10)
+                ws.set_column("I:O", 5)
+                ws.set_column("P:Q", 10)
 
-                # Formulas for sync
                 for i, original_idx in enumerate(subset_indices):
-                    excel_row = i + 1  # xlsxwriter is 0-indexed for rows, but 0 is header
-                    main_excel_row = original_idx + 2  # Excel is 1-indexed
-                    ws.write_formula(excel_row, 8, f"=Main!I{main_excel_row}")
-                    ws.write_formula(excel_row, 9, f"=Main!J{main_excel_row}")
+                    excel_row = i + 1
+                    main_excel_row = original_idx + 2
+                    ws.write_formula(excel_row, 15, f"=Main!P{main_excel_row}")
+                    ws.write_formula(excel_row, 16, f"=Main!Q{main_excel_row}")
 
             # 3. All Scratches
             scratches_df = pd.DataFrame(columns=df.columns)
@@ -240,11 +221,23 @@ class SwimmerCheckInWriter:
             ws_scratches = writer.sheets["All Scratches"]
             for col_num, value in enumerate(df.columns.values):
                 ws_scratches.write(0, col_num, value, header_fmt)
-
-            # Formula (Note: FILTER is an array formula)
             last_row = len(df) + 1
             ws_scratches.write_dynamic_array_formula(
-                1, 0, last_row, 9, f'=FILTER(Main!A2:J{last_row}, Main!J2:J{last_row}="X", "No Scratches")'
+                1, 0, last_row, 16, f'=FILTER(Main!A2:Q{last_row}, Main!Q2:Q{last_row}="X", "No Scratches")'
+            )
+
+            # 4. Pending
+            pending_df = pd.DataFrame(columns=df.columns)
+            pending_df.to_excel(writer, sheet_name="Pending", index=False)
+            ws_pending = writer.sheets["Pending"]
+            for col_num, value in enumerate(df.columns.values):
+                ws_pending.write(0, col_num, value, header_fmt)
+            ws_pending.write_dynamic_array_formula(
+                1,
+                0,
+                last_row,
+                16,
+                f'=FILTER(Main!A2:Q{last_row}, (Main!P2:P{last_row}="") * (Main!Q2:Q{last_row}=""), "All Checked In")',
             )
 
         return output_path

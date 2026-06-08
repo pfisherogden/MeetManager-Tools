@@ -1099,15 +1099,60 @@ class ReportDataExtractor:
         }
 
     def extract_check_in_data(self, team_filter: str | None = None) -> list[dict[str, Any]]:
-        """Extract unique list of swimmers for check-in sheet."""
+        """Extract unique list of swimmers with event participation for check-in sheet."""
+        full_data = self._get_full_data()
         df_ath = self.converter.tables.get("athlete", None)
         if df_ath is None or df_ath.empty:
             return []
 
+        # Pre-calculate event participation for all athletes
+        # Map: athleteId -> Set of stroke types
+        participation: dict[int, set[str]] = {}
+        for session in full_data.get("sessions", []):
+            for event in session.get("events", []):
+                desc_lower = event.get("eventDesc", "").lower()
+                is_relay = event.get("isRelay", False)
+
+                # Determine stroke type
+                stroke_type = None
+                if "freestyle" in desc_lower and "relay" not in desc_lower:
+                    stroke_type = "Free"
+                elif "backstroke" in desc_lower:
+                    stroke_type = "Back"
+                elif "breaststroke" in desc_lower:
+                    stroke_type = "Breast"
+                elif "butterfly" in desc_lower:
+                    stroke_type = "Fly"
+                elif "individual medley" in desc_lower or r"\bim\b" in desc_lower:
+                    stroke_type = "IM"
+                elif "medley relay" in desc_lower:
+                    stroke_type = "Medley Relay"
+                elif "freestyle relay" in desc_lower or "free relay" in desc_lower:
+                    stroke_type = "Free Relay"
+
+                if not stroke_type:
+                    continue
+
+                for entry in event.get("entries", []):
+                    if is_relay:
+                        # Check all swimmers in the relay
+                        relay_athletes = entry.get("relayAthletes", [])
+                        for ra in relay_athletes:
+                            raid = ra.get("athleteId") or ra.get("id")
+                            if raid:
+                                if raid not in participation:
+                                    participation[raid] = set()
+                                participation[raid].add(stroke_type)
+                    else:
+                        aid = entry.get("athleteId")
+                        if aid:
+                            if aid not in participation:
+                                participation[aid] = set()
+                            participation[aid].add(stroke_type)
+
         check_in_list = []
 
         # We need all athlete IDs to look them up via converter
-        # Schema A: ath_no, Schema B: athlete
         ath_id_col = "ath_no" if "ath_no" in df_ath.columns else "athlete"
         ath_ids = df_ath[ath_id_col].tolist()
 
@@ -1118,20 +1163,29 @@ class ReportDataExtractor:
 
             # Filter by team if requested
             if team_filter:
-                # Build a temporary entry-like object for _matches_team_filter
                 temp_entry = {"team": a.get("teamName", ""), "teamCode": a.get("teamCode", "")}
                 if not self._matches_team_filter(temp_entry, team_filter):
                     continue
 
+            p = participation.get(aid, set())
+
             check_in_list.append(
                 {
-                    "First Name": a.get("firstName", "").strip(),
+                    "ID": aid,
                     "Last Name": a.get("lastName", "").strip(),
-                    "Preferred Name": a.get("firstName", "").strip(),  # get_athlete_by_number already handles pref_name
+                    "First Name": a.get("legalName", "").strip() or a.get("firstName", "").strip(),
+                    "Preferred Name": a.get("firstName", "").strip(),
                     "Gender": self._normalize_gender(a.get("athleteSex", "")),
                     "Age": self._safe_int(a.get("age", 0)),
                     "Team": a.get("teamName", ""),
                     "Age Group": self._get_age_group_from_age(self._safe_int(a.get("age", 0))),
+                    "Free": "X" if "Free" in p else "",
+                    "Fly": "X" if "Fly" in p else "",
+                    "Back": "X" if "Back" in p else "",
+                    "Breast": "X" if "Breast" in p else "",
+                    "IM": "X" if "IM" in p else "",
+                    "Free Relay": "X" if "Free Relay" in p else "",
+                    "Medley Relay": "X" if "Medley Relay" in p else "",
                 }
             )
 
