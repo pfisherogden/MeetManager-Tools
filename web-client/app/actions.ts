@@ -300,8 +300,12 @@ export async function uploadDataset(formData: FormData) {
 			// First message: filename
 			yield { filename: file.name };
 
-			// Subsequent messages: chunks (single chunk for now)
-			yield { chunk: uint8Array };
+			// Subsequent messages: chunks (1MB chunks to respect gRPC limits)
+			const CHUNK_SIZE = 1024 * 1024; // 1MB
+			for (let offset = 0; offset < uint8Array.length; offset += CHUNK_SIZE) {
+				const chunk = uint8Array.slice(offset, offset + CHUNK_SIZE);
+				yield { chunk: chunk };
+			}
 		}
 
 		const response = await client.uploadDataset(requestGenerator(), {
@@ -369,7 +373,8 @@ export async function listDatasets() {
 				lastModified: d.lastModified,
 			})),
 		};
-	} catch (_err) {
+	} catch (err: unknown) {
+		console.error("SERVER ACTION ERROR (listDatasets):", err);
 		return { datasets: [] };
 	}
 }
