@@ -105,7 +105,6 @@ def test_lineups_has_data(champs_cache):
 
     soup = BeautifulSoup(html, "html.parser")
     entry_rows = soup.find_all("tr", class_="entry-row")
-    print(f"Lineups ({first_team}): Found {len(entry_rows)} entries")
     assert len(entry_rows) > 0
     assert first_team in html
 
