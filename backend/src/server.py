@@ -2073,9 +2073,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # or if it's a GCS public URL that isn't signed (missing '?'),
             # ensure it's a full URL using FRONTEND_URL.
             from urllib.parse import urlparse
+
             parsed_bundle = urlparse(bundle_url)
             is_relative = bundle_url.startswith("/")
-            is_unsigned_gcs = (parsed_bundle.netloc == "storage.googleapis.com" or parsed_bundle.netloc == "storage.cloud.google.com") and not parsed_bundle.query
+            is_unsigned_gcs = (
+                parsed_bundle.netloc == "storage.googleapis.com" or parsed_bundle.netloc == "storage.cloud.google.com"
+            ) and not parsed_bundle.query
 
             if is_relative or is_unsigned_gcs:
                 token = _get_data_access_token()
