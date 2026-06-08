@@ -614,14 +614,14 @@ export function ReportsManager({
 							{reportPresets.map((preset) => (
 								<div
 									key={preset.id}
-									className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
+									className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors gap-4"
 								>
 									<div className="space-y-1">
 										<h4 className="font-bold text-sm">{preset.name}</h4>
 										<p className="text-xs text-muted-foreground">
 											{preset.description}
 										</p>
-										<div className="flex gap-1.5 mt-2">
+										<div className="flex flex-wrap gap-1.5 mt-2">
 											{preset.reports.map((r, _i) => (
 												<span
 													key={`${r.type}-${r.title.replace(/\s+/g, "-")}`}
@@ -637,6 +637,7 @@ export function ReportsManager({
 										variant="secondary"
 										onClick={() => applyPreset(preset)}
 										data-testid={`preset-apply-${preset.id}`}
+										className="w-full sm:w-auto shrink-0"
 									>
 										Apply to Builder
 									</Button>
