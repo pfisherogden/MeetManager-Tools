@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 		return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 	} catch (error: any) {
 		const safeAction = String(action).replace(/[^\w]/g, "");
-		console.error(`E2E TEST API ERROR (${safeAction}):`, error.message);
+		console.error("E2E TEST API ERROR (%s):", safeAction, error.message);
 		return NextResponse.json({ error: error.message }, { status: 500 });
 	}
 }

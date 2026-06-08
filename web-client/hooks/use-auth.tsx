@@ -100,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				Cookies.set("x-user-id", mockUid, {
 					path: "/",
 					sameSite: "strict",
+					secure: process.env.NODE_ENV === "production",
 				});
 			}
 
@@ -108,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				Cookies.set("idToken", "dev-token", {
 					path: "/",
 					sameSite: "strict",
+					secure: process.env.NODE_ENV === "production",
 				});
 			}
 
