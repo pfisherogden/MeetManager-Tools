@@ -57,9 +57,9 @@ def apply_formatting(
     requests = []
 
     # Column Widths
-    # 1:Last Name, 2:Preferred Name, 3:Present, 4:Scratch, 5:Gender, 6:Age Group,
+    # 1:Age Group, 2:Gender, 3:Preferred Name, 4:Last Name, 5:Present, 6:Scratch,
     # 7:Free, 8:Back, 9:Breast, 10:Fly, 11:IM, 12:Free Relay, 13:Medley Relay
-    widths = [150, 120, 70, 70, 60, 100, 50, 50, 50, 50, 50, 85, 85]
+    widths = [100, 60, 120, 150, 70, 70, 50, 50, 50, 50, 50, 85, 85]
     for i, w in enumerate(widths):
         requests.append(
             {
@@ -137,8 +137,8 @@ def apply_formatting(
                         "sheetId": sheet_id,
                         "startRowIndex": 1,
                         "endRowIndex": row_count + 1,
-                        "startColumnIndex": 2,
-                        "endColumnIndex": 4,
+                        "startColumnIndex": 4,
+                        "endColumnIndex": 6,
                     },
                     "rule": {"condition": {"type": "BOOLEAN"}, "showCustomUi": True},
                 }
@@ -161,12 +161,12 @@ def populate() -> None:
         swimmers = json.load(f)
 
     headers = [
-        "Last Name",
+        "Age Group",
+        "Gender",
         "Preferred Name",
+        "Last Name",
         "Present",
         "Scratch",
-        "Gender",
-        "Age Group",
         "Free",
         "Back",
         "Breast",
@@ -194,12 +194,12 @@ def populate() -> None:
 
     def format_swimmer(s: Dict[str, Any]) -> List[Any]:
         row = ["" for _ in range(17)]
-        row[0] = s.get("Last Name", "")
-        row[1] = s.get("Preferred Name", "")
-        row[2] = False  # Present
-        row[3] = False  # Scratch
-        row[4] = s.get("Gender", "")
-        row[5] = s.get("Age Group", "")
+        row[0] = s.get("Age Group", "")
+        row[1] = s.get("Gender", "")
+        row[2] = s.get("Preferred Name", "")
+        row[3] = s.get("Last Name", "")
+        row[4] = False  # Present
+        row[5] = False  # Scratch
         row[6] = s.get("Free", "")
         row[7] = s.get("Back", "")
         row[8] = s.get("Breast", "")
@@ -215,10 +215,21 @@ def populate() -> None:
 
     all_requests = []
 
-    # Sort Main: Last Name, Preferred Name
+    # Move Main tab to index 6 (after 6 age group tabs: 0-5)
+    all_requests.append(
+        {
+            "updateSheetProperties": {
+                "properties": {"sheetId": sheet_info["Main"], "index": 6},
+                "fields": "index",
+            }
+        }
+    )
+
+    # Sort Main: Age Group, Gender, Preferred Name
     swimmers.sort(
         key=lambda x: (
-            str(x.get("Last Name", "")).lower(),
+            str(x.get("Age Group", "")),
+            str(x.get("Gender", "")),
             str(x.get("Preferred Name", "")).lower(),
         )
     )
@@ -287,7 +298,7 @@ def populate() -> None:
         )
 
     # Formulas for All Scratches and Pending (A2)
-    scratches_formula = '=IFERROR(FILTER(Main!A2:Q, Main!D2:D=TRUE), "No Scratches")'
+    scratches_formula = '=IFERROR(FILTER(Main!A2:Q, Main!F2:F=TRUE), "No Scratches")'
     run_gws(
         "sheets",
         "spreadsheets",
@@ -304,7 +315,7 @@ def populate() -> None:
         apply_formatting(sheet_info["All Scratches"], 0, is_dynamic=True)
     )
 
-    pending_formula = '=IFERROR(FILTER(Main!A2:Q, (Main!A2:A<>"") * (Main!C2:C=FALSE) * (Main!D2:D=FALSE)), "No Pending")'
+    pending_formula = '=IFERROR(FILTER(Main!A2:Q, (Main!A2:A<>"") * (Main!E2:E=FALSE) * (Main!F2:F=FALSE)), "No Pending")'
     run_gws(
         "sheets",
         "spreadsheets",

@@ -52,6 +52,9 @@ class TestSpreadsheetPopulation(unittest.TestCase):
         checkbox_requests = [r for r in requests if "setDataValidation" in r]
         self.assertEqual(len(checkbox_requests), 1)
         self.assertEqual(
+            checkbox_requests[0]["setDataValidation"]["range"]["startColumnIndex"], 4
+        )
+        self.assertEqual(
             checkbox_requests[0]["setDataValidation"]["range"]["endRowIndex"], 11
         )
 

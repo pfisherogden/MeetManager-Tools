@@ -34,8 +34,8 @@ function onEdit(e) {
   var row = range.getRow();
   var value = e.value;
 
-  // Only sync 'Present' (Col 3) and 'Scratch' (Col 4)
-  if (column !== 3 && column !== 4) return;
+  // Only sync 'Present' (Col 5) and 'Scratch' (Col 6)
+  if (column !== 5 && column !== 6) return;
   if (row < 2) return; // Ignore header
 
   // Ignore formula-driven tabs
