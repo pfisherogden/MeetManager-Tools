@@ -14,7 +14,7 @@ Spreadsheet ID: {spreadsheet_id}
 Verify the following:
 1. 'Main' Tab:
    a) Tab Position: Confirm 'Main' tab is located AFTER the 6 Age Group tabs (position index 6).
-   b) Headers (A1:Q1) are exactly: "Age Group", "Gender", "Preferred Name", "Last Name", "Present", "Scratch", "Free Relay", "Medley Relay", "Free", "Back", "Breast", "Fly", "IM", "ID", "First Name", "Age", "Team".
+   b) Headers (A1:Q1) are exactly: "Age Group", "Gender", "Preferred Name", "Last Name", "Present", "Scratch", "Medley Relay", "Free Relay", "Free", "Back", "Breast", "Fly", "IM", "ID", "First Name", "Age", "Team".
    c) Sorting: Verify data is sorted by Age Group, then Gender, then Preferred Name (check first 5 rows).
    d) Conditional Formatting: 
       - Rule 1: Highlights E and F if both are TRUE (=AND($E2,$F2)).

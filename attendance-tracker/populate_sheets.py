@@ -198,8 +198,8 @@ def apply_formatting(
         )
 
         # Rule 2: Relay Scratch Warning (Darker Red/Orange)
-        # Highlight entire row if Scratch is TRUE AND (Free Relay is X OR Medley Relay is X)
-        # Scratch: F (Col 6), Free Relay: G (Col 7), Medley Relay: H (Col 8)
+        # Highlight entire row if Scratch is TRUE AND (Medley Relay is X OR Free Relay is X)
+        # Scratch: F (Col 6), Medley Relay: G (Col 7), Free Relay: H (Col 8)
         # Formula: =AND($F2, OR($G2="X", $H2="X"))
         requests.append(
             {
@@ -255,8 +255,8 @@ def populate() -> None:
         "Last Name",
         "Present",
         "Scratch",
-        "Free Relay",
         "Medley Relay",
+        "Free Relay",
         "Free",
         "Back",
         "Breast",
@@ -288,8 +288,8 @@ def populate() -> None:
         row[3] = s.get("Last Name", "")
         row[4] = False  # Present
         row[5] = False  # Scratch
-        row[6] = s.get("Free Relay", "")
-        row[7] = s.get("Medley Relay", "")
+        row[6] = s.get("Medley Relay", "")
+        row[7] = s.get("Free Relay", "")
         row[8] = s.get("Free", "")
         row[9] = s.get("Back", "")
         row[10] = s.get("Breast", "")
