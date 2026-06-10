@@ -48,14 +48,29 @@ class TestSpreadsheetPopulation(unittest.TestCase):
             1,
         )
 
-        # Verify checkboxes
-        checkbox_requests = [r for r in requests if "setDataValidation" in r]
-        self.assertEqual(len(checkbox_requests), 1)
+        # Verify checkboxes and validation clearing
+        validation_requests = [r for r in requests if "setDataValidation" in r]
+        self.assertEqual(len(validation_requests), 2)
+        # Clear name columns (indices 2-3)
         self.assertEqual(
-            checkbox_requests[0]["setDataValidation"]["range"]["startColumnIndex"], 4
+            validation_requests[0]["setDataValidation"]["range"]["startColumnIndex"], 2
+        )
+        # Checkboxes (indices 4-5)
+        self.assertEqual(
+            validation_requests[1]["setDataValidation"]["range"]["startColumnIndex"], 4
         )
         self.assertEqual(
-            checkbox_requests[0]["setDataValidation"]["range"]["endRowIndex"], 11
+            validation_requests[1]["setDataValidation"]["range"]["endRowIndex"], 11
+        )
+
+        # Verify conditional formatting
+        cf_requests = [r for r in requests if "addConditionalFormatRule" in r]
+        self.assertEqual(len(cf_requests), 1)
+        self.assertEqual(
+            cf_requests[0]["addConditionalFormatRule"]["rule"]["booleanRule"][
+                "condition"
+            ]["values"][0]["userEnteredValue"],
+            "=AND($E2,$F2)",
         )
 
     @patch("populate_sheets.os.path.exists")

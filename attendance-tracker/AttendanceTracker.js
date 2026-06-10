@@ -23,6 +23,7 @@ function checkPermissions() {
 /**
  * Triggers on every edit. Synchronizes checkbox changes between the Main tab
  * and Age Group tabs using the unique athlete ID in Column 14.
+ * Implements mutual exclusivity between 'Present' (Col 5) and 'Scratch' (Col 6).
  * 
  * @param {Object} e The edit event object.
  */
@@ -48,26 +49,11 @@ function onEdit(e) {
   if (!athleteId) return;
 
   var sheetsToUpdate = [];
-  if (sheetName === 'Main') {
-    // If Main was edited, update all other non-dynamic sheets
-    var allSheets = ss.getSheets();
-    for (var i = 0; i < allSheets.length; i++) {
-      var name = allSheets[i].getName();
-      if (name !== 'Main' && name !== 'All Scratches' && name !== 'Pending') {
-        sheetsToUpdate.push(allSheets[i]);
-      }
-    }
-  } else {
-    // If an Age Group sheet was edited, update Main
-    sheetsToUpdate.push(ss.getSheetByName('Main'));
-    
-    // Also update other age group sheets if ID matches
-    var allSheets = ss.getSheets();
-    for (var i = 0; i < allSheets.length; i++) {
-      var name = allSheets[i].getName();
-      if (name !== sheetName && name !== 'Main' && name !== 'All Scratches' && name !== 'Pending') {
-        sheetsToUpdate.push(allSheets[i]);
-      }
+  var allSheets = ss.getSheets();
+  for (var i = 0; i < allSheets.length; i++) {
+    var name = allSheets[i].getName();
+    if (name !== sheetName && name !== 'All Scratches' && name !== 'Pending') {
+      sheetsToUpdate.push(allSheets[i]);
     }
   }
 

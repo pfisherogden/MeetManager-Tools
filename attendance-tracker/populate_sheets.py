@@ -128,6 +128,22 @@ def apply_formatting(
         }
     )
 
+    # Clear Data Validation on Preferred Name and Last Name (Indices 2-3)
+    requests.append(
+        {
+            "setDataValidation": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 1,
+                    "endRowIndex": row_count + 1,
+                    "startColumnIndex": 2,
+                    "endColumnIndex": 4,
+                },
+                # Empty rule clears validation
+            }
+        }
+    )
+
     # Checkboxes (only if row_count > 0 and not dynamic)
     if row_count > 0 and not is_dynamic:
         requests.append(
@@ -141,6 +157,41 @@ def apply_formatting(
                         "endColumnIndex": 6,
                     },
                     "rule": {"condition": {"type": "BOOLEAN"}, "showCustomUi": True},
+                }
+            }
+        )
+
+        # Conditional Formatting: Highlight both if both checked
+        # Present is E (index 4), Scratch is F (index 5)
+        # Formula: =AND($E2,$F2) - using absolute column references but relative row
+        requests.append(
+            {
+                "addConditionalFormatRule": {
+                    "rule": {
+                        "ranges": [
+                            {
+                                "sheetId": sheet_id,
+                                "startRowIndex": 1,
+                                "endRowIndex": row_count + 1,
+                                "startColumnIndex": 4,
+                                "endColumnIndex": 6,
+                            }
+                        ],
+                        "booleanRule": {
+                            "condition": {
+                                "type": "CUSTOM_FORMULA",
+                                "values": [{"userEnteredValue": "=AND($E2,$F2)"}],
+                            },
+                            "format": {
+                                "backgroundColor": {
+                                    "red": 1.0,
+                                    "green": 0.8,
+                                    "blue": 0.8,
+                                }
+                            },
+                        },
+                    },
+                    "index": 0,
                 }
             }
         )
