@@ -40,7 +40,7 @@ function onEdit(e) {
   if (row < 2) return; // Ignore header
 
   // Ignore formula-driven tabs
-  if (sheetName === 'All Scratches' || sheetName === 'Pending') return;
+  if (sheetName === 'All Scratches' || sheetName === 'Not Checked In') return;
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   
@@ -52,7 +52,7 @@ function onEdit(e) {
   var allSheets = ss.getSheets();
   for (var i = 0; i < allSheets.length; i++) {
     var name = allSheets[i].getName();
-    if (name !== sheetName && name !== 'All Scratches' && name !== 'Pending') {
+    if (name !== sheetName && name !== 'All Scratches' && name !== 'Not Checked In') {
       sheetsToUpdate.push(allSheets[i]);
     }
   }

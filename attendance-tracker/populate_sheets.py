@@ -240,7 +240,7 @@ def populate() -> None:
         "13-14": 219663982,
         "15-18": 1666842791,
         "All Scratches": 1274802197,
-        "Pending": 438457747,
+        "Not Checked In": 438457747,
     }
 
     def format_swimmer(s: Dict[str, Any]) -> List[Any]:
@@ -333,8 +333,8 @@ def populate() -> None:
             )
             all_requests.extend(apply_formatting(sheet_info[ag], len(group)))
 
-    # Headers for All Scratches and Pending
-    for tab in ["All Scratches", "Pending"]:
+    # Headers for All Scratches and Not Checked In
+    for tab in ["All Scratches", "Not Checked In"]:
         run_gws(
             "sheets",
             "spreadsheets",
@@ -348,7 +348,7 @@ def populate() -> None:
             body={"values": [headers]},
         )
 
-    # Formulas for All Scratches and Pending (A2)
+    # Formulas for All Scratches and Not Checked In (A2)
     scratches_formula = '=IFERROR(FILTER(Main!A2:Q, Main!F2:F=TRUE), "No Scratches")'
     run_gws(
         "sheets",
@@ -366,7 +366,7 @@ def populate() -> None:
         apply_formatting(sheet_info["All Scratches"], 0, is_dynamic=True)
     )
 
-    pending_formula = '=IFERROR(FILTER(Main!A2:Q, (Main!A2:A<>"") * (Main!E2:E=FALSE) * (Main!F2:F=FALSE)), "No Pending")'
+    pending_formula = '=IFERROR(FILTER(Main!A2:Q, (Main!A2:A<>"") * (Main!E2:E=FALSE) * (Main!F2:F=FALSE)), "All Checked In")'
     run_gws(
         "sheets",
         "spreadsheets",
@@ -374,12 +374,14 @@ def populate() -> None:
         "update",
         params={
             "spreadsheetId": spreadsheet_id,
-            "range": "Pending!A2",
+            "range": "'Not Checked In'!A2",
             "valueInputOption": "USER_ENTERED",
         },
         body={"values": [[pending_formula]]},
     )
-    all_requests.extend(apply_formatting(sheet_info["Pending"], 0, is_dynamic=True))
+    all_requests.extend(
+        apply_formatting(sheet_info["Not Checked In"], 0, is_dynamic=True)
+    )
 
     # Run all formatting requests
     run_gws(
