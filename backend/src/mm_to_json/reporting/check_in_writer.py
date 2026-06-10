@@ -142,14 +142,14 @@ class SwimmerCheckInWriter:
             scratch_ws.update([df.columns.tolist()])
             # Native Sheets FILTER formula: =IFNA(FILTER(Range, Condition), "No Results")
             formula_scratch = f'=IFNA(FILTER(Main!A2:Q{last_row}, Main!D2:D{last_row}=TRUE), "No Scratches")'
-            scratch_ws.update_acell("A2", formula_scratch, raw=False)
+            scratch_ws.update([[formula_scratch]], "A2", raw=False)
             self._apply_native_formatting(scratch_ws, 100, is_main=False)
 
             # Pending: Column C is Present, D is Scratch
             pending_ws = sh.add_worksheet(title="Pending", rows=200, cols=len(self.all_cols))
             pending_ws.update([df.columns.tolist()])
             formula_pending = f'=IFNA(FILTER(Main!A2:Q{last_row}, Main!C2:C{last_row}=FALSE, Main!D2:D{last_row}=FALSE), "All Checked In")'
-            pending_ws.update_acell("A2", formula_pending, raw=False)
+            pending_ws.update([[formula_pending]], "A2", raw=False)
             self._apply_native_formatting(pending_ws, 200, is_main=False)
 
             # 7. Install Apps Script
