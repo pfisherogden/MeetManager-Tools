@@ -1,0 +1,50 @@
+set shell := ["bash", "-c"]
+
+python := "../.venv/bin/python3"
+
+# Default target
+default: test
+
+# Extract attendance data from an MDB file
+# Usage: just extract /path/to/meet.mdb [team_code]
+extract mdb_path team="DP":
+    @echo "Extracting attendance data from {{mdb_path}} for team {{team}}..."
+    {{python}} extract_attendance_data.py {{mdb_path}} {{team}}
+
+# Populate the Google Sheet with extracted data
+populate:
+    @echo "Populating Google Sheet..."
+    {{python}} populate_sheets.py
+
+# Push the Apps Script code to the bound project
+push-script:
+    @echo "Pushing Apps Script..."
+    clasp push -f
+
+# Run all unit tests
+test:
+    @echo "Running unit tests..."
+    {{python}} -m unittest discover tests
+
+# Perform a structural audit using the sub-agent
+audit:
+    @echo "Generating audit instructions..."
+    {{python}} tests/verify_spreadsheet.py
+
+# Full end-to-end run: extract, populate, and test
+# Usage: just run /path/to/meet.mdb
+run mdb_path:
+    just extract {{mdb_path}}
+    just populate
+    just test
+    @echo "Attendance tracker updated and verified."
+
+# Linting and formatting
+lint:
+    @echo "Linting Python files..."
+    ../.venv/bin/ruff check .
+
+fix:
+    @echo "Fixing Python files..."
+    ../.venv/bin/ruff format .
+    ../.venv/bin/ruff check --fix .
