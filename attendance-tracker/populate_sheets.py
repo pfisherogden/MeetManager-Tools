@@ -58,8 +58,8 @@ def apply_formatting(
 
     # Column Widths
     # 1:Age Group, 2:Gender, 3:Preferred Name, 4:Last Name, 5:Present, 6:Scratch,
-    # 7:Free, 8:Back, 9:Breast, 10:Fly, 11:IM, 12:Free Relay, 13:Medley Relay
-    widths = [100, 60, 120, 150, 70, 70, 50, 50, 50, 50, 50, 85, 85]
+    # 7:Free Relay, 8:Medley Relay, 9:Free, 10:Back, 11:Breast, 12:Fly, 13:IM
+    widths = [100, 60, 120, 150, 70, 70, 85, 85, 50, 50, 50, 50, 50]
     for i, w in enumerate(widths):
         requests.append(
             {
@@ -161,9 +161,10 @@ def apply_formatting(
             }
         )
 
-        # Conditional Formatting: Highlight both if both checked
-        # Present is E (index 4), Scratch is F (index 5)
-        # Formula: =AND($E2,$F2) - using absolute column references but relative row
+        # Conditional Formatting Rules
+        
+        # Rule 1: Highlight both Present/Scratch if both checked (Pink)
+        # Formula: =AND($E2,$F2)
         requests.append(
             {
                 "addConditionalFormatRule": {
@@ -196,6 +197,42 @@ def apply_formatting(
             }
         )
 
+        # Rule 2: Relay Scratch Warning (Darker Red/Orange)
+        # Highlight entire row if Scratch is TRUE AND (Free Relay is X OR Medley Relay is X)
+        # Scratch: F (Col 6), Free Relay: G (Col 7), Medley Relay: H (Col 8)
+        # Formula: =AND($F2, OR($G2="X", $H2="X"))
+        requests.append(
+            {
+                "addConditionalFormatRule": {
+                    "rule": {
+                        "ranges": [
+                            {
+                                "sheetId": sheet_id,
+                                "startRowIndex": 1,
+                                "endRowIndex": row_count + 1,
+                                "startColumnIndex": 0,
+                                "endColumnIndex": 13,
+                            }
+                        ],
+                        "booleanRule": {
+                            "condition": {
+                                "type": "CUSTOM_FORMULA",
+                                "values": [{"userEnteredValue": '=AND($F2, OR($G2="X", $H2="X"))'}],
+                            },
+                            "format": {
+                                "backgroundColor": {
+                                    "red": 1.0,
+                                    "green": 0.6,
+                                    "blue": 0.6,
+                                }
+                            },
+                        },
+                    },
+                    "index": 0,
+                }
+            }
+        )
+
     return requests
 
 
@@ -218,13 +255,13 @@ def populate() -> None:
         "Last Name",
         "Present",
         "Scratch",
+        "Free Relay",
+        "Medley Relay",
         "Free",
         "Back",
         "Breast",
         "Fly",
         "IM",
-        "Free Relay",
-        "Medley Relay",
         "ID",
         "First Name",
         "Age",
@@ -251,13 +288,13 @@ def populate() -> None:
         row[3] = s.get("Last Name", "")
         row[4] = False  # Present
         row[5] = False  # Scratch
-        row[6] = s.get("Free", "")
-        row[7] = s.get("Back", "")
-        row[8] = s.get("Breast", "")
-        row[9] = s.get("Fly", "")
-        row[10] = s.get("IM", "")
-        row[11] = s.get("Free Relay", "")
-        row[12] = s.get("Medley Relay", "")
+        row[6] = s.get("Free Relay", "")
+        row[7] = s.get("Medley Relay", "")
+        row[8] = s.get("Free", "")
+        row[9] = s.get("Back", "")
+        row[10] = s.get("Breast", "")
+        row[11] = s.get("Fly", "")
+        row[12] = s.get("IM", "")
         row[13] = s.get("ID", "")
         row[14] = s.get("First Name", "")
         row[15] = s.get("Age", "")

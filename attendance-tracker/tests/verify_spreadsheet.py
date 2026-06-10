@@ -14,18 +14,18 @@ Spreadsheet ID: {spreadsheet_id}
 Verify the following:
 1. 'Main' Tab:
    a) Tab Position: Confirm 'Main' tab is located AFTER the 6 Age Group tabs (position index 6).
-   b) Headers (A1:Q1) are exactly: "Age Group", "Gender", "Preferred Name", "Last Name", "Present", "Scratch", "Free", "Back", "Breast", "Fly", "IM", "Free Relay", "Medley Relay", "ID", "First Name", "Age", "Team".
+   b) Headers (A1:Q1) are exactly: "Age Group", "Gender", "Preferred Name", "Last Name", "Present", "Scratch", "Free Relay", "Medley Relay", "Free", "Back", "Breast", "Fly", "IM", "ID", "First Name", "Age", "Team".
    c) Sorting: Verify data is sorted by Age Group, then Gender, then Preferred Name (check first 5 rows).
-   d) Checkboxes: Native checkboxes exist in Columns E and F (indices 4 and 5) ONLY for swimmer rows.
-   e) Row 1 is frozen and styled (bold, gray background).
+   d) Conditional Formatting: 
+      - Rule 1: Highlights E and F if both are TRUE (=AND($E2,$F2)).
+      - Rule 2: Highlights entire row A-M if Scratch (F) is TRUE and either Relay (G or H) is "X" (=AND($F2, OR($G2="X", $H2="X"))).
 2. Age Group Tabs:
-   a) Data is sorted by Gender, then Preferred Name.
+   a) Headers and layout match 'Main'.
    b) Checkboxes exist in Columns E and F for swimmer rows.
-3. 'All Scratches' and 'Pending' Tabs:
+3. 'All Scratches' and 'Not Checked In' Tabs:
    a) Headers are present in row 1.
    b) Formula is in cell A2.
-   c) Scratches formula uses Column F (index 5) for TRUE check.
-   d) Pending formula uses Column E and F (indices 4 and 5) for FALSE checks.
+   c) 'Not Checked In' tab correctly shows swimmers where Present (E) and Scratch (F) are both FALSE.
 4. Apps Script:
    a) Binding exists and synchronization logic uses Column 14 for ID-based lookup and Columns 5/6 for checkbox sync.
 
