@@ -135,62 +135,22 @@ class SwimmerCheckInWriter:
                 self._apply_native_formatting(ws, len(subset), is_main=False)
                 ws.freeze(rows=1)
 
-            # 6. Dynamic Filter Tabs (Static rows with Native Basic Filters)
-            for tab_name in ["All Scratches", "Pending"]:
-                ws = sh.add_worksheet(title=tab_name, rows=len(df) + 1, cols=len(self.all_cols))
+            # 6. Dynamic Filter Tabs (Native Sheets Formulas)
+            last_row = len(df) + 1
+            # Scratches: Column D is Scratch
+            scratch_ws = sh.add_worksheet(title="All Scratches", rows=100, cols=len(self.all_cols))
+            scratch_ws.update([df.columns.tolist()])
+            # Native Sheets FILTER formula: =IFNA(FILTER(Range, Condition), "No Results")
+            formula_scratch = f'=IFNA(FILTER(Main!A2:Q{last_row}, Main!D2:D{last_row}=TRUE), "No Scratches")'
+            scratch_ws.update([[formula_scratch]], "A2", raw=False)
+            self._apply_native_formatting(scratch_ws, 100, is_main=False)
 
-                rows = [df.columns.tolist()]
-                for idx in range(len(df)):
-                    row_data = df.iloc[idx].astype(str).values.tolist()
-                    main_row = idx + 2
-                    row_data[2] = f"=Main!C{main_row}"
-                    row_data[3] = f"=Main!D{main_row}"
-                    rows.append(row_data)
-
-                ws.update(rows, raw=False)
-                self._apply_native_formatting(ws, len(df), is_main=False)
-                ws.freeze(rows=1)
-
-                # Apply Basic Filters
-                if tab_name == "All Scratches":
-                    # Filter Column 3 (Scratch) == TRUE
-                    filter_req = {
-                        "setBasicFilter": {
-                            "filter": {
-                                "range": {
-                                    "sheetId": ws.id,
-                                    "startRowIndex": 0,
-                                    "endRowIndex": len(df) + 1,
-                                    "startColumnIndex": 0,
-                                    "endColumnIndex": 17,
-                                },
-                                "criteria": {
-                                    "3": {"condition": {"type": "TEXT_EQ", "values": [{"userEnteredValue": "TRUE"}]}}
-                                },
-                            }
-                        }
-                    }
-                    ws.spreadsheet.batch_update({"requests": [filter_req]})
-                elif tab_name == "Pending":
-                    # Filter Column 2 (Present) == FALSE AND Column 3 (Scratch) == FALSE
-                    filter_req = {
-                        "setBasicFilter": {
-                            "filter": {
-                                "range": {
-                                    "sheetId": ws.id,
-                                    "startRowIndex": 0,
-                                    "endRowIndex": len(df) + 1,
-                                    "startColumnIndex": 0,
-                                    "endColumnIndex": 17,
-                                },
-                                "criteria": {
-                                    "2": {"condition": {"type": "TEXT_EQ", "values": [{"userEnteredValue": "FALSE"}]}},
-                                    "3": {"condition": {"type": "TEXT_EQ", "values": [{"userEnteredValue": "FALSE"}]}},
-                                },
-                            }
-                        }
-                    }
-                    ws.spreadsheet.batch_update({"requests": [filter_req]})
+            # Pending: Column C is Present, D is Scratch
+            pending_ws = sh.add_worksheet(title="Pending", rows=200, cols=len(self.all_cols))
+            pending_ws.update([df.columns.tolist()])
+            formula_pending = f'=IFNA(FILTER(Main!A2:Q{last_row}, Main!C2:C{last_row}=FALSE, Main!D2:D{last_row}=FALSE), "All Checked In")'
+            pending_ws.update([[formula_pending]], "A2", raw=False)
+            self._apply_native_formatting(pending_ws, 200, is_main=False)
 
             # 7. Install Apps Script
             self._install_apps_script(sh.id)
@@ -337,17 +297,19 @@ class SwimmerCheckInWriter:
                 "dependencies": {},
                 "exceptionLogging": "STACKDRIVER",
                 "runtimeVersion": "V8",
-                "oauthScopes": [
-                    "https://www.googleapis.com/auth/spreadsheets.currentonly",
-                    "https://www.googleapis.com/auth/script.container.ui",
-                ],
+                "oauthScopes": ["https://www.googleapis.com/auth/spreadsheets.currentonly"],
             }
             code_gs = """
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('Swim Tools')
+      .addItem('Check Permissions', 'checkPermissions')
       .addItem('Format Spreadsheet (Run Once)', 'setupSheet')
       .addToUi();
+}
+
+function checkPermissions() {
+  SpreadsheetApp.getActiveSpreadsheet().toast("Permissions granted successfully! Checkbox sync is active.");
 }
 
 function setupSheet() {
