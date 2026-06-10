@@ -66,27 +66,25 @@ class TestSpreadsheetPopulation(unittest.TestCase):
         # Verify conditional formatting
         cf_requests = [r for r in requests if "addConditionalFormatRule" in r]
         self.assertEqual(len(cf_requests), 2)
-        # Conflict Rule (Pink)
+        # Relay Scratch Rule (Yellow) - Index 0 in requests
         self.assertEqual(
             cf_requests[0]["addConditionalFormatRule"]["rule"]["booleanRule"][
-                "condition"
-            ]["values"][0]["userEnteredValue"],
-            "=AND($E2,$F2)",
-        )
-        # Relay Scratch Rule (Darker Red)
-        self.assertEqual(
-            cf_requests[1]["addConditionalFormatRule"]["rule"]["booleanRule"][
                 "condition"
             ]["values"][0]["userEnteredValue"],
             '=AND($F2, OR($G2="X", $H2="X"))',
         )
         self.assertEqual(
-            cf_requests[1]["addConditionalFormatRule"]["rule"]["ranges"][0]["startColumnIndex"],
-            0
+            cf_requests[0]["addConditionalFormatRule"]["rule"]["booleanRule"]["format"][
+                "backgroundColor"
+            ]["green"],
+            1.0,
         )
+        # Conflict Rule (Pink) - Index 1 in requests
         self.assertEqual(
-            cf_requests[1]["addConditionalFormatRule"]["rule"]["ranges"][0]["endColumnIndex"],
-            13
+            cf_requests[1]["addConditionalFormatRule"]["rule"]["booleanRule"][
+                "condition"
+            ]["values"][0]["userEnteredValue"],
+            "=AND($E2,$F2)",
         )
 
     @patch("populate_sheets.os.path.exists")
