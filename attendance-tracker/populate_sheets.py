@@ -161,79 +161,84 @@ def apply_formatting(
             }
         )
 
-        # Conditional Formatting Rules
-        
-        # Rule 1: Highlight both Present/Scratch if both checked (Pink)
-        # Formula: =AND($E2,$F2)
-        requests.append(
-            {
-                "addConditionalFormatRule": {
-                    "rule": {
-                        "ranges": [
-                            {
-                                "sheetId": sheet_id,
-                                "startRowIndex": 1,
-                                "endRowIndex": row_count + 1,
-                                "startColumnIndex": 4,
-                                "endColumnIndex": 6,
-                            }
-                        ],
-                        "booleanRule": {
-                            "condition": {
-                                "type": "CUSTOM_FORMULA",
-                                "values": [{"userEnteredValue": "=AND($E2,$F2)"}],
-                            },
-                            "format": {
-                                "backgroundColor": {
-                                    "red": 1.0,
-                                    "green": 0.8,
-                                    "blue": 0.8,
-                                }
-                            },
-                        },
-                    },
-                    "index": 0,
-                }
-            }
-        )
+    # Conditional Formatting Rules (Applied to ALL tabs)
+    # Default end row for dynamic tabs is 1000
+    effective_end_row = (row_count + 1) if not is_dynamic else 1000
 
-        # Rule 2: Relay Scratch Warning (Darker Red/Orange)
-        # Highlight entire row if Scratch is TRUE AND (Medley Relay is X OR Free Relay is X)
-        # Scratch: F (Col 6), Medley Relay: G (Col 7), Free Relay: H (Col 8)
-        # Formula: =AND($F2, OR($G2="X", $H2="X"))
-        requests.append(
-            {
-                "addConditionalFormatRule": {
-                    "rule": {
-                        "ranges": [
-                            {
-                                "sheetId": sheet_id,
-                                "startRowIndex": 1,
-                                "endRowIndex": row_count + 1,
-                                "startColumnIndex": 0,
-                                "endColumnIndex": 13,
+    # Rule 1: Relay Scratch Warning (Yellow)
+    # Highlight entire row if Scratch is TRUE AND (Medley Relay is X OR Free Relay is X)
+    # Scratch: F (Col 6), Medley Relay: G (Col 7), Free Relay: H (Col 8)
+    requests.append(
+        {
+            "addConditionalFormatRule": {
+                "rule": {
+                    "ranges": [
+                        {
+                            "sheetId": sheet_id,
+                            "startRowIndex": 1,
+                            "endRowIndex": effective_end_row,
+                            "startColumnIndex": 0,
+                            "endColumnIndex": 13,
+                        }
+                    ],
+                    "booleanRule": {
+                        "condition": {
+                            "type": "CUSTOM_FORMULA",
+                            "values": [
+                                {"userEnteredValue": '=AND($F2, OR($G2="X", $H2="X"))'}
+                            ],
+                        },
+                        "format": {
+                            "backgroundColor": {
+                                "red": 1.0,
+                                "green": 1.0,
+                                "blue": 0.8,
                             }
-                        ],
-                        "booleanRule": {
-                            "condition": {
-                                "type": "CUSTOM_FORMULA",
-                                "values": [{"userEnteredValue": '=AND($F2, OR($G2="X", $H2="X"))'}],
-                            },
-                            "format": {
-                                "backgroundColor": {
-                                    "red": 1.0,
-                                    "green": 0.6,
-                                    "blue": 0.6,
-                                }
-                            },
                         },
                     },
-                    "index": 0,
-                }
+                },
+                "index": 0,
             }
-        )
+        }
+    )
+
+    # Rule 2: Conflict Warning (Pink) - High Priority
+    # Highlight both Present/Scratch if both checked
+    # This rule is added at index 0, so it will override the Yellow rule if both match.
+    requests.append(
+        {
+            "addConditionalFormatRule": {
+                "rule": {
+                    "ranges": [
+                        {
+                            "sheetId": sheet_id,
+                            "startRowIndex": 1,
+                            "endRowIndex": effective_end_row,
+                            "startColumnIndex": 4,
+                            "endColumnIndex": 6,
+                        }
+                    ],
+                    "booleanRule": {
+                        "condition": {
+                            "type": "CUSTOM_FORMULA",
+                            "values": [{"userEnteredValue": "=AND($E2,$F2)"}],
+                        },
+                        "format": {
+                            "backgroundColor": {
+                                "red": 1.0,
+                                "green": 0.8,
+                                "blue": 0.8,
+                            }
+                        },
+                    },
+                },
+                "index": 0,
+            }
+        }
+    )
 
     return requests
+
 
 
 def populate() -> None:
