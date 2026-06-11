@@ -17,14 +17,13 @@ def run_audit():
     b) Conditional Formatting: 
       - Rule 1 (Precedence): Highlights E and F in Pink if both TRUE (=AND($E2,$F2)).
       - Rule 2: Highlights entire row A-M in Yellow if Scratch (F) is TRUE and either Relay (G or H) is "X" (=AND($F2, OR($G2="X", $H2="X"))).
-    2. Age Group Tabs:
-    a) Headers and layout match 'Main'.
-    b) Checkboxes exist in Columns E and F for swimmer rows.
-    c) Verified that BOTH conditional formatting rules above are also applied here.
-    3. 'All Scratches' and 'Not Checked In' Tabs:
-    a) Headers are present in row 1.
-    b) Formula is in cell A2.
-    c) Verified that BOTH conditional formatting rules above are also applied here (range up to row 1000).
+    2. 'All Scratches' and 'Not Checked In' Tabs:
+    a) Verified that BOTH conditional formatting rules above are also applied here (range up to row 1000).
+    3. 'QR Code' Tab:
+    a) Exists at the far right.
+    b) Contains a scannable image of the spreadsheet URL.
+    4. Apps Script:
+    a) Binding exists and synchronization logic uses Column 14 for ID-based lookup and Columns 5/6 for checkbox sync.
 
     Confirm each point in a detailed report."""
 

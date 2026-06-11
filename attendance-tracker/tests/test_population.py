@@ -79,6 +79,12 @@ class TestSpreadsheetPopulation(unittest.TestCase):
             ]["green"],
             1.0,
         )
+        self.assertEqual(
+            cf_requests[0]["addConditionalFormatRule"]["rule"]["booleanRule"]["format"][
+                "backgroundColor"
+            ]["blue"],
+            0.8,
+        )
         # Conflict Rule (Pink) - Index 1 in requests
         self.assertEqual(
             cf_requests[1]["addConditionalFormatRule"]["rule"]["booleanRule"][
@@ -86,6 +92,7 @@ class TestSpreadsheetPopulation(unittest.TestCase):
             ]["values"][0]["userEnteredValue"],
             "=AND($E2,$F2)",
         )
+
 
     @patch("populate_sheets.os.path.exists")
     @patch("populate_sheets.run_gws")

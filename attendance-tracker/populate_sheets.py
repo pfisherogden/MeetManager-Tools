@@ -58,7 +58,7 @@ def apply_formatting(
 
     # Column Widths
     # 1:Age Group, 2:Gender, 3:Preferred Name, 4:Last Name, 5:Present, 6:Scratch,
-    # 7:Free Relay, 8:Medley Relay, 9:Free, 10:Back, 11:Breast, 12:Fly, 13:IM
+    # 7:Medley Relay, 8:Free Relay, 9:Free, 10:Back, 11:Breast, 12:Fly, 13:IM
     widths = [100, 60, 120, 150, 70, 70, 85, 85, 50, 50, 50, 50, 50]
     for i, w in enumerate(widths):
         requests.append(
@@ -240,7 +240,6 @@ def apply_formatting(
     return requests
 
 
-
 def populate() -> None:
     """
     Populates the attendance tracker spreadsheet with swimmer data, formulas, and formatting.
@@ -283,6 +282,7 @@ def populate() -> None:
         "15-18": 1666842791,
         "All Scratches": 1274802197,
         "Not Checked In": 438457747,
+        "QR Code": 918231810,
     }
 
     def format_swimmer(s: Dict[str, Any]) -> List[Any]:
@@ -424,6 +424,37 @@ def populate() -> None:
     all_requests.extend(
         apply_formatting(sheet_info["Not Checked In"], 0, is_dynamic=True)
     )
+
+    # QR Code Tab
+    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+    qr_formula = f'=IMAGE("{qr_url}")'
+    run_gws(
+        "sheets",
+        "spreadsheets",
+        "values",
+        "update",
+        params={
+            "spreadsheetId": spreadsheet_id,
+            "range": "'QR Code'!A1",
+            "valueInputOption": "USER_ENTERED",
+        },
+        body={"values": [["Scan to Share Attendance Tracker"], [qr_formula]]},
+    )
+    # Format QR Code tab (make it large)
+    all_requests.append({
+        "updateDimensionProperties": {
+            "range": { "sheetId": sheet_info["QR Code"], "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1 },
+            "properties": { "pixelSize": 500 },
+            "fields": "pixelSize"
+        }
+    })
+    all_requests.append({
+        "updateDimensionProperties": {
+            "range": { "sheetId": sheet_info["QR Code"], "dimension": "ROWS", "startIndex": 1, "endIndex": 2 },
+            "properties": { "pixelSize": 500 },
+            "fields": "pixelSize"
+        }
+    })
 
     # Run all formatting requests
     run_gws(
