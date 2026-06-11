@@ -23,17 +23,35 @@ Expert guidance for maintaining and extending the MeetManager Attendance Tracker
 - The bi-directional sync is handled by `AttendanceTracker.js`.
 - **Constraint**: If the spreadsheet column order changes, you MUST update the column indices in the script:
   - `column 14` is currently the unique ID.
-  - `columns 3 and 4` are Present/Scratch.
+  - `columns 5 and 6` are Present/Scratch.
+
+## Detailed New Meet Workflow
+
+When a new `.mdb` file arrives for a meet:
+
+1.  **Create Spreadsheet**:
+    ```bash
+    gws sheets spreadsheets create --json '{"properties": {"title": "2026 Attendance Tracker - Meet [N]"}}'
+    ```
+    - Copy the `spreadsheetId` from the output.
+2.  **Add Tabs**:
+    - Use `gws sheets spreadsheets batchUpdate` to add the required tabs (indices 0-9): '6 & Under', '7-8', '9-10', '11-12', '13-14', '15-18', 'Main', 'All Scratches', 'Not Checked In', and 'QR Code'.
+    - Record the `sheetId` for each new tab.
+3.  **Update Config**:
+    - In `populate_sheets.py`, update `spreadsheet_id` and the `sheet_info` dictionary with the new IDs.
+4.  **Execute & Bind**:
+    - Run `just run /path/to/new_meet.mdb`.
+    - Run `clasp create --parentId <NEW_ID>` then `just push-script`.
 
 ## Critical Constraints
 - **Least Privilege**: Always use the `https://www.googleapis.com/auth/spreadsheets.currentonly` scope in `appsscript.json`.
 - **Formula Safety**: Never place formulas in Row 1. Use Row 2 (e.g., `A2`) to avoid overwriting headers.
-- **Dynamic Protection**: The `onEdit` trigger MUST ignore tabs listed in the `FILTER` formulas (e.g., 'All Scratches', 'Pending') to prevent data corruption.
+- **Dynamic Protection**: The `onEdit` trigger MUST ignore tabs listed in the `FILTER` formulas (e.g., 'All Scratches', 'Not Checked In') to prevent data corruption.
 
 ## Verification Checklist
-- [ ] 'Main' tab sorted by Last Name, then Preferred Name.
-- [ ] Age Group tabs sorted by Gender, then Preferred Name.
-- [ ] Metadata columns (14-17) hidden.
-- [ ] Header row frozen and gray.
-- [ ] Checkboxes only on rows with swimmer data.
-- [ ] Bi-directional sync verified by manual test or sub-agent audit.
+- [ ] 'Main' tab follows Age Group tabs (index 6).
+- [ ] Sort order: Age Group -> Gender -> Preferred Name.
+- [ ] Relay columns (Medley then Free) appear BEFORE individual strokes.
+- [ ] Visual Warnings: Pink for conflicts, Yellow for relay scratches.
+- [ ] QR Code tab contains scannable image.
+- [ ] Bi-directional sync verified (Columns 5/6 using ID Column 14).
