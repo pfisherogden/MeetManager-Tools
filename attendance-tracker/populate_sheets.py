@@ -3,7 +3,7 @@ import os
 import subprocess
 from typing import List, Dict, Any, Optional
 
-spreadsheet_id = "1ln0ynFoOHe9jx43Mb2ox6ACP_mhinoAmEtkNJVqdS38"
+spreadsheet_id = "1MNe1PO6Qrw77SlvLWULnmXEEzRniag7sNRrC8uco-l8"
 
 
 def run_gws(
@@ -14,15 +14,6 @@ def run_gws(
 ) -> Any:
     """
     Executes a Google Workspace CLI (gws) command.
-
-    Args:
-        service: The GWS service name (e.g., "sheets").
-        *args: Sub-resources and method name (e.g., "spreadsheets", "values", "update").
-        params: URL/Query parameters as a dictionary.
-        body: Request body as a dictionary.
-
-    Returns:
-        The parsed JSON response or raw output string.
     """
     cmd = ["gws", service] + list(args)
     if params:
@@ -45,14 +36,6 @@ def apply_formatting(
 ) -> List[Dict[str, Any]]:
     """
     Generates a list of batchUpdate requests for formatting a sheet.
-
-    Args:
-        sheet_id: The ID of the sheet to format.
-        row_count: The number of rows containing data.
-        is_dynamic: Whether the sheet is formula-driven (skips checkboxes).
-
-    Returns:
-        A list of request dictionaries for spreadsheets.batchUpdate.
     """
     requests = []
 
@@ -139,7 +122,6 @@ def apply_formatting(
                     "startColumnIndex": 2,
                     "endColumnIndex": 4,
                 },
-                # Empty rule clears validation
             }
         }
     )
@@ -162,12 +144,9 @@ def apply_formatting(
         )
 
     # Conditional Formatting Rules (Applied to ALL tabs)
-    # Default end row for dynamic tabs is 1000
     effective_end_row = (row_count + 1) if not is_dynamic else 1000
 
     # Rule 1: Relay Scratch Warning (Yellow)
-    # Highlight entire row if Scratch is TRUE AND (Medley Relay is X OR Free Relay is X)
-    # Scratch: F (Col 6), Medley Relay: G (Col 7), Free Relay: H (Col 8)
     requests.append(
         {
             "addConditionalFormatRule": {
@@ -203,8 +182,6 @@ def apply_formatting(
     )
 
     # Rule 2: Conflict Warning (Pink) - High Priority
-    # Highlight both Present/Scratch if both checked
-    # This rule is added at index 0, so it will override the Yellow rule if both match.
     requests.append(
         {
             "addConditionalFormatRule": {
@@ -273,16 +250,16 @@ def populate() -> None:
     ]
 
     sheet_info = {
-        "Main": 0,
-        "6 & Under": 1016704458,
-        "7-8": 164209875,
-        "9-10": 1030939583,
-        "11-12": 943249488,
-        "13-14": 219663982,
-        "15-18": 1666842791,
-        "All Scratches": 1274802197,
-        "Not Checked In": 438457747,
-        "QR Code": 918231810,
+        "6 & Under": 0,
+        "7-8": 665626756,
+        "9-10": 582929620,
+        "11-12": 652392236,
+        "13-14": 834398321,
+        "15-18": 1265127227,
+        "Main": 279470853,
+        "All Scratches": 1140027073,
+        "Not Checked In": 259480521,
+        "QR Code": 1272566474,
     }
 
     def format_swimmer(s: Dict[str, Any]) -> List[Any]:
@@ -440,7 +417,7 @@ def populate() -> None:
         },
         body={"values": [["Scan to Share Attendance Tracker"], [qr_formula]]},
     )
-    # Format QR Code tab (make it large)
+    # Format QR Code tab
     all_requests.append({
         "updateDimensionProperties": {
             "range": { "sheetId": sheet_info["QR Code"], "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1 },
