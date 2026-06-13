@@ -214,6 +214,20 @@ def apply_formatting(
         }
     )
 
+    # Auto-Resize Columns for better mobile viewing (Indices 0-12)
+    requests.append(
+        {
+            "autoResizeDimensions": {
+                "dimensions": {
+                    "sheetId": sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": 0,
+                    "endIndex": 13,
+                }
+            }
+        }
+    )
+
     return requests
 
 
