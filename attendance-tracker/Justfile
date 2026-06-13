@@ -31,13 +31,19 @@ audit:
     @echo "Generating audit instructions..."
     {{python}} tests/verify_spreadsheet.py
 
-# Full end-to-end run: extract, populate, and test
-# Usage: just run /path/to/meet.mdb
-run mdb_path:
-    just extract {{mdb_path}}
+# Extract attendance data from an SD3 file
+# Usage: just sd3-extract /path/to/meet.sd3 [team_code]
+sd3-extract sd3_path team="":
+    @echo "Extracting attendance data from {{sd3_path}}..."
+    {{python}} extract_attendance_data_sd3.py {{sd3_path}} {{team}}
+
+# Full end-to-end run from SD3: extract, populate, and test
+# Usage: just sd3-run /path/to/meet.sd3
+sd3-run sd3_path:
+    just sd3-extract {{sd3_path}}
     just populate
     just test
-    @echo "Attendance tracker updated and verified."
+    @echo "Attendance tracker updated and verified from SD3."
 
 # Linting and formatting
 lint:
