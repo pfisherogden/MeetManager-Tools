@@ -3,7 +3,22 @@ import os
 import subprocess
 from typing import List, Dict, Any, Optional
 
-spreadsheet_id = "1MNe1PO6Qrw77SlvLWULnmXEEzRniag7sNRrC8uco-l8"
+spreadsheet_id = os.getenv("ATTENDANCE_SPREADSHEET_ID")
+if not spreadsheet_id:
+    # Fallback to local .env parsing
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(script_dir, "../.env")
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                if line.strip().startswith("ATTENDANCE_SPREADSHEET_ID="):
+                    spreadsheet_id = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    break
+
+if not spreadsheet_id:
+    raise ValueError(
+        "ATTENDANCE_SPREADSHEET_ID must be defined in the environment or .env file."
+    )
 
 
 def run_gws(
