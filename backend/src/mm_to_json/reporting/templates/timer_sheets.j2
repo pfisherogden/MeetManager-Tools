@@ -37,7 +37,21 @@
         height: 44pt; /* Targeted height to fit exactly 12 rows on one page */
         vertical-align: middle;
     }
-    .col-ev-ht { width: 45pt; text-align: center; font-weight: bold; font-size: 10pt; }
+    .timer-table td.event-header-row-cell {
+        height: auto;
+        padding: 4pt 6pt;
+        background-color: #e5e7eb;
+        font-weight: bold;
+        font-size: 9.5pt;
+        text-align: left;
+        border: 1pt solid #333;
+    }
+    .col-ev-ht { 
+        width: 50pt; 
+        text-align: center; 
+        font-weight: bold;
+        font-size: 10pt;
+    }
     .col-name-team { width: auto; }
     .col-seed { 
         width: 60pt; 
@@ -49,7 +63,7 @@
     .col-timer { width: 75pt; }
     
     .swimmer-info-block {
-        display: block; /* Removed flex to fix Chromium page breaks */
+        display: block;
         height: 100%;
     }
     .swimmer-name {
@@ -89,6 +103,16 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    
+    .blank-row {
+        background-color: #fafafa;
+    }
+    .blank-text {
+        font-size: 9pt;
+        color: #999;
+        font-style: italic;
+        text-align: center;
+    }
 {% endblock %}
 
 {% block content %}
@@ -108,42 +132,57 @@
                 </tr>
             </thead>
             <tbody>
-                {% for entry in group.sub_items %}
-                <tr class="timer-row">
-                    <td class="col-ev-ht">{{ entry.event_num }} / {{ entry.heat }}</td>
-                    <td class="col-name-team">
-                        <div class="swimmer-info-block">
-                            {% if entry.is_relay %}
-                                <div class="swimmer-name">{{ entry.team }} - {{ entry.relayLtr }}</div>
-                                <div class="relay-swimmers-grid">
-                                    <div class="relay-col">
-                                        <div class="relay-swimmer-container">
-                                            <div class="relay-swimmer-name">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
-                                        </div>
-                                        <div class="relay-swimmer-container">
-                                            <div class="relay-swimmer-name">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
-                                        </div>
+                {% for row in group.sub_items %}
+                    {% if row.type == 'header' %}
+                        <tr class="event-header-row">
+                            <td colspan="6" class="event-header-row-cell">
+                                {{ row.event_desc }}
+                            </td>
+                        </tr>
+                    {% else %}
+                        {% set entry = row.item %}
+                        <tr class="timer-row {% if entry.is_blank %}blank-row{% endif %}">
+                            <td class="col-ev-ht">
+                                {{ entry.event_num }} / {{ entry.heat }}
+                            </td>
+                            <td class="col-name-team">
+                                {% if entry.is_blank %}
+                                    <div class="blank-text">[ No Swimmer ]</div>
+                                {% else %}
+                                    <div class="swimmer-info-block">
+                                        {% if entry.is_relay %}
+                                            <div class="swimmer-name">{{ entry.team }} - {{ entry.relayLtr }}</div>
+                                            <div class="relay-swimmers-grid">
+                                                <div class="relay-col">
+                                                    <div class="relay-swimmer-container">
+                                                        <div class="relay-swimmer-name">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
+                                                    </div>
+                                                    <div class="relay-swimmer-container">
+                                                        <div class="relay-swimmer-name">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="relay-col">
+                                                    <div class="relay-swimmer-container">
+                                                        <div class="relay-swimmer-name">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
+                                                    </div>
+                                                    <div class="relay-swimmer-container">
+                                                        <div class="relay-swimmer-name">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div class="swimmer-name">{{ entry.name }}{% if entry.age %} ({{ entry.age }}){% endif %}</div>
+                                            <div class="team-name">{{ entry.team }}</div>
+                                        {% endif %}
                                     </div>
-                                    <div class="relay-col">
-                                        <div class="relay-swimmer-container">
-                                            <div class="relay-swimmer-name">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
-                                        </div>
-                                        <div class="relay-swimmer-container">
-                                            <div class="relay-swimmer-name">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <div class="swimmer-name">{{ entry.name }}{% if entry.age %} ({{ entry.age }}){% endif %}</div>
-                                <div class="team-name">{{ entry.team }}</div>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td class="col-seed">{{ entry.time }}</td>
-                    <td class="col-timer"></td>
-                    <td class="col-timer"></td>
-                    <td class="col-timer"></td>
-                </tr>
+                                {% endif %}
+                            </td>
+                            <td class="col-seed">{{ entry.time if not entry.is_blank else '' }}</td>
+                            <td class="col-timer"></td>
+                            <td class="col-timer"></td>
+                            <td class="col-timer"></td>
+                        </tr>
+                    {% endif %}
                 {% endfor %}
             </tbody>
         </table>

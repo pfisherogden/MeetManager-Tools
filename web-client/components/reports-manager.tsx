@@ -117,18 +117,6 @@ const reportTypes = [
 		name: "Swimmer Check-in Sheet",
 		description: "Excel spreadsheet for swimmer check-in and scratch tracking.",
 	},
-	{
-		id: 12,
-		name: "Lane Timer Sheets (V2)",
-		description:
-			"Printable scoring sheets for lane timers (V2) with blank lane support and 6-event page breaks.",
-	},
-	{
-		id: 13,
-		name: "Lane Timer Sheets (V3)",
-		description:
-			"Printable scoring sheets for lane timers (V3) with full event headers repeated on split pages.",
-	},
 ];
 
 interface CustomPackItem {
@@ -272,14 +260,9 @@ export function ReportsManager({
 				zebraStriping: zebraStriping,
 				rendererType: rendererType,
 				htmlPreview: htmlPreviewMode,
-				includeBlankLanes:
-					selectedType === 12 || selectedType === 13
-						? includeBlankLanes
-						: undefined,
+				includeBlankLanes: selectedType === 8 ? includeBlankLanes : undefined,
 				breakEverySixEvents:
-					selectedType === 12 || selectedType === 13
-						? breakEverySixEvents
-						: undefined,
+					selectedType === 8 ? breakEverySixEvents : undefined,
 			});
 
 			if (result.success) {
@@ -324,14 +307,8 @@ export function ReportsManager({
 			genderFilter: genderFilter,
 			ageGroupFilter: ageGroupFilter,
 			zebraStriping: zebraStriping,
-			includeBlankLanes:
-				selectedType === 12 || selectedType === 13
-					? includeBlankLanes
-					: undefined,
-			breakEverySixEvents:
-				selectedType === 12 || selectedType === 13
-					? breakEverySixEvents
-					: undefined,
+			includeBlankLanes: selectedType === 8 ? includeBlankLanes : undefined,
+			breakEverySixEvents: selectedType === 8 ? breakEverySixEvents : undefined,
 		};
 		setCustomPack([...customPack, newItem]);
 		toast.success("Added to custom pack");
@@ -873,7 +850,7 @@ export function ReportsManager({
 									</div>
 								</div>
 
-								{(selectedType === 12 || selectedType === 13) && (
+								{selectedType === 8 && (
 									<div className="grid grid-cols-2 gap-4 mt-4">
 										<div className="space-y-2">
 											<Label>Include Blank Lanes</Label>
@@ -1153,7 +1130,7 @@ export function ReportsManager({
 															</SelectContent>
 														</Select>
 													</div>
-													{item.type === 12 || item.type === 13 ? (
+													{item.type === 8 ? (
 														<>
 															<div className="flex flex-col justify-center gap-1.5">
 																<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">

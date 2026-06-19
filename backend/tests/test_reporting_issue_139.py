@@ -126,8 +126,9 @@ def test_timer_sheets_formatting(relay_data, tmp_path):
 
     # Manually ensure DP is in there for the test
     for group in data["groups"]:
-        for item in group["sub_items"]:
-            item["team"] = "DP"
+        for row in group["sub_items"]:
+            if row["type"] == "swimmer":
+                row["item"]["team"] = "DP"
 
     output_pdf = str(tmp_path / "issue_139_timer.pdf")
     renderer = WeasyRenderer(output_pdf)

@@ -244,33 +244,12 @@ def test_hydrated_data_to_markdown_utility(sample_extractor):
     assert "- Lane" in md_text
 
 
-def test_lane_timer_sheets_v2_v3_extraction(sample_extractor):
-    """Test: Verify the extraction of Lane Timer Sheets V2 and V3."""
-    # Test V2
-    data_v2 = sample_extractor.extract_lane_timer_sheets_data_v2(include_blank_lanes=True, break_every_six_events=True)
-    assert "groups" in data_v2
-    if data_v2["groups"]:
-        group = data_v2["groups"][0]
-        assert "sub_items" in group
-        for item in group["sub_items"]:
-            assert "short_stroke" in item
-            assert item["short_stroke"] in [
-                "Free",
-                "Back",
-                "Breast",
-                "Fly",
-                "IM",
-                "Free Rly",
-                "Medley Rly",
-                "Rly",
-                "Other",
-            ]
-
-    # Test V3
-    data_v3 = sample_extractor.extract_lane_timer_sheets_data_v3(include_blank_lanes=True, break_every_six_events=True)
-    assert "groups" in data_v3
-    if data_v3["groups"]:
-        group = data_v3["groups"][0]
+def test_lane_timer_sheets_extraction_v3_format(sample_extractor):
+    """Test: Verify the extraction of Lane Timer Sheets using the V3 style format."""
+    data = sample_extractor.extract_lane_timer_sheets_data(include_blank_lanes=True, break_every_six_events=True)
+    assert "groups" in data
+    if data["groups"]:
+        group = data["groups"][0]
         assert "sub_items" in group
         for row in group["sub_items"]:
             assert "type" in row
