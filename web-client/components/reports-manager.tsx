@@ -402,8 +402,9 @@ export function ReportsManager({
 			type: r.type,
 			title: r.title,
 			teamFilter:
-				r.teamFilter ||
-				(presetTeamFilter === "All Teams" ? "" : presetTeamFilter),
+				r.teamFilter !== undefined
+					? r.teamFilter
+					: (presetTeamFilter === "All Teams" ? "" : presetTeamFilter),
 			genderFilter: r.genderFilter || "Mixed",
 			ageGroupFilter: r.ageGroupFilter || "Open",
 			zebraStriping: r.zebraStriping || false,
@@ -429,6 +430,7 @@ export function ReportsManager({
 				{
 					type: 8,
 					title: "Lane Timer Sheets",
+					teamFilter: "",
 				},
 				// Lineup Reports (Girls)
 				{
@@ -472,10 +474,10 @@ export function ReportsManager({
 				{ type: 4, title: "Posting: Girls only", genderFilter: "Girls" },
 				{ type: 4, title: "Posting: Boys+Mixed", genderFilter: "Boys" },
 				// Operational
-				{ type: 9, title: "Stroke & Turn Program" },
-				{ type: 4, title: "Computer Team Program" },
-				{ type: 4, title: "Complete Meet Program" },
-				{ type: 10, title: "CTS Scoreboard Export" },
+				{ type: 9, title: "Stroke & Turn Program", teamFilter: "" },
+				{ type: 4, title: "Computer Team Program", teamFilter: "" },
+				{ type: 4, title: "Complete Meet Program", teamFilter: "" },
+				{ type: 10, title: "CTS Scoreboard Export", teamFilter: "" },
 				{ type: 11, title: "Swimmer Check-in Sheet" },
 			],
 		},
@@ -484,8 +486,8 @@ export function ReportsManager({
 			name: "Test Bundle (Fast)",
 			description: "Small bundle for E2E verification",
 			reports: [
-				{ type: 8, title: "Timer Sheets" },
-				{ type: 4, title: "Program" },
+				{ type: 8, title: "Timer Sheets", teamFilter: "" },
+				{ type: 4, title: "Program", teamFilter: "" },
 			],
 		},
 		{
