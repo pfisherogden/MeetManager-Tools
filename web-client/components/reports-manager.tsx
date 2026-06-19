@@ -404,7 +404,9 @@ export function ReportsManager({
 			teamFilter:
 				r.teamFilter !== undefined
 					? r.teamFilter
-					: (presetTeamFilter === "All Teams" ? "" : presetTeamFilter),
+					: presetTeamFilter === "All Teams"
+						? ""
+						: presetTeamFilter,
 			genderFilter: r.genderFilter || "Mixed",
 			ageGroupFilter: r.ageGroupFilter || "Open",
 			zebraStriping: r.zebraStriping || false,
