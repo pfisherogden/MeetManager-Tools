@@ -443,7 +443,7 @@ class SeasonTransformer:
                 "open": self._date_to_ms(entry_open),
                 "deadline": self._date_to_ms(entry_deadline),
                 "idformat": 1,  # USAS
-                "hostlsc": "CC",
+                "hostlsc": "TV",
                 "dqcodes": "H",  # Custom
                 "indmaxscorers": 0 if is_champs else 4,
                 "relmaxscorers": 1,
@@ -797,7 +797,7 @@ class SeasonTransformer:
                         elif lk in ["short", "team_short", "short_name"]:
                             matched_team[k] = name[:15]
                         elif lk in ["lsc", "team_lsc"]:
-                            matched_team[k] = "CC"
+                            matched_team[k] = "TV"
                         elif lk in ["ttype", "team_type"]:
                             matched_team[k] = "AGE"
                         elif lk in ["team", "team_no", "team_ptr"]:
@@ -812,7 +812,7 @@ class SeasonTransformer:
                         "TCode": abbr,
                         "TName": name,
                         "Short": name[:15],
-                        "LSC": "CC",
+                        "LSC": "TV",
                         "TType": "AGE",
                         "Team_no": new_id,
                     }

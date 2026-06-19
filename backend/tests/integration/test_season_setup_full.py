@@ -49,7 +49,7 @@ def test_full_season_generation_and_load(tmp_path):
         / "2026 Del Prado Data"
         / "Swim Meets"
         / "2026-05-30 FAST vs Del Prado"
-        / "2026-05-30 FAST vs Del Prado.mdb"
+        / "2026-05-30 FAST vs Del Prado-v5-final.mdb"
     )
     assert generated_file.exists()
 

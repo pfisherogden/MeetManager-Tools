@@ -29,6 +29,8 @@ class ReportType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REPORT_TYPE_JUDGE_SHEETS: _ClassVar[ReportType]
     REPORT_TYPE_CTS_EXPORT: _ClassVar[ReportType]
     REPORT_TYPE_CHECK_IN_SHEET: _ClassVar[ReportType]
+    REPORT_TYPE_LANE_TIMER_SHEETS_V2: _ClassVar[ReportType]
+    REPORT_TYPE_LANE_TIMER_SHEETS_V3: _ClassVar[ReportType]
 
 class RendererType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -52,6 +54,8 @@ REPORT_TYPE_LANE_TIMER_SHEETS: ReportType
 REPORT_TYPE_JUDGE_SHEETS: ReportType
 REPORT_TYPE_CTS_EXPORT: ReportType
 REPORT_TYPE_CHECK_IN_SHEET: ReportType
+REPORT_TYPE_LANE_TIMER_SHEETS_V2: ReportType
+REPORT_TYPE_LANE_TIMER_SHEETS_V3: ReportType
 RENDERER_TYPE_UNSPECIFIED: RendererType
 RENDERER_TYPE_WEASYPRINT: RendererType
 RENDERER_TYPE_PLAYWRIGHT: RendererType
@@ -571,7 +575,7 @@ class Event(_message.Message):
     def __init__(self, id: _Optional[int] = ..., event_no: _Optional[int] = ..., name: _Optional[str] = ..., gender: _Optional[str] = ..., distance: _Optional[int] = ..., stroke: _Optional[str] = ..., low_age: _Optional[int] = ..., high_age: _Optional[int] = ..., session: _Optional[int] = ..., status: _Optional[str] = ..., entry_count: _Optional[int] = ..., age_group: _Optional[str] = ..., is_relay: bool = ...) -> None: ...
 
 class GenerateReportRequest(_message.Message):
-    __slots__ = ("type", "title", "team_filter", "gender_filter", "age_group_filter", "columns_on_page", "show_relay_swimmers", "zebra_striping", "renderer_type", "html_preview")
+    __slots__ = ("type", "title", "team_filter", "gender_filter", "age_group_filter", "columns_on_page", "show_relay_swimmers", "zebra_striping", "renderer_type", "html_preview", "include_blank_lanes", "break_every_six_events")
     TYPE_FIELD_NUMBER: _ClassVar[int]
     TITLE_FIELD_NUMBER: _ClassVar[int]
     TEAM_FILTER_FIELD_NUMBER: _ClassVar[int]
@@ -582,6 +586,8 @@ class GenerateReportRequest(_message.Message):
     ZEBRA_STRIPING_FIELD_NUMBER: _ClassVar[int]
     RENDERER_TYPE_FIELD_NUMBER: _ClassVar[int]
     HTML_PREVIEW_FIELD_NUMBER: _ClassVar[int]
+    INCLUDE_BLANK_LANES_FIELD_NUMBER: _ClassVar[int]
+    BREAK_EVERY_SIX_EVENTS_FIELD_NUMBER: _ClassVar[int]
     type: ReportType
     title: str
     team_filter: str
@@ -592,7 +598,9 @@ class GenerateReportRequest(_message.Message):
     zebra_striping: bool
     renderer_type: RendererType
     html_preview: bool
-    def __init__(self, type: _Optional[_Union[ReportType, str]] = ..., title: _Optional[str] = ..., team_filter: _Optional[str] = ..., gender_filter: _Optional[str] = ..., age_group_filter: _Optional[str] = ..., columns_on_page: _Optional[int] = ..., show_relay_swimmers: bool = ..., zebra_striping: bool = ..., renderer_type: _Optional[_Union[RendererType, str]] = ..., html_preview: bool = ...) -> None: ...
+    include_blank_lanes: bool
+    break_every_six_events: bool
+    def __init__(self, type: _Optional[_Union[ReportType, str]] = ..., title: _Optional[str] = ..., team_filter: _Optional[str] = ..., gender_filter: _Optional[str] = ..., age_group_filter: _Optional[str] = ..., columns_on_page: _Optional[int] = ..., show_relay_swimmers: bool = ..., zebra_striping: bool = ..., renderer_type: _Optional[_Union[RendererType, str]] = ..., html_preview: bool = ..., include_blank_lanes: bool = ..., break_every_six_events: bool = ...) -> None: ...
 
 class GenerateReportResponse(_message.Message):
     __slots__ = ("success", "message", "pdf_content", "filename", "html_content", "google_sheet_url")

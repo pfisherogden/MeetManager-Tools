@@ -10,6 +10,48 @@ from google.auth import default
 logger = logging.getLogger(__name__)
 
 
+def _cleanup_old_sheets(gc: gspread.client.Client) -> None:
+    """Deletes older attendance tracker spreadsheets from the client's Google Drive.
+
+    Keeps only the 10 most recent spreadsheets matching the pattern
+    'Check-in Sheet' or 'Attendance Tracker'.
+    """
+    import re
+
+    try:
+        files = gc.list_spreadsheet_files()
+        target_files = []
+        for f in files:
+            name = f.get("name", "")
+            if "Attendance Tracker" in name or "Check-in Sheet" in name:
+                target_files.append(f)
+
+        def get_timestamp(f):
+            name = f.get("name", "")
+            # Look for YYYY-MM-DD HH:MM
+            match = re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", name)
+            if match:
+                return match.group(0)
+            return ""
+
+        target_files.sort(key=get_timestamp)
+
+        # Keep the 10 newest, delete the rest
+        if len(target_files) > 10:
+            to_delete = target_files[:-10]
+            for f in to_delete:
+                file_id = f.get("id")
+                file_name = f.get("name")
+                if isinstance(file_id, str):
+                    logger.info(f"Pruning old spreadsheet '{file_name}' ({file_id}) to free up Drive storage quota.")
+                    try:
+                        gc.del_spreadsheet(file_id)
+                    except Exception as del_err:
+                        logger.warning(f"Failed to delete spreadsheet {file_id}: {del_err}")
+    except Exception as e:
+        logger.warning(f"Failed to clean up old spreadsheets: {e}")
+
+
 class SwimmerCheckInWriter:
     """Generates a Google Spreadsheet or Excel for swimmer check-in with native checkboxes and bi-directional sync."""
 
@@ -81,6 +123,9 @@ class SwimmerCheckInWriter:
                     raise e
 
             gc = gspread.authorize(credentials)
+
+            # Clean up old sheets to preserve storage quota (Issue #506)
+            _cleanup_old_sheets(gc)
 
             # 2. Create Spreadsheet
             sheet_title = f"{self.title} - {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}"

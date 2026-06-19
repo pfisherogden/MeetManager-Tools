@@ -858,6 +858,475 @@ class ReportDataExtractor:
             "groups": report_groups,
         }
 
+    def extract_lane_timer_sheets_data_v2(
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
+        include_blank_lanes: bool = True,
+        break_every_six_events: bool = True,
+    ) -> dict[str, Any]:
+        """Extract data grouped by physical Lane for timer sheets (V2)."""
+        full_data = self._get_full_data()
+
+        # 1. First, collect active heats (event_num -> set of heats) matching gender & age filters
+        # and extract event metadata (event_num -> metadata).
+        active_heats: dict[int, set[int]] = {}
+        event_metadata: dict[int, dict[str, Any]] = {}
+
+        for sess in full_data.get("sessions", []):
+            if not sess:
+                continue
+            for evt in sess.get("events", []):
+                if not evt:
+                    continue
+
+                # Apply event-level filters (Gender, Age)
+                evt_gender = evt.get("gender", "")
+                if gender_filter:
+                    target_g = self._normalize_gender(gender_filter)
+                    if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                        continue
+
+                if age_group_filter and age_group_filter.lower() != "open":
+                    evt_age_str = self._format_age(self._safe_int(evt.get("minAge")), self._safe_int(evt.get("maxAge")))
+                    if evt_age_str.lower() != age_group_filter.lower():
+                        continue
+
+                evt_num = evt.get("eventNum") or evt.get("evt_num")
+                if not evt_num:
+                    continue
+                evt_num_int = self._safe_int(evt_num)
+
+                event_metadata[evt_num_int] = {
+                    "event_num": str(evt_num),
+                    "event_desc": evt.get("eventDesc", ""),
+                    "is_relay": evt.get("isRelay", False),
+                }
+
+                for entry in evt.get("entries", []):
+                    if not entry:
+                        continue
+                    heat = self._safe_int(entry.get("heat", 0))
+                    if heat == 0:
+                        continue
+                    if evt_num_int not in active_heats:
+                        active_heats[evt_num_int] = set()
+                    active_heats[evt_num_int].add(heat)
+
+        # 2. Collect all entries matching the team filter (and other filters)
+        # to index them by (lane, event_num, heat) for quick lookup.
+        entries_lookup: dict[tuple[int, int, int], list[dict[str, Any]]] = {}
+        matching_lanes = set()
+
+        for sess in full_data.get("sessions", []):
+            if not sess:
+                continue
+            for evt in sess.get("events", []):
+                if not evt:
+                    continue
+
+                evt_num = evt.get("eventNum") or evt.get("evt_num")
+                if not evt_num:
+                    continue
+                evt_num_int = self._safe_int(evt_num)
+                if evt_num_int not in event_metadata:
+                    # Filtered out at event level
+                    continue
+
+                for entry in evt.get("entries", []):
+                    if not entry:
+                        continue
+
+                    # Apply team filter
+                    if team_filter and not self._matches_team_filter(entry, team_filter):
+                        continue
+
+                    lane = self._safe_int(entry.get("lane", 0))
+                    if lane == 0:
+                        continue
+                    matching_lanes.add(lane)
+
+                    heat = self._safe_int(entry.get("heat", 0))
+                    key = (lane, evt_num_int, heat)
+                    if key not in entries_lookup:
+                        entries_lookup[key] = []
+
+                    e_copy = entry.copy()
+                    e_copy["_event_num"] = evt_num
+                    e_copy["_event_desc"] = evt.get("eventDesc", "")
+                    e_copy["_is_relay"] = evt.get("isRelay", False)
+                    entries_lookup[key].append(e_copy)
+
+        # Determine which lanes to generate sheets for.
+        # If no lanes match the filters, we don't return any groups.
+        sorted_lane_nums = sorted(matching_lanes)
+
+        report_groups = []
+
+        # Helper to compute short stroke name
+        def get_short_stroke(event_desc: str, is_relay: bool) -> str:
+            desc_lower = event_desc.lower()
+            if is_relay:
+                if "medley" in desc_lower:
+                    return "Medley Rly"
+                elif "freestyle" in desc_lower:
+                    return "Free Rly"
+                else:
+                    return "Rly"
+            else:
+                if "freestyle" in desc_lower:
+                    return "Free"
+                elif "backstroke" in desc_lower:
+                    return "Back"
+                elif "breaststroke" in desc_lower:
+                    return "Breast"
+                elif "butterfly" in desc_lower:
+                    return "Fly"
+                elif "medley" in desc_lower or "im" in desc_lower or "individual medley" in desc_lower:
+                    return "IM"
+                else:
+                    return "Other"
+
+        # 3. For each active lane, generate sheets
+        for lane_num in sorted_lane_nums:
+            lane_entries = []
+
+            # We iterate through all active event-heats in sorted order
+            for evt_num_int in sorted(active_heats.keys()):
+                meta = event_metadata[evt_num_int]
+                for heat in sorted(active_heats[evt_num_int]):
+                    key = (lane_num, evt_num_int, heat)
+
+                    if key in entries_lookup:
+                        # Swimmer exists in this lane
+                        for entry in entries_lookup[key]:
+                            is_relay = entry.get("_is_relay", False)
+                            item = {
+                                "event_num": str(meta["event_num"]),
+                                "event_desc": meta["event_desc"],
+                                "short_stroke": get_short_stroke(meta["event_desc"], is_relay),
+                                "heat": str(heat),
+                                "lane": str(lane_num),
+                                "name": entry.get("name", "Unknown"),
+                                "age": str(self._safe_int(entry.get("age", 0))) if entry.get("age") else "",
+                                "team": entry.get("teamCode") or entry.get("team", ""),
+                                "time": entry.get("seedTime", "NT"),
+                                "is_relay": is_relay,
+                                "is_blank": False,
+                            }
+                            if is_relay and "relayAthletes" in entry:
+                                item["swimmers"] = [
+                                    f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
+                                    for a in entry["relayAthletes"]
+                                ]
+                            elif is_relay:
+                                item["swimmers"] = [n.strip() for n in entry.get("name", "").split(",")]
+                            lane_entries.append(item)
+                    elif include_blank_lanes:
+                        # No swimmer, but include_blank_lanes is on
+                        is_relay = meta["is_relay"]
+                        item = {
+                            "event_num": str(meta["event_num"]),
+                            "event_desc": meta["event_desc"],
+                            "short_stroke": get_short_stroke(meta["event_desc"], is_relay),
+                            "heat": str(heat),
+                            "lane": str(lane_num),
+                            "name": "",
+                            "age": "",
+                            "team": "",
+                            "time": "",
+                            "is_relay": is_relay,
+                            "is_blank": True,
+                        }
+                        if is_relay:
+                            item["swimmers"] = []
+                        lane_entries.append(item)
+
+            # 4. Group into pages (max 12 entries per page)
+            current_page_entries: list[dict[str, Any]] = []
+            current_stroke_type = None
+            page_num = 1
+
+            def finish_page(l_num, p_entries, p_num):
+                if p_entries:
+                    report_groups.append(
+                        {"header": f"Lane {l_num} (Page {p_num})", "lane": l_num, "sub_items": p_entries.copy()}
+                    )
+                    return [], p_num + 1
+                return p_entries, p_num
+
+            for item in lane_entries:
+                stroke_type = item["short_stroke"]
+
+                # Determine page break conditions
+                should_break = False
+                if len(current_page_entries) >= 12:
+                    should_break = True
+                elif break_every_six_events:
+                    is_new_event = item["event_num"] not in [e["event_num"] for e in current_page_entries]
+                    distinct_events_count = len({e["event_num"] for e in current_page_entries})
+                    if is_new_event and distinct_events_count >= 6:
+                        should_break = True
+                else:
+                    type_changed = current_stroke_type is not None and stroke_type != current_stroke_type
+                    if type_changed:
+                        should_break = True
+
+                if should_break:
+                    current_page_entries, page_num = finish_page(lane_num, current_page_entries, page_num)
+
+                current_stroke_type = stroke_type
+                current_page_entries.append(item)
+
+            # Final page for this lane
+            current_page_entries, page_num = finish_page(lane_num, current_page_entries, page_num)
+
+        return {
+            "meet_name": full_data.get("meetName", ""),
+            "sub_title": report_title or "Lane Timer Sheets (V2)",
+            "groups": report_groups,
+        }
+
+    def extract_lane_timer_sheets_data_v3(
+        self,
+        team_filter: str | None = None,
+        report_title: str | None = None,
+        gender_filter: str | None = None,
+        age_group_filter: str | None = None,
+        include_blank_lanes: bool = True,
+        break_every_six_events: bool = True,
+    ) -> dict[str, Any]:
+        """Extract data grouped by physical Lane for timer sheets (V3)."""
+        full_data = self._get_full_data()
+
+        # 1. Collect active heats matching gender & age filters
+        active_heats: dict[int, set[int]] = {}
+        event_metadata: dict[int, dict[str, Any]] = {}
+
+        for sess in full_data.get("sessions", []):
+            if not sess:
+                continue
+            for evt in sess.get("events", []):
+                if not evt:
+                    continue
+
+                # Apply event-level filters
+                evt_gender = evt.get("gender", "")
+                if gender_filter:
+                    target_g = self._normalize_gender(gender_filter)
+                    if target_g != "X" and self._normalize_gender(evt_gender) != target_g:
+                        continue
+
+                if age_group_filter and age_group_filter.lower() != "open":
+                    evt_age_str = self._format_age(self._safe_int(evt.get("minAge")), self._safe_int(evt.get("maxAge")))
+                    if evt_age_str.lower() != age_group_filter.lower():
+                        continue
+
+                evt_num = evt.get("eventNum") or evt.get("evt_num")
+                if not evt_num:
+                    continue
+                evt_num_int = self._safe_int(evt_num)
+
+                event_metadata[evt_num_int] = {
+                    "event_num": str(evt_num),
+                    "event_desc": evt.get("eventDesc", ""),
+                    "is_relay": evt.get("isRelay", False),
+                }
+
+                for entry in evt.get("entries", []):
+                    if not entry:
+                        continue
+                    heat = self._safe_int(entry.get("heat", 0))
+                    if heat == 0:
+                        continue
+                    if evt_num_int not in active_heats:
+                        active_heats[evt_num_int] = set()
+                    active_heats[evt_num_int].add(heat)
+
+        # 2. Collect entries matching team filter
+        entries_lookup: dict[tuple[int, int, int], list[dict[str, Any]]] = {}
+        matching_lanes = set()
+
+        for sess in full_data.get("sessions", []):
+            if not sess:
+                continue
+            for evt in sess.get("events", []):
+                if not evt:
+                    continue
+
+                evt_num = evt.get("eventNum") or evt.get("evt_num")
+                if not evt_num:
+                    continue
+                evt_num_int = self._safe_int(evt_num)
+                if evt_num_int not in event_metadata:
+                    continue
+
+                for entry in evt.get("entries", []):
+                    if not entry:
+                        continue
+
+                    if team_filter and not self._matches_team_filter(entry, team_filter):
+                        continue
+
+                    lane = self._safe_int(entry.get("lane", 0))
+                    if lane == 0:
+                        continue
+                    matching_lanes.add(lane)
+
+                    heat = self._safe_int(entry.get("heat", 0))
+                    key = (lane, evt_num_int, heat)
+                    if key not in entries_lookup:
+                        entries_lookup[key] = []
+
+                    e_copy = entry.copy()
+                    e_copy["_event_num"] = evt_num
+                    e_copy["_event_desc"] = evt.get("eventDesc", "")
+                    e_copy["_is_relay"] = evt.get("isRelay", False)
+                    entries_lookup[key].append(e_copy)
+
+        sorted_lane_nums = sorted(matching_lanes)
+        report_groups = []
+
+        # Helper to compute short stroke name
+        def get_short_stroke(event_desc: str, is_relay: bool) -> str:
+            desc_lower = event_desc.lower()
+            if is_relay:
+                if "medley" in desc_lower:
+                    return "Medley Rly"
+                elif "freestyle" in desc_lower:
+                    return "Free Rly"
+                else:
+                    return "Rly"
+            else:
+                if "freestyle" in desc_lower:
+                    return "Free"
+                elif "backstroke" in desc_lower:
+                    return "Back"
+                elif "breaststroke" in desc_lower:
+                    return "Breast"
+                elif "butterfly" in desc_lower:
+                    return "Fly"
+                elif "medley" in desc_lower or "im" in desc_lower or "individual medley" in desc_lower:
+                    return "IM"
+                else:
+                    return "Other"
+
+        # 3. For each active lane, generate sheets
+        for lane_num in sorted_lane_nums:
+            lane_entries = []
+
+            # We iterate through all active event-heats in sorted order
+            for evt_num_int in sorted(active_heats.keys()):
+                meta = event_metadata[evt_num_int]
+                for heat in sorted(active_heats[evt_num_int]):
+                    key = (lane_num, evt_num_int, heat)
+
+                    if key in entries_lookup:
+                        # Swimmer exists in this lane
+                        for entry in entries_lookup[key]:
+                            is_relay = entry.get("_is_relay", False)
+                            item = {
+                                "event_num": str(meta["event_num"]),
+                                "event_desc": meta["event_desc"],
+                                "short_stroke": get_short_stroke(meta["event_desc"], is_relay),
+                                "heat": str(heat),
+                                "lane": str(lane_num),
+                                "name": entry.get("name", "Unknown"),
+                                "age": str(self._safe_int(entry.get("age", 0))) if entry.get("age") else "",
+                                "team": entry.get("teamCode") or entry.get("team", ""),
+                                "time": entry.get("seedTime", "NT"),
+                                "is_relay": is_relay,
+                                "is_blank": False,
+                            }
+                            if is_relay and "relayAthletes" in entry:
+                                item["swimmers"] = [
+                                    f"{a.get('lastName', '').strip()}, {a.get('firstName', '').strip()}"
+                                    for a in entry["relayAthletes"]
+                                ]
+                            elif is_relay:
+                                item["swimmers"] = [n.strip() for n in entry.get("name", "").split(",")]
+                            lane_entries.append(item)
+                    elif include_blank_lanes:
+                        # No swimmer, but include_blank_lanes is on
+                        is_relay = meta["is_relay"]
+                        item = {
+                            "event_num": str(meta["event_num"]),
+                            "event_desc": meta["event_desc"],
+                            "short_stroke": get_short_stroke(meta["event_desc"], is_relay),
+                            "heat": str(heat),
+                            "lane": str(lane_num),
+                            "name": "",
+                            "age": "",
+                            "team": "",
+                            "time": "",
+                            "is_relay": is_relay,
+                            "is_blank": True,
+                        }
+                        if is_relay:
+                            item["swimmers"] = []
+                        lane_entries.append(item)
+
+            # 4. Group into pages of rows (max 12 rows per page, repeating event headers)
+            current_page_rows: list[dict[str, Any]] = []
+            current_event_num = None
+            distinct_events_count = 0
+            page_num = 1
+
+            def finish_page_v3(l_num, p_rows, p_num):
+                if p_rows:
+                    report_groups.append(
+                        {"header": f"Lane {l_num} (Page {p_num})", "lane": l_num, "sub_items": p_rows.copy()}
+                    )
+                    return [], p_num + 1
+                return p_rows, p_num
+
+            for item in lane_entries:
+                item_event_num = item["event_num"]
+                needs_header = item_event_num != current_event_num
+                rows_to_add = 2 if needs_header else 1
+
+                # Check page break conditions
+                should_break = False
+                if len(current_page_rows) + rows_to_add > 12:
+                    should_break = True
+                elif break_every_six_events and needs_header and distinct_events_count >= 6:
+                    should_break = True
+                elif not break_every_six_events and needs_header and current_event_num is not None:
+                    # In V3, break when stroke changes if break_every_six_events is False
+                    last_swimmer_row = next((r for r in reversed(current_page_rows) if r["type"] == "swimmer"), None)
+                    if last_swimmer_row and item["short_stroke"] != last_swimmer_row["item"]["short_stroke"]:
+                        should_break = True
+
+                if should_break:
+                    current_page_rows, page_num = finish_page_v3(lane_num, current_page_rows, page_num)
+                    distinct_events_count = 0
+                    current_event_num = None
+                    needs_header = True
+
+                if needs_header:
+                    current_page_rows.append(
+                        {
+                            "type": "header",
+                            "event_num": item_event_num,
+                            "event_desc": item["event_desc"],
+                        }
+                    )
+                    distinct_events_count += 1
+                    current_event_num = item_event_num
+
+                current_page_rows.append({"type": "swimmer", "item": item})
+
+            # Final page for this lane
+            current_page_rows, page_num = finish_page_v3(lane_num, current_page_rows, page_num)
+
+        return {
+            "meet_name": full_data.get("meetName", ""),
+            "sub_title": report_title or "Lane Timer Sheets (V3)",
+            "groups": report_groups,
+        }
+
     def extract_timer_sheets_data(
         self,
         team_filter: str | None = None,

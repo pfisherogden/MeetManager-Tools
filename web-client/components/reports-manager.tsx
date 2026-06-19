@@ -117,6 +117,18 @@ const reportTypes = [
 		name: "Swimmer Check-in Sheet",
 		description: "Excel spreadsheet for swimmer check-in and scratch tracking.",
 	},
+	{
+		id: 12,
+		name: "Lane Timer Sheets (V2)",
+		description:
+			"Printable scoring sheets for lane timers (V2) with blank lane support and 6-event page breaks.",
+	},
+	{
+		id: 13,
+		name: "Lane Timer Sheets (V3)",
+		description:
+			"Printable scoring sheets for lane timers (V3) with full event headers repeated on split pages.",
+	},
 ];
 
 interface CustomPackItem {
@@ -127,6 +139,8 @@ interface CustomPackItem {
 	genderFilter: string;
 	ageGroupFilter: string;
 	zebraStriping: boolean;
+	includeBlankLanes?: boolean;
+	breakEverySixEvents?: boolean;
 }
 
 interface ReportsManagerProps {
@@ -142,6 +156,8 @@ export function ReportsManager({
 	const [genderFilter, setGenderFilter] = useState("Mixed");
 	const [ageGroupFilter, setAgeGroupFilter] = useState("Open");
 	const [zebraStriping, setZebraStriping] = useState(false);
+	const [includeBlankLanes, setIncludeBlankLanes] = useState(true);
+	const [breakEverySixEvents, setBreakEverySixEvents] = useState(true);
 	const [rendererType, setRendererType] = useState<RendererType>(
 		RendererType.RENDERER_TYPE_UNSPECIFIED,
 	);
@@ -256,6 +272,14 @@ export function ReportsManager({
 				zebraStriping: zebraStriping,
 				rendererType: rendererType,
 				htmlPreview: htmlPreviewMode,
+				includeBlankLanes:
+					selectedType === 12 || selectedType === 13
+						? includeBlankLanes
+						: undefined,
+				breakEverySixEvents:
+					selectedType === 12 || selectedType === 13
+						? breakEverySixEvents
+						: undefined,
 			});
 
 			if (result.success) {
@@ -300,6 +324,14 @@ export function ReportsManager({
 			genderFilter: genderFilter,
 			ageGroupFilter: ageGroupFilter,
 			zebraStriping: zebraStriping,
+			includeBlankLanes:
+				selectedType === 12 || selectedType === 13
+					? includeBlankLanes
+					: undefined,
+			breakEverySixEvents:
+				selectedType === 12 || selectedType === 13
+					? breakEverySixEvents
+					: undefined,
 		};
 		setCustomPack([...customPack, newItem]);
 		toast.success("Added to custom pack");
@@ -334,6 +366,8 @@ export function ReportsManager({
 				zebraStriping: item.zebraStriping,
 				rendererType: rendererType,
 				htmlPreview: false,
+				includeBlankLanes: item.includeBlankLanes,
+				breakEverySixEvents: item.breakEverySixEvents,
 			}));
 
 			const timestamp = new Date()
@@ -839,6 +873,35 @@ export function ReportsManager({
 									</div>
 								</div>
 
+								{(selectedType === 12 || selectedType === 13) && (
+									<div className="grid grid-cols-2 gap-4 mt-4">
+										<div className="space-y-2">
+											<Label>Include Blank Lanes</Label>
+											<div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/30">
+												<Switch
+													checked={includeBlankLanes}
+													onCheckedChange={setIncludeBlankLanes}
+												/>
+												<span className="text-xs">
+													{includeBlankLanes ? "Yes" : "No"}
+												</span>
+											</div>
+										</div>
+										<div className="space-y-2">
+											<Label>Page Break Every 6 Events</Label>
+											<div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/30">
+												<Switch
+													checked={breakEverySixEvents}
+													onCheckedChange={setBreakEverySixEvents}
+												/>
+												<span className="text-xs">
+													{breakEverySixEvents ? "Yes" : "No"}
+												</span>
+											</div>
+										</div>
+									</div>
+								)}
+
 								<div className="p-4 bg-muted/50 rounded-lg space-y-3">
 									<h4 className="text-xs font-bold uppercase tracking-tight flex items-center gap-2">
 										<Filter className="h-3 w-3" />
@@ -1090,20 +1153,59 @@ export function ReportsManager({
 															</SelectContent>
 														</Select>
 													</div>
-													<div className="flex flex-col justify-center gap-1.5">
-														<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-															Zebra
-														</Label>
-														<div className="flex items-center h-8">
-															<Switch
-																checked={item.zebraStriping}
-																onCheckedChange={(v) =>
-																	updatePackItem(item.id, { zebraStriping: v })
-																}
-																className="scale-75 origin-left"
-															/>
+													{item.type === 12 || item.type === 13 ? (
+														<>
+															<div className="flex flex-col justify-center gap-1.5">
+																<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+																	Blank
+																</Label>
+																<div className="flex items-center h-8">
+																	<Switch
+																		checked={item.includeBlankLanes !== false}
+																		onCheckedChange={(v) =>
+																			updatePackItem(item.id, {
+																				includeBlankLanes: v,
+																			})
+																		}
+																		className="scale-75 origin-left"
+																	/>
+																</div>
+															</div>
+															<div className="flex flex-col justify-center gap-1.5">
+																<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+																	Break 6
+																</Label>
+																<div className="flex items-center h-8">
+																	<Switch
+																		checked={item.breakEverySixEvents !== false}
+																		onCheckedChange={(v) =>
+																			updatePackItem(item.id, {
+																				breakEverySixEvents: v,
+																			})
+																		}
+																		className="scale-75 origin-left"
+																	/>
+																</div>
+															</div>
+														</>
+													) : (
+														<div className="flex flex-col justify-center gap-1.5">
+															<Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+																Zebra
+															</Label>
+															<div className="flex items-center h-8">
+																<Switch
+																	checked={item.zebraStriping}
+																	onCheckedChange={(v) =>
+																		updatePackItem(item.id, {
+																			zebraStriping: v,
+																		})
+																	}
+																	className="scale-75 origin-left"
+																/>
+															</div>
 														</div>
-													</div>
+													)}
 												</div>
 												<div className="md:col-span-1 flex justify-end">
 													<Button

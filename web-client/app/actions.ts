@@ -44,6 +44,8 @@ export interface GenerateReportConfig {
 	zebraStriping?: boolean;
 	rendererType?: number;
 	htmlPreview?: boolean;
+	includeBlankLanes?: boolean;
+	breakEverySixEvents?: boolean;
 }
 
 export async function generateReport(config: GenerateReportConfig) {
@@ -61,6 +63,8 @@ export async function generateReport(config: GenerateReportConfig) {
 				zebraStriping: config.zebraStriping || false,
 				rendererType: config.rendererType || 0,
 				htmlPreview: config.htmlPreview || false,
+				includeBlankLanes: config.includeBlankLanes !== false,
+				breakEverySixEvents: config.breakEverySixEvents !== false,
 			},
 			{ metadata },
 		);
@@ -432,6 +436,8 @@ export async function generateReportBundle(
 					zebraStriping: r.zebraStriping,
 					rendererType: r.rendererType,
 					htmlPreview: r.htmlPreview,
+					includeBlankLanes: r.includeBlankLanes,
+					breakEverySixEvents: r.breakEverySixEvents,
 				})),
 				bundleName,
 				rendererType: requests[0]?.rendererType || 0,
