@@ -27,7 +27,6 @@ def run_audit():
 
     Confirm each point in a detailed report."""
 
-
     # Since we can't easily invoke 'invoke_agent' from a python script in this environment
     # without complex tooling, we'll just print instructions for the main agent to run it.
     # Actually, the user asked to "write tests to validate things... that use the sub-agent".

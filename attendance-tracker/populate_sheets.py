@@ -228,6 +228,41 @@ def apply_formatting(
         }
     )
 
+    # Rule 3: Milestone Highlight (Gold) - Celebratory
+    # Highlight entire row if Preferred Name contains star
+    # Formula: =REGEXMATCH($C2, "⭐")
+    requests.append(
+        {
+            "addConditionalFormatRule": {
+                "rule": {
+                    "ranges": [
+                        {
+                            "sheetId": sheet_id,
+                            "startRowIndex": 1,
+                            "endRowIndex": effective_end_row,
+                            "startColumnIndex": 0,
+                            "endColumnIndex": 13,
+                        }
+                    ],
+                    "booleanRule": {
+                        "condition": {
+                            "type": "CUSTOM_FORMULA",
+                            "values": [{"userEnteredValue": '=REGEXMATCH($C2, "⭐")'}],
+                        },
+                        "format": {
+                            "backgroundColor": {
+                                "red": 1.0,
+                                "green": 0.95,
+                                "blue": 0.6,
+                            }
+                        },
+                    },
+                },
+                "index": 0,
+            }
+        }
+    )
+
     return requests
 
 
@@ -277,10 +312,22 @@ def populate() -> None:
     }
 
     def format_swimmer(s: Dict[str, Any]) -> List[Any]:
+        # Completion Logic
+        is_complete = False
+        strokes = ["Free", "Back", "Breast", "Fly"]
+        if all(s.get(st) == "X" for st in strokes):
+            age_group = s.get("Age Group", "")
+            if age_group in ["6 & Under", "7-8"] or s.get("IM") == "X":
+                is_complete = True
+
+        pref_name = s.get("Preferred Name", "")
+        if is_complete:
+            pref_name = f"{pref_name} ⭐"
+
         row = ["" for _ in range(17)]
         row[0] = s.get("Age Group", "")
         row[1] = s.get("Gender", "")
-        row[2] = s.get("Preferred Name", "")
+        row[2] = pref_name
         row[3] = s.get("Last Name", "")
         row[4] = False  # Present
         row[5] = False  # Scratch
@@ -308,6 +355,21 @@ def populate() -> None:
             }
         }
     )
+
+    # Clear all sheet tabs first to avoid stale data (stale rows at the bottom)
+    for tab in sheet_info.keys():
+        if tab == "QR Code":
+            continue
+        run_gws(
+            "sheets",
+            "spreadsheets",
+            "values",
+            "clear",
+            params={
+                "spreadsheetId": spreadsheet_id,
+                "range": f"'{tab}'!A1:Q2000",
+            },
+        )
 
     # Sort Main: Age Group, Gender, Preferred Name
     swimmers.sort(
@@ -432,20 +494,34 @@ def populate() -> None:
         body={"values": [["Scan to Share Attendance Tracker"], [qr_formula]]},
     )
     # Format QR Code tab
-    all_requests.append({
-        "updateDimensionProperties": {
-            "range": { "sheetId": sheet_info["QR Code"], "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1 },
-            "properties": { "pixelSize": 500 },
-            "fields": "pixelSize"
+    all_requests.append(
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_info["QR Code"],
+                    "dimension": "COLUMNS",
+                    "startIndex": 0,
+                    "endIndex": 1,
+                },
+                "properties": {"pixelSize": 500},
+                "fields": "pixelSize",
+            }
         }
-    })
-    all_requests.append({
-        "updateDimensionProperties": {
-            "range": { "sheetId": sheet_info["QR Code"], "dimension": "ROWS", "startIndex": 1, "endIndex": 2 },
-            "properties": { "pixelSize": 500 },
-            "fields": "pixelSize"
+    )
+    all_requests.append(
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_info["QR Code"],
+                    "dimension": "ROWS",
+                    "startIndex": 1,
+                    "endIndex": 2,
+                },
+                "properties": {"pixelSize": 500},
+                "fields": "pixelSize",
+            }
         }
-    })
+    )
 
     # Run all formatting requests
     run_gws(

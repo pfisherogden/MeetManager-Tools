@@ -65,7 +65,7 @@ class TestSpreadsheetPopulation(unittest.TestCase):
 
         # Verify conditional formatting
         cf_requests = [r for r in requests if "addConditionalFormatRule" in r]
-        self.assertEqual(len(cf_requests), 2)
+        self.assertEqual(len(cf_requests), 3)
         # Relay Scratch Rule (Yellow) - Index 0 in requests
         self.assertEqual(
             cf_requests[0]["addConditionalFormatRule"]["rule"]["booleanRule"][
@@ -92,7 +92,6 @@ class TestSpreadsheetPopulation(unittest.TestCase):
             ]["values"][0]["userEnteredValue"],
             "=AND($E2,$F2)",
         )
-
 
     @patch("populate_sheets.os.path.exists")
     @patch("populate_sheets.run_gws")

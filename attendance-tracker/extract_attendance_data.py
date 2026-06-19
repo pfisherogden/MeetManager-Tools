@@ -5,9 +5,10 @@ import re
 from typing import List, Dict, Any, Optional
 
 # Add backend/src to path
-sys.path.append(os.path.join(os.getcwd(), "MeetManager-Tools/backend/src"))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(script_dir, "../backend/src"))
 
-from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.mm_to_json import MmToJsonConverter  # noqa: E402
 
 
 def get_age_group(age: int) -> str:
