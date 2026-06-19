@@ -47,10 +47,10 @@ When a new `.mdb` file arrives for a meet:
 - **Least Privilege**: Always use the `https://www.googleapis.com/auth/spreadsheets.currentonly` scope in `appsscript.json`.
 - **Formula Safety**: Never place formulas in Row 1. Use Row 2 (e.g., `A2`) to avoid overwriting headers.
 - **Dynamic Protection**: The `onEdit` trigger MUST ignore tabs listed in the `FILTER` formulas (e.g., 'All Scratches', 'Not Checked In') to prevent data corruption.
-- **No Hardcoded Spreadsheet IDs**: Always retrieve the target spreadsheet ID dynamically from environment variables or a local `.env` file (`ATTENDANCE_SPREADSHEET_ID`). Remove `"parentId"` from `clasp.json` to prevent checking it in.
-- **Static Column Widths**: Do not auto-resize columns using Google Sheets API or Apps Script. Dynamic tabs like `All Scratches` evaluate formulas asynchronously and will collapse to width 0. Use the predefined user-adjusted pixel widths: `[73, 54, 104, 89, 57, 56, 90, 73, 37, 40, 49, 29, 27, 100, 100, 100, 100]`.
-- **Numerical Sorting Hack**: Prepend a space to age groups <= 10 (e.g. `" 6 & Under"`, `" 7-8"`, `" 9-10"`) to force correct numerical ordering in alphabetical sorts. Strip the space when mapping to sheet tab names in python.
-- **CodeQL URL Sanitization**: When validating URLs in audit or test scripts, use `urllib.parse` to extract and match `parsed.hostname` exactly. Substring checks (like `in`) trigger CodeQL alerts.
+- **No Hardcoded Resource IDs**: Always load Google Spreadsheet IDs, credentials, or target folder IDs dynamically from environment variables or a local `.env` file rather than hardcoding them. Ensure bound script configurations (like `.clasp.json` `"parentId"`) do not contain hardcoded IDs in tracked files.
+- **Static Column Sizing**: Avoid auto-resizing columns via APIs or scripts directly after population if the sheet contains asynchronous formulas (e.g. `FILTER` referencing empty sheets), as they will collapse to 0. Use pre-calculated static column widths based on user-optimized layouts, or delay resizing until formulas evaluate.
+- **Sort Ordering Hack**: For alphanumeric columns that require custom ordering (like Age Groups), use character-padding (like leading spaces) to force default alphabetical sorting into correct numerical order, stripping the padding where necessary in code.
+- **Secure URL Validation**: When validating URLs or endpoints in tests, audits, or automation scripts, parse them using standard URL parsing libraries (e.g., Python's `urllib.parse`) and validate components (like `hostname`) exactly. Avoid loose substring containment checks (like `in`), which trigger CodeQL security alerts.
 
 ## Verification Checklist
 - [ ] 'Main' tab follows Age Group tabs (index 6).

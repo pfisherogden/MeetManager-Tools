@@ -12,8 +12,8 @@
 - **Header Styling**: Gray background (#E6E6E6), Bold, Centered.
 - **Hidden Metadata**: Columns 14-17 (ID, First Name, Age, Team) MUST be hidden by default to keep the UI clean.
 - **Dynamic Formulas**: Formulas in 'All Scratches' and 'Not Checked In' MUST reside in cell **A2** to preserve the header row (A1).
-- **Static Column Widths**: Do not auto-resize. Use predefined static widths `[73, 54, 104, 89, 57, 56, 90, 73, 37, 40, 49, 29, 27, 100, 100, 100, 100]` to avoid columns collapsing to 0 on empty dynamic sheets.
-- **Numerical Sorting Hack**: Prepend a space to age groups `<= 10` (e.g. `" 6 & Under"`, `" 7-8"`, `" 9-10"`) to guarantee correct numerical sorting order. Strip this space in Python when selecting target sheets.
+- **Static Column Widths**: Avoid dynamic auto-resizing on empty dynamic tabs containing formulas (e.g. `FILTER`), as they will collapse. Use predefined static pixel widths representing user-optimized layouts.
+- **Numerical Sorting Hack**: Use character-padding (like leading spaces) on alphanumeric columns that combine alphabetical and numerical sort characteristics to guarantee correct numerical sorting order. Strip this padding in code where necessary.
 
 ### 3. Data Extraction
 - **Relay Athlete Iteration**: Relays MUST be extracted by iterating over the `relayAthletes` field in the MDB JSON to ensure individual swimmers are marked.
