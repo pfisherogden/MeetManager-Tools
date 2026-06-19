@@ -211,6 +211,11 @@ function autoResizeAllSheets() {
       var lastRow = sheet.getLastRow();
       if (lastRow > 0) {
         sheet.autoResizeColumns(1, 13);
+        // Add padding to auto-resized columns so they don't look cramped
+        for (var col = 1; col <= 13; col++) {
+          var currentWidth = sheet.getColumnWidth(col);
+          sheet.setColumnWidth(col, currentWidth + 15);
+        }
       }
     }
   });
