@@ -10,6 +10,7 @@ function onOpen() {
     .createMenu('Swim Tools')
     .addItem('Check Permissions', 'checkPermissions')
     .addItem('Force Sync All Tabs', 'manualSyncAllTabsToMain')
+    .addItem('Auto-Resize All Columns', 'autoResizeAllSheets')
     .addToUi();
 }
 
@@ -193,4 +194,24 @@ function syncAllTabsToMain() {
     }
     mainSheet.getRange(2, 5, mainWriteBack.length, 2).setValues(mainWriteBack);
   }
+  
+  // Auto-resize columns to fit populated data
+  autoResizeAllSheets();
+}
+
+/**
+ * Auto-resizes columns 1 to 13 across all sheets (except QR Code) to fit content.
+ */
+function autoResizeAllSheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  sheets.forEach(function(sheet) {
+    var name = sheet.getName();
+    if (name !== 'QR Code') {
+      var lastRow = sheet.getLastRow();
+      if (lastRow > 0) {
+        sheet.autoResizeColumns(1, 13);
+      }
+    }
+  });
 }

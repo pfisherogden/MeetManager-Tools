@@ -39,25 +39,19 @@ def apply_formatting(
     """
     requests = []
 
-    # Column Widths
-    # 1:Age Group, 2:Gender, 3:Preferred Name, 4:Last Name, 5:Present, 6:Scratch,
-    # 7:Medley Relay, 8:Free Relay, 9:Free, 10:Back, 11:Breast, 12:Fly, 13:IM
-    widths = [100, 60, 120, 150, 70, 70, 85, 85, 50, 50, 50, 50, 50]
-    for i, w in enumerate(widths):
-        requests.append(
-            {
-                "updateDimensionProperties": {
-                    "range": {
-                        "sheetId": sheet_id,
-                        "dimension": "COLUMNS",
-                        "startIndex": i,
-                        "endIndex": i + 1,
-                    },
-                    "properties": {"pixelSize": w},
-                    "fields": "pixelSize",
+    # Auto-Resize Columns (Indices 0-12)
+    requests.append(
+        {
+            "autoResizeDimensions": {
+                "dimensions": {
+                    "sheetId": sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": 0,
+                    "endIndex": 13,
                 }
             }
-        )
+        }
+    )
 
     # Hide Metadata Columns (13-17) - Indices 13, 14, 15, 16 (ID, First Name, Age, Team)
     requests.append(

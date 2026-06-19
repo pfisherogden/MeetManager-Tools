@@ -17,14 +17,16 @@ class TestSpreadsheetPopulation(unittest.TestCase):
         row_count = 10
         requests = apply_formatting(sheet_id, row_count)
 
-        # Verify column widths
-        width_requests = [
-            r
-            for r in requests
-            if "updateDimensionProperties" in r
-            and r["updateDimensionProperties"]["properties"].get("pixelSize")
-        ]
-        self.assertEqual(len(width_requests), 13)  # 13 columns set
+        # Verify auto-resize column request
+        autoresize_requests = [r for r in requests if "autoResizeDimensions" in r]
+        self.assertEqual(len(autoresize_requests), 1)
+        self.assertEqual(
+            autoresize_requests[0]["autoResizeDimensions"]["dimensions"]["startIndex"],
+            0,
+        )
+        self.assertEqual(
+            autoresize_requests[0]["autoResizeDimensions"]["dimensions"]["endIndex"], 13
+        )
 
         # Verify hidden columns
         hide_requests = [
