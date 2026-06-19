@@ -5,9 +5,10 @@ import re
 from typing import List, Dict, Any, Optional
 
 # Add backend/src to path
-sys.path.append(os.path.join(os.getcwd(), "MeetManager-Tools/backend/src"))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(script_dir, "../backend/src"))
 
-from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.mm_to_json import MmToJsonConverter  # noqa: E402
 
 
 def get_age_group(age: int) -> str:
@@ -21,11 +22,11 @@ def get_age_group(age: int) -> str:
         The string representation of the age group (e.g., "7-8").
     """
     if age <= 6:
-        return "6 & Under"
+        return " 6 & Under"
     if age <= 8:
-        return "7-8"
+        return " 7-8"
     if age <= 10:
-        return "9-10"
+        return " 9-10"
     if age <= 12:
         return "11-12"
     if age <= 14:

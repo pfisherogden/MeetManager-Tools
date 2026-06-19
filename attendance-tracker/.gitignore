@@ -1,0 +1,4 @@
+# Local development data and audit files
+audit_sheet.xlsx
+ground_truth.json
+spreadsheet_data.json

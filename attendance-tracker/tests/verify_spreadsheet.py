@@ -2,11 +2,13 @@ import sys
 import os
 
 # Add paths
-sys.path.append(os.path.join(os.getcwd(), "MeetManager-Tools/scripts"))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(script_dir, ".."))
+
+from populate_sheets import spreadsheet_id  # noqa: E402
 
 
 def run_audit():
-    spreadsheet_id = "1ln0ynFoOHe9jx43Mb2ox6ACP_mhinoAmEtkNJVqdS38"
 
     prompt = f"""Please perform a COMPREHENSIVE structural audit of the Attendance Tracker Google Spreadsheet:
     Spreadsheet ID: {spreadsheet_id}
@@ -26,7 +28,6 @@ def run_audit():
     a) Binding exists and synchronization logic uses Column 14 for ID-based lookup and Columns 5/6 for checkbox sync.
 
     Confirm each point in a detailed report."""
-
 
     # Since we can't easily invoke 'invoke_agent' from a python script in this environment
     # without complex tooling, we'll just print instructions for the main agent to run it.

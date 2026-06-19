@@ -3,7 +3,22 @@ import os
 import subprocess
 from typing import List, Dict, Any, Optional
 
-spreadsheet_id = "1MNe1PO6Qrw77SlvLWULnmXEEzRniag7sNRrC8uco-l8"
+spreadsheet_id = os.getenv("ATTENDANCE_SPREADSHEET_ID")
+if not spreadsheet_id:
+    # Fallback to local .env parsing
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(script_dir, "../.env")
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                if line.strip().startswith("ATTENDANCE_SPREADSHEET_ID="):
+                    spreadsheet_id = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    break
+
+if not spreadsheet_id:
+    raise ValueError(
+        "ATTENDANCE_SPREADSHEET_ID must be defined in the environment or .env file."
+    )
 
 
 def run_gws(
@@ -39,10 +54,8 @@ def apply_formatting(
     """
     requests = []
 
-    # Column Widths
-    # 1:Age Group, 2:Gender, 3:Preferred Name, 4:Last Name, 5:Present, 6:Scratch,
-    # 7:Medley Relay, 8:Free Relay, 9:Free, 10:Back, 11:Breast, 12:Fly, 13:IM
-    widths = [100, 60, 120, 150, 70, 70, 85, 85, 50, 50, 50, 50, 50]
+    # Column Widths (exact pixel sizes from the manually adjusted 13-14 tab)
+    widths = [73, 54, 104, 89, 57, 56, 90, 73, 37, 40, 49, 29, 27, 100, 100, 100, 100]
     for i, w in enumerate(widths):
         requests.append(
             {
@@ -214,16 +227,37 @@ def apply_formatting(
         }
     )
 
-    # Auto-Resize Columns for better mobile viewing (Indices 0-12)
+    # Rule 3: Milestone Highlight (Gold) - Celebratory
+    # Highlight entire row if Preferred Name contains star
+    # Formula: =REGEXMATCH($C2, "⭐")
     requests.append(
         {
-            "autoResizeDimensions": {
-                "dimensions": {
-                    "sheetId": sheet_id,
-                    "dimension": "COLUMNS",
-                    "startIndex": 0,
-                    "endIndex": 13,
-                }
+            "addConditionalFormatRule": {
+                "rule": {
+                    "ranges": [
+                        {
+                            "sheetId": sheet_id,
+                            "startRowIndex": 1,
+                            "endRowIndex": effective_end_row,
+                            "startColumnIndex": 0,
+                            "endColumnIndex": 13,
+                        }
+                    ],
+                    "booleanRule": {
+                        "condition": {
+                            "type": "CUSTOM_FORMULA",
+                            "values": [{"userEnteredValue": '=REGEXMATCH($C2, "⭐")'}],
+                        },
+                        "format": {
+                            "backgroundColor": {
+                                "red": 1.0,
+                                "green": 0.95,
+                                "blue": 0.6,
+                            }
+                        },
+                    },
+                },
+                "index": 0,
             }
         }
     )
@@ -277,10 +311,22 @@ def populate() -> None:
     }
 
     def format_swimmer(s: Dict[str, Any]) -> List[Any]:
+        # Completion Logic
+        is_complete = False
+        strokes = ["Free", "Back", "Breast", "Fly"]
+        if all(s.get(st) == "X" for st in strokes):
+            age_group = s.get("Age Group", "")
+            if age_group in ["6 & Under", "7-8"] or s.get("IM") == "X":
+                is_complete = True
+
+        pref_name = s.get("Preferred Name", "")
+        if is_complete:
+            pref_name = f"{pref_name} ⭐"
+
         row = ["" for _ in range(17)]
         row[0] = s.get("Age Group", "")
         row[1] = s.get("Gender", "")
-        row[2] = s.get("Preferred Name", "")
+        row[2] = pref_name
         row[3] = s.get("Last Name", "")
         row[4] = False  # Present
         row[5] = False  # Scratch
@@ -308,6 +354,21 @@ def populate() -> None:
             }
         }
     )
+
+    # Clear all sheet tabs first to avoid stale data (stale rows at the bottom)
+    for tab in sheet_info.keys():
+        if tab == "QR Code":
+            continue
+        run_gws(
+            "sheets",
+            "spreadsheets",
+            "values",
+            "clear",
+            params={
+                "spreadsheetId": spreadsheet_id,
+                "range": f"'{tab}'!A1:Q2000",
+            },
+        )
 
     # Sort Main: Age Group, Gender, Preferred Name
     swimmers.sort(
@@ -343,7 +404,8 @@ def populate() -> None:
         age_groups[ag].append(s)
 
     for ag, group in age_groups.items():
-        if ag in sheet_info:
+        clean_ag = ag.strip()
+        if clean_ag in sheet_info:
             # Sort Age Group: Gender, Preferred Name
             group.sort(
                 key=lambda x: (
@@ -359,12 +421,12 @@ def populate() -> None:
                 "update",
                 params={
                     "spreadsheetId": spreadsheet_id,
-                    "range": f"'{ag}'!A1",
+                    "range": f"'{clean_ag}'!A1",
                     "valueInputOption": "RAW",
                 },
                 body={"values": ag_values},
             )
-            all_requests.extend(apply_formatting(sheet_info[ag], len(group)))
+            all_requests.extend(apply_formatting(sheet_info[clean_ag], len(group)))
 
     # Headers for All Scratches and Not Checked In
     for tab in ["All Scratches", "Not Checked In"]:
@@ -429,23 +491,37 @@ def populate() -> None:
             "range": "'QR Code'!A1",
             "valueInputOption": "USER_ENTERED",
         },
-        body={"values": [["Scan to Share Attendance Tracker"], [qr_formula]]},
+        body={"values": [["Scan to Share Attendance Tracker"], [qr_formula], [""]]},
     )
     # Format QR Code tab
-    all_requests.append({
-        "updateDimensionProperties": {
-            "range": { "sheetId": sheet_info["QR Code"], "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1 },
-            "properties": { "pixelSize": 500 },
-            "fields": "pixelSize"
+    all_requests.append(
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_info["QR Code"],
+                    "dimension": "COLUMNS",
+                    "startIndex": 0,
+                    "endIndex": 1,
+                },
+                "properties": {"pixelSize": 500},
+                "fields": "pixelSize",
+            }
         }
-    })
-    all_requests.append({
-        "updateDimensionProperties": {
-            "range": { "sheetId": sheet_info["QR Code"], "dimension": "ROWS", "startIndex": 1, "endIndex": 2 },
-            "properties": { "pixelSize": 500 },
-            "fields": "pixelSize"
+    )
+    all_requests.append(
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_info["QR Code"],
+                    "dimension": "ROWS",
+                    "startIndex": 1,
+                    "endIndex": 2,
+                },
+                "properties": {"pixelSize": 500},
+                "fields": "pixelSize",
+            }
         }
-    })
+    )
 
     # Run all formatting requests
     run_gws(
