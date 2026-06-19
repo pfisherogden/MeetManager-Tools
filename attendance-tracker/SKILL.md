@@ -47,11 +47,16 @@ When a new `.mdb` file arrives for a meet:
 - **Least Privilege**: Always use the `https://www.googleapis.com/auth/spreadsheets.currentonly` scope in `appsscript.json`.
 - **Formula Safety**: Never place formulas in Row 1. Use Row 2 (e.g., `A2`) to avoid overwriting headers.
 - **Dynamic Protection**: The `onEdit` trigger MUST ignore tabs listed in the `FILTER` formulas (e.g., 'All Scratches', 'Not Checked In') to prevent data corruption.
+- **No Hardcoded Spreadsheet IDs**: Always retrieve the target spreadsheet ID dynamically from environment variables or a local `.env` file (`ATTENDANCE_SPREADSHEET_ID`). Remove `"parentId"` from `clasp.json` to prevent checking it in.
+- **Static Column Widths**: Do not auto-resize columns using Google Sheets API or Apps Script. Dynamic tabs like `All Scratches` evaluate formulas asynchronously and will collapse to width 0. Use the predefined user-adjusted pixel widths: `[73, 54, 104, 89, 57, 56, 90, 73, 37, 40, 49, 29, 27, 100, 100, 100, 100]`.
+- **Numerical Sorting Hack**: Prepend a space to age groups <= 10 (e.g. `" 6 & Under"`, `" 7-8"`, `" 9-10"`) to force correct numerical ordering in alphabetical sorts. Strip the space when mapping to sheet tab names in python.
+- **CodeQL URL Sanitization**: When validating URLs in audit or test scripts, use `urllib.parse` to extract and match `parsed.hostname` exactly. Substring checks (like `in`) trigger CodeQL alerts.
 
 ## Verification Checklist
 - [ ] 'Main' tab follows Age Group tabs (index 6).
 - [ ] Sort order: Age Group -> Gender -> Preferred Name.
 - [ ] Relay columns (Medley then Free) appear BEFORE individual strokes.
 - [ ] Visual Warnings: Pink for conflicts, Yellow for relay scratches.
-- [ ] QR Code tab contains scannable image.
+- [ ] QR Code tab contains scannable image and valid parsed URL matching the exact target hostname.
 - [ ] Bi-directional sync verified (Columns 5/6 using ID Column 14).
+- [ ] All temporary files and audit spreadsheets are git-ignored and not checked in.
