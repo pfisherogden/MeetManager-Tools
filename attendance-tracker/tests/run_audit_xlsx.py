@@ -234,8 +234,25 @@ def run_audit(spreadsheet_id: str):
         print("FAIL: 'QR Code' tab not found.")
     else:
         tab = wb["QR Code"]
-        a2_val = tab["A2"].value
-        if a2_val and "api.qrserver.com" in a2_val and spreadsheet_id in a2_val:
+        a2_val = tab["A2"].value or ""
+
+        # Safe URL extraction and parsing to satisfy CodeQL URL sanitization checks
+        match = re.search(r"https://[^\s\"]+", a2_val)
+        is_valid_qr = False
+        if match:
+            from urllib.parse import urlparse, parse_qs
+
+            extracted_url = match.group(0)
+            parsed = urlparse(extracted_url)
+            # Ensure the hostname is exactly 'api.qrserver.com'
+            if parsed.hostname == "api.qrserver.com":
+                # Verify that the nested spreadsheet ID exists in the query parameters
+                query_params = parse_qs(parsed.query)
+                data_param = query_params.get("data", [""])[0]
+                if spreadsheet_id in data_param:
+                    is_valid_qr = True
+
+        if is_valid_qr:
             print(
                 "PASS: 'QR Code' tab cell A2 formula contains the expected QR server URL and Spreadsheet ID."
             )
