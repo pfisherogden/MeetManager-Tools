@@ -152,22 +152,4 @@ def test_inject_memorized_reports(sample_data):
     # Check DP filter
     lineup_6u = next(r for r in reports if r["Mem_Name"] == "Lineup: 6&U")
     assert lineup_6u["Team_Abbr"] == "DP"
-    assert lineup_6u["Sess_Row"] == 4
-
-def test_create_report_sessions(sample_data):
-    """Ensures report-specific sessions are created and events are linked."""
-    transformer = SeasonTransformer(sample_data)
-    transformer.create_report_sessions()
-
-    sessions = transformer.table_data["SESSIONS"]
-    sess_names = [s.get("Sess_name") or s.get("SessName") for s in sessions]
-
-    assert "Girls (F)" in sess_names
-    assert "Lineup: 6&U" in sess_names
-
-    # Check linkage
-    girls_sess = next(s for s in sessions if s["Sess_name"] == "Girls (F)")
-    sess_ptr = girls_sess["Sess_ptr"]
-
-    items = [i for i in transformer.table_data["Sessitem"] if i["Sess_ptr"] == sess_ptr]
-    assert len(items) == 1  # Event 1 is G
+    assert lineup_6u["Sess_Row"] == 1

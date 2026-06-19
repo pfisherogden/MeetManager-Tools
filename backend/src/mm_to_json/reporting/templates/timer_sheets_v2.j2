@@ -1,0 +1,186 @@
+{% extends "_base_report.j2" %}
+{% import "_macros.j2" as macros %}
+
+{% block container_class %}timer-sheet-content{% endblock %}
+
+{% block extra_css %}
+    .timer-sheet-content {
+        column-count: 1 !important;
+    }
+    .group-block {
+        display: block;
+    }
+    .lane-header {
+        font-size: 14pt;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 5pt;
+        background-color: #f0f0f0;
+        padding: 4pt;
+        border: 1pt solid #000;
+    }
+    .timer-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 5pt;
+    }
+    .timer-table th {
+        border: 1pt solid #333;
+        padding: 3pt;
+        font-size: 8.5pt;
+        background-color: #eee;
+        text-align: center;
+    }
+    .timer-table td {
+        border: 1pt solid #333;
+        padding: 4pt;
+        height: 44pt; /* Targeted height to fit exactly 12 rows on one page */
+        vertical-align: middle;
+    }
+    .col-ev-ht { 
+        width: 55pt; 
+        text-align: center; 
+        vertical-align: middle;
+    }
+    .ev-ht-numbers {
+        font-weight: bold;
+        font-size: 10pt;
+        line-height: 1.1;
+    }
+    .ev-ht-stroke {
+        font-weight: normal;
+        font-size: 7.5pt;
+        color: #555;
+        margin-top: 2pt;
+        line-height: 1.0;
+        text-transform: uppercase;
+    }
+    .col-name-team { width: auto; }
+    .col-seed { 
+        width: 60pt; 
+        text-align: center; 
+        font-family: monospace; 
+        font-weight: bold;
+        font-size: 11pt;
+    }
+    .col-timer { width: 75pt; }
+    
+    .swimmer-info-block {
+        display: block;
+        height: 100%;
+    }
+    .swimmer-name {
+        font-weight: bold;
+        font-size: 10pt;
+        line-height: 1.1;
+    }
+    .team-name {
+        font-size: 9pt;
+        color: #333;
+        line-height: 1.1;
+    }
+    
+    .relay-swimmers-grid {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+        margin-top: 2pt;
+        font-size: 8pt;
+        line-height: 1.0;
+        color: #444;
+    }
+    .relay-col {
+        display: table-cell;
+        width: 50%;
+        vertical-align: top;
+    }
+    .relay-swimmer-container {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+        padding-right: 4pt;
+    }
+    .relay-swimmer-name {
+        display: table-cell;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .blank-row {
+        background-color: #fafafa;
+    }
+    .blank-text {
+        font-size: 9pt;
+        color: #999;
+        font-style: italic;
+        text-align: center;
+    }
+{% endblock %}
+
+{% block content %}
+    {% for group in groups %}
+    <div class="group-block" style="{% if not loop.first %}break-before: page;{% endif %} display: block;">
+        <h2 class="lane-header">{{ group.header }}</h2>
+        
+        <table class="timer-table">
+            <thead>
+                <tr>
+                    <th class="col-ev-ht">Ev / Ht</th>
+                    <th class="col-name-team">Swimmer / Team</th>
+                    <th class="col-seed">Seed Time</th>
+                    <th class="col-timer">Timer 1</th>
+                    <th class="col-timer">Timer 2</th>
+                    <th class="col-timer">Stopwatch</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in group.sub_items %}
+                <tr class="timer-row {% if entry.is_blank %}blank-row{% endif %}">
+                    <td class="col-ev-ht">
+                        <div class="ev-ht-numbers">{{ entry.event_num }} / {{ entry.heat }}</div>
+                        <div class="ev-ht-stroke">{{ entry.short_stroke }}</div>
+                    </td>
+                    <td class="col-name-team">
+                        {% if entry.is_blank %}
+                            <div class="blank-text">[ No Swimmer ]</div>
+                        {% else %}
+                            <div class="swimmer-info-block">
+                                {% if entry.is_relay %}
+                                    <div class="swimmer-name">{{ entry.team }} - {{ entry.relayLtr }}</div>
+                                    <div class="relay-swimmers-grid">
+                                        <div class="relay-col">
+                                            <div class="relay-swimmer-container">
+                                                <div class="relay-swimmer-name">1) {{ entry.swimmers[0] if entry.swimmers|length > 0 else '' }}</div>
+                                            </div>
+                                            <div class="relay-swimmer-container">
+                                                <div class="relay-swimmer-name">3) {{ entry.swimmers[2] if entry.swimmers|length > 2 else '' }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="relay-col">
+                                            <div class="relay-swimmer-container">
+                                                <div class="relay-swimmer-name">2) {{ entry.swimmers[1] if entry.swimmers|length > 1 else '' }}</div>
+                                            </div>
+                                            <div class="relay-swimmer-container">
+                                                <div class="relay-swimmer-name">4) {{ entry.swimmers[3] if entry.swimmers|length > 3 else '' }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="swimmer-name">{{ entry.name }}{% if entry.age %} ({{ entry.age }}){% endif %}</div>
+                                    <div class="team-name">{{ entry.team }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td class="col-seed">{{ entry.time if not entry.is_blank else '' }}</td>
+                    <td class="col-timer"></td>
+                    <td class="col-timer"></td>
+                    <td class="col-timer"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+{% endblock %}

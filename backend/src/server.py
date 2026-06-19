@@ -243,6 +243,8 @@ def _process_single_report_process(
     html_preview=False,
     idx=0,
     user_email=None,
+    include_blank_lanes=True,
+    break_every_six_events=True,
 ):
     import datetime
     import logging
@@ -300,7 +302,7 @@ def _process_single_report_process(
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
             )
-            template = "meet_entries.j2"
+            template = "entries_hytek.j2"
         elif rtype == "lineups":
             # Fallback to entries for lineups if not explicitly implemented
             report_data = extractor.extract_meet_entries_data(
@@ -334,6 +336,26 @@ def _process_single_report_process(
                 age_group_filter=report_req_age_group_filter,
             )
             template = "timer_sheets.j2"
+        elif rtype == "lane_timer_sheets_v2":
+            report_data = extractor.extract_lane_timer_sheets_data_v2(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+                include_blank_lanes=include_blank_lanes,
+                break_every_six_events=break_every_six_events,
+            )
+            template = "timer_sheets_v2.j2"
+        elif rtype == "lane_timer_sheets_v3":
+            report_data = extractor.extract_lane_timer_sheets_data_v3(
+                team_filter=report_req_team_filter,
+                report_title=title,
+                gender_filter=report_req_gender_filter,
+                age_group_filter=report_req_age_group_filter,
+                include_blank_lanes=include_blank_lanes,
+                break_every_six_events=break_every_six_events,
+            )
+            template = "timer_sheets_v3.j2"
         elif rtype in ["program", "program_html", "judge_sheets"]:
             report_data = extractor.extract_meet_program_data(
                 team_filter=report_req_team_filter,
@@ -1813,6 +1835,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
                 pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
+                pb2.REPORT_TYPE_LANE_TIMER_SHEETS_V2: "lane_timer_sheets_v2",
+                pb2.REPORT_TYPE_LANE_TIMER_SHEETS_V3: "lane_timer_sheets_v3",
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
                 pb2.REPORT_TYPE_CTS_EXPORT: "cts_export",
                 pb2.REPORT_TYPE_CHECK_IN_SHEET: "check_in_sheet",
@@ -1847,7 +1871,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     rtype_map,
                     request.renderer_type if hasattr(request, "renderer_type") else None,
                     getattr(request, "html_preview", False),
+                    idx=0,
                     user_email=user_email,
+                    include_blank_lanes=request.include_blank_lanes
+                    if request.HasField("include_blank_lanes")
+                    else True,
+                    break_every_six_events=request.break_every_six_events
+                    if request.HasField("break_every_six_events")
+                    else True,
                 )
             finally:
                 # Cleanup msgpack file
@@ -1944,6 +1975,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
                 pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
                 pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
+                pb2.REPORT_TYPE_LANE_TIMER_SHEETS_V2: "lane_timer_sheets_v2",
+                pb2.REPORT_TYPE_LANE_TIMER_SHEETS_V3: "lane_timer_sheets_v3",
                 pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
                 pb2.REPORT_TYPE_CTS_EXPORT: "cts_export",
                 pb2.REPORT_TYPE_CHECK_IN_SHEET: "check_in_sheet",
@@ -1994,7 +2027,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                                 request.renderer_type if hasattr(request, "renderer_type") else None,
                                 False,  # html_preview
                                 idx,
-                                user_email=user_email,
+                                user_email,
+                                include_blank_lanes=report_req.include_blank_lanes
+                                if report_req.HasField("include_blank_lanes")
+                                else True,
+                                break_every_six_events=report_req.break_every_six_events
+                                if report_req.HasField("break_every_six_events")
+                                else True,
                             )
                         )
 
