@@ -389,7 +389,8 @@ def populate() -> None:
         age_groups[ag].append(s)
 
     for ag, group in age_groups.items():
-        if ag in sheet_info:
+        clean_ag = ag.strip()
+        if clean_ag in sheet_info:
             # Sort Age Group: Gender, Preferred Name
             group.sort(
                 key=lambda x: (
@@ -405,12 +406,12 @@ def populate() -> None:
                 "update",
                 params={
                     "spreadsheetId": spreadsheet_id,
-                    "range": f"'{ag}'!A1",
+                    "range": f"'{clean_ag}'!A1",
                     "valueInputOption": "RAW",
                 },
                 body={"values": ag_values},
             )
-            all_requests.extend(apply_formatting(sheet_info[ag], len(group)))
+            all_requests.extend(apply_formatting(sheet_info[clean_ag], len(group)))
 
     # Headers for All Scratches and Not Checked In
     for tab in ["All Scratches", "Not Checked In"]:

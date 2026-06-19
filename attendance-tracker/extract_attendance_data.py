@@ -22,11 +22,11 @@ def get_age_group(age: int) -> str:
         The string representation of the age group (e.g., "7-8").
     """
     if age <= 6:
-        return "6 & Under"
+        return " 6 & Under"
     if age <= 8:
-        return "7-8"
+        return " 7-8"
     if age <= 10:
-        return "9-10"
+        return " 9-10"
     if age <= 12:
         return "11-12"
     if age <= 14:
