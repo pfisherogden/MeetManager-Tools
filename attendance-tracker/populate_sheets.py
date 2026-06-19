@@ -39,19 +39,23 @@ def apply_formatting(
     """
     requests = []
 
-    # Auto-Resize Columns (Indices 0-12)
-    requests.append(
-        {
-            "autoResizeDimensions": {
-                "dimensions": {
-                    "sheetId": sheet_id,
-                    "dimension": "COLUMNS",
-                    "startIndex": 0,
-                    "endIndex": 13,
+    # Column Widths (exact pixel sizes from the manually adjusted 13-14 tab)
+    widths = [73, 54, 104, 89, 57, 56, 90, 73, 37, 40, 49, 29, 27, 100, 100, 100, 100]
+    for i, w in enumerate(widths):
+        requests.append(
+            {
+                "updateDimensionProperties": {
+                    "range": {
+                        "sheetId": sheet_id,
+                        "dimension": "COLUMNS",
+                        "startIndex": i,
+                        "endIndex": i + 1,
+                    },
+                    "properties": {"pixelSize": w},
+                    "fields": "pixelSize",
                 }
             }
-        }
-    )
+        )
 
     # Hide Metadata Columns (13-17) - Indices 13, 14, 15, 16 (ID, First Name, Age, Team)
     requests.append(
@@ -471,7 +475,7 @@ def populate() -> None:
             "range": "'QR Code'!A1",
             "valueInputOption": "USER_ENTERED",
         },
-        body={"values": [["Scan to Share Attendance Tracker"], [qr_formula]]},
+        body={"values": [["Scan to Share Attendance Tracker"], [qr_formula], [""]]},
     )
     # Format QR Code tab
     all_requests.append(
