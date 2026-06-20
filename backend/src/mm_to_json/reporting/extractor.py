@@ -898,11 +898,11 @@ class ReportDataExtractor:
                             item["swimmers"] = []
                         lane_entries.append(item)
 
-            # 4. Group into pages of rows
             current_page_rows: list[dict[str, Any]] = []
             current_event_num = None
             distinct_events_count = 0
             page_num = 1
+            current_page_height = 0
 
             def finish_page_v3(l_num, p_rows, p_num):
                 if p_rows:
@@ -915,11 +915,21 @@ class ReportDataExtractor:
             for item in lane_entries:
                 item_event_num = item["event_num"]
                 needs_header = item_event_num != current_event_num
-                rows_to_add = 2 if needs_header else 1
+
+                # Height calculation
+                height_to_add = 0
+                if needs_header:
+                    height_to_add += 18
+                if item.get("is_blank"):
+                    height_to_add += 18
+                elif item.get("is_relay"):
+                    height_to_add += 42
+                else:
+                    height_to_add += 30
 
                 # Check page break conditions
                 should_break = False
-                if len(current_page_rows) + rows_to_add > 12:
+                if current_page_height + height_to_add > 600:
                     should_break = True
                 elif break_every_six_events and needs_header and distinct_events_count >= 6:
                     should_break = True
@@ -933,7 +943,16 @@ class ReportDataExtractor:
                     current_page_rows, page_num = finish_page_v3(lane_num, current_page_rows, page_num)
                     distinct_events_count = 0
                     current_event_num = None
+                    current_page_height = 0
                     needs_header = True
+                    # Re-calculate height to add as header is now required
+                    height_to_add = 18
+                    if item.get("is_blank"):
+                        height_to_add += 18
+                    elif item.get("is_relay"):
+                        height_to_add += 42
+                    else:
+                        height_to_add += 30
 
                 if needs_header:
                     current_page_rows.append(
@@ -947,6 +966,7 @@ class ReportDataExtractor:
                     current_event_num = item_event_num
 
                 current_page_rows.append({"type": "swimmer", "item": item})
+                current_page_height += height_to_add
 
             # Final page for this lane
             current_page_rows, page_num = finish_page_v3(lane_num, current_page_rows, page_num)
