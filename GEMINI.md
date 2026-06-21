@@ -175,3 +175,13 @@ All agents MUST follow these workflow phases:
         - **Scoring**: Standard dual meet scoring is 5-3-2-1 for individuals and 10-6-0 for relays (Rule 19).
         - **Export Parity**: All EV3/HYV exports MUST use `7.0Gb` version strings and `\r\n` line endings for TeamUnify compatibility.
 - **Action**: Check `.agent/skills/season-setup/SKILL.md` for execution and configuration details.
+
+### 18. LSC Code Database Locations
+- **Context**: Need to verify and modify team LSC codes (e.g., changing "CC" to "VS" for the Castlewood Barracudas).
+- **Locations**:
+  - **Team**: The primary location of a team's LSC code is the `Team_lsc` column in the `Team` table.
+  - **Meet**: The LSC is stored in `Meet_lsc` and `Meet_hostlsc`.
+  - **Records**: The LSC is stored in `Record_teamlsc` (in both `Records` and `RecordsbyEvent` tables).
+  - **RecordTags**: The LSC is stored in `tag_lsc`.
+- **References**: Other tables like `Athlete` and `Event` do not duplicate the LSC string. Athletes link to their team via `Team_no`.
+
