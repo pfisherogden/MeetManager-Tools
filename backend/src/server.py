@@ -2533,6 +2533,243 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
+    def ValidateMeet(self, request, context):
+        """Validate the active dataset for registry anomalies and rules violations."""
+        import collections
+
+        try:
+            cache, _ = self._load_user_data(context)
+            findings = []
+
+            # Retrieve tables safely (case-insensitive)
+            athletes = self._get_table(cache, "athlete")
+            teams = self._get_table(cache, "team")
+            events = self._get_table(cache, "event")
+            entries = self._get_table(cache, "entry")
+
+            # Build lookups
+            teams_map = {}
+            for t in teams:
+                t_no = self._safe_int(self._get_field(t, ["team_no", "Team_no"]))
+                t_name = self._get_field(t, ["team_name", "Team_name"])
+                t_lsc = self._get_field(t, ["team_lsc", "Team_lsc"])
+                if t_no:
+                    teams_map[t_no] = {"name": t_name, "lsc": t_lsc}
+                    # WARNING: Check for missing LSC code
+                    if not t_lsc or not str(t_lsc).strip():
+                        findings.append(
+                            pb2.ValidationFinding(
+                                severity=pb2.VALIDATION_SEVERITY_WARNING,
+                                category="Teams",
+                                message=f"Team '{t_name}' is missing an LSC code.",
+                                affected_id=str(t_no),
+                            )
+                        )
+
+            athletes_map = {}
+            for ath in athletes:
+                ath_id = self._safe_int(self._get_field(ath, ["ath_no", "Ath_no"]))
+                if ath_id:
+                    first = str(self._get_field(ath, ["first_name", "First_name"]) or "").strip()
+                    last = str(self._get_field(ath, ["last_name", "Last_name"]) or "").strip()
+                    athletes_map[ath_id] = {
+                        "name": f"{first} {last}".strip() or f"Athlete #{ath_id}",
+                        "gender": str(self._get_field(ath, ["ath_sex", "Ath_sex"]) or "").strip(),
+                        "age": self._safe_int(self._get_field(ath, ["ath_age", "Ath_age"])),
+                        "team_no": self._safe_int(self._get_field(ath, ["team_no", "Team_no"])),
+                    }
+
+            events_map = {}
+            gender_map = {"B": "M", "G": "F", "M": "M", "W": "F", "F": "F"}
+            for e in events:
+                e_ptr = self._safe_int(
+                    self._get_field(e, ["event_ptr", "Event_ptr"]) or self._get_field(e, ["event_no", "Event_no"])
+                )
+                if e_ptr:
+                    events_map[e_ptr] = {
+                        "sex": str(self._get_field(e, ["event_sex", "Event_sex"]) or "").strip(),
+                        "low_age": self._safe_int(self._get_field(e, ["low_age", "Low_age"])),
+                        "high_age": self._safe_int(self._get_field(e, ["high_age", "High_age"])),
+                        "is_relay": bool(self._get_field(e, ["event_relay", "Event_relay"])),
+                        "desc": f"Event {self._get_field(e, ['event_no', 'Event_no'])}",
+                    }
+
+            # Map entries by athlete
+            athlete_entries = collections.defaultdict(list)
+            event_entries_count = collections.defaultdict(int)
+
+            for entry in entries:
+                ath_id = self._safe_int(self._get_field(entry, ["ath_no", "Ath_no"]))
+                evt_id = self._safe_int(
+                    self._get_field(entry, ["event_ptr", "Event_ptr"])
+                    or self._get_field(entry, ["event_no", "Event_no"])
+                )
+                if ath_id:
+                    athlete_entries[ath_id].append(evt_id)
+                if evt_id:
+                    event_entries_count[evt_id] += 1
+
+                # Backup Timer Verification
+                fin_time = self._safe_float(self._get_field(entry, ["fin_time", "Fin_time"]))
+                fin_stat = str(self._get_field(entry, ["fin_stat", "Fin_stat"]) or "").strip().upper()
+                fin_heat = self._safe_int(self._get_field(entry, ["fin_heat", "Fin_heat"]))
+                fin_lane = self._safe_int(self._get_field(entry, ["fin_lane", "Fin_lane"]))
+
+                if fin_heat > 0 and fin_lane > 0:
+                    ath = athletes_map.get(ath_id, {})
+                    ath_name = ath.get("name", f"Swimmer #{ath_id}")
+                    evt = events_map.get(evt_id, {})
+                    evt_desc = evt.get("desc", f"Event {evt_id}")
+
+                    if fin_time == 0 and fin_stat not in ["Q", "R"]:
+                        findings.append(
+                            pb2.ValidationFinding(
+                                severity=pb2.VALIDATION_SEVERITY_INFO,
+                                category="0 Backup Timers",
+                                message=f"{ath_name} in {evt_desc} (Heat {fin_heat}, Lane {fin_lane}): 0 backup timers (NS/Missing Time).",
+                                affected_id=str(ath_id),
+                            )
+                        )
+                    elif fin_time > 0:
+                        back1 = self._safe_float(self._get_field(entry, ["fin_back1", "Fin_back1"]))
+                        back2 = self._safe_float(self._get_field(entry, ["fin_back2", "Fin_back2"]))
+                        back3 = self._safe_float(self._get_field(entry, ["fin_back3", "Fin_back3"]))
+                        num_backups = (1 if back1 > 0 else 0) + (1 if back2 > 0 else 0) + (1 if back3 > 0 else 0)
+                        if num_backups == 1:
+                            findings.append(
+                                pb2.ValidationFinding(
+                                    severity=pb2.VALIDATION_SEVERITY_WARNING,
+                                    category="1 Backup Timer",
+                                    message=f"{ath_name} in {evt_desc} (Heat {fin_heat}, Lane {fin_lane}): Only 1 backup timer recorded (Time: {fin_time:.2f}s).",
+                                    affected_id=str(ath_id),
+                                )
+                            )
+
+            # 1. Athlete Validations
+            for ath in athletes:
+                ath_id = self._safe_int(self._get_field(ath, ["ath_no", "Ath_no"]))
+                ath_info = athletes_map.get(ath_id, {})
+                name = ath_info.get("name", f"Swimmer #{ath_id}")
+                gender = ath_info.get("gender", "")
+                age = ath_info.get("age", 0)
+                t_no = ath_info.get("team_no", 0)
+
+                # CRITICAL: Missing gender
+                if not gender or gender not in ["M", "F", "B", "G", "W"]:
+                    findings.append(
+                        pb2.ValidationFinding(
+                            severity=pb2.VALIDATION_SEVERITY_CRITICAL,
+                            category="Athletes",
+                            message=f"Swimmer {name} has an invalid or missing gender code: '{gender}'.",
+                            affected_id=str(ath_id),
+                        )
+                    )
+
+                # CRITICAL: Invalid team link
+                if not t_no or t_no not in teams_map:
+                    findings.append(
+                        pb2.ValidationFinding(
+                            severity=pb2.VALIDATION_SEVERITY_CRITICAL,
+                            category="Athletes",
+                            message=f"Swimmer {name} is associated with a missing team ID: {t_no}.",
+                            affected_id=str(ath_id),
+                        )
+                    )
+
+                # WARNING: TVSL Rules Limit (Max 3 individual events, max 4 total)
+                ath_evts = athlete_entries.get(ath_id, [])
+                ind_count = 0
+                rel_count = 0
+                for evt_id in ath_evts:
+                    evt = events_map.get(evt_id)
+                    if evt:
+                        if evt["is_relay"]:
+                            rel_count += 1
+                        else:
+                            ind_count += 1
+
+                        # WARNING: Gender Mismatch
+                        evt_sex = gender_map.get(evt["sex"])
+                        ath_sex = gender_map.get(gender)
+                        if evt_sex and ath_sex and evt_sex != ath_sex and evt["sex"] != "X":
+                            findings.append(
+                                pb2.ValidationFinding(
+                                    severity=pb2.VALIDATION_SEVERITY_WARNING,
+                                    category="Entries",
+                                    message=f"Swimmer {name} ({gender}) entered in single-sex event {evt['desc']} ({evt['sex']}).",
+                                    affected_id=str(ath_id),
+                                )
+                            )
+
+                        # WARNING: Age group mismatch
+                        low = evt["low_age"]
+                        high = evt["high_age"]
+                        if (low > 0 and age < low) or (high > 0 and age > high):
+                            findings.append(
+                                pb2.ValidationFinding(
+                                    severity=pb2.VALIDATION_SEVERITY_WARNING,
+                                    category="Entries",
+                                    message=f"Swimmer {name} (age {age}) entered in Event {evt['desc']} restricted to ages {low}-{high}.",
+                                    affected_id=str(ath_id),
+                                )
+                            )
+
+                if ind_count > 3:
+                    findings.append(
+                        pb2.ValidationFinding(
+                            severity=pb2.VALIDATION_SEVERITY_WARNING,
+                            category="Rules Limit",
+                            message=f"Swimmer {name} exceeds TVSL limits with {ind_count} individual entries (Rule 12 max: 3).",
+                            affected_id=str(ath_id),
+                        )
+                    )
+                if (ind_count + rel_count) > 4:
+                    findings.append(
+                        pb2.ValidationFinding(
+                            severity=pb2.VALIDATION_SEVERITY_WARNING,
+                            category="Rules Limit",
+                            message=f"Swimmer {name} exceeds total entry limits with {ind_count + rel_count} total entries (max: 4).",
+                            affected_id=str(ath_id),
+                        )
+                    )
+
+            # 2. Event/Heat Validations
+            for e in events:
+                e_ptr = self._safe_int(
+                    self._get_field(e, ["event_ptr", "Event_ptr"]) or self._get_field(e, ["event_no", "Event_no"])
+                )
+                e_no = self._safe_int(self._get_field(e, ["event_no", "Event_no"]))
+                count = event_entries_count.get(e_ptr, 0)
+
+                # INFO: Underfilled events
+                if count == 0:
+                    findings.append(
+                        pb2.ValidationFinding(
+                            severity=pb2.VALIDATION_SEVERITY_WARNING,
+                            category="Events",
+                            message=f"Event {e_no} has 0 entries.",
+                            affected_id=str(e_ptr),
+                        )
+                    )
+                elif count < 3:
+                    findings.append(
+                        pb2.ValidationFinding(
+                            severity=pb2.VALIDATION_SEVERITY_INFO,
+                            category="Events",
+                            message=f"Event {e_no} is under-populated with only {count} entries.",
+                            affected_id=str(e_ptr),
+                        )
+                    )
+
+            return pb2.ValidateMeetResponse(
+                success=True,
+                message=f"Validation completed. Analyzed {len(athletes)} swimmers, {len(events)} events, and {len(entries)} entries.",
+                findings=findings,
+            )
+        except Exception as e:
+            logging.error(f"ValidateMeet failed: {e}")
+            return pb2.ValidateMeetResponse(success=False, message=f"Validation check failed: {str(e)}")
+
     def _safe_int(self, value, default=0):
         try:
             return int(float(value))

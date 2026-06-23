@@ -35,6 +35,13 @@ class RendererType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     RENDERER_TYPE_UNSPECIFIED: _ClassVar[RendererType]
     RENDERER_TYPE_WEASYPRINT: _ClassVar[RendererType]
     RENDERER_TYPE_PLAYWRIGHT: _ClassVar[RendererType]
+
+class ValidationSeverity(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    VALIDATION_SEVERITY_UNSPECIFIED: _ClassVar[ValidationSeverity]
+    VALIDATION_SEVERITY_INFO: _ClassVar[ValidationSeverity]
+    VALIDATION_SEVERITY_WARNING: _ClassVar[ValidationSeverity]
+    VALIDATION_SEVERITY_CRITICAL: _ClassVar[ValidationSeverity]
 JOB_STATUS_UNSPECIFIED: JobStatus
 JOB_STATUS_PENDING: JobStatus
 JOB_STATUS_PROCESSING: JobStatus
@@ -55,6 +62,10 @@ REPORT_TYPE_CHECK_IN_SHEET: ReportType
 RENDERER_TYPE_UNSPECIFIED: RendererType
 RENDERER_TYPE_WEASYPRINT: RendererType
 RENDERER_TYPE_PLAYWRIGHT: RendererType
+VALIDATION_SEVERITY_UNSPECIFIED: ValidationSeverity
+VALIDATION_SEVERITY_INFO: ValidationSeverity
+VALIDATION_SEVERITY_WARNING: ValidationSeverity
+VALIDATION_SEVERITY_CRITICAL: ValidationSeverity
 
 class GetJobStatusRequest(_message.Message):
     __slots__ = ("job_id",)
@@ -641,3 +652,29 @@ class GenerateReportBundleResponse(_message.Message):
     bundle_url: str
     job_id: str
     def __init__(self, success: bool = ..., message: _Optional[str] = ..., zip_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., bundle_url: _Optional[str] = ..., job_id: _Optional[str] = ...) -> None: ...
+
+class ValidateMeetRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class ValidationFinding(_message.Message):
+    __slots__ = ("severity", "category", "message", "affected_id")
+    SEVERITY_FIELD_NUMBER: _ClassVar[int]
+    CATEGORY_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    AFFECTED_ID_FIELD_NUMBER: _ClassVar[int]
+    severity: ValidationSeverity
+    category: str
+    message: str
+    affected_id: str
+    def __init__(self, severity: _Optional[_Union[ValidationSeverity, str]] = ..., category: _Optional[str] = ..., message: _Optional[str] = ..., affected_id: _Optional[str] = ...) -> None: ...
+
+class ValidateMeetResponse(_message.Message):
+    __slots__ = ("success", "message", "findings")
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    FINDINGS_FIELD_NUMBER: _ClassVar[int]
+    success: bool
+    message: str
+    findings: _containers.RepeatedCompositeFieldContainer[ValidationFinding]
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., findings: _Optional[_Iterable[_Union[ValidationFinding, _Mapping]]] = ...) -> None: ...

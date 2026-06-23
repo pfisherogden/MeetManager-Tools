@@ -611,3 +611,26 @@ export async function clearAllDqs() {
 		return { success: false, message: error.message };
 	}
 }
+
+export async function validateActiveMeet() {
+	try {
+		const metadata = await getAuthMetadata();
+		const response = await client.validateMeet({}, { metadata });
+		return {
+			success: response.success,
+			message: response.message,
+			findings: response.findings.map((f) => ({
+				severity: f.severity,
+				category: f.category,
+				message: f.message,
+				affectedId: f.affectedId,
+			})),
+		};
+	} catch (err: any) {
+		return {
+			success: false,
+			message: err.message || "Failed to validate meet.",
+			findings: [],
+		};
+	}
+}
