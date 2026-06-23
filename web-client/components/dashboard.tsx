@@ -9,6 +9,7 @@ interface DashboardProps {
 }
 
 import { useConfig } from "@/components/config-provider";
+import { MeetValidation } from "@/components/meet-validation";
 
 export function Dashboard({ stats: backendStats }: DashboardProps) {
 	const { meetName } = useConfig();
@@ -93,10 +94,8 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 				))}
 			</div>
 
-			{/* Placeholder for future detailed widgets */}
-			{/* <div className="p-4 rounded border bg-muted/20 text-center text-muted-foreground">
-        Detailed activity widgets coming soon (connected to live data).
-      </div> */}
+			{/* Meet Data Validation Widget */}
+			<MeetValidation />
 		</div>
 	);
 }

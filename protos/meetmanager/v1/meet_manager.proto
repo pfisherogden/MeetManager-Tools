@@ -77,6 +77,8 @@ service MeetManagerService {
   rpc SyncDQs(SyncDQsRequest) returns (SyncDQsResponse);
   // GetFile retrieves the content of a file from storage.
   rpc GetFile(GetFileRequest) returns (GetFileResponse);
+  // ValidateMeet runs validation checks on the active dataset.
+  rpc ValidateMeet(ValidateMeetRequest) returns (ValidateMeetResponse);
 }
 
 // GetJobStatusRequest specifies the ID of the job to track.
@@ -689,4 +691,43 @@ message GenerateReportBundleResponse {
   string bundle_url = 5;
   // job_id is the unique identifier for tracking asynchronous generation.
   string job_id = 6;
+}
+
+// ValidateMeetRequest specifies options for validation.
+message ValidateMeetRequest {
+  // Currently empty, allows future configuration of rule strictness.
+}
+
+// ValidationSeverity defines the importance of the validation finding.
+enum ValidationSeverity {
+  // VALIDATION_SEVERITY_UNSPECIFIED is the default unspecified state.
+  VALIDATION_SEVERITY_UNSPECIFIED = 0;
+  // VALIDATION_SEVERITY_INFO represents informational stats/suggestions.
+  VALIDATION_SEVERITY_INFO = 1;
+  // VALIDATION_SEVERITY_WARNING represents potential errors or non-blocking rule violations.
+  VALIDATION_SEVERITY_WARNING = 2;
+  // VALIDATION_SEVERITY_CRITICAL represents severe data corruption or configuration issues.
+  VALIDATION_SEVERITY_CRITICAL = 3;
+}
+
+// ValidationFinding represents a single warning, error, or stat.
+message ValidationFinding {
+  // severity classifies the finding importance.
+  ValidationSeverity severity = 1;
+  // category indicates the functional area (e.g., "Athletes", "Events", "Entries").
+  string category = 2;
+  // message is a clear, user-friendly explanation of the issue.
+  string message = 3;
+  // affected_id is an optional identifier of the affected entity.
+  string affected_id = 4;
+}
+
+// ValidateMeetResponse returns the validation results.
+message ValidateMeetResponse {
+  // success indicates if the validation check completed successfully.
+  bool success = 1;
+  // message provides execution summary details.
+  string message = 2;
+  // findings is the list of validation issues discovered.
+  repeated ValidationFinding findings = 3;
 }
