@@ -1,6 +1,5 @@
 import os
 import sys
-from unittest.mock import patch
 
 import pytest
 
@@ -13,17 +12,14 @@ try:
     except ImportError:
         import meet_manager_pb2 as pb2
 
-    from server import MeetManagerService
+    from meet_validation import validate_meet_data
 except ImportError:
     pytest.skip("Skipping because protos not generated", allow_module_level=True)
 
 
 def test_validate_meet_logic():
-    """Test that ValidateMeet catches rule limits, gender/age mismatches, and empty teams/events."""
-    service = MeetManagerService()
-
-    # Mock tables
-    service._data_cache = {
+    """Test that validate_meet_data catches rule limits, gender/age mismatches, and empty teams/events."""
+    cache = {
         "athlete": [
             {
                 "ath_no": 1,
@@ -99,45 +95,32 @@ def test_validate_meet_logic():
         ],
     }
 
-    # Patch _load_user_data to return our manual cache/config
-    def mock_load_user_data(context):
-        return service._data_cache, {}
+    findings = validate_meet_data(cache)
 
-    with patch.object(service, "_load_user_data", side_effect=mock_load_user_data):
-        response = service.ValidateMeet(None, None)
-        assert response.success
+    # We expect:
+    # 1. Del Prado missing LSC code (WARNING)
+    # 2. Swimmer 2 has invalid gender 'X' (CRITICAL)
+    # 3. Swimmer 2 is associated with a missing team 999 (CRITICAL)
+    # 4. Parker (Male) entered in Female event (WARNING)
+    # 5. Parker (age 10) entered in 15-18 event (WARNING)
+    # 6. Parker exceeds TVSL entry limit with 5 entries (WARNING)
+    # 7. Event 2 has 1 entry (under-populated INFO)
 
-        findings = response.findings
-        # We expect:
-        # 1. Del Prado missing LSC code (WARNING)
-        # 2. Swimmer 2 has invalid gender 'X' (CRITICAL)
-        # 3. Swimmer 2 is associated with a missing team 999 (CRITICAL)
-        # 4. Parker (Male) entered in Female event (WARNING)
-        # 5. Parker (age 10) entered in 15-18 event (WARNING)
-        # 6. Parker exceeds TVSL entry limit with 5 entries (WARNING)
-        # 7. Event 2 has 0 entries (WARNING/empty)
+    severities = [f.severity for f in findings]
+    categories = [f.category for f in findings]
 
-        severities = [f.severity for f in findings]
-        categories = [f.category for f in findings]
+    assert pb2.VALIDATION_SEVERITY_CRITICAL in severities
+    assert pb2.VALIDATION_SEVERITY_WARNING in severities
 
-        # Verify severities exist
-        assert pb2.VALIDATION_SEVERITY_CRITICAL in severities
-        assert pb2.VALIDATION_SEVERITY_WARNING in severities
-
-        # Verify categories
-        assert "Teams" in categories
-        assert "Athletes" in categories
-        assert "Entries" in categories
-        assert "Rules Limit" in categories
+    assert "Teams" in categories
+    assert "Athletes" in categories
+    assert "Entries" in categories
+    assert "Rules Limit" in categories
 
 
 def test_new_validation_rules():
     """Test that ValidateMeet catches DQ points, backup timer count warnings, scratched times, duplicates, and wild times."""
-    from typing import Any
-
-    service = MeetManagerService()
-
-    service._data_cache = {
+    cache = {
         "athlete": [
             {
                 "ath_no": 1,
@@ -236,31 +219,101 @@ def test_new_validation_rules():
         ],
     }
 
-    def mock_load_user_data(context: Any) -> tuple[dict[str, Any], dict[str, Any]]:
-        return service._data_cache, {}
+    findings = validate_meet_data(cache)
+    categories = [f.category for f in findings]
+    severities = [f.severity for f in findings]
 
-    with patch.object(service, "_load_user_data", side_effect=mock_load_user_data):
-        response = service.ValidateMeet(None, None)
-        assert response.success
+    # Verify Points on DQs
+    assert "Points on DQs" in categories
+    assert pb2.VALIDATION_SEVERITY_CRITICAL in severities
 
-        findings = response.findings
-        categories = [f.category for f in findings]
-        severities = [f.severity for f in findings]
+    # Verify Scratched with Time
+    assert "Scratched with Time" in categories
 
-        # Verify Points on DQs
-        assert "Points on DQs" in categories
-        assert pb2.VALIDATION_SEVERITY_CRITICAL in severities
+    # Verify 1 Backup Timer
+    assert "1 Backup Timer" in categories
+    assert pb2.VALIDATION_SEVERITY_WARNING in severities
 
-        # Verify Scratched with Time
-        assert "Scratched with Time" in categories
+    # Verify Wild Times
+    assert "Wild Times" in categories
 
-        # Verify 1 Backup Timer
-        assert "1 Backup Timer" in categories
-        assert pb2.VALIDATION_SEVERITY_WARNING in severities
+    # Verify Relays with NS
+    assert "Relays with NS" in categories
+    assert pb2.VALIDATION_SEVERITY_INFO in severities
 
-        # Verify Wild Times
-        assert "Wild Times" in categories
 
-        # Verify Relays with NS
-        assert "Relays with NS" in categories
-        assert pb2.VALIDATION_SEVERITY_INFO in severities
+def test_exhibition_swims_limits():
+    """Test that exhibition swims are not counted against the athlete entries limits."""
+    cache = {
+        "athlete": [
+            {
+                "ath_no": 1,
+                "first_name": "Parker",
+                "last_name": "Dreisbach",
+                "ath_age": 10,
+                "ath_sex": "M",
+                "team_no": 100,
+            },
+        ],
+        "team": [
+            {"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"},
+        ],
+        "event": [
+            {"event_ptr": 10, "event_no": 1, "event_sex": "M", "low_age": 0, "high_age": 0, "event_relay": 0},
+            {"event_ptr": 20, "event_no": 2, "event_sex": "M", "low_age": 0, "high_age": 0, "event_relay": 0},
+            {"event_ptr": 30, "event_no": 3, "event_sex": "M", "low_age": 0, "high_age": 0, "event_relay": 0},
+            {"event_ptr": 40, "event_no": 4, "event_sex": "M", "low_age": 0, "high_age": 0, "event_relay": 0},
+            {"event_ptr": 50, "event_no": 5, "event_sex": "M", "low_age": 0, "high_age": 0, "event_relay": 0},
+        ],
+        "entry": [
+            # 5 entries total, but 3 are exhibition (marked in pre_exh or fin_exh)
+            {"ath_no": 1, "event_ptr": 10, "pre_exh": "x"},
+            {"ath_no": 1, "event_ptr": 20, "fin_exh": "E"},
+            {"ath_no": 1, "event_ptr": 30},
+            {"ath_no": 1, "event_ptr": 40},
+            {"ath_no": 1, "event_ptr": 50, "pre_exh": "X"},
+        ],
+    }
+
+    findings = validate_meet_data(cache)
+    categories = [f.category for f in findings]
+
+    # Parker only has 2 non-exhibition swims (Events 30 and 40), so he should not exceed limit warnings
+    assert "Rules Limit" not in categories
+
+
+def test_relay_event_count_no_warning():
+    """Test that a relay event with entries does not trigger the 0 entries warning."""
+    cache = {
+        "athlete": [],
+        "team": [],
+        "event": [
+            # Relay event
+            {
+                "event_ptr": 10,
+                "event_no": 1,
+                "event_sex": "M",
+                "low_age": 0,
+                "high_age": 0,
+                "event_relay": 1,
+            },
+        ],
+        "entry": [],
+        "relay": [
+            # Relay entry in event 10
+            {
+                "event_ptr": 10,
+                "team_no": 100,
+                "relay_no": 1,
+            }
+        ],
+    }
+
+    findings = validate_meet_data(cache)
+    # The relay event has 1 entry, so it should trigger the underpopulated (INFO) warning instead of 0 entries (WARNING)
+    warning_findings = [f for f in findings if f.category == "Events" and f.severity == pb2.VALIDATION_SEVERITY_WARNING]
+    info_findings = [f for f in findings if f.category == "Events" and f.severity == pb2.VALIDATION_SEVERITY_INFO]
+
+    assert len(warning_findings) == 0
+    assert len(info_findings) == 1
+    assert "under-populated" in info_findings[0].message
