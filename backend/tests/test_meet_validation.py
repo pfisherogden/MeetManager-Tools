@@ -104,7 +104,6 @@ def test_validate_meet_logic():
     # 4. Parker (Male) entered in Female event (WARNING)
     # 5. Parker (age 10) entered in 15-18 event (WARNING)
     # 6. Parker exceeds TVSL entry limit with 5 entries (WARNING)
-    # 7. Event 2 has 1 entry (under-populated INFO)
 
     severities = [f.severity for f in findings]
     categories = [f.category for f in findings]
@@ -282,38 +281,25 @@ def test_exhibition_swims_limits():
     assert "Rules Limit" not in categories
 
 
-def test_relay_event_count_no_warning():
-    """Test that a relay event with entries does not trigger the 0 entries warning."""
+def test_no_event_entry_count_warnings():
+    """Test that events with zero or few entries do not trigger any warnings or findings."""
     cache = {
         "athlete": [],
         "team": [],
         "event": [
-            # Relay event
             {
                 "event_ptr": 10,
                 "event_no": 1,
                 "event_sex": "M",
                 "low_age": 0,
                 "high_age": 0,
-                "event_relay": 1,
+                "event_relay": 0,
             },
         ],
         "entry": [],
-        "relay": [
-            # Relay entry in event 10
-            {
-                "event_ptr": 10,
-                "team_no": 100,
-                "relay_no": 1,
-            }
-        ],
+        "relay": [],
     }
 
     findings = validate_meet_data(cache)
-    # The relay event has 1 entry, so it should trigger the underpopulated (INFO) warning instead of 0 entries (WARNING)
-    warning_findings = [f for f in findings if f.category == "Events" and f.severity == pb2.VALIDATION_SEVERITY_WARNING]
-    info_findings = [f for f in findings if f.category == "Events" and f.severity == pb2.VALIDATION_SEVERITY_INFO]
-
-    assert len(warning_findings) == 0
-    assert len(info_findings) == 1
-    assert "under-populated" in info_findings[0].message
+    event_findings = [f for f in findings if f.category == "Events"]
+    assert len(event_findings) == 0
