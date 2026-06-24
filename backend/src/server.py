@@ -37,6 +37,7 @@ except ImportError:
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from auth_interceptor import FirebaseAuthInterceptor
+from meet_validation import validate_meet_data
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
 from mm_to_json.reporting.weasy_renderer import WeasyRenderer
@@ -2537,8 +2538,6 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         """Validate the active dataset for registry anomalies and rules violations."""
         try:
             cache, _ = self._load_user_data(context)
-            from meet_validation import validate_meet_data
-
             findings = validate_meet_data(cache)
 
             # Retrieve size metrics safely for the success message
