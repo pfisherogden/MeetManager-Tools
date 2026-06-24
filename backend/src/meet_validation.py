@@ -149,10 +149,9 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
 
     # Map entries by athlete: maps ath_id -> list of dict {"evt_id": evt_id, "is_exhibition": bool}
     athlete_entries: dict[int, list[dict[str, Any]]] = collections.defaultdict(list)
-    event_entries_count: dict[int, int] = collections.defaultdict(int)
     event_times: dict[int, list[tuple[float, int, int, str]]] = collections.defaultdict(list)
 
-    # 1. Map individual entries to athlete_entries & count event entries
+    # 1. Map individual entries to athlete_entries
     for entry in entries:
         ath_id = safe_int(get_field(entry, ["ath_no", "Ath_no"]))
         evt_id = safe_int(get_field(entry, ["event_ptr", "Event_ptr"]) or get_field(entry, ["event_no", "Event_no"]))
@@ -162,8 +161,6 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
 
         if ath_id and evt_id:
             athlete_entries[ath_id].append({"evt_id": evt_id, "is_exhibition": is_exh})
-        if evt_id:
-            event_entries_count[evt_id] += 1
 
     # 2. Map relay team exhibition status to (evt_ptr, team_no, relay_no)
     relay_exh_map = {}
@@ -175,9 +172,6 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         fin_exh = str(get_field(r, ["fin_exh", "Fin_exh"]) or "").strip().upper()
         is_exh = pre_exh != "" or fin_exh != ""
         relay_exh_map[(evt_id, t_no, r_no)] = is_exh
-        if evt_id:
-            # Fix: count relay entries so they do not trigger false positive "0 entries" warnings
-            event_entries_count[evt_id] += 1
 
     # 3. Map relay names (leg assignments) to athlete_entries
     for rn in relay_names:
@@ -470,32 +464,6 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                     category="Rules Limit",
                     message=f"Swimmer {name} exceeds total entry limits with {ind_count + rel_count} total entries (max: 4).",
                     affected_id=str(ath_id),
-                )
-            )
-
-    # 2. Event/Heat Validations
-    for e in events:
-        e_ptr = safe_int(get_field(e, ["event_ptr", "Event_ptr"]) or get_field(e, ["event_no", "Event_no"]))
-        e_no = safe_int(get_field(e, ["event_no", "Event_no"]))
-        count = event_entries_count.get(e_ptr, 0)
-
-        # INFO: Underfilled events
-        if count == 0:
-            findings.append(
-                pb2.ValidationFinding(
-                    severity=pb2.VALIDATION_SEVERITY_WARNING,
-                    category="Events",
-                    message=f"Event {e_no} has 0 entries.",
-                    affected_id=str(e_ptr),
-                )
-            )
-        elif count < 3:
-            findings.append(
-                pb2.ValidationFinding(
-                    severity=pb2.VALIDATION_SEVERITY_INFO,
-                    category="Events",
-                    message=f"Event {e_no} is under-populated with only {count} entries.",
-                    affected_id=str(e_ptr),
                 )
             )
 

@@ -188,6 +188,6 @@ All agents MUST follow these workflow phases:
 ### 19. Meet Validation Mappings & Exhibition Bypasses
 - **Modular Design**: Business logic validations are decoupled from the gRPC transport layer. All integrity rules reside in `meet_validation.py`.
 - **Exhibition Swims**: Exhibition swims are marked by a non-empty `Pre_exh` or `Fin_exh` column in the `entry` (or `relay` for teams) tables. These do NOT count against TVSL rules limits (max 3 individual / 4 total events).
-- **Event Entry Counting**: When calculating event entries to detect under-populated events, ensure relay events are counted from the `relay` table, as they do not have corresponding entries in the `entry` table.
+
 
 
