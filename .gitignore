@@ -94,6 +94,7 @@ backend/src/meetmanager/v1/meet_manager_pb2.pyi
 web-client/lib/proto/
 *.pdf
 *.png
+!web-client/src-tauri/icons/*.png
 
 # Tauri/Build Artifacts
 backend/build/
