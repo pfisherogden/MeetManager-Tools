@@ -2690,8 +2690,9 @@ def serve():
 
     pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
 
-    # Bind host: loopback for local/desktop, wildcard for cloud
-    bind_address = "127.0.0.1" if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE") else "0.0.0.0"
+    # Bind host: loopback for local/desktop, wildcard for cloud and docker container networks
+    in_docker = os.path.exists("/.dockerenv")
+    bind_address = "127.0.0.1" if (os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE")) and not in_docker else "0.0.0.0"
     server.add_insecure_port(f"{bind_address}:{port}")
     logging.info(f"Server starting on {bind_address}:{port} with Health check (port 8081)...")
     server.start()
