@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 /**
@@ -12,23 +11,28 @@ export async function GET(request: Request) {
 
 	const { searchParams } = new URL(request.url);
 	const mockUid = searchParams.get("uid") || "e2e-bypass-user";
-	const cookieStore = await cookies();
 
 	console.log(`[API Test Auth] Performing mock login for UID: ${mockUid}`);
 
-	cookieStore.set("idToken", "dev-token", {
+	const response = NextResponse.json({ success: true, uid: mockUid });
+
+	response.cookies.set("idToken", "dev-token", {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
 		sameSite: "strict",
 		path: "/",
 	});
 
-	cookieStore.set("x-user-id", mockUid, {
+	response.cookies.set("x-user-id", mockUid, {
 		httpOnly: false,
 		secure: process.env.NODE_ENV === "production",
 		sameSite: "strict",
 		path: "/",
 	});
 
-	return NextResponse.json({ success: true, uid: mockUid });
+	return response;
+}
+
+export async function POST(request: Request) {
+	return GET(request);
 }

@@ -98,5 +98,5 @@ export default async function AthletePage({
 }
 
 export async function generateStaticParams() {
-	return [];
+	return [{ id: "1" }];
 }

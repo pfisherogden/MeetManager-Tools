@@ -100,7 +100,7 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 	const { userId } = getE2ETestContext(testInfo, page);
 
 	// 1. Hit the dedicated mock login endpoint to synthesize session cookies on the server
-	const authResponse = await page.request.get(`/api/test/auth?uid=${userId}`);
+	const authResponse = await page.request.post(`/api/test/auth?uid=${userId}`);
 	if (!authResponse.ok()) {
 		throw new Error(
 			`Failed to authenticate test user ${userId}: ${authResponse.status()}`,

@@ -88,5 +88,5 @@ export default async function TeamPage({
 }
 
 export async function generateStaticParams() {
-	return [];
+	return [{ id: "1" }];
 }

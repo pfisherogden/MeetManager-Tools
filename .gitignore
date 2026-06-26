@@ -94,3 +94,13 @@ backend/src/meetmanager/v1/meet_manager_pb2.pyi
 web-client/lib/proto/
 *.pdf
 *.png
+
+# Tauri/Build Artifacts
+backend/build/
+backend/dist/
+backend/mmtools-backend-aarch64-apple-darwin.spec
+web-client/src-tauri/binaries/
+web-client/public/judge/
+backend/data/users/
+
+

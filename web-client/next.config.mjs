@@ -9,6 +9,7 @@ const nextConfig = {
 		unoptimized: true,
 	},
 	outputFileTracingRoot: "../../",
+	pageExtensions: isStatic ? ["tsx"] : ["js", "jsx", "ts", "tsx"],
 	experimental: isStatic
 		? {}
 		: {
