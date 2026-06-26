@@ -38,3 +38,7 @@ export default async function SessionPage({
 		</>
 	);
 }
+
+export async function generateStaticParams() {
+	return [];
+}

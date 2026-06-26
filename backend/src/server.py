@@ -36,7 +36,6 @@ except ImportError:
 
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
-from auth_interceptor import FirebaseAuthInterceptor
 from meet_validation import validate_meet_data
 from mm_to_json.mm_to_json import MmToJsonConverter
 from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
@@ -2614,7 +2613,54 @@ def serve_health_check():
 
 def serve():
     port = os.getenv("PORT", "8080")
-    interceptors = [FirebaseAuthInterceptor()]
+
+    # Configure authentication interceptor
+    if os.getenv("GRPC_AUTH_DISABLED") == "true":
+
+        class MockAuthInterceptor(grpc.ServerInterceptor):
+            def intercept_service(self, continuation, handler_call_details):
+                metadata = {k.lower(): v for k, v in handler_call_details.invocation_metadata}
+                uid = metadata.get("x-user-id") or metadata.get("x-e2e-uid") or "dev-user"
+                handler = continuation(handler_call_details)
+                if handler is None:
+                    return None
+
+                # Inline implementation of AuthHandlerWrapper to avoid importing auth_interceptor
+                class LocalAuthHandlerWrapper(grpc.RpcMethodHandler):
+                    def __init__(self, h, u):
+                        self.request_streaming = h.request_streaming
+                        self.response_streaming = h.response_streaming
+                        self.request_deserializer = h.request_deserializer
+                        self.response_serializer = h.response_serializer
+                        if self.request_streaming:
+                            if self.response_streaming:
+                                self.stream_stream = self._wrap(h.stream_stream)
+                            else:
+                                self.stream_unary = self._wrap(h.stream_unary)
+                        else:
+                            if self.response_streaming:
+                                self.unary_stream = self._wrap(h.unary_stream)
+                            else:
+                                self.unary_unary = self._wrap(h.unary_unary)
+                        self.uid = u
+
+                    def _wrap(self, behavior):
+                        def wrapped(request, context):
+                            context.uid = self.uid
+                            return behavior(request, context)
+
+                        return wrapped
+
+                return LocalAuthHandlerWrapper(handler, uid)
+
+        interceptors = [MockAuthInterceptor()]
+        logging.info("gRPC Auth is disabled. Running with local mock auth interceptor.")
+    else:
+        from auth_interceptor import FirebaseAuthInterceptor
+
+        interceptors = [FirebaseAuthInterceptor()]
+        logging.info("gRPC Auth is enabled. Running with FirebaseAuthInterceptor.")
+
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10),
         interceptors=interceptors,
@@ -2644,8 +2690,15 @@ def serve():
 
     pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
 
-    server.add_insecure_port(f"0.0.0.0:{port}")
-    logging.info(f"Server starting on port {port} with AuthInterceptor and Health check (port 8081)...")
+    # Bind host: loopback for local/desktop, wildcard for cloud and docker container networks
+    in_docker = os.path.exists("/.dockerenv")
+    bind_address = (
+        "127.0.0.1"
+        if (os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE")) and not in_docker
+        else "0.0.0.0"
+    )
+    server.add_insecure_port(f"{bind_address}:{port}")
+    logging.info(f"Server starting on {bind_address}:{port} with Health check (port 8081)...")
     server.start()
     server.wait_for_termination()
 

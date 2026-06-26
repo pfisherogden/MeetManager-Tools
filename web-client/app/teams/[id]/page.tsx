@@ -5,8 +5,6 @@ import { getTeam } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
-export const dynamic = "force-dynamic";
-
 export default async function TeamPage({
 	params,
 }: {
@@ -87,4 +85,8 @@ export default async function TeamPage({
 			</SidebarInset>
 		</>
 	);
+}
+
+export async function generateStaticParams() {
+	return [];
 }

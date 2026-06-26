@@ -1,3 +1,5 @@
+const isStatic = process.env.EXPORT_STATIC === "true";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	typescript: {
@@ -7,25 +9,31 @@ const nextConfig = {
 		unoptimized: true,
 	},
 	outputFileTracingRoot: "../../",
-	experimental: {
-		serverActions: {
-			bodySizeLimit: "50mb",
-		},
-	},
+	experimental: isStatic
+		? {}
+		: {
+				serverActions: {
+					bodySizeLimit: "50mb",
+				},
+			},
 	generateBuildId: async () => {
 		return `build-${Date.now()}`;
 	},
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
 	},
-	async rewrites() {
-		return [
-			{
-				source: "/judge/:path*",
-				destination: "/judge/index.html",
-			},
-		];
-	},
+	...(isStatic
+		? { output: "export" }
+		: {
+				async rewrites() {
+					return [
+						{
+							source: "/judge/:path*",
+							destination: "/judge/index.html",
+						},
+					];
+				},
+			}),
 };
 
 export default nextConfig;
