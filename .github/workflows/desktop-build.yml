@@ -68,6 +68,14 @@ jobs:
           cd web-client
           npm ci
 
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Generate Protos
+        run: |
+          just codegen
+          just codegen-frontend
+
       - name: Compile Frontend (Next.js Production Build)
         env:
           NEXT_PUBLIC_AUTH_DISABLED: "true"
