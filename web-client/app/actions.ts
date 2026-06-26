@@ -11,11 +11,15 @@ async function getAuthMetadata() {
 	let userId =
 		headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
 
-	// Fallback for local development or E2E bypass
-	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" && !userId) {
-		userId = "e2e-bypass-user";
+	// Fallback for local development, desktop mode, or E2E bypass
+	const isAuthDisabled =
+		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
+		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
+
+	if (isAuthDisabled && !userId) {
+		userId = "dev-user";
 		if (process.env.NODE_ENV !== "production") {
-			console.log(`DEBUG: E2E Auth Bypass triggered for user: ${userId}`);
+			console.log(`DEBUG: Auth Bypass triggered for user: ${userId}`);
 		}
 	}
 
@@ -26,7 +30,7 @@ async function getAuthMetadata() {
 	const metadata = new Metadata();
 	metadata.set("x-user-id", userId);
 
-	if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+	if (isAuthDisabled) {
 		metadata.set("authorization", "Bearer dev-token");
 	}
 	return metadata;
