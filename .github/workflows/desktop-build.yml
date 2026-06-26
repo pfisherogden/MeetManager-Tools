@@ -16,11 +16,11 @@ jobs:
           - os: macos-latest
             platform: macos
             sidecar_ext: ""
-            output_name: mmtools-backend-x86_64-apple-darwin
+            output_name: mmtools-backend-aarch64-apple-darwin
           - os: windows-latest
             platform: windows
             sidecar_ext: ".exe"
-            output_name: mmtools-backend-x86_64-pc-windows-msvc.exe
+            output_name: mmtools-backend-x86_64-pc-windows-msvc
 
     runs-on: ${{ matrix.os }}
 
@@ -51,7 +51,7 @@ jobs:
           # Move output to Tauri's sidecars directory in web-client if it exists
           if [ -d "../web-client/src-tauri" ]; then
             mkdir -p ../web-client/src-tauri/binaries
-            cp dist/${{ matrix.output_name }} ../web-client/src-tauri/binaries/
+            cp dist/${{ matrix.output_name }}${{ matrix.sidecar_ext }} ../web-client/src-tauri/binaries/
           else
             echo "web-client/src-tauri not found. Skipping sidecar binary copy."
           fi
