@@ -5,6 +5,7 @@ on:
     branches:
       - 'feature/desktop-client'
       - 'feat/desktop*'
+      - 'fix/desktop*'
   workflow_dispatch:
 
 jobs:

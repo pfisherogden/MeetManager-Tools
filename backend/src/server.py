@@ -699,83 +699,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 os.remove(tmp_path)
 
     def UploadDataset(self, request_iterator, context):
-        logging.debug("DEBUG: UploadDataset called")
-        uid = self._check_auth(context)
-        filename = None
+        from handlers.dataset_uploader import upload_dataset
 
-        # Temporary buffer to hold file content
-        file_content = io.BytesIO()
-        total_bytes = 0
-
-        try:
-            for request in request_iterator:
-                if request.HasField("filename") and request.filename:
-                    filename = os.path.basename(request.filename)
-                    ext = os.path.splitext(filename)[1].lower()
-                    if ext not in [".mdb", ".json"]:
-                        # If no valid extension, default to .mdb for backward compatibility
-                        if not filename.lower().endswith(".mdb"):
-                            filename += ".mdb"
-
-                if request.HasField("chunk"):
-                    chunk_len = len(request.chunk)
-                    file_content.write(request.chunk)
-                    total_bytes += chunk_len
-
-            if not filename:
-                filename = "uploaded.mdb"
-
-            logging.info(f"UploadDataset: Final filename for {self._mask_uid(uid)} is {filename}")
-            # Upload to storage provider
-            user_path = os.path.join("users", uid, filename)
-            logging.info(f"UploadDataset: Targeting user_path={self._mask_path(user_path)} for {self._mask_uid(uid)}")
-
-            # For LocalStorageProvider, print absolute path for debugging
-            if hasattr(self.storage, "base_dir"):
-                logging.info(
-                    f"UploadDataset: saving to {self._mask_path(user_path)} (abs masked) for {self._mask_uid(uid)}"
-                )
-            else:
-                logging.info(f"UploadDataset: saving to {self._mask_path(user_path)} for {self._mask_uid(uid)}")
-
-            suffix = os.path.splitext(filename)[1]
-            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                file_content.seek(0)
-                tmp.write(file_content.getvalue())
-                tmp_path = tmp.name
-                tmp.flush()
-                tmp.close()
-
-            try:
-                self.storage.upload_file(tmp_path, user_path)
-                # FORCE FS SYNC for E2E consistency
-                if hasattr(os, "sync"):
-                    os.sync()
-            finally:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-
-            logging.info(f"Saved uploaded file to {self._mask_path(user_path)}")
-
-            with self._lock:
-                # Update active dataset in config
-                config = self._load_user_config(context)
-                config["active_dataset"] = filename
-                self._save_user_config(context, config)
-
-                # INVALIDATE CACHE so next data load uses the new file
-                if uid in self._user_cache:
-                    del self._user_cache[uid]
-                    logging.info(f"Invalidated cache for user {self._mask_uid(uid)} due to UploadDataset")
-
-                # Invalidate cache to force reload of the new dataset
-                if uid in self._user_cache:
-                    del self._user_cache[uid]
-
-            return pb2.UploadDatasetResponse(success=True, message=f"Saved {filename}")
-        except Exception as e:
-            logging.error(f"Upload failed: {e}")
-            return pb2.UploadDatasetResponse(success=False, message=str(e))
+        return upload_dataset(request_iterator, context, self, pb2)
 
     def GetDashboardStats(self, request, context):
         request = request or pb2.GetDashboardStatsRequest()
@@ -2594,21 +2520,108 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
 
 def serve_health_check():
+    import base64
+
+    from google.protobuf import json_format
+
     class HealthHandler(http.server.BaseHTTPRequestHandler):
-        def do_GET(self):
+        def do_OPTIONS(self):
             self.send_response(200)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, x-user-id, authorization")
             self.end_headers()
-            self.wfile.write(b"OK")
+
+        def do_GET(self):
+            if self.path == "/health":
+                self.send_response(200)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(b"OK")
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def do_POST(self):
+            if self.path.startswith("/api/grpc/"):
+                method_name = self.path[len("/api/grpc/") :]
+
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length).decode("utf-8")
+
+                try:
+                    servicer = MeetManagerService()
+                    method = getattr(servicer, method_name, None)
+                    if not method:
+                        self.send_response(404)
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.end_headers()
+                        return
+
+                    class MockContext:
+                        def __init__(self, metadata_headers):
+                            user_id = metadata_headers.get("x-user-id", "dev-user")
+                            self.invocation_metadata = [("x-user-id", user_id)]
+
+                    context = MockContext(self.headers)
+
+                    if method_name == "UploadDataset":
+                        import json
+
+                        data = json.loads(body)
+                        filename = data["filename"]
+                        content = base64.b64decode(data["content"])
+
+                        def request_generator():
+                            yield pb2.UploadDatasetRequest(filename=filename)
+                            yield pb2.UploadDatasetRequest(chunk=content)
+
+                        resp = servicer.UploadDataset(request_generator(), context)
+                        resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True)
+                        resp_json = json.dumps(resp_dict)
+                    else:
+                        request_class = getattr(pb2, f"{method_name}Request", None)
+                        if not request_class:
+                            self.send_response(500)
+                            self.send_header("Access-Control-Allow-Origin", "*")
+                            self.end_headers()
+                            self.wfile.write(f"Request class not found: {method_name}Request".encode())
+                            return
+
+                        import json
+
+                        json_data = json.loads(body) if body else {}
+                        req = json_format.ParseDict(json_data, request_class())
+
+                        resp = method(req, context)
+                        resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True)
+                        resp_json = json.dumps(resp_dict)
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Headers", "*")
+                    self.end_headers()
+                    self.wfile.write(resp_json.encode("utf-8"))
+                except Exception as e:
+                    self.send_response(500)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(str(e).encode("utf-8"))
+            else:
+                self.send_response(404)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
 
         def log_message(self, format, *args):
             return
 
     try:
         httpd = http.server.HTTPServer(("0.0.0.0", 8081), HealthHandler)
-        logging.info("Health check server starting on port 8081...")
+        logging.info("REST Gateway + Health check server starting on port 8081...")
         httpd.serve_forever()
     except Exception as e:
-        logging.error(f"Failed to start health check server: {e}")
+        logging.error(f"Failed to start REST Gateway server: {e}")
 
 
 def serve():
