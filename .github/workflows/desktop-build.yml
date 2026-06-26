@@ -48,9 +48,13 @@ jobs:
           # Build a single-file executable for the backend server
           pyinstaller --onefile --name ${{ matrix.output_name }} src/server.py
           
-          # Move output to Tauri's sidecars directory in web-client
-          mkdir -p ../web-client/src-tauri/binaries
-          cp dist/${{ matrix.output_name }} ../web-client/src-tauri/binaries/
+          # Move output to Tauri's sidecars directory in web-client if it exists
+          if [ -d "../web-client/src-tauri" ]; then
+            mkdir -p ../web-client/src-tauri/binaries
+            cp dist/${{ matrix.output_name }} ../web-client/src-tauri/binaries/
+          else
+            echo "web-client/src-tauri not found. Skipping sidecar binary copy."
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -74,14 +78,17 @@ jobs:
           npm run build
 
       - name: Set up Rust (Tauri Compiler Toolchain)
+        if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust Cache
+        if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
         uses: swatinem/rust-cache@v2
         with:
           workspaces: "./web-client/src-tauri -> target"
 
       - name: Build Tauri Desktop Client
+        if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
@@ -92,6 +99,7 @@ jobs:
           npx tauri build
 
       - name: Upload Installer Artifacts
+        if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
         uses: actions/upload-artifact@v4
         with:
           name: mmtools-desktop-${{ matrix.platform }}
