@@ -232,7 +232,7 @@ export function DatasetManager() {
 							className="absolute w-px h-px opacity-0"
 							ref={fileInputRef}
 							onChange={handleUpload}
-							accept=".json,.mdb"
+							accept=".json,.mdb,.zip"
 							data-testid="dataset-file-input"
 						/>
 

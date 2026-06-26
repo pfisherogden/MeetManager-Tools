@@ -80,12 +80,13 @@ def test_judge_publish_fetch_sync(grpc_stub):
     program_url = params.get("program_url", [None])[0]
     sync_url = params.get("sync_url", [None])[0]
 
-    # Adjust URLs for internal network if running inside Docker
-    # The backend returns 'localhost:3000' usually, but in Docker we need 'frontend:3000'
-    if "localhost:3000" in program_url and "frontend" in WEB_TARGET:
-        program_url = program_url.replace("localhost:3000", "frontend:3000")
-    if "localhost:3000" in sync_url and "frontend" in WEB_TARGET:
-        sync_url = sync_url.replace("localhost:3000", "frontend:3000")
+    # Adjust URLs for internal network or alternative ports based on WEB_TARGET
+    if "localhost:3000" in program_url:
+        web_netloc = urllib.parse.urlparse(WEB_TARGET).netloc
+        program_url = program_url.replace("localhost:3000", web_netloc)
+    if "localhost:3000" in sync_url:
+        web_netloc = urllib.parse.urlparse(WEB_TARGET).netloc
+        sync_url = sync_url.replace("localhost:3000", web_netloc)
 
     # 2. Fetch Program Data (Headless)
     # This simulates the mobile app fetching the meet definition
@@ -126,8 +127,9 @@ def test_judge_submit_single_dq(grpc_stub):
     # Derive submit-dq URL from sync-dqs URL
     submit_url = sync_url.replace("/api/sync-dqs", "/api/submit-dq")
 
-    if "localhost:3000" in submit_url and "frontend" in WEB_TARGET:
-        submit_url = submit_url.replace("localhost:3000", "frontend:3000")
+    if "localhost:3000" in submit_url:
+        web_netloc = urllib.parse.urlparse(WEB_TARGET).netloc
+        submit_url = submit_url.replace("localhost:3000", web_netloc)
 
     # 2. Submit DQ
     payload = {
@@ -141,3 +143,64 @@ def test_judge_submit_single_dq(grpc_stub):
     resp = requests.post(submit_url, json=payload, timeout=10)
     assert resp.status_code == 200
     assert resp.json()["success"] is True
+
+
+def test_zip_upload_and_extraction(grpc_stub):
+    """
+    Test uploading a ZIP file containing an MDB dataset.
+    """
+    import io
+    import zipfile
+
+    # Save the original active dataset to restore later
+    datasets_res = grpc_stub.ListDatasets(pb2.ListDatasetsRequest())
+    prev_active = next((d.filename for d in datasets_res.datasets if d.is_active), None)
+
+    # Create a dummy MDB content
+    dummy_mdb_content = b"Fake MDB database content"
+    mdb_filename = "zip_test_dataset.mdb"
+
+    # Create a zip in memory containing the dummy MDB file
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        zip_file.writestr(mdb_filename, dummy_mdb_content)
+    zip_buffer.seek(0)
+    zip_data = zip_buffer.getvalue()
+
+    def upload_gen():
+        # First chunk: filename
+        yield pb2.UploadDatasetRequest(filename="Swmm7Bkup.zip")
+
+        # Next chunks: chunk content
+        chunk_size = 1024 * 1024
+        for offset in range(0, len(zip_data), chunk_size):
+            yield pb2.UploadDatasetRequest(chunk=zip_data[offset : offset + chunk_size])
+
+    try:
+        # Upload the ZIP file
+        res = grpc_stub.UploadDataset(upload_gen())
+        assert res.success is True
+        assert "zip_test_dataset.mdb" in res.message or "Saved" in res.message
+
+        # List datasets to verify that the MDB file (not the ZIP) is present and active
+        datasets_res = grpc_stub.ListDatasets(pb2.ListDatasetsRequest())
+        uploaded_datasets = [d.filename for d in datasets_res.datasets]
+        assert "zip_test_dataset.mdb" in uploaded_datasets
+
+        # Verify the active dataset is zip_test_dataset.mdb
+        active_dataset = next((d for d in datasets_res.datasets if d.is_active), None)
+        assert active_dataset is not None
+        assert active_dataset.filename == "zip_test_dataset.mdb"
+    finally:
+        # Clean up the dataset
+        try:
+            grpc_stub.ClearDataset(pb2.ClearDatasetRequest(filename="zip_test_dataset.mdb"))
+        except Exception:
+            pass
+
+        # Restore the original active dataset
+        if prev_active and prev_active != "zip_test_dataset.mdb":
+            try:
+                grpc_stub.SetActiveDataset(pb2.SetActiveDatasetRequest(filename=prev_active))
+            except Exception:
+                pass
