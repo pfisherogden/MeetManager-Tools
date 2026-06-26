@@ -127,7 +127,7 @@ const getOrderedDQCategories = (
 	return defaultOrdered;
 };
 
-const BUILD_TIME = "04/30/2026, 02:08:52 PM PT"; // Fixed build time
+const BUILD_TIME = "06/26/2026, 07:13:39 AM PT"; // Fixed build time
 
 export default function App() {
 	const [currentScreen, setCurrentScreen] = useState<

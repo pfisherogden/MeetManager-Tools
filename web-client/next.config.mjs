@@ -9,6 +9,7 @@ const nextConfig = {
 		unoptimized: true,
 	},
 	outputFileTracingRoot: "../../",
+	pageExtensions: isStatic ? ["tsx"] : ["js", "jsx", "ts", "tsx"],
 	experimental: isStatic
 		? {}
 		: {
@@ -23,7 +24,14 @@ const nextConfig = {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
 	},
 	...(isStatic
-		? { output: "export" }
+		? {
+				output: "export",
+				turbopack: {
+					resolveAlias: {
+						"@/app/actions": "./app/actions.client.ts",
+					},
+				},
+			}
 		: {
 				async rewrites() {
 					return [

@@ -16,20 +16,20 @@ jobs:
           - os: macos-latest
             platform: macos
             sidecar_ext: ""
-            output_name: mmtools-backend-x86_64-apple-darwin
+            output_name: mmtools-backend-aarch64-apple-darwin
           - os: windows-latest
             platform: windows
             sidecar_ext: ".exe"
-            output_name: mmtools-backend-x86_64-pc-windows-msvc.exe
+            output_name: mmtools-backend-x86_64-pc-windows-msvc
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -51,15 +51,15 @@ jobs:
           # Move output to Tauri's sidecars directory in web-client if it exists
           if [ -d "../web-client/src-tauri" ]; then
             mkdir -p ../web-client/src-tauri/binaries
-            cp dist/${{ matrix.output_name }} ../web-client/src-tauri/binaries/
+            cp dist/${{ matrix.output_name }}${{ matrix.sidecar_ext }} ../web-client/src-tauri/binaries/
           else
             echo "web-client/src-tauri not found. Skipping sidecar binary copy."
           fi
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: 'web-client/package-lock.json'
 
@@ -106,7 +106,7 @@ jobs:
 
       - name: Upload Installer Artifacts
         if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mmtools-desktop-${{ matrix.platform }}
           path: |
