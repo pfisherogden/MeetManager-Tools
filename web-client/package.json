@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"build": "next build",
+		"build": "node build-prep.js && next build && node build-cleanup.js",
 		"dev": "next dev",
 		"lint": "npx biome check . --no-errors-on-unmatched",
 		"lint:fix": "npx biome check --write --unsafe . --max-diagnostics=0",

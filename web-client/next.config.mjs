@@ -24,7 +24,14 @@ const nextConfig = {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
 	},
 	...(isStatic
-		? { output: "export" }
+		? {
+				output: "export",
+				turbopack: {
+					resolveAlias: {
+						"@/app/actions": "./app/actions.client.ts",
+					},
+				},
+			}
 		: {
 				async rewrites() {
 					return [
