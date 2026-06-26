@@ -7,6 +7,7 @@ import logging
 import os
 import tempfile
 import zipfile
+from collections import OrderedDict
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -24,7 +25,7 @@ class ServicerContextLike(Protocol):
 
     storage: StorageProvider
     _lock: threading.RLock
-    _user_cache: dict[str, Any]
+    _user_cache: OrderedDict[str, dict[str, Any]]
 
     def _check_auth(self, context: grpc.ServicerContext) -> str: ...
 
