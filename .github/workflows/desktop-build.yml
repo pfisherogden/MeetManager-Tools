@@ -68,13 +68,11 @@ jobs:
           cd web-client
           npm ci
 
-      - name: Export Frontend (Static HTML)
+      - name: Compile Frontend (Next.js Production Build)
         env:
           NEXT_PUBLIC_AUTH_DISABLED: "true"
         run: |
           cd web-client
-          # Configure Next.js for static export
-          # (Ensure next.config.mjs uses output: 'export' when building for desktop)
           npm run build
 
       - name: Set up Rust (Tauri Compiler Toolchain)

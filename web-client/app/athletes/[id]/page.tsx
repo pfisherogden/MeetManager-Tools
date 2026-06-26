@@ -5,8 +5,6 @@ import { getAthlete } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
-export const dynamic = "force-dynamic";
-
 export default async function AthletePage({
 	params,
 }: {
@@ -98,3 +96,8 @@ export default async function AthletePage({
 		</>
 	);
 }
+
+export async function generateStaticParams() {
+	return [];
+}
+
