@@ -158,7 +158,7 @@ def test_zip_upload_and_extraction(grpc_stub):
 
     # Create a dummy MDB content
     dummy_mdb_content = b"Fake MDB database content"
-    mdb_filename = "zip_test_dataset.mdb"
+    mdb_filename = "nested/dir/zip_test_dataset.mdb"
 
     # Create a zip in memory containing the dummy MDB file
     zip_buffer = io.BytesIO()

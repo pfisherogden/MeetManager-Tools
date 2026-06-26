@@ -752,7 +752,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     import zipfile
 
                     with zipfile.ZipFile(tmp_path, "r") as z:
-                        mdb_files = [f for f in z.namelist() if f.lower().endswith(".mdb")]
+                        mdb_files = [
+                            f for f in z.namelist() if f.lower().endswith(".mdb") and not z.getinfo(f).is_dir()
+                        ]
                         if not mdb_files:
                             raise Exception("No .mdb file found inside the uploaded ZIP archive")
 
@@ -2627,6 +2629,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
 def serve_health_check():
     import base64
+
     from google.protobuf import json_format
 
     class HealthHandler(http.server.BaseHTTPRequestHandler):
@@ -2649,11 +2652,11 @@ def serve_health_check():
 
         def do_POST(self):
             if self.path.startswith("/api/grpc/"):
-                method_name = self.path[len("/api/grpc/"):]
-                
-                content_length = int(self.headers.get('Content-Length', 0))
-                body = self.rfile.read(content_length).decode('utf-8')
-                
+                method_name = self.path[len("/api/grpc/") :]
+
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length).decode("utf-8")
+
                 try:
                     servicer = MeetManagerService()
                     method = getattr(servicer, method_name, None)
@@ -2662,24 +2665,25 @@ def serve_health_check():
                         self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
                         return
-                    
+
                     class MockContext:
                         def __init__(self, metadata_headers):
                             user_id = metadata_headers.get("x-user-id", "dev-user")
                             self.invocation_metadata = [("x-user-id", user_id)]
-                    
+
                     context = MockContext(self.headers)
 
                     if method_name == "UploadDataset":
                         import json
+
                         data = json.loads(body)
                         filename = data["filename"]
                         content = base64.b64decode(data["content"])
-                        
+
                         def request_generator():
                             yield pb2.UploadDatasetRequest(filename=filename)
                             yield pb2.UploadDatasetRequest(chunk=content)
-                        
+
                         resp = servicer.UploadDataset(request_generator(), context)
                         resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True)
                         resp_json = json.dumps(resp_dict)
@@ -2689,28 +2693,29 @@ def serve_health_check():
                             self.send_response(500)
                             self.send_header("Access-Control-Allow-Origin", "*")
                             self.end_headers()
-                            self.wfile.write(f"Request class not found: {method_name}Request".encode('utf-8'))
+                            self.wfile.write(f"Request class not found: {method_name}Request".encode())
                             return
-                        
+
                         import json
+
                         json_data = json.loads(body) if body else {}
                         req = json_format.ParseDict(json_data, request_class())
-                        
+
                         resp = method(req, context)
                         resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True)
                         resp_json = json.dumps(resp_dict)
-                    
+
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.send_header("Access-Control-Allow-Headers", "*")
                     self.end_headers()
-                    self.wfile.write(resp_json.encode('utf-8'))
+                    self.wfile.write(resp_json.encode("utf-8"))
                 except Exception as e:
                     self.send_response(500)
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
-                    self.wfile.write(str(e).encode('utf-8'))
+                    self.wfile.write(str(e).encode("utf-8"))
             else:
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
