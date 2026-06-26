@@ -1,0 +1,101 @@
+name: Compile & Package Desktop Clients
+
+on:
+  push:
+    branches:
+      - 'feature/desktop-client'
+      - 'feat/desktop*'
+  workflow_dispatch:
+
+jobs:
+  build-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos
+            sidecar_ext: ""
+            output_name: mmtools-backend-x86_64-apple-darwin
+          - os: windows-latest
+            platform: windows
+            sidecar_ext: ".exe"
+            output_name: mmtools-backend-x86_64-pc-windows-msvc.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install UV and Python Dependencies
+        shell: bash
+        run: |
+          pip install uv
+          cd backend
+          uv pip install --system -e .
+          uv pip install --system pyinstaller
+
+      - name: Package Python Backend with PyInstaller
+        shell: bash
+        run: |
+          cd backend
+          # Build a single-file executable for the backend server
+          pyinstaller --onefile --name ${{ matrix.output_name }} src/server.py
+          
+          # Move output to Tauri's sidecars directory in web-client
+          mkdir -p ../web-client/src-tauri/binaries
+          cp dist/${{ matrix.output_name }} ../web-client/src-tauri/binaries/
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'web-client/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd web-client
+          npm ci
+
+      - name: Export Frontend (Static HTML)
+        env:
+          NEXT_PUBLIC_AUTH_DISABLED: "true"
+        run: |
+          cd web-client
+          # Configure Next.js for static export
+          # (Ensure next.config.mjs uses output: 'export' when building for desktop)
+          npm run build
+
+      - name: Set up Rust (Tauri Compiler Toolchain)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./web-client/src-tauri -> target"
+
+      - name: Build Tauri Desktop Client
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        run: |
+          cd web-client
+          npm install -g @tauri-apps/cli
+          # Builds the installer for the host operating system
+          npx tauri build
+
+      - name: Upload Installer Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mmtools-desktop-${{ matrix.platform }}
+          path: |
+            web-client/src-tauri/target/release/bundle/msi/*.msi
+            web-client/src-tauri/target/release/bundle/dmg/*.dmg
+            web-client/src-tauri/target/release/bundle/macos/*.app
