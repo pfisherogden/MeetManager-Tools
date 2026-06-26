@@ -100,4 +100,3 @@ export default async function AthletePage({
 export async function generateStaticParams() {
 	return [];
 }
-
