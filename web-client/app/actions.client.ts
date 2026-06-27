@@ -75,14 +75,16 @@ export async function getEventScores() {
 export async function uploadDataset(formData: FormData) {
 	const file = formData.get("file") as File;
 	if (!file) throw new Error("No file found in FormData");
-	const buffer = await file.arrayBuffer();
-	// Convert array buffer to base64 string
-	const base64 = btoa(
-		new Uint8Array(buffer).reduce(
-			(data, byte) => data + String.fromCharCode(byte),
-			"",
-		),
-	);
+	const base64 = await new Promise<string>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => {
+			const dataUrl = reader.result as string;
+			const base64Data = dataUrl.split(",")[1];
+			resolve(base64Data);
+		};
+		reader.onerror = (error) => reject(error);
+		reader.readAsDataURL(file);
+	});
 	return callRESTGateway("UploadDataset", {
 		filename: file.name,
 		content: base64,
