@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import math
 from typing import Any
 
 # Import generated classes
@@ -68,6 +69,18 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (ValueError, TypeError):
         return default
+
+
+def safe_str(value: Any) -> str:
+    if value is None:
+        return ""
+    # Check for pandas/numpy float NaN
+    if isinstance(value, float) and math.isnan(value):
+        return ""
+    val_str = str(value).strip()
+    if val_str.upper() in ["NAN", "NONE", "<NA>"]:
+        return ""
+    return val_str
 
 
 def get_stroke_name(stroke_val: Any, is_relay: bool) -> str:
@@ -155,8 +168,8 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
     for entry in entries:
         ath_id = safe_int(get_field(entry, ["ath_no", "Ath_no"]))
         evt_id = safe_int(get_field(entry, ["event_ptr", "Event_ptr"]) or get_field(entry, ["event_no", "Event_no"]))
-        pre_exh = str(get_field(entry, ["pre_exh", "Pre_exh"]) or "").strip().upper()
-        fin_exh = str(get_field(entry, ["fin_exh", "Fin_exh"]) or "").strip().upper()
+        pre_exh = safe_str(get_field(entry, ["pre_exh", "Pre_exh"])).upper()
+        fin_exh = safe_str(get_field(entry, ["fin_exh", "Fin_exh"])).upper()
         is_exh = pre_exh != "" or fin_exh != ""
 
         if ath_id and evt_id:
@@ -168,8 +181,8 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         evt_id = safe_int(get_field(r, ["event_ptr", "Event_ptr"]))
         t_no = safe_int(get_field(r, ["team_ptr", "team_no", "Team_ptr", "Team_no"]))
         r_no = safe_int(get_field(r, ["relay_no", "Relay_no"]))
-        pre_exh = str(get_field(r, ["pre_exh", "Pre_exh"]) or "").strip().upper()
-        fin_exh = str(get_field(r, ["fin_exh", "Fin_exh"]) or "").strip().upper()
+        pre_exh = safe_str(get_field(r, ["pre_exh", "Pre_exh"])).upper()
+        fin_exh = safe_str(get_field(r, ["fin_exh", "Fin_exh"])).upper()
         is_exh = pre_exh != "" or fin_exh != ""
         relay_exh_map[(evt_id, t_no, r_no)] = is_exh
 
@@ -189,7 +202,7 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         ath_id = safe_int(get_field(entry, ["ath_no", "Ath_no"]))
         evt_id = safe_int(get_field(entry, ["event_ptr", "Event_ptr"]) or get_field(entry, ["event_no", "Event_no"]))
         fin_time = safe_float(get_field(entry, ["fin_time", "Fin_time"]))
-        fin_stat = str(get_field(entry, ["fin_stat", "Fin_stat"]) or "").strip().upper()
+        fin_stat = safe_str(get_field(entry, ["fin_stat", "Fin_stat"])).upper()
         if fin_time > 0 and fin_stat not in ["Q", "R"]:
             ath_info = athletes_map.get(ath_id)
             if ath_info:
@@ -209,7 +222,7 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         evt_id = safe_int(get_field(entry, ["event_ptr", "Event_ptr"]) or get_field(entry, ["event_no", "Event_no"]))
 
         fin_time = safe_float(get_field(entry, ["fin_time", "Fin_time"]))
-        fin_stat = str(get_field(entry, ["fin_stat", "Fin_stat"]) or "").strip().upper()
+        fin_stat = safe_str(get_field(entry, ["fin_stat", "Fin_stat"])).upper()
         fin_heat = safe_int(get_field(entry, ["fin_heat", "Fin_heat"]))
         fin_lane = safe_int(get_field(entry, ["fin_lane", "Fin_lane"]))
         ev_score = safe_float(get_field(entry, ["ev_score", "Ev_score"]))
@@ -345,11 +358,11 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         r_lane = safe_int(get_field(r, ["fin_lane", "Fin_lane"]))
         if r_heat > 0 and r_lane > 0:
             r_time = safe_float(get_field(r, ["fin_time", "Fin_time"]))
-            r_stat = str(get_field(r, ["fin_stat", "Fin_stat"]) or "").strip().upper()
+            r_stat = safe_str(get_field(r, ["fin_stat", "Fin_stat"])).upper()
             if r_time == 0 and r_stat not in ["Q", "R"]:
                 t_id = safe_int(get_field(r, ["team_ptr", "team_no", "Team_ptr", "Team_no"]))
                 team_name = teams_map.get(t_id, {}).get("name", f"Team #{t_id}")
-                team_ltr = str(get_field(r, ["team_ltr", "Team_ltr"]) or "").strip()
+                team_ltr = safe_str(get_field(r, ["team_ltr", "Team_ltr"]))
                 evt_id = safe_int(get_field(r, ["event_ptr", "Event_ptr"]))
                 evt_desc = events_map.get(evt_id, {}).get("desc", f"Event {evt_id}")
                 findings.append(
