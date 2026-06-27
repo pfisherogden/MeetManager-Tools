@@ -303,3 +303,52 @@ def test_no_event_entry_count_warnings():
     findings = validate_meet_data(cache)
     event_findings = [f for f in findings if f.category == "Events"]
     assert len(event_findings) == 0
+
+
+def test_unscored_backup_timers():
+    """Test that unscored entries do not report 0 backup timers, but scored entries with no times do."""
+    cache = {
+        "athlete": [
+            {"ath_no": 1, "first_name": "John", "last_name": "Doe", "ath_age": 10, "ath_sex": "M", "team_no": 100}
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
+        "event": [{"event_ptr": 10, "event_no": 1, "event_sex": "M", "low_age": 9, "high_age": 10, "event_relay": 0}],
+        "entry": [
+            # 1. Unscored entry: time=0, place=0, status=empty -> NO warning
+            {
+                "ath_no": 1,
+                "event_ptr": 10,
+                "fin_time": 0.0,
+                "fin_place": 0,
+                "fin_stat": "",
+                "fin_heat": 1,
+                "fin_lane": 2,
+            },
+            # 2. Scored entry with NS: time=0, place=0, status="NS" -> WARNING/INFO
+            {
+                "ath_no": 1,
+                "event_ptr": 10,
+                "fin_time": 0.0,
+                "fin_place": 0,
+                "fin_stat": "NS",
+                "fin_heat": 1,
+                "fin_lane": 3,
+            },
+            # 3. Scored entry with place: time=0, place=3, status=empty -> WARNING/INFO
+            {
+                "ath_no": 1,
+                "event_ptr": 10,
+                "fin_time": 0.0,
+                "fin_place": 3,
+                "fin_stat": "",
+                "fin_heat": 1,
+                "fin_lane": 4,
+            },
+        ],
+    }
+
+    findings = validate_meet_data(cache)
+    backup_findings = [f for f in findings if f.category == "0 Backup Timers"]
+
+    # We expect exactly 2 findings: one for the entry with NS, and one for the entry with a place
+    assert len(backup_findings) == 2
