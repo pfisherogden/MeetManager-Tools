@@ -13,6 +13,9 @@ pub fn run() {
       let (mut rx, _child) = shell
         .sidecar("mmtools-backend")
         .expect("failed to setup sidecar")
+        .env("GRPC_AUTH_DISABLED", "true")
+        .env("USE_MOCK_FIRESTORE", "true")
+        .env("NEXT_PUBLIC_AUTH_DISABLED", "true")
         .spawn()
         .expect("failed to spawn sidecar");
 
