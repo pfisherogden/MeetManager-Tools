@@ -638,3 +638,11 @@ export async function validateActiveMeet() {
 		};
 	}
 }
+
+export async function getGoogleConfig() {
+	const env = process.env;
+	return {
+		apiKey: env.GOOGLE_API_KEY || env.NEXT_PUBLIC_GOOGLE_API_KEY || "",
+		clientId: env.GOOGLE_CLIENT_ID || env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
+	};
+}
