@@ -63,15 +63,48 @@ export function useGooglePicker({
 		};
 	}, []);
 
-	const openPicker = useCallback(() => {
-		if (!isLoaded || !accessToken || !apiKey) {
-			console.error("Picker not loaded, no access token, or API key missing");
+	const openPicker = useCallback(async () => {
+		if (!isLoaded || !apiKey) {
+			console.error("Picker not loaded or API key missing");
+			return;
+		}
+
+		let currentToken = accessToken;
+
+		if (!currentToken) {
+			try {
+				const { auth, googleProvider } = await import("@/lib/firebase");
+				const { signInWithPopup, GoogleAuthProvider } = await import(
+					"firebase/auth"
+				);
+				const result = await signInWithPopup(auth, googleProvider);
+				const credential = GoogleAuthProvider.credentialFromResult(result);
+				currentToken = credential?.accessToken || null;
+				if (currentToken) {
+					const Cookies = (await import("js-cookie")).default;
+					Cookies.set("googleAccessToken", currentToken, {
+						expires: 1 / 24,
+						secure: true,
+						sameSite: "strict",
+						path: "/",
+					});
+				}
+			} catch (err) {
+				console.error("Failed to authenticate with Google:", err);
+				const { toast } = await import("sonner");
+				toast.error("Google authentication failed");
+				return;
+			}
+		}
+
+		if (!currentToken) {
+			console.error("No access token available after authentication");
 			return;
 		}
 
 		const builder = new window.google.picker.PickerBuilder()
 			.addView(window.google.picker.ViewId.DOCS)
-			.setOAuthToken(accessToken)
+			.setOAuthToken(currentToken)
 			.setDeveloperKey(apiKey);
 
 		if (appId) {
@@ -100,5 +133,5 @@ export function useGooglePicker({
 		picker.setVisible(true);
 	}, [isLoaded, accessToken, apiKey, appId, onFileSelect]);
 
-	return { openPicker, isLoaded: isLoaded && !!accessToken && !!apiKey };
+	return { openPicker, isLoaded: isLoaded && !!apiKey };
 }
