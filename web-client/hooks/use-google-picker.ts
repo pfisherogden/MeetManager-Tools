@@ -26,9 +26,20 @@ export function useGooglePicker({
 	accessToken,
 }: UseGooglePickerProps) {
 	const [isLoaded, setIsLoaded] = useState(false);
+	const [apiKey, setApiKey] = useState<string | null>(null);
 
-	const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-	const _appId = process.env.NEXT_PUBLIC_GOOGLE_APP_ID; // Optional
+	useEffect(() => {
+		async function fetchConfig() {
+			try {
+				const { getGoogleConfig } = await import("@/app/actions");
+				const config = await getGoogleConfig();
+				setApiKey(config.apiKey);
+			} catch (err) {
+				console.error("Failed to load Google Picker config:", err);
+			}
+		}
+		fetchConfig();
+	}, []);
 
 	useEffect(() => {
 		// Load GAPI
@@ -51,8 +62,8 @@ export function useGooglePicker({
 	}, []);
 
 	const openPicker = useCallback(() => {
-		if (!isLoaded || !accessToken) {
-			console.error("Picker not loaded or no access token");
+		if (!isLoaded || !accessToken || !apiKey) {
+			console.error("Picker not loaded, no access token, or API key missing");
 			return;
 		}
 
@@ -76,5 +87,5 @@ export function useGooglePicker({
 		picker.setVisible(true);
 	}, [isLoaded, accessToken, apiKey, onFileSelect]);
 
-	return { openPicker, isLoaded: isLoaded && !!accessToken };
+	return { openPicker, isLoaded: isLoaded && !!accessToken && !!apiKey };
 }
