@@ -102,6 +102,14 @@ export function useGooglePicker({
 			return;
 		}
 
+		console.log("[Google Picker Debug] Initializing with:", {
+			hasAccessToken: !!currentToken,
+			appId: appId,
+			origin: typeof window !== "undefined" ? window.location.origin : null,
+			apiKeyPrefix: apiKey ? `${apiKey.substring(0, 8)}...` : "none",
+			apiKeyLength: apiKey?.length || 0,
+		});
+
 		const builder = new window.google.picker.PickerBuilder()
 			.addView(window.google.picker.ViewId.DOCS)
 			.setOAuthToken(currentToken)
