@@ -2692,6 +2692,20 @@ def serve():
     signal.signal(signal.SIGTERM, handle_sigterm)
     signal.signal(signal.SIGINT, handle_sigterm)
 
+    # Start stdin monitor thread to prevent zombie processes in Tauri
+    def monitor_stdin():
+        import sys
+        logging.info("Stdin monitor thread started.")
+        try:
+            sys.stdin.read()
+        except Exception as e:
+            logging.error(f"Stdin monitor error: {e}")
+        logging.info("Stdin closed. Parent process exited. Shutting down sidecar...")
+        os._exit(0)
+
+    stdin_thread = threading.Thread(target=monitor_stdin, daemon=True)
+    stdin_thread.start()
+
     # Start health check server in background thread
     health_thread = threading.Thread(target=serve_health_check, daemon=True)
     health_thread.start()

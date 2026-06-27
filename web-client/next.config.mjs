@@ -1,3 +1,9 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const isStatic = process.env.EXPORT_STATIC === "true";
 
 /** @type {import('next').NextConfig} */
@@ -22,6 +28,15 @@ const nextConfig = {
 	},
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+	},
+	webpack: (config) => {
+		if (isStatic) {
+			config.resolve.alias["@/app/actions"] = path.resolve(
+				__dirname,
+				"./app/actions.client.ts",
+			);
+		}
+		return config;
 	},
 	...(isStatic
 		? {
