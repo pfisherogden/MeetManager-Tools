@@ -2692,19 +2692,42 @@ def serve():
     signal.signal(signal.SIGTERM, handle_sigterm)
     signal.signal(signal.SIGINT, handle_sigterm)
 
-    # Start stdin monitor thread to prevent zombie processes in Tauri
-    def monitor_stdin():
-        import sys
-        logging.info("Stdin monitor thread started.")
-        try:
-            sys.stdin.read()
-        except Exception as e:
-            logging.error(f"Stdin monitor error: {e}")
-        logging.info("Stdin closed. Parent process exited. Shutting down sidecar...")
-        os._exit(0)
+    # Start parent process monitor thread to prevent zombie processes in Tauri (only in local desktop mode)
+    in_docker = os.path.exists("/.dockerenv")
+    is_desktop = os.getenv("GRPC_AUTH_DISABLED") == "true" and not in_docker
 
-    stdin_thread = threading.Thread(target=monitor_stdin, daemon=True)
-    stdin_thread.start()
+    if is_desktop:
+
+        def monitor_parent():
+            import platform
+            import time
+
+            parent_pid = os.getppid()
+            logging.info(f"Parent process monitor started for PID: {parent_pid}")
+            is_windows = platform.system() == "Windows"
+
+            while True:
+                time.sleep(2)
+                if is_windows:
+                    import ctypes
+
+                    process_query_information = 0x0400
+                    synchronize = 0x00100000
+                    handle = ctypes.windll.kernel32.OpenProcess(
+                        process_query_information | synchronize, False, parent_pid
+                    )
+                    if not handle:
+                        logging.info("Parent process handle closed. Shutting down sidecar...")
+                        os._exit(0)
+                    else:
+                        ctypes.windll.kernel32.CloseHandle(handle)
+                else:
+                    if os.getppid() != parent_pid or os.getppid() == 1:
+                        logging.info("Parent process exited. Shutting down sidecar...")
+                        os._exit(0)
+
+        parent_thread = threading.Thread(target=monitor_parent, daemon=True)
+        parent_thread.start()
 
     # Start health check server in background thread
     health_thread = threading.Thread(target=serve_health_check, daemon=True)
