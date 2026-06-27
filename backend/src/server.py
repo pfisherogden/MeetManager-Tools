@@ -2560,8 +2560,24 @@ def serve_health_check():
 
                     class MockContext:
                         def __init__(self, metadata_headers):
-                            user_id = metadata_headers.get("x-user-id", "dev-user")
-                            self.invocation_metadata = [("x-user-id", user_id)]
+                            self.headers = metadata_headers
+                            self.code = None
+                            self.details = None
+
+                        def invocation_metadata(self):
+                            user_id = self.headers.get("x-user-id") or self.headers.get("x-e2e-uid") or "dev-user"
+                            return [("x-user-id", user_id)]
+
+                        def set_code(self, code):
+                            self.code = code
+
+                        def set_details(self, details):
+                            self.details = details
+
+                        def abort(self, code, details):
+                            self.code = code
+                            self.details = details
+                            raise Exception(f"gRPC Abort: {code} - {details}")
 
                     context = MockContext(self.headers)
 
