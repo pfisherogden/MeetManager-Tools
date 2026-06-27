@@ -18,14 +18,14 @@ export async function GET(request: Request) {
 
 	response.cookies.set("idToken", "dev-token", {
 		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
+		secure: false,
 		sameSite: "strict",
 		path: "/",
 	});
 
 	response.cookies.set("x-user-id", mockUid, {
 		httpOnly: false,
-		secure: process.env.NODE_ENV === "production",
+		secure: false,
 		sameSite: "strict",
 		path: "/",
 	});

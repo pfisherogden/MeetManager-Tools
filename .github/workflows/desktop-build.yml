@@ -114,3 +114,4 @@ jobs:
             web-client/src-tauri/target/release/bundle/msi/*.msi
             web-client/src-tauri/target/release/bundle/dmg/*.dmg
             web-client/src-tauri/target/release/bundle/macos/*.app
+            scripts/trust-app.command
