@@ -215,6 +215,8 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         ev_score = safe_float(get_field(entry, ["ev_score", "Ev_score"]))
         scr_stat = safe_int(get_field(entry, ["scr_stat", "Scr_stat"]))
 
+        place = safe_int(get_field(entry, ["fin_place", "place", "Fin_place"]))
+
         ath = athletes_map.get(ath_id, {})
         ath_name = str(ath.get("name", f"Swimmer #{ath_id}"))
         evt = events_map.get(evt_id, {})
@@ -237,7 +239,9 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                 )
 
             # 2. 0 Backup Timers / NS / Missing Times (INFO)
-            if fin_time == 0 and fin_stat not in ["Q", "R"]:
+            # Only report if the entry is scored (i.e. has a place > 0 or a non-empty status like NS)
+            is_scored = (place > 0) or (fin_stat != "")
+            if is_scored and fin_time == 0 and fin_stat not in ["Q", "R"]:
                 findings.append(
                     pb2.ValidationFinding(
                         severity=pb2.VALIDATION_SEVERITY_INFO,
