@@ -27,6 +27,7 @@ export function useGooglePicker({
 }: UseGooglePickerProps) {
 	const [isLoaded, setIsLoaded] = useState(false);
 	const [apiKey, setApiKey] = useState<string | null>(null);
+	const [appId, setAppId] = useState<string | null>(null);
 
 	useEffect(() => {
 		async function fetchConfig() {
@@ -34,6 +35,7 @@ export function useGooglePicker({
 				const { getGoogleConfig } = await import("@/app/actions");
 				const config = await getGoogleConfig();
 				setApiKey(config.apiKey);
+				setAppId(config.appId);
 			} catch (err) {
 				console.error("Failed to load Google Picker config:", err);
 			}
@@ -67,10 +69,21 @@ export function useGooglePicker({
 			return;
 		}
 
-		const picker = new window.google.picker.PickerBuilder()
+		const builder = new window.google.picker.PickerBuilder()
 			.addView(window.google.picker.ViewId.DOCS)
 			.setOAuthToken(accessToken)
-			.setDeveloperKey(apiKey)
+			.setDeveloperKey(apiKey);
+
+		if (appId) {
+			builder.setAppId(appId);
+		}
+
+		// setOrigin is critical if the API key has domain restrictions
+		if (typeof window !== "undefined") {
+			builder.setOrigin(window.location.origin);
+		}
+
+		const picker = builder
 			.setCallback((data: any) => {
 				if (data.action === window.google.picker.Action.PICKED) {
 					const doc = data.docs[0];
@@ -85,7 +98,7 @@ export function useGooglePicker({
 			.build();
 
 		picker.setVisible(true);
-	}, [isLoaded, accessToken, apiKey, onFileSelect]);
+	}, [isLoaded, accessToken, apiKey, appId, onFileSelect]);
 
 	return { openPicker, isLoaded: isLoaded && !!accessToken && !!apiKey };
 }
