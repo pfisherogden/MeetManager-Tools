@@ -154,7 +154,7 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                 "sex": str(get_field(e, ["event_sex", "Event_sex"]) or "").strip(),
                 "low_age": safe_int(get_field(e, ["low_age", "Low_age"])),
                 "high_age": safe_int(get_field(e, ["high_age", "High_age"])),
-                "is_relay": bool(get_field(e, ["event_relay", "Event_relay"])),
+                "is_relay": safe_str(get_field(e, ["ind_rel", "Ind_rel"])).upper() == "R",
                 "desc": f"Event {get_field(e, ['event_no', 'Event_no'])}",
                 "dist": safe_int(get_field(e, ["event_dist", "Event_dist"])),
                 "stroke": get_field(e, ["event_stroke", "Event_stroke"]),
@@ -471,6 +471,15 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                     severity=pb2.VALIDATION_SEVERITY_WARNING,
                     category="Rules Limit",
                     message=f"Swimmer {name} exceeds TVSL limits with {ind_count} individual entries (Rule 12 max: 3).",
+                    affected_id=str(ath_id),
+                )
+            )
+        if rel_count > 2:
+            findings.append(
+                pb2.ValidationFinding(
+                    severity=pb2.VALIDATION_SEVERITY_WARNING,
+                    category="Rules Limit",
+                    message=f"Swimmer {name} exceeds relay limits with {rel_count} relay entries (max: 2).",
                     affected_id=str(ath_id),
                 )
             )

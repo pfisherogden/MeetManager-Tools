@@ -21,7 +21,7 @@ export default async function AthletePage({
 		console.error("Failed to load athlete", e);
 	}
 
-	if (!athlete || !athlete.id) {
+	if (!athlete?.id) {
 		return notFound();
 	}
 

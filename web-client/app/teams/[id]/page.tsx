@@ -24,7 +24,7 @@ export default async function TeamPage({
 		console.error("Failed to load team", e);
 	}
 
-	if (!team || !team.id) {
+	if (!team?.id) {
 		return notFound();
 	}
 
