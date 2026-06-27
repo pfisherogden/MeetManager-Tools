@@ -352,3 +352,64 @@ def test_unscored_backup_timers():
 
     # We expect exactly 2 findings: one for the entry with NS, and one for the entry with a place
     assert len(backup_findings) == 2
+
+
+def test_rules_limits_with_relays():
+    """Test that relay entries are correctly parsed using ind_rel='R' and subject to Rule 12 limits."""
+    cache = {
+        "athlete": [
+            {"ath_no": 1, "first_name": "John", "last_name": "Doe", "ath_age": 10, "ath_sex": "M", "team_no": 100}
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
+        "event": [
+            # 3 individual events
+            {"event_ptr": 10, "event_no": 1, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+            {"event_ptr": 11, "event_no": 2, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+            {"event_ptr": 12, "event_no": 3, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+            # 3 relay events
+            {"event_ptr": 20, "event_no": 101, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "R"},
+            {"event_ptr": 21, "event_no": 102, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "R"},
+            {"event_ptr": 22, "event_no": 103, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "R"},
+        ],
+        "entry": [
+            {"ath_no": 1, "event_ptr": 10},
+            {"ath_no": 1, "event_ptr": 11},
+            {"ath_no": 1, "event_ptr": 12},
+        ],
+        "relay": [
+            {"event_ptr": 20, "relay_no": 1, "team_no": 100, "team_ltr": "A"},
+            {"event_ptr": 21, "relay_no": 2, "team_no": 100, "team_ltr": "A"},
+            {"event_ptr": 22, "relay_no": 3, "team_no": 100, "team_ltr": "A"},
+        ],
+        "relaynames": [
+            {"event_ptr": 20, "team_no": 100, "team_ltr": "A", "ath_no": 1, "relay_no": 1, "event_round": "F"},
+            {"event_ptr": 21, "team_no": 100, "team_ltr": "A", "ath_no": 1, "relay_no": 2, "event_round": "F"},
+            {"event_ptr": 22, "team_no": 100, "team_ltr": "A", "ath_no": 1, "relay_no": 3, "event_round": "F"},
+        ],
+    }
+
+    # Case 1: 3 individual events + 1 relay event (4 total) -> should be fine (no warnings)
+    cache_case1 = cache.copy()
+    cache_case1["relay"] = cache["relay"][:1]
+    cache_case1["relaynames"] = cache["relaynames"][:1]
+    findings1 = validate_meet_data(cache_case1)
+    limit_findings1 = [f for f in findings1 if f.category == "Rules Limit"]
+    assert len(limit_findings1) == 0
+
+    # Case 2: 3 individual events + 2 relay events (5 total) -> exceeds total (max 4), but relays is ok (2)
+    cache_case2 = cache.copy()
+    cache_case2["relay"] = cache["relay"][:2]
+    cache_case2["relaynames"] = cache["relaynames"][:2]
+    findings2 = validate_meet_data(cache_case2)
+    limit_findings2 = [f for f in findings2 if f.category == "Rules Limit"]
+    assert len(limit_findings2) == 1
+    assert "exceeds total entry limits" in limit_findings2[0].message
+
+    # Case 3: 3 individual events + 3 relay events (6 total) -> exceeds relay limits (3 > 2) and total limits
+    findings3 = validate_meet_data(cache)
+    limit_findings3 = [f for f in findings3 if f.category == "Rules Limit"]
+    # Should have relay warning + total warning
+    assert len(limit_findings3) == 2
+    categories_msgs = [f.message for f in limit_findings3]
+    assert any("exceeds relay limits" in m for m in categories_msgs)
+    assert any("exceeds total entry limits" in m for m in categories_msgs)

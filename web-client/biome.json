@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -17,7 +17,8 @@
 			"!**/app.full",
 			"!**/playwright-report",
 			"!**/test-results",
-			"!**/tmp"
+			"!**/tmp",
+			"!**/*.svg"
 		]
 	},
 	"formatter": {
@@ -33,13 +34,14 @@
 			"!**/app.full",
 			"!**/playwright-report",
 			"!**/test-results",
-			"!**/tmp"
+			"!**/tmp",
+			"!**/*.svg"
 		]
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true,
+			"preset": "recommended",
 			"style": {
 				"noNonNullAssertion": "off"
 			},
@@ -62,7 +64,8 @@
 			"!**/app.full",
 			"!**/playwright-report",
 			"!**/test-results",
-			"!**/tmp"
+			"!**/tmp",
+			"!**/*.svg"
 		]
 	},
 	"javascript": {

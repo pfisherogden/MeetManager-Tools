@@ -1,3 +1,7 @@
 # Ignore lock files
 package-lock.json
 uv.lock
+
+# Ignore SVG graphics files
+public/*.svg
+
