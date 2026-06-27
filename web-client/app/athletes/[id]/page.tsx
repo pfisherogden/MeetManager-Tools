@@ -16,7 +16,9 @@ export default async function AthletePage({
 	let athlete: any = null;
 	try {
 		const response = await getAthlete(athleteId);
-		athlete = response.athlete;
+		if (response?.athlete) {
+			athlete = response.athlete;
+		}
 	} catch (e) {
 		console.error("Failed to load athlete", e);
 	}

@@ -2713,14 +2713,14 @@ def serve():
 
                     process_query_information = 0x0400
                     synchronize = 0x00100000
-                    handle = ctypes.windll.kernel32.OpenProcess(
-                        process_query_information | synchronize, False, parent_pid
-                    )
-                    if not handle:
-                        logging.info("Parent process handle closed. Shutting down sidecar...")
-                        os._exit(0)
-                    else:
-                        ctypes.windll.kernel32.CloseHandle(handle)
+                    windll = getattr(ctypes, "windll", None)
+                    if windll:
+                        handle = windll.kernel32.OpenProcess(process_query_information | synchronize, False, parent_pid)
+                        if not handle:
+                            logging.info("Parent process handle closed. Shutting down sidecar...")
+                            os._exit(0)
+                        else:
+                            windll.kernel32.CloseHandle(handle)
                 else:
                     if os.getppid() != parent_pid or os.getppid() == 1:
                         logging.info("Parent process exited. Shutting down sidecar...")
