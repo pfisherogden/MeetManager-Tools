@@ -2676,8 +2676,13 @@ def serve_health_check():
         def log_message(self, format, *args):
             return
 
+    import socketserver
+
+    class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+
     try:
-        httpd = http.server.HTTPServer(("0.0.0.0", 8081), HealthHandler)
+        httpd = ThreadingHTTPServer(("0.0.0.0", 8081), HealthHandler)
         logging.info("REST Gateway + Health check server starting on port 8081...")
         httpd.serve_forever()
     except Exception as e:
