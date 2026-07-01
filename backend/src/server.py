@@ -249,8 +249,41 @@ def _process_single_report_process(
     import datetime
     import logging
     import os
+    import sys
     import tempfile
     import traceback
+
+    # Apply macOS Homebrew library resolution fallback under SIP
+    if sys.platform == "darwin":
+        homebrew_lib = "/opt/homebrew/lib"
+        if os.path.exists(homebrew_lib):
+            if "DYLD_LIBRARY_PATH" in os.environ:
+                os.environ["DYLD_LIBRARY_PATH"] = f"{homebrew_lib}:{os.environ['DYLD_LIBRARY_PATH']}"
+            else:
+                os.environ["DYLD_LIBRARY_PATH"] = homebrew_lib
+
+            import ctypes.util
+
+            orig_find_library = ctypes.util.find_library
+
+            def new_find_library(name):
+                res = orig_find_library(name)
+                if res:
+                    return res
+                base_name = name
+                if name.startswith("lib"):
+                    base_name = name[3:]
+                if "-" in base_name:
+                    base_name = base_name.split("-")[0]
+                try:
+                    for f in os.listdir(homebrew_lib):
+                        if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                            return os.path.join(homebrew_lib, f)
+                except Exception:
+                    pass
+                return None
+
+            ctypes.util.find_library = new_find_library
 
     import msgpack
 
@@ -2033,12 +2066,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if not frontend_base:
                     frontend_base = os.getenv("FRONTEND_PUBLIC_URL", "http://localhost:3100")
 
-                api_base = frontend_base.rstrip("/")
-                if "localhost" in api_base or "127.0.0.1" in api_base:
-                    gateway_port = os.getenv("BACKEND_PORT", "8081")
-                    api_base = f"http://localhost:{gateway_port}"
-
-                bundle_url = f"{api_base}/api/data?path={safe_bundle_path}&token={token}"
+                bundle_url = f"{frontend_base.rstrip('/')}/api/data?path={safe_bundle_path}&token={token}"
                 logging.info(f"Using absolute proxy fallback URL: {bundle_url}")
 
             logging.info(f"Job {job_id}: Final bundle_url: {bundle_url}")
@@ -2251,17 +2279,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     frontend_port = os.getenv("FRONTEND_PORT", "3000")
                     frontend_base = f"http://{frontend_host}:{frontend_port}"
 
-            api_base = frontend_base
-            if "localhost" in api_base or "127.0.0.1" in api_base:
-                gateway_port = os.getenv("BACKEND_PORT", "8081")
-                api_base = f"http://localhost:{gateway_port}"
-
             # Correctly path-encode the user_pub_path
             import urllib.parse
 
             safe_pub_path = urllib.parse.quote(user_pub_path)
-            program_url = f"{api_base}/api/data?path={safe_pub_path}&token={token}"
-            sync_url = f"{api_base}/api/sync-dqs?token={token}&uid={uid}"
+            program_url = f"{frontend_base}/api/data?path={safe_pub_path}&token={token}"
+            sync_url = f"{frontend_base}/api/sync-dqs?token={token}&uid={uid}"
 
             logging.info(f"PublishMeetData: frontend_base={frontend_base}, program_url={program_url}")
 
@@ -2534,28 +2557,6 @@ def serve_health_check():
 
     from google.protobuf import json_format
 
-    _shared_servicer = MeetManagerService()
-
-    class MockContext:
-        def __init__(self, user_id: str):
-            self._metadata = [("x-user-id", user_id)]
-            self.code = None
-            self.details = None
-
-        def invocation_metadata(self):
-            return self._metadata
-
-        def set_code(self, code):
-            self.code = code
-
-        def set_details(self, details):
-            self.details = details
-
-        def abort(self, code, details):
-            self.code = code
-            self.details = details
-            raise Exception(f"gRPC Abort: {code} - {details}")
-
     class HealthHandler(http.server.BaseHTTPRequestHandler):
         def do_OPTIONS(self):
             self.send_response(200)
@@ -2570,102 +2571,19 @@ def serve_health_check():
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(b"OK")
-            elif self.path.startswith("/api/data"):
-                from urllib.parse import parse_qs, urlparse
-
-                parsed = urlparse(self.path)
-                query = parse_qs(parsed.query)
-                path = query.get("path", [""])[0]
-                token = query.get("token", [""])[0]
-
-                extracted_uid = None
-                if path.startswith("users/"):
-                    parts = path.split("/")
-                    if len(parts) > 1:
-                        extracted_uid = parts[1]
-
-                try:
-                    servicer = _shared_servicer
-
-                    user_id = (
-                        self.headers.get("x-user-id") or self.headers.get("x-e2e-uid") or extracted_uid or "dev-user"
-                    )
-                    context = MockContext(user_id)
-                    req = pb2.GetFileRequest(path=path, token=token)
-                    resp = servicer.GetFile(req, context)
-
-                    self.send_response(200)
-                    self.send_header("Content-Type", "application/octet-stream")
-                    filename = os.path.basename(path)
-                    self.send_header("Content-Disposition", f"attachment; filename={filename}")
-                    self.send_header("Access-Control-Allow-Origin", "*")
-                    self.end_headers()
-                    self.wfile.write(resp.content)
-                except Exception as e:
-                    logging.exception(f"REST Gateway: Error fetching file {path}: {e}")
-                    self.send_response(500)
-                    self.send_header("Access-Control-Allow-Origin", "*")
-                    self.end_headers()
-                    self.wfile.write(f"Error fetching file: {str(e)}".encode())
             else:
                 self.send_response(404)
                 self.end_headers()
 
         def do_POST(self):
-            if self.path.startswith("/api/sync-dqs") or self.path.startswith("/api/submit-dq"):
-                is_single = self.path.startswith("/api/submit-dq")
-                logging.info(f"REST Gateway: POST {self.path} (is_single={is_single})")
-                content_length = int(self.headers.get("Content-Length", 0))
-                body = self.rfile.read(content_length).decode("utf-8")
-
-                if is_single:
-                    try:
-                        body = json.dumps([json.loads(body)])
-                    except Exception as parse_err:
-                        logging.error(f"Failed to wrap submit-dq: {parse_err}")
-
-                from urllib.parse import parse_qs, urlparse
-
-                parsed = urlparse(self.path)
-                query = parse_qs(parsed.query)
-                uid = query.get("uid", [""])[0]
-                token = query.get("token", [""])[0]
-
-                try:
-                    servicer = _shared_servicer
-
-                    user_id = uid or "dev-user"
-                    context = MockContext(user_id)
-                    req = pb2.SyncDQsRequest(dqs_json=body, uid=uid, access_token=token)
-                    resp = servicer.SyncDQs(req, context)
-                    resp_dict = json_format.MessageToDict(
-                        resp, preserving_proto_field_name=True, use_integers_for_enums=True
-                    )
-                    resp_json = json.dumps(resp_dict)
-
-                    self.send_response(200)
-                    self.send_header("Content-Type", "application/json")
-                    self.send_header("Access-Control-Allow-Origin", "*")
-                    self.send_header("Access-Control-Allow-Headers", "*")
-                    self.end_headers()
-                    self.wfile.write(resp_json.encode("utf-8"))
-                except Exception as e:
-                    logging.exception(f"REST Gateway: SyncDQs failed: {e}")
-                    self.send_response(500)
-                    self.send_header("Access-Control-Allow-Origin", "*")
-                    self.end_headers()
-                    self.wfile.write(str(e).encode("utf-8"))
-                return
-
             if self.path.startswith("/api/grpc/"):
                 method_name = self.path[len("/api/grpc/") :]
-                logging.info(f"REST Gateway: POST {self.path} (method={method_name})")
 
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
                 try:
-                    servicer = _shared_servicer
+                    servicer = MeetManagerService()
                     method = getattr(servicer, method_name, None)
                     if not method:
                         self.send_response(404)
@@ -2673,10 +2591,16 @@ def serve_health_check():
                         self.end_headers()
                         return
 
-                    user_id = self.headers.get("x-user-id") or self.headers.get("x-e2e-uid") or "dev-user"
-                    context = MockContext(user_id)
+                    class MockContext:
+                        def __init__(self, metadata_headers):
+                            user_id = metadata_headers.get("x-user-id", "dev-user")
+                            self.invocation_metadata = [("x-user-id", user_id)]
+
+                    context = MockContext(self.headers)
 
                     if method_name == "UploadDataset":
+                        import json
+
                         data = json.loads(body)
                         filename = data["filename"]
                         content = base64.b64decode(data["content"])
@@ -2686,9 +2610,7 @@ def serve_health_check():
                             yield pb2.UploadDatasetRequest(chunk=content)
 
                         resp = servicer.UploadDataset(request_generator(), context)
-                        resp_dict = json_format.MessageToDict(
-                            resp, preserving_proto_field_name=True, use_integers_for_enums=True
-                        )
+                        resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True)
                         resp_json = json.dumps(resp_dict)
                     else:
                         request_class = getattr(pb2, f"{method_name}Request", None)
@@ -2699,16 +2621,13 @@ def serve_health_check():
                             self.wfile.write(f"Request class not found: {method_name}Request".encode())
                             return
 
+                        import json
+
                         json_data = json.loads(body) if body else {}
-                        logging.info(
-                            f"REST Gateway: {method_name} request payload keys: {list(json_data.keys())} values: {json_data}"
-                        )
                         req = json_format.ParseDict(json_data, request_class())
 
                         resp = method(req, context)
-                        resp_dict = json_format.MessageToDict(
-                            resp, preserving_proto_field_name=True, use_integers_for_enums=True
-                        )
+                        resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True)
                         resp_json = json.dumps(resp_dict)
 
                     self.send_response(200)
@@ -2718,7 +2637,6 @@ def serve_health_check():
                     self.end_headers()
                     self.wfile.write(resp_json.encode("utf-8"))
                 except Exception as e:
-                    logging.exception(f"REST Gateway error calling {method_name}: {e}")
                     self.send_response(500)
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
@@ -2732,9 +2650,8 @@ def serve_health_check():
             return
 
     try:
-        gateway_port = int(os.getenv("BACKEND_PORT", "8081"))
-        httpd = http.server.HTTPServer(("0.0.0.0", gateway_port), HealthHandler)
-        logging.info(f"REST Gateway + Health check server starting on port {gateway_port}...")
+        httpd = http.server.HTTPServer(("0.0.0.0", 8081), HealthHandler)
+        logging.info("REST Gateway + Health check server starting on port 8081...")
         httpd.serve_forever()
     except Exception as e:
         logging.error(f"Failed to start REST Gateway server: {e}")
@@ -2833,6 +2750,41 @@ def serve():
 
 
 if __name__ == "__main__":
+    import os
+    import sys
+
+    # Apply macOS Homebrew library resolution fallback under SIP
+    if sys.platform == "darwin":
+        homebrew_lib = "/opt/homebrew/lib"
+        if os.path.exists(homebrew_lib):
+            if "DYLD_LIBRARY_PATH" in os.environ:
+                os.environ["DYLD_LIBRARY_PATH"] = f"{homebrew_lib}:{os.environ['DYLD_LIBRARY_PATH']}"
+            else:
+                os.environ["DYLD_LIBRARY_PATH"] = homebrew_lib
+
+            import ctypes.util
+
+            orig_find_library = ctypes.util.find_library
+
+            def new_find_library(name):
+                res = orig_find_library(name)
+                if res:
+                    return res
+                base_name = name
+                if name.startswith("lib"):
+                    base_name = name[3:]
+                if "-" in base_name:
+                    base_name = base_name.split("-")[0]
+                try:
+                    for f in os.listdir(homebrew_lib):
+                        if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                            return os.path.join(homebrew_lib, f)
+                except Exception:
+                    pass
+                return None
+
+            ctypes.util.find_library = new_find_library
+
     # Configure logging
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
     log_level = getattr(logging, log_level_str, logging.INFO)

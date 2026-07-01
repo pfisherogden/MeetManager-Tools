@@ -109,11 +109,13 @@ export async function listDatasets() {
 }
 
 export async function setActiveDataset(filename: string) {
-	return callRESTGateway("SetActiveDataset", { filename });
+	await callRESTGateway("SetActiveDataset", { filename });
+	return { success: true };
 }
 
 export async function deleteDataset(filename: string) {
-	return callRESTGateway("ClearDataset", { filename });
+	await callRESTGateway("ClearDataset", { filename });
+	return { success: true };
 }
 
 export async function generateReportBundle(

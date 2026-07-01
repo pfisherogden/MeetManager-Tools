@@ -47,7 +47,7 @@ jobs:
         run: |
           cd backend
           # Build a single-file executable for the backend server
-          pyinstaller --onefile --name ${{ matrix.output_name }} src/server.py
+          pyinstaller --onefile --add-data "src/mm_to_json/reporting/templates${{ matrix.platform == 'windows' && ';' || ':' }}mm_to_json/reporting/templates" --name ${{ matrix.output_name }} src/server.py
           
           # Move output to Tauri's sidecars directory in web-client if it exists
           if [ -d "../web-client/src-tauri" ]; then
