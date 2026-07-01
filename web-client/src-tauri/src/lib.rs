@@ -1,28 +1,28 @@
 use tauri_plugin_shell::ShellExt;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  let child_state = std::sync::Arc::new(std::sync::Mutex::new(None));
-  let child_state_clone = child_state.clone();
-
   tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_log::Builder::default()
       .level(log::LevelFilter::Info)
       .build())
-    .setup(move |app| {
+    .setup(|app| {
       let shell = app.shell();
+      let app_data_dir = app.path().app_data_dir().expect("failed to get app data dir");
+      let app_data_str = app_data_dir.to_string_lossy().to_string();
+
+      // Ensure directory exists
+      std::fs::create_dir_all(&app_data_dir).expect("failed to create app data dir");
+
       // "mmtools-backend" refers to the sidecar defined in tauri.conf.json
-      let (mut rx, child) = shell
+      let (mut rx, _child) = shell
         .sidecar("mmtools-backend")
         .expect("failed to setup sidecar")
-        .env("GRPC_AUTH_DISABLED", "true")
-        .env("USE_MOCK_FIRESTORE", "true")
-        .env("NEXT_PUBLIC_AUTH_DISABLED", "true")
+        .env("STORAGE_BASE_DIR", &app_data_str)
         .spawn()
         .expect("failed to spawn sidecar");
-
-      *child_state_clone.lock().unwrap() = Some(child);
 
       // Log sidecar output in background
       tauri::async_runtime::spawn(async move {
@@ -45,13 +45,7 @@ pub fn run() {
 
       Ok(())
     })
-    .build(tauri::generate_context!())
-    .expect("error while building tauri application")
-    .run(move |_app_handle, event| {
-      if let tauri::RunEvent::Exit = event {
-        if let Some(child) = child_state.lock().unwrap().take() {
-          let _ = child.kill();
-        }
-      }
-    });
+    .run(tauri::generate_context!())
+    .expect("error while running tauri application");
 }
+

@@ -512,8 +512,29 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         if bucket_name:
             self.storage = GCSStorageProvider(bucket_name)
         else:
-            base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+            base_storage_dir = os.getenv("STORAGE_BASE_DIR")
+            if not base_storage_dir:
+                base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
             self.storage = LocalStorageProvider(base_storage_dir)
+
+            # Ensure default Sample_Data.json exists in base_storage_dir
+            import shutil
+            import sys
+
+            sample_dest = os.path.join(base_storage_dir, SOURCE_FILE)
+            if not os.path.exists(sample_dest):
+                sample_src = ""
+                if getattr(sys, "frozen", False):
+                    sample_src = os.path.join(sys._MEIPASS, "data", SOURCE_FILE)
+                else:
+                    sample_src = os.path.join(os.path.dirname(os.path.dirname(__file__)), DATA_DIR, SOURCE_FILE)
+
+                if os.path.exists(sample_src):
+                    logging.info(f"Copying default {SOURCE_FILE} to storage: {sample_dest}")
+                    os.makedirs(os.path.dirname(sample_dest), exist_ok=True)
+                    shutil.copy2(sample_src, sample_dest)
+                else:
+                    logging.warning(f"Default {SOURCE_FILE} source NOT FOUND at {sample_src}")
 
         self._user_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.current_file = SOURCE_FILE
@@ -2597,7 +2618,10 @@ def serve_health_check():
                     class MockContext:
                         def __init__(self, metadata_headers):
                             user_id = metadata_headers.get("x-user-id", "dev-user")
-                            self.invocation_metadata = [("x-user-id", user_id)]
+                            self._metadata = [("x-user-id", user_id)]
+
+                        def invocation_metadata(self):
+                            return self._metadata
 
                     context = MockContext(self.headers)
 
