@@ -192,6 +192,9 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         evt_id = safe_int(get_field(rn, ["event_ptr", "Event_ptr"]))
         t_no = safe_int(get_field(rn, ["team_no", "Team_no"]))
         r_no = safe_int(get_field(rn, ["relay_no", "Relay_no"]))
+        pos_no = safe_int(get_field(rn, ["pos_no", "pos", "Pos_no", "Pos"]))
+        if pos_no > 4:
+            continue
         if ath_id and evt_id:
             is_exh = relay_exh_map.get((evt_id, t_no, r_no), False)
             athlete_entries[ath_id].append({"evt_id": evt_id, "is_exhibition": is_exh})
