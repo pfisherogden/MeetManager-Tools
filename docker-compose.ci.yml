@@ -3,6 +3,7 @@ services:
     image: ${IMAGE_PREFIX}/backend:${TAG}
     ports:
       - "8080:8080"
+      - "8081:8081"
     volumes:
       - ./tmp:/tmp
       - mmtools-data:/app/data
@@ -31,7 +32,7 @@ services:
   judge-app:
     image: ${IMAGE_PREFIX}/judge-app:${TAG}
     ports:
-      - "8081:8080"
+      - "8082:8080"
 
 volumes:
   mmtools-data:
