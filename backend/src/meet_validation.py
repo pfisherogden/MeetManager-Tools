@@ -357,22 +357,25 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         r_heat = safe_int(get_field(r, ["fin_heat", "Fin_heat"]))
         r_lane = safe_int(get_field(r, ["fin_lane", "Fin_lane"]))
         if r_heat > 0 and r_lane > 0:
-            r_time = safe_float(get_field(r, ["fin_time", "Fin_time"]))
+            r_place = safe_int(get_field(r, ["fin_place", "place", "Fin_place"]))
             r_stat = safe_str(get_field(r, ["fin_stat", "Fin_stat"])).upper()
-            if r_time == 0 and r_stat not in ["Q", "R"]:
-                t_id = safe_int(get_field(r, ["team_ptr", "team_no", "Team_ptr", "Team_no"]))
-                team_name = teams_map.get(t_id, {}).get("name", f"Team #{t_id}")
-                team_ltr = safe_str(get_field(r, ["team_ltr", "Team_ltr"]))
-                evt_id = safe_int(get_field(r, ["event_ptr", "Event_ptr"]))
-                evt_desc = events_map.get(evt_id, {}).get("desc", f"Event {evt_id}")
-                findings.append(
-                    pb2.ValidationFinding(
-                        severity=pb2.VALIDATION_SEVERITY_INFO,
-                        category="Relays with NS",
-                        message=f"Team {team_name} '{team_ltr}' in {evt_desc} (Heat {r_heat}, Lane {r_lane}): Relay has NS/Missing Time.",
-                        affected_id=str(t_id),
+            is_scored = (r_place > 0) or (r_stat != "")
+            if is_scored:
+                r_time = safe_float(get_field(r, ["fin_time", "Fin_time"]))
+                if r_time == 0 and r_stat not in ["Q", "R"]:
+                    t_id = safe_int(get_field(r, ["team_ptr", "team_no", "Team_ptr", "Team_no"]))
+                    team_name = teams_map.get(t_id, {}).get("name", f"Team #{t_id}")
+                    team_ltr = safe_str(get_field(r, ["team_ltr", "Team_ltr"]))
+                    evt_id = safe_int(get_field(r, ["event_ptr", "Event_ptr"]))
+                    evt_desc = events_map.get(evt_id, {}).get("desc", f"Event {evt_id}")
+                    findings.append(
+                        pb2.ValidationFinding(
+                            severity=pb2.VALIDATION_SEVERITY_INFO,
+                            category="Relays with NS",
+                            message=f"Team {team_name} '{team_ltr}' in {evt_desc} (Heat {r_heat}, Lane {r_lane}): Relay has NS/Missing Time.",
+                            affected_id=str(t_id),
+                        )
                     )
-                )
 
     # 5. Duplicate Times (WARNING)
     for evt_id, times_list in event_times.items():
