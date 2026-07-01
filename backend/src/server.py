@@ -317,7 +317,17 @@ def _process_single_report_process(
         converter = MmToJsonConverter(table_data=cache_data)
         extractor = ReportDataExtractor(converter, full_data=full_data)
         renderer: Any
-        if renderer_type == "playwright":
+        # Standardize renderer type comparison (supporting string, enum int, and enum name)
+        is_playwright = False
+        if renderer_type is not None:
+            if isinstance(renderer_type, str):
+                is_playwright = renderer_type.lower() in ["playwright", "renderer_type_playwright"]
+            elif isinstance(renderer_type, int):
+                is_playwright = renderer_type == 2  # 2 corresponds to RENDERER_TYPE_PLAYWRIGHT
+            else:
+                is_playwright = "playwright" in str(renderer_type).lower()
+
+        if is_playwright:
             renderer = PlaywrightRenderer(output_path=temp_path)
         else:
             renderer = WeasyRenderer(output_path=temp_path)
@@ -2603,15 +2613,16 @@ def serve_health_check():
             if self.path.startswith("/api/sync-dqs") or self.path.startswith("/api/submit-dq"):
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
-                
+
                 # Parse query parameters safely
                 import urllib.parse
+
                 parsed_url = urllib.parse.urlparse(self.path)
                 params = urllib.parse.parse_qs(parsed_url.query)
-                
+
                 token = params.get("token", [""])[0]
                 uid = params.get("uid", ["dev-user"])[0]
-                
+
                 # Check data access token if configured
                 configured_token = _get_data_access_token()
                 if configured_token and token != configured_token:
@@ -2620,37 +2631,41 @@ def serve_health_check():
                     self.end_headers()
                     self.wfile.write(b"Unauthorized access")
                     return
-                
+
                 import json
+
                 try:
                     payload = json.loads(body)
                     if self.path.startswith("/api/submit-dq"):
                         dqs_list = [payload]
                     else:
                         dqs_list = payload if isinstance(payload, list) else [payload]
-                        
+
                     servicer = MeetManagerService()
-                    
+
                     class MockContext:
                         def __init__(self, user_id):
                             self._metadata = [("x-user-id", user_id)]
+
                         def invocation_metadata(self):
                             return self._metadata
+
                         def set_code(self, code):
                             pass
+
                         def set_details(self, details):
                             pass
+
                         def abort(self, code, details):
                             raise Exception(f"gRPC Abort: {code} - {details}")
-                    
+
                     context = MockContext(uid)
-                    
-                    resp = servicer.SyncDQs(pb2.SyncDQsRequest(
-                        dqs_json=json.dumps(dqs_list),
-                        uid=uid,
-                        access_token=configured_token
-                    ), context)
-                    
+
+                    resp = servicer.SyncDQs(
+                        pb2.SyncDQsRequest(dqs_json=json.dumps(dqs_list), uid=uid, access_token=configured_token),
+                        context,
+                    )
+
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
                     self.send_header("Access-Control-Allow-Origin", "*")
