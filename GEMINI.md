@@ -91,7 +91,7 @@ All agents MUST follow these workflow phases:
 - **Dependency Protocol**: Use `uv` (Python) or `npm` (JS) and update lockfiles immediately after adding packages.
 
 ### Phase 4: Verification & Closure
-- **Local Verification**: 100% pass on linting, type-checking, and tests before pushing to a PR branch. This includes `just fix`, `just lint`, and all relevant module tests.
+- **Local Verification**: 100% pass on linting (`just fix` / `just lint`), type-checking (`just type-check-backend`), and all unit/integration/E2E tests before pushing to a branch. This includes both frontend and backend checks.
 - **CI/CD Monitoring**: **Mandatory** - After submitting a PR, you MUST monitor the GitHub Action checks using `gh pr checks --watch`. 
 - **CI/CD Pass**: PR merging is ONLY permitted after all GitHub Actions are green. 
 - **Merge Protocol**: Use `--squash` for merging PRs to keep a clean history.
@@ -102,7 +102,7 @@ All agents MUST follow these workflow phases:
 - **Persistence**: Periodically update the GitHub issue with **Next Steps** and current status. Close the issue only after the PR is merged.
 
 ### Technical Integrity & Safety
-- **Mandatory Pre-Commit**: ALWAYS run `just fix` and `just lint` before pushing to `main`. This catches trailing whitespace, formatting, and Mypy issues that break CI.
+- **Mandatory Pre-Commit & Pre-Push**: ALWAYS run `just fix`, `just lint`, and `just type-check-backend` locally before committing or pushing changes to any branch. This catches trailing whitespace, formatting, and Mypy issues that break CI.
 - **Artifact Protection**: NEVER commit `.pdf` or `.png` files to the repository. These are large binaries that bloat the git history. Always verify your `.gitignore` is active.
 - **Proto Documentation**: Every new `enum` value or `message` field in `.proto` files MUST have a descriptive comment to satisfy `buf lint`.
 - **E2E Timeout Awareness**: Championship-scale rendering can take up to 400s. Ensure Playwright `timeout` and `actionTimeout` in `playwright.config.ts` are set to at least 10 minutes (600,000ms) for high-load testing.

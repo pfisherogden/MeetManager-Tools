@@ -22,5 +22,5 @@ description: Enforcement of code style and quality checks for MeetManager-Tools.
 - **Structure**: Maintain versioned directories (e.g., `v1/`).
 
 ## Verification
-- **Local Check**: Run `just lint` before pushing.
-- **Hermetic Check**: Use `just verify-ci` to catch environment-specific linting issues (e.g., binary mismatches).
+- **Local Check**: Always run `just fix`, `just lint`, and `just type-check-backend` locally before committing or pushing any branch. This prevents formatting, linting, and type conflicts in CI.
+- **Hermetic Check**: Use `just verify-ci` to catch environment-specific linting issues (e.g. binary mismatches). Ensure 100% pass rate locally before pushing.

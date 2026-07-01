@@ -275,6 +275,9 @@ def _process_single_report_process(
                     base_name = name[3:]
                 if "-" in base_name:
                     base_name = base_name.split("-")[0]
+                exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
+                if os.path.exists(exact_path):
+                    return exact_path
                 try:
                     for f in os.listdir(homebrew_lib):
                         if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
@@ -2775,6 +2778,9 @@ if __name__ == "__main__":
                     base_name = name[3:]
                 if "-" in base_name:
                     base_name = base_name.split("-")[0]
+                exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
+                if os.path.exists(exact_path):
+                    return exact_path
                 try:
                     for f in os.listdir(homebrew_lib):
                         if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
