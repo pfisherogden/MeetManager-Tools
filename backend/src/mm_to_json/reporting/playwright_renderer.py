@@ -62,7 +62,7 @@ class PlaywrightRenderer:
                         <div style="font-weight: bold;">Tri-Valley Swim Lg. C</div>
                     </div>
                     <div style="text-align: right;">
-                        <div>HY-TEK's MEET MANAGER 7.0 - {gen_time} &nbsp;&nbsp; Page <span class="pageNumber"></span></div>
+                        <div>MMTools - {gen_time} &nbsp;&nbsp; Page <span class="pageNumber"></span></div>
                     </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%;">
