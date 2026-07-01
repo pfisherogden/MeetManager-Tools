@@ -2536,6 +2536,26 @@ def serve_health_check():
 
     _shared_servicer = MeetManagerService()
 
+    class MockContext:
+        def __init__(self, user_id: str):
+            self._metadata = [("x-user-id", user_id)]
+            self.code = None
+            self.details = None
+
+        def invocation_metadata(self):
+            return self._metadata
+
+        def set_code(self, code):
+            self.code = code
+
+        def set_details(self, details):
+            self.details = details
+
+        def abort(self, code, details):
+            self.code = code
+            self.details = details
+            raise Exception(f"gRPC Abort: {code} - {details}")
+
     class HealthHandler(http.server.BaseHTTPRequestHandler):
         def do_OPTIONS(self):
             self.send_response(200)
@@ -2567,33 +2587,10 @@ def serve_health_check():
                 try:
                     servicer = _shared_servicer
 
-                    class MockContext:
-                        def __init__(self, metadata_headers):
-                            user_id = (
-                                metadata_headers.get("x-user-id")
-                                or metadata_headers.get("x-e2e-uid")
-                                or extracted_uid
-                                or "dev-user"
-                            )
-                            self._metadata = [("x-user-id", user_id)]
-                            self.code = None
-                            self.details = None
-
-                        def invocation_metadata(self):
-                            return self._metadata
-
-                        def set_code(self, code):
-                            self.code = code
-
-                        def set_details(self, details):
-                            self.details = details
-
-                        def abort(self, code, details):
-                            self.code = code
-                            self.details = details
-                            raise Exception(f"gRPC Abort: {code} - {details}")
-
-                    context = MockContext(self.headers)
+                    user_id = (
+                        self.headers.get("x-user-id") or self.headers.get("x-e2e-uid") or extracted_uid or "dev-user"
+                    )
+                    context = MockContext(user_id)
                     req = pb2.GetFileRequest(path=path, token=token)
                     resp = servicer.GetFile(req, context)
 
@@ -2637,28 +2634,8 @@ def serve_health_check():
                 try:
                     servicer = _shared_servicer
 
-                    class MockContext:
-                        def __init__(self, metadata_headers):
-                            user_id = uid or "dev-user"
-                            self._metadata = [("x-user-id", user_id)]
-                            self.code = None
-                            self.details = None
-
-                        def invocation_metadata(self):
-                            return self._metadata
-
-                        def set_code(self, code):
-                            self.code = code
-
-                        def set_details(self, details):
-                            self.details = details
-
-                        def abort(self, code, details):
-                            self.code = code
-                            self.details = details
-                            raise Exception(f"gRPC Abort: {code} - {details}")
-
-                    context = MockContext(self.headers)
+                    user_id = uid or "dev-user"
+                    context = MockContext(user_id)
                     req = pb2.SyncDQsRequest(dqs_json=body, uid=uid, access_token=token)
                     resp = servicer.SyncDQs(req, context)
                     resp_dict = json_format.MessageToDict(
@@ -2696,30 +2673,8 @@ def serve_health_check():
                         self.end_headers()
                         return
 
-                    class MockContext:
-                        def __init__(self, metadata_headers):
-                            user_id = (
-                                metadata_headers.get("x-user-id") or metadata_headers.get("x-e2e-uid") or "dev-user"
-                            )
-                            self._metadata = [("x-user-id", user_id)]
-                            self.code = None
-                            self.details = None
-
-                        def invocation_metadata(self):
-                            return self._metadata
-
-                        def set_code(self, code):
-                            self.code = code
-
-                        def set_details(self, details):
-                            self.details = details
-
-                        def abort(self, code, details):
-                            self.code = code
-                            self.details = details
-                            raise Exception(f"gRPC Abort: {code} - {details}")
-
-                    context = MockContext(self.headers)
+                    user_id = self.headers.get("x-user-id") or self.headers.get("x-e2e-uid") or "dev-user"
+                    context = MockContext(user_id)
 
                     if method_name == "UploadDataset":
                         data = json.loads(body)
