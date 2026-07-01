@@ -249,8 +249,41 @@ def _process_single_report_process(
     import datetime
     import logging
     import os
+    import sys
     import tempfile
     import traceback
+
+    # Apply macOS Homebrew library resolution fallback under SIP
+    if sys.platform == "darwin":
+        homebrew_lib = "/opt/homebrew/lib"
+        if os.path.exists(homebrew_lib):
+            if "DYLD_LIBRARY_PATH" in os.environ:
+                os.environ["DYLD_LIBRARY_PATH"] = f"{homebrew_lib}:{os.environ['DYLD_LIBRARY_PATH']}"
+            else:
+                os.environ["DYLD_LIBRARY_PATH"] = homebrew_lib
+
+            import ctypes.util
+
+            orig_find_library = ctypes.util.find_library
+
+            def new_find_library(name):
+                res = orig_find_library(name)
+                if res:
+                    return res
+                base_name = name
+                if name.startswith("lib"):
+                    base_name = name[3:]
+                if "-" in base_name:
+                    base_name = base_name.split("-")[0]
+                try:
+                    for f in os.listdir(homebrew_lib):
+                        if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                            return os.path.join(homebrew_lib, f)
+                except Exception:
+                    pass
+                return None
+
+            ctypes.util.find_library = new_find_library
 
     import msgpack
 
@@ -2717,6 +2750,41 @@ def serve():
 
 
 if __name__ == "__main__":
+    import os
+    import sys
+
+    # Apply macOS Homebrew library resolution fallback under SIP
+    if sys.platform == "darwin":
+        homebrew_lib = "/opt/homebrew/lib"
+        if os.path.exists(homebrew_lib):
+            if "DYLD_LIBRARY_PATH" in os.environ:
+                os.environ["DYLD_LIBRARY_PATH"] = f"{homebrew_lib}:{os.environ['DYLD_LIBRARY_PATH']}"
+            else:
+                os.environ["DYLD_LIBRARY_PATH"] = homebrew_lib
+
+            import ctypes.util
+
+            orig_find_library = ctypes.util.find_library
+
+            def new_find_library(name):
+                res = orig_find_library(name)
+                if res:
+                    return res
+                base_name = name
+                if name.startswith("lib"):
+                    base_name = name[3:]
+                if "-" in base_name:
+                    base_name = base_name.split("-")[0]
+                try:
+                    for f in os.listdir(homebrew_lib):
+                        if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                            return os.path.join(homebrew_lib, f)
+                except Exception:
+                    pass
+                return None
+
+            ctypes.util.find_library = new_find_library
+
     # Configure logging
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
     log_level = getattr(logging, log_level_str, logging.INFO)
