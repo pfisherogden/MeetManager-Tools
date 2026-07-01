@@ -21,6 +21,8 @@ pub fn run() {
         .sidecar("mmtools-backend")
         .expect("failed to setup sidecar")
         .env("STORAGE_BASE_DIR", &app_data_str)
+        .env("GRPC_AUTH_DISABLED", "true")
+        .env("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
         .spawn()
         .expect("failed to spawn sidecar");
 

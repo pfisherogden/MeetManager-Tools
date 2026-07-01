@@ -2600,7 +2600,63 @@ def serve_health_check():
                 self.end_headers()
 
         def do_POST(self):
-            if self.path.startswith("/api/grpc/"):
+            if self.path.startswith("/api/sync-dqs") or self.path.startswith("/api/submit-dq"):
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length).decode("utf-8")
+                
+                # Parse query parameters safely
+                import urllib.parse
+                parsed_url = urllib.parse.urlparse(self.path)
+                params = urllib.parse.parse_qs(parsed_url.query)
+                
+                token = params.get("token", [""])[0]
+                uid = params.get("uid", ["dev-user"])[0]
+                
+                # Check data access token if configured
+                configured_token = _get_data_access_token()
+                if configured_token and token != configured_token:
+                    self.send_response(403)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(b"Unauthorized access")
+                    return
+                
+                import json
+                try:
+                    payload = json.loads(body)
+                    if self.path.startswith("/api/submit-dq"):
+                        dqs_list = [payload]
+                    else:
+                        dqs_list = payload if isinstance(payload, list) else [payload]
+                        
+                    servicer = MeetManagerService()
+                    
+                    class MockContext:
+                        def __init__(self, user_id):
+                            self._metadata = [("x-user-id", user_id)]
+                        def invocation_metadata(self):
+                            return self._metadata
+                    
+                    context = MockContext(uid)
+                    
+                    resp = servicer.SyncDQs(pb2.SyncDQsRequest(
+                        dqs_json=json.dumps(dqs_list),
+                        uid=uid,
+                        access_token=configured_token
+                    ), context)
+                    
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Headers", "*")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": resp.success, "message": resp.message}).encode("utf-8"))
+                except Exception as e:
+                    self.send_response(500)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(str(e).encode("utf-8"))
+            elif self.path.startswith("/api/grpc/"):
                 method_name = self.path[len("/api/grpc/") :]
 
                 content_length = int(self.headers.get("Content-Length", 0))
