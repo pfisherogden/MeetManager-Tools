@@ -214,7 +214,7 @@ export function ReportsManager({
 					if (downloadTriggered.current !== jobId && status.bundleUrl) {
 						downloadTriggered.current = jobId;
 						const filename = _filename || "meet_reports.zip";
-						
+
 						fetch(status.bundleUrl)
 							.then((res) => {
 								if (!res.ok) throw new Error("Failed to download file");

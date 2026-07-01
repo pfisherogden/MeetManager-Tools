@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
 import { Timer, Trophy, User, Users, Waves } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { GetDashboardStatsResponse } from "@/lib/proto/meetmanager/v1/meet_manager";
 

@@ -28,17 +28,21 @@ test.describe("DQ Notes Preservation", () => {
 		// We must provide sync_url so the app knows where to send the DQ
 		const token =
 			process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
-		const syncBase = process.env.TEST_STATIC === "true" ? "http://localhost:8081" : baseURL;
-		
+		const syncBase =
+			process.env.TEST_STATIC === "true" ? "http://localhost:8081" : baseURL;
+
 		// Publish the meet data so the program file is generated on the backend
 		if (process.env.TEST_STATIC === "true") {
 			const gatewayUrl = "http://localhost:8081/api/grpc";
-			const publishRes = await page.request.post(`${gatewayUrl}/PublishMeetData`, {
-				data: {
-					frontend_url: syncBase,
+			const publishRes = await page.request.post(
+				`${gatewayUrl}/PublishMeetData`,
+				{
+					data: {
+						frontend_url: syncBase,
+					},
+					headers: { "x-user-id": userId },
 				},
-				headers: { "x-user-id": userId },
-			});
+			);
 			expect(publishRes.ok()).toBe(true);
 		}
 
@@ -46,7 +50,9 @@ test.describe("DQ Notes Preservation", () => {
 			`${syncBase}/api/sync-dqs?token=${token}&uid=${userId}`,
 		);
 		const testFileName = getFilename("tiny_meet.json");
-		const baseFilename = testFileName.endsWith(".json") ? testFileName.slice(0, -5) : testFileName;
+		const baseFilename = testFileName.endsWith(".json")
+			? testFileName.slice(0, -5)
+			: testFileName;
 		const programPath = `users/${userId}/published/program_${baseFilename}.json`;
 		const programUrl = encodeURIComponent(
 			`${syncBase}/api/data?path=${programPath}&token=${token}`,
@@ -92,7 +98,10 @@ test.describe("DQ Notes Preservation", () => {
 		// Wait for sync response after save
 		console.log("Saving DQ...");
 		const syncPromise = page.waitForResponse(
-			(r) => (r.url().includes("/api/submit-dq") || r.url().includes("/api/sync-dqs")) && r.status() === 200,
+			(r) =>
+				(r.url().includes("/api/submit-dq") ||
+					r.url().includes("/api/sync-dqs")) &&
+				r.status() === 200,
 			{ timeout: 30000 },
 		);
 
@@ -117,7 +126,10 @@ test.describe("DQ Notes Preservation", () => {
 		await expect(historyModal).toContainText(testNote);
 
 		// 3. Verify note in MMTools Frontend
-		console.log("Cookies in Playwright context:", await page.context().cookies());
+		console.log(
+			"Cookies in Playwright context:",
+			await page.context().cookies(),
+		);
 		console.log("Checking frontend...");
 		await page.goto("/dqs");
 		await expect(page.locator("table")).toContainText(testNote, {

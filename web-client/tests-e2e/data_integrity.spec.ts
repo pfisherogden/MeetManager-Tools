@@ -29,9 +29,11 @@ test.describe("Data Integrity and UI Rendering", () => {
 	}) => {
 		await page.goto("/teams");
 		const rows = page.locator("table tbody tr");
-		
+
 		// Wait for client-side hydration to fetch teams and populate the table
-		await expect.poll(async () => await rows.count(), { timeout: 15000 }).toBeGreaterThan(1);
+		await expect
+			.poll(async () => await rows.count(), { timeout: 15000 })
+			.toBeGreaterThan(1);
 
 		const colors = await rows.evaluateAll((list) => {
 			return list.map((row) => {

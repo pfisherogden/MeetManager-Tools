@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
+	type APIResponse,
 	expect,
 	type Locator,
 	type Page,
@@ -121,7 +122,10 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		document.cookie = `x-user-id=${uid}; path=/; max-age=31536000`;
 		document.cookie = `idToken=dev-token; path=/; max-age=31536000`;
 	}, userId);
-	console.log("[Utils] Cookie immediately after set:", await page.evaluate(() => document.cookie));
+	console.log(
+		"[Utils] Cookie immediately after set:",
+		await page.evaluate(() => document.cookie),
+	);
 
 	page.on("console", (msg) => {
 		console.log(`[Browser Console] [${msg.type()}] ${msg.text()}`);
@@ -146,7 +150,7 @@ export async function ensureDatasetActive(
 	const gatewayUrl = "http://localhost:8081/api/grpc";
 
 	// 2. Upload dataset directly via API
-	let uploadResponse;
+	let uploadResponse: APIResponse;
 	if (isStatic) {
 		const base64Content = Buffer.from(JSON.stringify(data)).toString("base64");
 		uploadResponse = await page.request.post(`${gatewayUrl}/UploadDataset`, {
@@ -177,7 +181,7 @@ export async function ensureDatasetActive(
 	}
 
 	// 3. Set as active via API
-	let activateResponse;
+	let activateResponse: APIResponse;
 	if (isStatic) {
 		activateResponse = await page.request.post(
 			`${gatewayUrl}/SetActiveDataset`,

@@ -111,7 +111,7 @@ class LocalStorageProvider(StorageProvider):
         # Local URLs point to the frontend's dynamic data endpoint
         # Use environment variables to avoid collisions
         frontend_url = os.getenv("FRONTEND_URL") or os.getenv("FRONTEND_PUBLIC_URL") or "http://localhost:3100"
-        
+
         api_base = frontend_url
         if "localhost" in api_base or "127.0.0.1" in api_base:
             gateway_port = os.getenv("BACKEND_PORT", "8081")

@@ -2551,24 +2551,30 @@ def serve_health_check():
                 self.end_headers()
                 self.wfile.write(b"OK")
             elif self.path.startswith("/api/data"):
-                from urllib.parse import urlparse, parse_qs
+                from urllib.parse import parse_qs, urlparse
+
                 parsed = urlparse(self.path)
                 query = parse_qs(parsed.query)
                 path = query.get("path", [""])[0]
                 token = query.get("token", [""])[0]
-                
+
                 extracted_uid = None
                 if path.startswith("users/"):
                     parts = path.split("/")
                     if len(parts) > 1:
                         extracted_uid = parts[1]
-                
+
                 try:
                     servicer = _shared_servicer
-                    
+
                     class MockContext:
                         def __init__(self, metadata_headers):
-                            user_id = metadata_headers.get("x-user-id") or metadata_headers.get("x-e2e-uid") or extracted_uid or "dev-user"
+                            user_id = (
+                                metadata_headers.get("x-user-id")
+                                or metadata_headers.get("x-e2e-uid")
+                                or extracted_uid
+                                or "dev-user"
+                            )
                             self._metadata = [("x-user-id", user_id)]
                             self.code = None
                             self.details = None
@@ -2590,7 +2596,7 @@ def serve_health_check():
                     context = MockContext(self.headers)
                     req = pb2.GetFileRequest(path=path, token=token)
                     resp = servicer.GetFile(req, context)
-                    
+
                     self.send_response(200)
                     self.send_header("Content-Type", "application/octet-stream")
                     filename = os.path.basename(path)
@@ -2614,49 +2620,52 @@ def serve_health_check():
                 logging.info(f"REST Gateway: POST {self.path} (is_single={is_single})")
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
-                
+
                 if is_single:
                     try:
                         body = json.dumps([json.loads(body)])
                     except Exception as parse_err:
                         logging.error(f"Failed to wrap submit-dq: {parse_err}")
-                
-                from urllib.parse import urlparse, parse_qs
+
+                from urllib.parse import parse_qs, urlparse
+
                 parsed = urlparse(self.path)
                 query = parse_qs(parsed.query)
                 uid = query.get("uid", [""])[0]
                 token = query.get("token", [""])[0]
-                
+
                 try:
                     servicer = _shared_servicer
-                    
+
                     class MockContext:
                         def __init__(self, metadata_headers):
                             user_id = uid or "dev-user"
                             self._metadata = [("x-user-id", user_id)]
                             self.code = None
                             self.details = None
+
                         def invocation_metadata(self):
                             return self._metadata
+
                         def set_code(self, code):
                             self.code = code
+
                         def set_details(self, details):
                             self.details = details
+
                         def abort(self, code, details):
                             self.code = code
                             self.details = details
                             raise Exception(f"gRPC Abort: {code} - {details}")
-                            
+
                     context = MockContext(self.headers)
-                    req = pb2.SyncDQsRequest(
-                        dqs_json=body,
-                        uid=uid,
-                        access_token=token
-                    )
+                    req = pb2.SyncDQsRequest(dqs_json=body, uid=uid, access_token=token)
                     resp = servicer.SyncDQs(req, context)
-                    resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True, use_integers_for_enums=True)
+                    resp_dict = json_format.MessageToDict(
+                        resp, preserving_proto_field_name=True, use_integers_for_enums=True
+                    )
                     resp_json = json.dumps(resp_dict)
-                    
+
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
                     self.send_header("Access-Control-Allow-Origin", "*")
@@ -2689,7 +2698,9 @@ def serve_health_check():
 
                     class MockContext:
                         def __init__(self, metadata_headers):
-                            user_id = metadata_headers.get("x-user-id") or metadata_headers.get("x-e2e-uid") or "dev-user"
+                            user_id = (
+                                metadata_headers.get("x-user-id") or metadata_headers.get("x-e2e-uid") or "dev-user"
+                            )
                             self._metadata = [("x-user-id", user_id)]
                             self.code = None
                             self.details = None
@@ -2720,7 +2731,9 @@ def serve_health_check():
                             yield pb2.UploadDatasetRequest(chunk=content)
 
                         resp = servicer.UploadDataset(request_generator(), context)
-                        resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True, use_integers_for_enums=True)
+                        resp_dict = json_format.MessageToDict(
+                            resp, preserving_proto_field_name=True, use_integers_for_enums=True
+                        )
                         resp_json = json.dumps(resp_dict)
                     else:
                         request_class = getattr(pb2, f"{method_name}Request", None)
@@ -2732,11 +2745,15 @@ def serve_health_check():
                             return
 
                         json_data = json.loads(body) if body else {}
-                        logging.info(f"REST Gateway: {method_name} request payload keys: {list(json_data.keys())} values: {json_data}")
+                        logging.info(
+                            f"REST Gateway: {method_name} request payload keys: {list(json_data.keys())} values: {json_data}"
+                        )
                         req = json_format.ParseDict(json_data, request_class())
 
                         resp = method(req, context)
-                        resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True, use_integers_for_enums=True)
+                        resp_dict = json_format.MessageToDict(
+                            resp, preserving_proto_field_name=True, use_integers_for_enums=True
+                        )
                         resp_json = json.dumps(resp_dict)
 
                     self.send_response(200)
@@ -2755,13 +2772,6 @@ def serve_health_check():
                 self.send_response(404)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
-
-        def do_OPTIONS(self):
-            self.send_response(200)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "*")
-            self.end_headers()
 
         def log_message(self, format, *args):
             return
