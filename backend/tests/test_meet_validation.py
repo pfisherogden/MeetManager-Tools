@@ -415,6 +415,27 @@ def test_rules_limits_with_relays():
     assert any("exceeds relay limits" in m for m in categories_msgs)
     assert any("exceeds total entry limits" in m for m in categories_msgs)
 
+    # Case 4: 3 individual events + 3 relay events, but one relay has pos_no = 5 (alternate)
+    # This should act like 3 individual + 2 relay events (5 total) -> exceeds total, but relay count is ok (2)
+    cache_case4 = cache.copy()
+    cache_case4["relaynames"] = [
+        {"event_ptr": 20, "team_no": 100, "team_ltr": "A", "ath_no": 1, "relay_no": 1, "event_round": "F", "pos_no": 1},
+        {"event_ptr": 21, "team_no": 100, "team_ltr": "A", "ath_no": 1, "relay_no": 2, "event_round": "F", "pos_no": 2},
+        {
+            "event_ptr": 22,
+            "team_no": 100,
+            "team_ltr": "A",
+            "ath_no": 1,
+            "relay_no": 3,
+            "event_round": "F",
+            "pos_no": 5,
+        },  # Alternate!
+    ]
+    findings4 = validate_meet_data(cache_case4)
+    limit_findings4 = [f for f in findings4 if f.category == "Rules Limit"]
+    assert len(limit_findings4) == 1
+    assert "exceeds total entry limits" in limit_findings4[0].message
+
 
 def test_relays_with_ns_scored_logic():
     """Verify that unscored relays are not flagged by the 'Relays with NS' validation check."""
