@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           cd backend
-          pyinstaller --onefile --add-data "data/Sample_Data.json:data" --add-data "src/mm_to_json/jre:mm_to_json/jre" --add-data "src/mm_to_json/lib:mm_to_json/lib" --name ${{ matrix.output_name }} src/server.py
+          pyinstaller --onefile --add-data "data/Sample_Data.json:data" --add-data "src/mm_to_json/jre:mm_to_json/jre" --add-data "src/mm_to_json/lib:mm_to_json/lib" --add-data "src/mm_to_json/reporting/templates:mm_to_json/reporting/templates" --name ${{ matrix.output_name }} src/server.py
           
           # Move output to Tauri's sidecars directory in web-client if it exists
           if [ -d "../web-client/src-tauri" ]; then

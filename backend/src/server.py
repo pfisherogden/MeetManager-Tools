@@ -2636,6 +2636,12 @@ def serve_health_check():
                             self._metadata = [("x-user-id", user_id)]
                         def invocation_metadata(self):
                             return self._metadata
+                        def set_code(self, code):
+                            pass
+                        def set_details(self, details):
+                            pass
+                        def abort(self, code, details):
+                            raise Exception(f"gRPC Abort: {code} - {details}")
                     
                     context = MockContext(uid)
                     
@@ -2678,6 +2684,15 @@ def serve_health_check():
 
                         def invocation_metadata(self):
                             return self._metadata
+
+                        def set_code(self, code):
+                            pass
+
+                        def set_details(self, details):
+                            pass
+
+                        def abort(self, code, details):
+                            raise Exception(f"gRPC Abort: {code} - {details}")
 
                     context = MockContext(self.headers)
 
