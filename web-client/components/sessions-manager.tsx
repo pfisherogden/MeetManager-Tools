@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Session } from "@/lib/swim-meet-types";
 
@@ -18,7 +18,19 @@ export function SessionsManager({
 	initialSessions,
 	meets = [],
 }: SessionsManagerProps) {
-	const [data, _setData] = useState<Session[]>(initialSessions);
+	const [data, setData] = useState<Session[]>(initialSessions);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions.client").then(({ getSessions }) => {
+				getSessions().then((res) => {
+					if (res?.sessions) {
+						setData(res.sessions);
+					}
+				});
+			});
+		}
+	}, []);
 
 	const getMeetName = (meetId: string) =>
 		meets.find((m) => m.id === meetId)?.name || meetId;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Session, SwimEvent } from "@/lib/swim-meet-types";
 
@@ -24,6 +24,32 @@ export function EventsManager({ initialEvents, sessions }: EventsManagerProps) {
 		: initialEvents;
 
 	const [data, setData] = useState<SwimEvent[]>(filteredInitial);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions.client").then(({ getEvents }) => {
+				getEvents().then((res) => {
+					if (res?.events) {
+						const mapped = res.events.map((e: any) => ({
+							id: e.id ? e.id.toString() : "",
+							sessionId: e.session ? e.session.toString() : "",
+							eventNumber: e.eventNo ?? 0,
+							distance: e.distance ?? 0,
+							stroke: e.stroke ?? "",
+							gender: e.gender ?? "",
+							ageGroup: e.ageGroup ?? `${e.lowAge || 0}-${e.highAge || 99}`,
+							entryCount: e.entryCount ?? 0,
+							isRelay: e.isRelay ?? false,
+						}));
+						const nextEvents = sessionFilter
+							? mapped.filter((e: any) => e.sessionId === sessionFilter)
+							: mapped;
+						setData(nextEvents);
+					}
+				});
+			});
+		}
+	}, [sessionFilter]);
 
 	const columns: Column<SwimEvent>[] = [
 		{

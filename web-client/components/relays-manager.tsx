@@ -2,7 +2,7 @@
 
 import { Medal, Trophy } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Relay } from "@/lib/swim-meet-types";
 import { cn } from "@/lib/utils";
@@ -123,6 +123,18 @@ export function RelaysManager({ initialRelays }: RelaysManagerProps) {
 		: initialRelays;
 
 	const [data, setData] = useState<Relay[]>(filteredInitial);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions.client").then(({ getRelays }) => {
+				getRelays(eventFilter || undefined).then((res) => {
+					if (res?.relays) {
+						setData(res.relays);
+					}
+				});
+			});
+		}
+	}, [eventFilter]);
 
 	const handleAdd = () => {
 		const newRelay: Relay = {

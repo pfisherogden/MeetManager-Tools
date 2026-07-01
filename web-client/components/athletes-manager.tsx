@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Athlete } from "@/lib/swim-meet-types";
 
@@ -100,9 +100,27 @@ export function AthletesManager({
 	teams,
 }: AthletesManagerProps) {
 	const [data, setData] = useState<Athlete[]>(initialAthletes);
+	const [localTeams, setLocalTeams] = useState(teams);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions.client").then(({ getAthletes, getTeams }) => {
+				getAthletes().then((res) => {
+					if (res?.athletes) {
+						setData(res.athletes);
+					}
+				});
+				getTeams().then((res) => {
+					if (res?.teams) {
+						setLocalTeams(res.teams);
+					}
+				});
+			});
+		}
+	}, []);
 
 	// Update columns to use dynamic teams
-	const teamOptions = teams.map((t) => t.name);
+	const teamOptions = localTeams.map((t) => t.name);
 	const columnsWithTeams = columns.map((col) => {
 		if (col.key === "teamName") {
 			return { ...col, options: teamOptions };

@@ -60,7 +60,9 @@ test.describe("Mobile Judge App Journey", () => {
 		const judgePage = await context.newPage();
 
 		// Setup console logging for the NEW page
-		getE2ETestContext(testInfo, judgePage);
+		judgePage.on("console", (msg) => {
+			console.log(`[Judge App Console] [${msg.type()}] ${msg.text()}`);
+		});
 
 		await judgePage.goto(judgeUrl);
 		await waitForJudgeApp(judgePage);

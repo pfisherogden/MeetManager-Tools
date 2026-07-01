@@ -25,7 +25,15 @@ async function callRESTGateway(methodName: string, payload: any = {}) {
 }
 
 export async function generateReport(config: any) {
-	return callRESTGateway("GenerateReport", config);
+	const res = await callRESTGateway("GenerateReport", config);
+	return {
+		success: res.success,
+		message: res.message,
+		pdfContentBase64: res.pdf_content || null,
+		htmlContent: res.html_content || "",
+		filename: res.filename,
+		googleSheetUrl: res.google_sheet_url || null,
+	};
 }
 
 export async function getTeams() {
@@ -108,20 +116,64 @@ export async function deleteDataset(filename: string) {
 	return callRESTGateway("ClearDataset", { filename });
 }
 
-export async function generateReportBundle(config: any) {
-	return callRESTGateway("GenerateReportBundle", config);
+export async function generateReportBundle(
+	requests: any[],
+	bundleName: string,
+	frontendUrl?: string,
+) {
+	const res = await callRESTGateway("GenerateReportBundle", {
+		reports: requests.map((r) => ({
+			type: r.type,
+			title: r.title,
+			teamFilter: r.teamFilter,
+			genderFilter: r.genderFilter,
+			ageGroupFilter: r.ageGroupFilter,
+			columnsOnPage: r.columnsOnPage,
+			showRelaySwimmers: r.showRelaySwimmers,
+			zebraStriping: r.zebraStriping,
+			rendererType: r.rendererType,
+			htmlPreview: r.htmlPreview,
+			includeBlankLanes: r.includeBlankLanes,
+			breakEverySixEvents: r.breakEverySixEvents,
+		})),
+		bundleName,
+		rendererType: requests[0]?.rendererType || 0,
+		frontendUrl: frontendUrl || "",
+	});
+	return {
+		success: res.success,
+		message: res.message,
+		jobId: res.job_id || res.jobId,
+	};
 }
 
 export async function getJobStatus(jobId: string) {
-	return callRESTGateway("GetJobStatus", { jobId });
+	const res = await callRESTGateway("GetJobStatus", { jobId });
+	return {
+		status: res.status,
+		progress: res.progress,
+		message: res.message,
+		bundleUrl: res.bundle_url || res.bundleUrl,
+		googleSheetUrls: res.google_sheet_urls || res.googleSheetUrls,
+	};
 }
 
 export async function getDashboardStats() {
 	return callRESTGateway("GetDashboardStats", {});
 }
 
-export async function publishMeetData(filename: string, baseUrl: string) {
-	return callRESTGateway("PublishMeetData", { filename, baseUrl });
+export async function publishMeetData(
+	_filename: string,
+	frontendUrlOverride?: string,
+) {
+	const res = await callRESTGateway("PublishMeetData", {
+		frontendUrl: frontendUrlOverride || "",
+	});
+	return {
+		success: res.success,
+		message: res.message,
+		judgeAppUrl: res.judge_app_url || res.judgeAppUrl,
+	};
 }
 
 export async function getAdminConfig() {

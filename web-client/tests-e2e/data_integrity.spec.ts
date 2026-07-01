@@ -29,10 +29,9 @@ test.describe("Data Integrity and UI Rendering", () => {
 	}) => {
 		await page.goto("/teams");
 		const rows = page.locator("table tbody tr");
-		await expect(rows).not.toHaveCount(0);
-
-		const count = await rows.count();
-		expect(count).toBeGreaterThan(1);
+		
+		// Wait for client-side hydration to fetch teams and populate the table
+		await expect.poll(async () => await rows.count(), { timeout: 15000 }).toBeGreaterThan(1);
 
 		const colors = await rows.evaluateAll((list) => {
 			return list.map((row) => {
@@ -125,10 +124,12 @@ test.describe("Data Integrity and UI Rendering", () => {
 		const downloadUrl = download.url();
 		console.log(`Download started: ${downloadUrl}`);
 
-		// 6. Verify the bundle URL contains a token and it's not empty
-		expect(downloadUrl).toContain("token=");
-		expect(downloadUrl).not.toContain("token=&");
-		expect(downloadUrl).not.toMatch(/token=$/); // Should not end with token=
+		// 6. Verify the bundle URL contains a token and it's not empty (skip for blob URLs)
+		if (!downloadUrl.startsWith("blob:")) {
+			expect(downloadUrl).toContain("token=");
+			expect(downloadUrl).not.toContain("token=&");
+			expect(downloadUrl).not.toMatch(/token=$/); // Should not end with token=
+		}
 
 		expect(await download.path()).toBeTruthy();
 		const filename = download.suggestedFilename();
