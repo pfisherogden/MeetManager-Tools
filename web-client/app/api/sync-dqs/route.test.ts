@@ -13,7 +13,6 @@ describe("POST /api/sync-dqs", () => {
 	const originalEnv = process.env;
 
 	beforeEach(() => {
-		vi.resetModules();
 		process.env = { ...originalEnv };
 		vi.clearAllMocks();
 	});

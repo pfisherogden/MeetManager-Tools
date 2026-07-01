@@ -520,6 +520,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             # Ensure default Sample_Data.json exists in base_storage_dir
             import shutil
             import sys
+
             sample_dest = os.path.join(base_storage_dir, SOURCE_FILE)
             if not os.path.exists(sample_dest):
                 sample_src = ""
@@ -527,7 +528,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     sample_src = os.path.join(getattr(sys, "_MEIPASS", ""), "data", SOURCE_FILE)
                 else:
                     sample_src = os.path.join(os.path.dirname(os.path.dirname(__file__)), DATA_DIR, SOURCE_FILE)
-                
+
                 if os.path.exists(sample_src):
                     logging.info(f"Copying default {SOURCE_FILE} to storage: {sample_dest}")
                     os.makedirs(os.path.dirname(sample_dest), exist_ok=True)
