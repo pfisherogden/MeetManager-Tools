@@ -214,6 +214,7 @@ def test_new_validation_rules():
                 "fin_stat": "",
                 "fin_heat": 1,
                 "fin_lane": 1,
+                "fin_place": 1,
             }
         ],
     }
@@ -413,3 +414,64 @@ def test_rules_limits_with_relays():
     categories_msgs = [f.message for f in limit_findings3]
     assert any("exceeds relay limits" in m for m in categories_msgs)
     assert any("exceeds total entry limits" in m for m in categories_msgs)
+
+
+def test_relays_with_ns_scored_logic():
+    """Verify that unscored relays are not flagged by the 'Relays with NS' validation check."""
+    cache = {
+        "athlete": [],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
+        "event": [
+            {"event_ptr": 72, "event_no": 72, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "R"},
+        ],
+        "entry": [],
+        "relay": [
+            # 1. Unscored relay (should be ignored)
+            {
+                "event_ptr": 72,
+                "relay_no": 1,
+                "team_no": 100,
+                "team_ltr": "A",
+                "fin_heat": 1,
+                "fin_lane": 4,
+                "fin_time": 0.0,
+                "fin_stat": "",
+                "fin_place": 0,
+            },
+            # 2. Scored relay but with NS/No Time (should be flagged)
+            {
+                "event_ptr": 72,
+                "relay_no": 2,
+                "team_no": 100,
+                "team_ltr": "B",
+                "fin_heat": 1,
+                "fin_lane": 5,
+                "fin_time": 0.0,
+                "fin_stat": "NS",
+                "fin_place": 0,
+            },
+            # 3. Scored relay with a place but missing time (should be flagged)
+            {
+                "event_ptr": 72,
+                "relay_no": 3,
+                "team_no": 100,
+                "team_ltr": "C",
+                "fin_heat": 1,
+                "fin_lane": 6,
+                "fin_time": 0.0,
+                "fin_stat": "",
+                "fin_place": 3,
+            },
+        ],
+        "relaynames": [],
+    }
+
+    findings = validate_meet_data(cache)
+    relay_findings = [f for f in findings if f.category == "Relays with NS"]
+
+    # We expect exactly 2 findings (B and C), since A is unscored
+    assert len(relay_findings) == 2
+    messages = [f.message for f in relay_findings]
+    assert any("Team Del Prado 'B'" in m for m in messages)
+    assert any("Team Del Prado 'C'" in m for m in messages)
+    assert not any("Team Del Prado 'A'" in m for m in messages)
