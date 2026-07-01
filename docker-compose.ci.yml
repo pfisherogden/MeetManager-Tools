@@ -13,7 +13,7 @@ services:
       - FRONTEND_URL=http://localhost:3000
       - DATA_ACCESS_TOKEN=mmtools-default-secret-2024
       - GRPC_AUTH_DISABLED=true
-      - JUDGE_APP_URL=http://localhost:8081
+      - JUDGE_APP_URL=http://localhost:8082
 
   frontend:
     image: ${IMAGE_PREFIX}/frontend:${TAG}
