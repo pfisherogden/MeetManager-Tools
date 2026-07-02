@@ -2,17 +2,20 @@ import type { GenerateReportConfig } from "./actions";
 
 let cachedPort: string | null = null;
 
-if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
-	import("@tauri-apps/api/core").then(({ invoke }) => {
-		invoke<string>("get_backend_port")
-			.then((p) => {
-				cachedPort = p;
-				console.log("Tauri dynamic port resolved:", p);
-			})
-			.catch((err) => {
-				console.error("Failed to resolve Tauri dynamic port:", err);
-			});
-	});
+if (typeof window !== "undefined") {
+	const w = window as any;
+	if (w.__TAURI_INTERNALS__ || w.__TAURI__) {
+		import("@tauri-apps/api/core").then(({ invoke }) => {
+			invoke<string>("get_backend_port")
+				.then((p) => {
+					cachedPort = p;
+					console.log("Tauri dynamic port resolved:", p);
+				})
+				.catch((err) => {
+					console.error("Failed to resolve Tauri dynamic port:", err);
+				});
+		});
+	}
 }
 
 // Dynamic backend URL resolver
@@ -22,14 +25,43 @@ const getBackendUrl = () => {
 	return `http://localhost:${port}`;
 };
 
+// Helper function to recursively normalize snake_case keys to camelCase in responses
+function normalizeKeys(obj: any): any {
+	if (obj === null || typeof obj !== "object") {
+		return obj;
+	}
+	if (Array.isArray(obj)) {
+		return obj.map(normalizeKeys);
+	}
+	const normalized: any = {};
+	for (const key of Object.keys(obj)) {
+		const val = normalizeKeys(obj[key]);
+		normalized[key] = val;
+		if (key.includes("_")) {
+			const camelKey = key.replace(/_([a-z0-9])/g, (g) => g[1].toUpperCase());
+			if (!(camelKey in normalized)) {
+				normalized[camelKey] = val;
+			}
+		}
+	}
+	return normalized;
+}
+
 // Generic REST fetch helper to call backend endpoints without gRPC dependency
 async function callGrpcRest(methodName: string, requestData: any = {}) {
 	const url = `${getBackendUrl()}/api/grpc/${methodName}`;
 
 	let userId = "dev-user";
 	if (typeof window !== "undefined") {
-		const userIdMatch = document.cookie.match(/x-user-id=([^;]+)/);
-		if (userIdMatch) userId = userIdMatch[1];
+		// Fallback sequence: localStorage (for Tauri custom protocol) -> cookies -> dev-user
+		userId = localStorage.getItem("x-user-id") || "";
+		if (!userId) {
+			const userIdMatch = document.cookie.match(/x-user-id=([^;]+)/);
+			if (userIdMatch) userId = userIdMatch[1];
+		}
+		if (!userId) {
+			userId = "dev-user";
+		}
 	}
 
 	const response = await fetch(url, {
@@ -46,7 +78,8 @@ async function callGrpcRest(methodName: string, requestData: any = {}) {
 		throw new Error(text || `HTTP error ${response.status}`);
 	}
 
-	return await response.json();
+	const json = await response.json();
+	return normalizeKeys(json);
 }
 
 export async function generateReport(config: GenerateReportConfig) {

@@ -112,11 +112,11 @@ def _get_data_access_token() -> str:
 
 class JobManager:
     """Manages the state of background jobs using Firestore if available, otherwise in-memory."""
+    in_memory_jobs: dict[str, dict[str, Any]] = {}
+    lock = threading.Lock()
 
     def __init__(self):
         self.use_firestore = False
-        self.in_memory_jobs: dict[str, dict[str, Any]] = {}
-        self.lock = threading.Lock()
 
         # Check if we should use Firestore (if in production or emulator is explicitly set)
         if os.getenv("K_SERVICE") or os.getenv("FIRESTORE_EMULATOR_HOST") or os.getenv("USE_FIRESTORE") == "true":
@@ -161,6 +161,7 @@ class JobManager:
         else:
             with self.lock:
                 self.in_memory_jobs[job_id] = initial_state
+                logging.info(f"JobManager: create_job: added job_id={job_id}, keys={list(self.in_memory_jobs.keys())}, id(in_memory_jobs)={id(self.in_memory_jobs)}")
 
         return job_id
 
@@ -215,7 +216,9 @@ class JobManager:
             return None
         else:
             with self.lock:
-                return self.in_memory_jobs.get(job_id)
+                res = self.in_memory_jobs.get(job_id)
+                logging.info(f"JobManager: get_job: job_id={job_id}, found={res is not None}, keys={list(self.in_memory_jobs.keys())}, id(in_memory_jobs)={id(self.in_memory_jobs)}")
+                return res
 
 
 def msgpack_encode(obj):
@@ -257,34 +260,31 @@ def _process_single_report_process(
     if sys.platform == "darwin":
         homebrew_lib = "/opt/homebrew/lib"
         if os.path.exists(homebrew_lib):
-            if "DYLD_LIBRARY_PATH" in os.environ:
-                os.environ["DYLD_LIBRARY_PATH"] = f"{homebrew_lib}:{os.environ['DYLD_LIBRARY_PATH']}"
-            else:
-                os.environ["DYLD_LIBRARY_PATH"] = homebrew_lib
-
             import ctypes.util
 
             orig_find_library = ctypes.util.find_library
 
             def new_find_library(name):
                 res = orig_find_library(name)
-                if res:
-                    return res
-                base_name = name
-                if name.startswith("lib"):
-                    base_name = name[3:]
-                if "-" in base_name:
-                    base_name = base_name.split("-")[0]
-                exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
-                if os.path.exists(exact_path):
-                    return exact_path
-                try:
-                    for f in os.listdir(homebrew_lib):
-                        if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
-                            return os.path.join(homebrew_lib, f)
-                except Exception:
-                    pass
-                return None
+                if not res:
+                    base_name = name
+                    if name.startswith("lib"):
+                        base_name = name[3:]
+                    if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
+                        base_name = base_name.split("-")[0]
+                    exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
+                    if os.path.exists(exact_path):
+                        res = exact_path
+                    else:
+                        try:
+                            for f in os.listdir(homebrew_lib):
+                                if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                                    res = os.path.join(homebrew_lib, f)
+                                    break
+                        except Exception:
+                            pass
+                logging.debug(f"new_find_library: name={name} -> returns {res}")
+                return res
 
             ctypes.util.find_library = new_find_library
 
@@ -1797,7 +1797,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     raise ValueError("No authentication")
             except Exception:
                 # Fallback to Sample_Data if no auth provided
-                sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
+                if getattr(sys, "frozen", False):
+                    sample_path = os.path.join(getattr(sys, "_MEIPASS", ""), "data", SOURCE_FILE)
+                else:
+                    sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
                 with open(sample_path) as f:
                     cache = json.load(f)
             rtype_map = {
@@ -1909,7 +1912,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         except Exception:
             # Fallback to Sample_Data if no auth provided
             # This is safe because Sample_Data is public
-            sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
+            if getattr(sys, "frozen", False):
+                sample_path = os.path.join(getattr(sys, "_MEIPASS", ""), "data", SOURCE_FILE)
+            else:
+                sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
             with open(sample_path) as f:
                 cache = json.load(f)
             uid = "sample-user"
@@ -2760,7 +2766,7 @@ def serve_health_check():
             httpd = ThreadingHTTPServer(("0.0.0.0", port_attempt), HealthHandler)
             rest_port = port_attempt
             break
-        except Exception:
+        except Exception as e:
             logging.warning(f"Port {port_attempt} already in use, trying next...")
 
     if httpd is None:
@@ -2866,6 +2872,9 @@ def serve():
 
 
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()
+
     import os
     import sys
 
@@ -2873,11 +2882,6 @@ if __name__ == "__main__":
     if sys.platform == "darwin":
         homebrew_lib = "/opt/homebrew/lib"
         if os.path.exists(homebrew_lib):
-            if "DYLD_LIBRARY_PATH" in os.environ:
-                os.environ["DYLD_LIBRARY_PATH"] = f"{homebrew_lib}:{os.environ['DYLD_LIBRARY_PATH']}"
-            else:
-                os.environ["DYLD_LIBRARY_PATH"] = homebrew_lib
-
             import ctypes.util
 
             orig_find_library = ctypes.util.find_library
@@ -2889,7 +2893,7 @@ if __name__ == "__main__":
                 base_name = name
                 if name.startswith("lib"):
                     base_name = name[3:]
-                if "-" in base_name:
+                if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
                     base_name = base_name.split("-")[0]
                 exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
                 if os.path.exists(exact_path):

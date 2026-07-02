@@ -96,6 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			setUser(mockUser);
 
 			// Ensure cookies are set for gRPC consistent routing
+			if (typeof window !== "undefined") {
+				localStorage.setItem("x-user-id", mockUid);
+			}
 			if (!storedUid) {
 				Cookies.set("x-user-id", mockUid, {
 					path: "/",
@@ -121,6 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			setUser(user);
 			if (user) {
 				const idToken = await getIdToken(user);
+				if (typeof window !== "undefined") {
+					localStorage.setItem("x-user-id", user.uid);
+				}
 				Cookies.set("idToken", idToken, {
 					expires: 1 / 24, // 1 hour
 					secure: true,
@@ -134,6 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					path: "/",
 				});
 			} else {
+				if (typeof window !== "undefined") {
+					localStorage.removeItem("x-user-id");
+				}
 				Cookies.remove("idToken", { path: "/" });
 				Cookies.remove("x-user-id", { path: "/" });
 				Cookies.remove("googleAccessToken", { path: "/" });
@@ -164,6 +173,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		try {
 			if (!isAuthDisabled) {
 				await signOut(auth);
+			}
+			if (typeof window !== "undefined") {
+				localStorage.removeItem("x-user-id");
 			}
 			Cookies.remove("idToken", { path: "/" });
 			Cookies.remove("x-user-id", { path: "/" });

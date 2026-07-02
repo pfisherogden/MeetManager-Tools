@@ -10,6 +10,7 @@
 		"beforeBuildCommand": "npx cross-env EXPORT_STATIC=true NEXT_PUBLIC_AUTH_DISABLED=true npm run build"
 	},
 	"app": {
+		"withGlobalTauri": true,
 		"windows": [
 			{
 				"title": "MeetManager Tools",
