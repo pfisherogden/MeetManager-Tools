@@ -2753,12 +2753,24 @@ def serve_health_check():
     class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
         daemon_threads = True
 
-    try:
-        httpd = ThreadingHTTPServer(("0.0.0.0", 8081), HealthHandler)
-        logging.info("REST Gateway + Health check server starting on port 8081...")
-        httpd.serve_forever()
-    except Exception as e:
-        logging.error(f"Failed to start REST Gateway server: {e}")
+    rest_port = int(os.getenv("REST_PORT", "8081"))
+    httpd = None
+    for port_attempt in range(rest_port, rest_port + 10):
+        try:
+            httpd = ThreadingHTTPServer(("0.0.0.0", port_attempt), HealthHandler)
+            rest_port = port_attempt
+            break
+        except Exception:
+            logging.warning(f"Port {port_attempt} already in use, trying next...")
+
+    if httpd is None:
+        logging.error("Failed to start REST Gateway server: no free ports found.")
+    else:
+        logging.info(f"REST Gateway + Health check server starting on port {rest_port}...")
+        try:
+            httpd.serve_forever()
+        except Exception as e:
+            logging.error(f"Error in REST Gateway server loop: {e}")
 
 
 def serve():

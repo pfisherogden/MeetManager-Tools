@@ -1,9 +1,24 @@
 import type { GenerateReportConfig } from "./actions";
 
+let cachedPort: string | null = null;
+
+if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+	import("@tauri-apps/api/core").then(({ invoke }) => {
+		invoke<string>("get_backend_port")
+			.then((p) => {
+				cachedPort = p;
+				console.log("Tauri dynamic port resolved:", p);
+			})
+			.catch((err) => {
+				console.error("Failed to resolve Tauri dynamic port:", err);
+			});
+	});
+}
+
 // Dynamic backend URL resolver
 const getBackendUrl = () => {
 	// Standardize on loopback REST gateway
-	const port = process.env.NEXT_PUBLIC_BACKEND_PORT || "8081";
+	const port = cachedPort || process.env.NEXT_PUBLIC_BACKEND_PORT || "8081";
 	return `http://localhost:${port}`;
 };
 
@@ -54,8 +69,8 @@ export async function generateReport(config: GenerateReportConfig) {
 		return {
 			success: response.success,
 			message: response.message,
-			pdfContentBase64: response.pdfContent || null,
-			htmlContent: response.htmlContent || "",
+			pdfContentBase64: response.pdf_content || null,
+			htmlContent: response.html_content || "",
 			filename: response.filename,
 		};
 	} catch (err: any) {
@@ -71,10 +86,9 @@ export async function getTeams() {
 			teams: (response.teams || []).map((t: any) => ({
 				id: t.id,
 				name: t.name,
-				shortName: t.shortName,
 				code: t.code,
-				lsc: t.lsc,
-				athleteCount: t.athleteCount,
+				athleteCount: t.athlete_count || 0,
+				color: t.color || "",
 			})),
 		};
 	} catch (err) {
@@ -91,19 +105,21 @@ export async function getTeam(id: number) {
 			team: {
 				id: response.team.id,
 				name: response.team.name,
-				shortName: response.team.shortName,
 				code: response.team.code,
-				lsc: response.team.lsc,
-				athleteCount: response.team.athleteCount,
+				athleteCount: response.team.athlete_count || 0,
+				color: response.team.color || "",
 			},
 			athletes: (response.athletes || []).map((a: any) => ({
 				id: a.id,
-				firstName: a.firstName,
-				lastName: a.lastName,
+				firstName: a.first_name,
+				lastName: a.last_name,
+				teamId: a.team_id,
+				teamName: a.team_name,
 				gender: a.gender,
 				age: a.age,
-				teamId: a.teamId,
-				entryCount: a.entryCount,
+				dateOfBirth: a.date_of_birth,
+				regNo: a.reg_no,
+				schoolYear: a.school_year,
 			})),
 		};
 	} catch (err) {
@@ -119,9 +135,11 @@ export async function getMeets() {
 			meets: (response.meets || []).map((m: any) => ({
 				id: m.id,
 				name: m.name,
-				title: m.title,
-				startDate: m.startDate,
-				endDate: m.endDate,
+				location: m.location,
+				startDate: m.start_date,
+				endDate: m.end_date,
+				course: m.course,
+				status: m.status,
 			})),
 		};
 	} catch (err) {
@@ -136,13 +154,15 @@ export async function getAthletes() {
 		return {
 			athletes: (response.athletes || []).map((a: any) => ({
 				id: a.id,
-				firstName: a.firstName,
-				lastName: a.lastName,
+				firstName: a.first_name,
+				lastName: a.last_name,
+				teamId: a.team_id,
+				teamName: a.team_name,
 				gender: a.gender,
 				age: a.age,
-				teamId: a.teamId,
-				teamName: a.teamName,
-				entryCount: a.entryCount,
+				dateOfBirth: a.date_of_birth,
+				regNo: a.reg_no,
+				schoolYear: a.school_year,
 			})),
 		};
 	} catch (err) {
@@ -157,14 +177,18 @@ export async function getEvents() {
 		return {
 			events: (response.events || []).map((e: any) => ({
 				id: e.id,
-				number: e.number,
+				eventNo: e.event_no,
+				name: e.name,
 				gender: e.gender,
+				ageGroup: e.age_group,
 				distance: e.distance,
 				stroke: e.stroke,
-				ageGroup: e.ageGroup,
-				isRelay: e.isRelay,
-				heatCount: e.heatCount,
-				entryCount: e.entryCount,
+				session: e.session,
+				status: e.status,
+				entryCount: e.entry_count || 0,
+				isRelay: e.is_relay,
+				lowAge: e.low_age,
+				highAge: e.high_age,
 			})),
 		};
 	} catch (err) {
@@ -179,11 +203,14 @@ export async function getSessions() {
 		return {
 			sessions: (response.sessions || []).map((s: any) => ({
 				id: s.id,
-				number: s.number,
+				meetId: s.meet_id,
+				sessionNum: s.session_num,
 				name: s.name,
-				startTime: s.startTime,
+				date: s.date,
+				startTime: s.start_time,
+				warmUpTime: s.warm_up_time,
+				eventCount: s.event_count || 0,
 				day: s.day,
-				eventCount: s.eventCount,
 			})),
 		};
 	} catch (err) {
@@ -200,19 +227,17 @@ export async function getRelays(eventId?: string) {
 		return {
 			relays: (response.relays || []).map((r: any) => ({
 				id: r.id,
-				eventId: r.eventId,
-				teamId: r.teamId,
-				teamName: r.teamName,
-				entryTime: r.entryTime,
-				heat: r.heat,
-				lane: r.lane,
-				athletes: (r.athletes || []).map((a: any) => ({
-					id: a.id,
-					firstName: a.firstName,
-					lastName: a.lastName,
-					gender: a.gender,
-					age: a.age,
-				})),
+				eventId: r.event_id,
+				teamId: r.team_id,
+				teamName: r.team_name,
+				leg1Name: r.leg1_name,
+				leg2Name: r.leg2_name,
+				leg3Name: r.leg3_name,
+				leg4Name: r.leg4_name,
+				seedTime: r.seed_time,
+				finalTime: r.final_time,
+				place: r.place,
+				eventName: r.event_name,
 			})),
 		};
 	} catch (err) {
@@ -226,14 +251,13 @@ export async function getScores() {
 		const response = await callGrpcRest("GetScores", {});
 		return {
 			scores: (response.scores || []).map((s: any) => ({
-				teamId: s.teamId,
-				teamName: s.teamName,
-				gender: s.gender,
-				individualPoints: s.individualPoints,
-				relayPoints: s.relayPoints,
-				totalPoints: s.totalPoints,
+				teamId: s.team_id,
+				teamName: s.team_name,
+				individualPoints: s.individual_points,
+				relayPoints: s.relay_points,
+				totalPoints: s.total_points,
 				rank: s.rank,
-				meetName: s.meetName,
+				meetName: s.meet_name,
 			})),
 		};
 	} catch (err) {
@@ -246,21 +270,21 @@ export async function getEventScores() {
 	try {
 		const response = await callGrpcRest("GetEventScores", {});
 		return {
-			eventScores: (response.eventScores || []).map((es: any) => ({
-				eventId: es.eventId,
-				eventName: es.eventName,
+			eventScores: (response.event_scores || []).map((es: any) => ({
+				eventId: es.event_id,
+				eventName: es.event_name,
 				entries: (es.entries || []).map((e: any) => ({
 					id: e.id,
-					eventId: e.eventId,
-					athleteId: e.athleteId,
-					athleteName: e.athleteName,
-					teamId: e.teamId,
-					teamName: e.teamName,
-					seedTime: e.seedTime,
-					finalTime: e.finalTime,
+					eventId: e.event_id,
+					athleteId: e.athlete_id,
+					athleteName: e.athlete_name,
+					teamId: e.team_id,
+					teamName: e.team_name,
+					seedTime: e.seed_time,
+					finalTime: e.final_time,
 					place: e.place,
 					points: e.points,
-					eventName: e.eventName,
+					eventName: e.event_name,
 					heat: e.heat,
 					lane: e.lane,
 					status: e.status,
@@ -311,8 +335,8 @@ export async function uploadDataset(formData: FormData) {
 export async function uploadDatasetFromDrive(fileId: string, filename: string) {
 	try {
 		const response = await callGrpcRest("UploadDatasetFromDrive", {
-			fileId,
-			filename,
+			file_id: fileId,
+			filename: filename,
 		});
 		return {
 			success: response.success,
@@ -330,8 +354,8 @@ export async function listDatasets() {
 		return {
 			datasets: (response.datasets || []).map((d: any) => ({
 				filename: d.filename,
-				isActive: d.isActive,
-				lastModified: d.lastModified,
+				isActive: d.is_active,
+				lastModified: d.last_modified,
 			})),
 		};
 	} catch (err) {
@@ -395,7 +419,7 @@ export async function generateReportBundle(
 		return {
 			success: response.success,
 			message: response.message,
-			jobId: response.jobId,
+			jobId: response.job_id,
 			filename: response.filename,
 		};
 	} catch (err: any) {
@@ -411,7 +435,7 @@ export async function getJobStatus(jobId: string) {
 			status: response.status,
 			progress: response.progress,
 			message: response.message,
-			bundleUrl: response.bundleUrl,
+			bundleUrl: response.bundle_url,
 		};
 	} catch (err: any) {
 		console.error("Client Action Error (getJobStatus):", err);
@@ -423,14 +447,14 @@ export async function getDashboardStats() {
 	try {
 		const response = await callGrpcRest("GetDashboardStats", {});
 		return {
-			meetCount: response.meetCount,
-			teamCount: response.teamCount,
-			athleteCount: response.athleteCount,
-			eventCount: response.eventCount,
-			totalAthletes: response.athleteCount,
-			totalTeams: response.teamCount,
-			totalEvents: response.eventCount,
-			totalResults: response.meetCount,
+			meetCount: response.meet_count || 0,
+			teamCount: response.team_count || 0,
+			athleteCount: response.athlete_count || 0,
+			eventCount: response.event_count || 0,
+			totalAthletes: response.athlete_count || 0,
+			totalTeams: response.team_count || 0,
+			totalEvents: response.event_count || 0,
+			totalResults: response.meet_count || 0,
 		};
 	} catch (err) {
 		console.error("Client Action Error (getDashboardStats):", err);
@@ -457,7 +481,7 @@ export async function publishMeetData(
 		return {
 			success: response.success,
 			message: response.message,
-			judgeAppUrl: response.judgeAppUrl,
+			judgeAppUrl: response.judge_app_url,
 		};
 	} catch (err: any) {
 		console.error("Client Action Error (publishMeetData):", err);
@@ -471,7 +495,22 @@ export async function getAdminConfig() {
 
 export async function getAthlete(id: number) {
 	try {
-		return await callGrpcRest("GetAthlete", { id });
+		const response = await callGrpcRest("GetAthlete", { id });
+		if (!response.athlete) return null;
+		return {
+			athlete: {
+				id: response.athlete.id,
+				firstName: response.athlete.first_name,
+				lastName: response.athlete.last_name,
+				teamId: response.athlete.team_id,
+				teamName: response.athlete.team_name,
+				gender: response.athlete.gender,
+				age: response.athlete.age,
+				dateOfBirth: response.athlete.date_of_birth,
+				regNo: response.athlete.reg_no,
+				schoolYear: response.athlete.school_year,
+			},
+		};
 	} catch (err) {
 		console.error("Client Action Error (getAthlete):", err);
 		return null;
@@ -481,10 +520,27 @@ export async function getAthlete(id: number) {
 export async function getEntries(eventId?: string, athleteId?: string) {
 	try {
 		const response = await callGrpcRest("GetEntries", {
-			eventId: eventId || "0",
-			athleteId: athleteId || "0",
+			event_id: eventId || "0",
+			athlete_id: athleteId || "0",
 		});
-		return { entries: response.entries || [] };
+		return {
+			entries: (response.entries || []).map((e: any) => ({
+				id: e.id,
+				eventId: e.event_id,
+				athleteId: e.athlete_id,
+				athleteName: e.athlete_name,
+				teamId: e.team_id,
+				teamName: e.team_name,
+				seedTime: e.seed_time,
+				finalTime: e.final_time,
+				place: e.place,
+				points: e.points,
+				eventName: e.event_name,
+				heat: e.heat,
+				lane: e.lane,
+				status: e.status,
+			})),
+		};
 	} catch (err) {
 		console.error("Client Action Error (getEntries):", err);
 		return { entries: [] };
@@ -539,7 +595,7 @@ export async function validateActiveMeet() {
 				severity: f.severity,
 				category: f.category,
 				message: f.message,
-				affectedId: f.affectedId,
+				affectedId: f.affected_id,
 			})),
 		};
 	} catch (err: any) {
