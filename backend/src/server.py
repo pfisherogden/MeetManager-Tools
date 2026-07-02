@@ -18,6 +18,35 @@ from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any, cast
 
+# Apply macOS Homebrew library resolution fallback under SIP as early as possible
+import sys
+if sys.platform == "darwin":
+    homebrew_lib = "/opt/homebrew/lib"
+    if os.path.exists(homebrew_lib):
+        import ctypes.util
+        orig_find_library = ctypes.util.find_library
+        def new_find_library(name):
+            res = orig_find_library(name)
+            if not res:
+                base_name = name
+                if name.startswith("lib"):
+                    base_name = name[3:]
+                if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
+                    base_name = base_name.split("-")[0]
+                exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
+                if os.path.exists(exact_path):
+                    res = exact_path
+                else:
+                    try:
+                        for f in os.listdir(homebrew_lib):
+                            if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                                res = os.path.join(homebrew_lib, f)
+                                break
+                    except Exception:
+                        pass
+            return res
+        ctypes.util.find_library = new_find_library
+
 import grpc
 import msgpack
 from firebase_admin import auth
@@ -38,8 +67,6 @@ from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from meet_validation import validate_meet_data
 from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
-from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
 
 # Configure logging
@@ -112,6 +139,7 @@ def _get_data_access_token() -> str:
 
 class JobManager:
     """Manages the state of background jobs using Firestore if available, otherwise in-memory."""
+
     in_memory_jobs: dict[str, dict[str, Any]] = {}
     lock = threading.Lock()
 
@@ -161,7 +189,9 @@ class JobManager:
         else:
             with self.lock:
                 self.in_memory_jobs[job_id] = initial_state
-                logging.info(f"JobManager: create_job: added job_id={job_id}, keys={list(self.in_memory_jobs.keys())}, id(in_memory_jobs)={id(self.in_memory_jobs)}")
+                logging.info(
+                    f"JobManager: create_job: added job_id={job_id}, keys={list(self.in_memory_jobs.keys())}, id(in_memory_jobs)={id(self.in_memory_jobs)}"
+                )
 
         return job_id
 
@@ -217,7 +247,9 @@ class JobManager:
         else:
             with self.lock:
                 res = self.in_memory_jobs.get(job_id)
-                logging.info(f"JobManager: get_job: job_id={job_id}, found={res is not None}, keys={list(self.in_memory_jobs.keys())}, id(in_memory_jobs)={id(self.in_memory_jobs)}")
+                logging.info(
+                    f"JobManager: get_job: job_id={job_id}, found={res is not None}, keys={list(self.in_memory_jobs.keys())}, id(in_memory_jobs)={id(self.in_memory_jobs)}"
+                )
                 return res
 
 
@@ -328,8 +360,10 @@ def _process_single_report_process(
                 is_playwright = "playwright" in str(renderer_type).lower()
 
         if is_playwright:
+            from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
             renderer = PlaywrightRenderer(output_path=temp_path)
         else:
+            from mm_to_json.reporting.weasy_renderer import WeasyRenderer
             renderer = WeasyRenderer(output_path=temp_path)
 
         report_data = None
@@ -2766,7 +2800,7 @@ def serve_health_check():
             httpd = ThreadingHTTPServer(("0.0.0.0", port_attempt), HealthHandler)
             rest_port = port_attempt
             break
-        except Exception as e:
+        except Exception:
             logging.warning(f"Port {port_attempt} already in use, trying next...")
 
     if httpd is None:
@@ -2873,6 +2907,7 @@ def serve():
 
 if __name__ == "__main__":
     import multiprocessing
+
     multiprocessing.freeze_support()
 
     import os
