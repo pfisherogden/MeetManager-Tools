@@ -21,6 +21,8 @@ import {
 	listDatasets,
 	publishMeetData,
 	setActiveDataset,
+	uploadDataset,
+	uploadDatasetFromDrive,
 } from "@/app/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -131,10 +133,8 @@ export function DatasetManager() {
 		formData.append("file", file);
 
 		try {
-			// Manual upload implementation using a server action
-			const { uploadDataset } = await import("@/app/actions");
 			if (process.env.NODE_ENV !== "production") {
-				console.log("E2E DEBUG: Calling uploadDataset server action...");
+				console.log("E2E DEBUG: Calling uploadDataset action...");
 			}
 			const res = await uploadDataset(formData);
 
