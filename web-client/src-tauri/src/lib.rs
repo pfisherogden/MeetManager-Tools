@@ -60,7 +60,19 @@ pub fn run() {
               }
             }
             CommandEvent::Stderr(line) => {
-              log::error!("Sidecar (stderr): {}", String::from_utf8_lossy(&line));
+              let text = String::from_utf8_lossy(&line);
+              log::error!("Sidecar (stderr): {}", text);
+              if text.contains("REST Gateway + Health check server starting on port") {
+                if let Some(port_part) = text.split("port ").nth(1) {
+                  let cleaned_port = port_part.trim().replace(".", "");
+                  if !cleaned_port.is_empty() {
+                    let state = handle.state::<BackendState>();
+                    let mut port = state.port.lock().unwrap();
+                    *port = cleaned_port.clone();
+                    log::info!("Tauri captured dynamic backend REST port: {}", cleaned_port);
+                  }
+                }
+              }
             }
             CommandEvent::Terminated(payload) => {
               log::info!("Sidecar terminated with status: {:?}", payload.code);
