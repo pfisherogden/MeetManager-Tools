@@ -34,3 +34,10 @@ for (const page of pages) {
 		console.log(`Cleaned up: ${page} -> force-dynamic`);
 	}
 }
+
+// Restore actions import to server actions after static build
+const actionsPath = path.join(__dirname, "app/actions.ts");
+if (fs.existsSync(actionsPath)) {
+	fs.writeFileSync(actionsPath, 'export * from "./actions.server";\n', "utf8");
+	console.log("Cleaned up: app/actions.ts -> actions.server");
+}

@@ -15,13 +15,11 @@ const nextConfig = {
 	},
 	outputFileTracingRoot: "../../",
 	pageExtensions: isStatic ? ["tsx"] : ["js", "jsx", "ts", "tsx"],
-	experimental: isStatic
-		? {}
-		: {
-				serverActions: {
-					bodySizeLimit: "50mb",
-				},
-			},
+	experimental: {
+		serverActions: {
+			bodySizeLimit: "50mb",
+		},
+	},
 	generateBuildId: async () => {
 		return `build-${Date.now()}`;
 	},
@@ -31,18 +29,6 @@ const nextConfig = {
 	...(isStatic
 		? {
 				output: "export",
-				turbopack: {
-					resolveAlias: {
-						"@/app/actions": "./app/actions.client.ts",
-					},
-				},
-				webpack: (config) => {
-					config.resolve.alias["@/app/actions"] = path.resolve(
-						__dirname,
-						"./app/actions.client.ts",
-					);
-					return config;
-				},
 			}
 		: {
 				async rewrites() {
