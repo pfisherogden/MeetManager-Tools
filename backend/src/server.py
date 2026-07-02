@@ -8,9 +8,6 @@ import logging
 import multiprocessing
 import os
 import signal
-
-# Apply macOS Homebrew library resolution fallback under SIP as early as possible
-import sys
 import tempfile
 import threading
 import time
@@ -21,13 +18,13 @@ from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any, cast
 
+# Apply macOS Homebrew library resolution fallback under SIP as early as possible
+import sys
 if sys.platform == "darwin":
     homebrew_lib = "/opt/homebrew/lib"
     if os.path.exists(homebrew_lib):
         import ctypes.util
-
         orig_find_library = ctypes.util.find_library
-
         def new_find_library(name):
             res = orig_find_library(name)
             if not res:
@@ -48,7 +45,6 @@ if sys.platform == "darwin":
                     except Exception:
                         pass
             return res
-
         ctypes.util.find_library = new_find_library
 
 import grpc
@@ -365,11 +361,9 @@ def _process_single_report_process(
 
         if is_playwright:
             from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
-
             renderer = PlaywrightRenderer(output_path=temp_path)
         else:
             from mm_to_json.reporting.weasy_renderer import WeasyRenderer
-
             renderer = WeasyRenderer(output_path=temp_path)
 
         report_data = None
@@ -2663,19 +2657,19 @@ def serve_health_check():
     class HealthHandler(http.server.BaseHTTPRequestHandler):
         def do_OPTIONS(self):
             self.send_response(200)
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
             self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type, x-user-id, authorization")
+            self.send_header("Access-Control-Allow-Credentials", "true")
             self.end_headers()
 
         def do_GET(self):
             import urllib.parse
-
             parsed_url = urllib.parse.urlparse(self.path)
 
             if parsed_url.path == "/health":
                 self.send_response(200)
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                 self.end_headers()
                 self.wfile.write(b"OK")
             elif parsed_url.path == "/api/data":
@@ -2687,14 +2681,14 @@ def serve_health_check():
                 configured_token = _get_data_access_token()
                 if configured_token and token != configured_token:
                     self.send_response(403)
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.end_headers()
                     self.wfile.write(b"Unauthorized access")
                     return
 
                 if not relative_path:
                     self.send_response(400)
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.end_headers()
                     self.wfile.write(b"Missing path parameter")
                     return
@@ -2710,20 +2704,18 @@ def serve_health_check():
                     base_abs = os.path.abspath(base_storage_dir)
                     full_path = os.path.abspath(os.path.join(base_abs, relative_path))
 
-                    logging.info(
-                        f"do_GET /api/data: path={relative_path} resolved base_abs={base_abs} full_path={full_path} exists={os.path.exists(full_path)}"
-                    )
+                    logging.info(f"do_GET /api/data: path={relative_path} resolved base_abs={base_abs} full_path={full_path} exists={os.path.exists(full_path)}")
 
                     if not full_path.startswith(base_abs):
                         self.send_response(403)
-                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                         self.end_headers()
                         self.wfile.write(b"Access Denied")
                         return
 
                     if not os.path.exists(full_path) or not os.path.isfile(full_path):
                         self.send_response(404)
-                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                         self.end_headers()
                         self.wfile.write(b"File Not Found")
                         return
@@ -2739,7 +2731,7 @@ def serve_health_check():
 
                     self.send_response(200)
                     self.send_header("Content-Type", content_type)
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.send_header("Access-Control-Allow-Headers", "*")
                     self.end_headers()
 
@@ -2748,12 +2740,12 @@ def serve_health_check():
 
                 except Exception as e:
                     self.send_response(500)
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.end_headers()
                     self.wfile.write(str(e).encode("utf-8"))
             else:
                 self.send_response(404)
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                 self.end_headers()
 
         def do_POST(self):
@@ -2774,7 +2766,7 @@ def serve_health_check():
                 configured_token = _get_data_access_token()
                 if configured_token and token != configured_token:
                     self.send_response(403)
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.end_headers()
                     self.wfile.write(b"Unauthorized access")
                     return
@@ -2798,13 +2790,13 @@ def serve_health_check():
 
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.send_header("Access-Control-Allow-Headers", "*")
                     self.end_headers()
                     self.wfile.write(json.dumps({"success": resp.success, "message": resp.message}).encode("utf-8"))
                 except Exception as e:
                     self.send_response(500)
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.end_headers()
                     self.wfile.write(str(e).encode("utf-8"))
             elif self.path.startswith("/api/grpc/"):
@@ -2818,7 +2810,7 @@ def serve_health_check():
                     method = getattr(servicer, method_name, None)
                     if not method:
                         self.send_response(404)
-                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                         self.end_headers()
                         return
 
@@ -2842,7 +2834,7 @@ def serve_health_check():
                         request_class = getattr(pb2, f"{method_name}Request", None)
                         if not request_class:
                             self.send_response(500)
-                            self.send_header("Access-Control-Allow-Origin", "*")
+                            self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                             self.end_headers()
                             self.wfile.write(f"Request class not found: {method_name}Request".encode())
                             return
@@ -2858,18 +2850,18 @@ def serve_health_check():
 
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.send_header("Access-Control-Allow-Headers", "*")
                     self.end_headers()
                     self.wfile.write(resp_json.encode("utf-8"))
                 except Exception as e:
                     self.send_response(500)
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                     self.end_headers()
                     self.wfile.write(str(e).encode("utf-8"))
             else:
                 self.send_response(404)
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
                 self.end_headers()
 
         def log_message(self, format, *args):
