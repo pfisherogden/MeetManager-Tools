@@ -8,6 +8,9 @@ import logging
 import multiprocessing
 import os
 import signal
+
+# Apply macOS Homebrew library resolution fallback under SIP as early as possible
+import sys
 import tempfile
 import threading
 import time
@@ -18,13 +21,13 @@ from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any, cast
 
-# Apply macOS Homebrew library resolution fallback under SIP as early as possible
-import sys
 if sys.platform == "darwin":
     homebrew_lib = "/opt/homebrew/lib"
     if os.path.exists(homebrew_lib):
         import ctypes.util
+
         orig_find_library = ctypes.util.find_library
+
         def new_find_library(name):
             res = orig_find_library(name)
             if not res:
@@ -45,6 +48,7 @@ if sys.platform == "darwin":
                     except Exception:
                         pass
             return res
+
         ctypes.util.find_library = new_find_library
 
 import grpc
@@ -361,9 +365,11 @@ def _process_single_report_process(
 
         if is_playwright:
             from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
+
             renderer = PlaywrightRenderer(output_path=temp_path)
         else:
             from mm_to_json.reporting.weasy_renderer import WeasyRenderer
+
             renderer = WeasyRenderer(output_path=temp_path)
 
         report_data = None
@@ -558,12 +564,15 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         else:
             base_storage_dir = os.getenv("STORAGE_BASE_DIR")
             if not base_storage_dir:
-                base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+                if getattr(sys, "frozen", False):
+                    base_storage_dir = os.path.join(getattr(sys, "_MEIPASS", ""), DATA_DIR)
+                else:
+                    base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+            logging.info(f"STORAGE_BASE_DIR resolved to: {base_storage_dir} (frozen={getattr(sys, 'frozen', False)})")
             self.storage = LocalStorageProvider(base_storage_dir)
 
             # Ensure default Sample_Data.json exists in base_storage_dir
             import shutil
-            import sys
 
             sample_dest = os.path.join(base_storage_dir, SOURCE_FILE)
             if not os.path.exists(sample_dest):
@@ -2660,13 +2669,91 @@ def serve_health_check():
             self.end_headers()
 
         def do_GET(self):
-            if self.path == "/health":
+            import urllib.parse
+
+            parsed_url = urllib.parse.urlparse(self.path)
+
+            if parsed_url.path == "/health":
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(b"OK")
+            elif parsed_url.path == "/api/data":
+                params = urllib.parse.parse_qs(parsed_url.query)
+                token = params.get("token", [""])[0]
+                relative_path = params.get("path", [""])[0]
+
+                # Check data access token if configured
+                configured_token = _get_data_access_token()
+                if configured_token and token != configured_token:
+                    self.send_response(403)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(b"Unauthorized access")
+                    return
+
+                if not relative_path:
+                    self.send_response(400)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(b"Missing path parameter")
+                    return
+
+                try:
+                    # Resolve safe full path
+                    base_storage_dir = os.getenv("STORAGE_BASE_DIR")
+                    if not base_storage_dir:
+                        if getattr(sys, "frozen", False):
+                            base_storage_dir = os.path.join(getattr(sys, "_MEIPASS", ""), DATA_DIR)
+                        else:
+                            base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+                    base_abs = os.path.abspath(base_storage_dir)
+                    full_path = os.path.abspath(os.path.join(base_abs, relative_path))
+
+                    logging.info(
+                        f"do_GET /api/data: path={relative_path} resolved base_abs={base_abs} full_path={full_path} exists={os.path.exists(full_path)}"
+                    )
+
+                    if not full_path.startswith(base_abs):
+                        self.send_response(403)
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.end_headers()
+                        self.wfile.write(b"Access Denied")
+                        return
+
+                    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+                        self.send_response(404)
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.end_headers()
+                        self.wfile.write(b"File Not Found")
+                        return
+
+                    # Determine Content-Type
+                    content_type = "application/octet-stream"
+                    if full_path.endswith(".zip"):
+                        content_type = "application/zip"
+                    elif full_path.endswith(".pdf"):
+                        content_type = "application/pdf"
+                    elif full_path.endswith(".html"):
+                        content_type = "text/html"
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Headers", "*")
+                    self.end_headers()
+
+                    with open(full_path, "rb") as f:
+                        self.wfile.write(f.read())
+
+                except Exception as e:
+                    self.send_response(500)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(str(e).encode("utf-8"))
             else:
                 self.send_response(404)
+                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
 
         def do_POST(self):
@@ -2800,7 +2887,7 @@ def serve_health_check():
         address_family = socket.AF_INET
 
     rest_port = int(os.getenv("REST_PORT", "8081"))
-    httpd = None
+    httpd: Any = None
     for port_attempt in range(rest_port, rest_port + 10):
         try:
             # Attempt dual-stack IPv6/IPv4 binding first
