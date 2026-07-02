@@ -22,7 +22,7 @@ if (typeof window !== "undefined") {
 const getBackendUrl = () => {
 	// Standardize on loopback REST gateway
 	const port = cachedPort || process.env.NEXT_PUBLIC_BACKEND_PORT || "8081";
-	return `http://localhost:${port}`;
+	return `http://127.0.0.1:${port}`;
 };
 
 // Helper function to recursively normalize snake_case keys to camelCase in responses

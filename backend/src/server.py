@@ -2788,16 +2788,32 @@ def serve_health_check():
         def log_message(self, format, *args):
             return
 
+    import socket
     import socketserver
 
-    class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    class ThreadingHTTPServerV6(socketserver.ThreadingMixIn, http.server.HTTPServer):
         daemon_threads = True
+        address_family = socket.AF_INET6
+
+    class ThreadingHTTPServerV4(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+        address_family = socket.AF_INET
 
     rest_port = int(os.getenv("REST_PORT", "8081"))
     httpd = None
     for port_attempt in range(rest_port, rest_port + 10):
         try:
-            httpd = ThreadingHTTPServer(("0.0.0.0", port_attempt), HealthHandler)
+            # Attempt dual-stack IPv6/IPv4 binding first
+            try:
+                httpd = ThreadingHTTPServerV6(("::", port_attempt), HealthHandler)
+                try:
+                    # Enable dual-stack explicitly (V6ONLY=0)
+                    httpd.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+                except Exception:
+                    pass
+            except Exception:
+                # Fallback to IPv4 wildcard
+                httpd = ThreadingHTTPServerV4(("0.0.0.0", port_attempt), HealthHandler)
             rest_port = port_attempt
             break
         except Exception:
