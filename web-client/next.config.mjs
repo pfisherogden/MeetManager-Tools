@@ -1,5 +1,5 @@
-import path from "path";
-import { fileURLToPath } from "url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const isStatic = process.env.EXPORT_STATIC === "true";
 const __filename = fileURLToPath(import.meta.url);
@@ -37,9 +37,12 @@ const nextConfig = {
 					},
 				},
 				webpack: (config) => {
-					config.resolve.alias["@/app/actions"] = path.resolve(__dirname, "./app/actions.client.ts");
+					config.resolve.alias["@/app/actions"] = path.resolve(
+						__dirname,
+						"./app/actions.client.ts",
+					);
 					return config;
-				}
+				},
 			}
 		: {
 				async rewrites() {

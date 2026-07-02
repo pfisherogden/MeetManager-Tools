@@ -1,4 +1,4 @@
-import { type GenerateReportConfig } from "./actions";
+import type { GenerateReportConfig } from "./actions";
 
 // Dynamic backend URL resolver
 const getBackendUrl = () => {
@@ -10,7 +10,7 @@ const getBackendUrl = () => {
 // Generic REST fetch helper to call backend endpoints without gRPC dependency
 async function callGrpcRest(methodName: string, requestData: any = {}) {
 	const url = `${getBackendUrl()}/api/grpc/${methodName}`;
-	
+
 	let userId = "dev-user";
 	if (typeof window !== "undefined") {
 		const userIdMatch = document.cookie.match(/x-user-id=([^;]+)/);
@@ -194,7 +194,9 @@ export async function getSessions() {
 
 export async function getRelays(eventId?: string) {
 	try {
-		const response = await callGrpcRest("GetRelays", { eventId: eventId || "0" });
+		const response = await callGrpcRest("GetRelays", {
+			eventId: eventId || "0",
+		});
 		return {
 			relays: (response.relays || []).map((r: any) => ({
 				id: r.id,
@@ -308,7 +310,10 @@ export async function uploadDataset(formData: FormData) {
 
 export async function uploadDatasetFromDrive(fileId: string, filename: string) {
 	try {
-		const response = await callGrpcRest("UploadDatasetFromDrive", { fileId, filename });
+		const response = await callGrpcRest("UploadDatasetFromDrive", {
+			fileId,
+			filename,
+		});
 		return {
 			success: response.success,
 			message: response.message,
@@ -442,7 +447,10 @@ export async function getDashboardStats() {
 	}
 }
 
-export async function publishMeetData(filename: string, frontendUrlOverride?: string) {
+export async function publishMeetData(
+	_filename: string,
+	frontendUrlOverride?: string,
+) {
 	try {
 		const frontendUrl = frontendUrlOverride || "http://localhost:3100";
 		const response = await callGrpcRest("PublishMeetData", { frontendUrl });

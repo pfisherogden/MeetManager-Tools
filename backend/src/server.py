@@ -2591,6 +2591,26 @@ def serve_health_check():
 
     from google.protobuf import json_format
 
+    class MockContext:
+        def __init__(self, metadata_headers_or_user_id):
+            if isinstance(metadata_headers_or_user_id, str):
+                user_id = metadata_headers_or_user_id
+            else:
+                user_id = metadata_headers_or_user_id.get("x-user-id", "dev-user")
+            self._metadata = [("x-user-id", user_id)]
+
+        def invocation_metadata(self):
+            return self._metadata
+
+        def set_code(self, code):
+            pass
+
+        def set_details(self, details):
+            pass
+
+        def abort(self, code, details):
+            raise Exception(f"gRPC Abort: {code} - {details}")
+
     class HealthHandler(http.server.BaseHTTPRequestHandler):
         def do_OPTIONS(self):
             self.send_response(200)
@@ -2642,23 +2662,6 @@ def serve_health_check():
                         dqs_list = payload if isinstance(payload, list) else [payload]
 
                     servicer = MeetManagerService()
-
-                    class MockContext:
-                        def __init__(self, user_id):
-                            self._metadata = [("x-user-id", user_id)]
-
-                        def invocation_metadata(self):
-                            return self._metadata
-
-                        def set_code(self, code):
-                            pass
-
-                        def set_details(self, details):
-                            pass
-
-                        def abort(self, code, details):
-                            raise Exception(f"gRPC Abort: {code} - {details}")
-
                     context = MockContext(uid)
 
                     resp = servicer.SyncDQs(
@@ -2691,23 +2694,6 @@ def serve_health_check():
                         self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
                         return
-
-                    class MockContext:
-                        def __init__(self, metadata_headers):
-                            user_id = metadata_headers.get("x-user-id", "dev-user")
-                            self._metadata = [("x-user-id", user_id)]
-
-                        def invocation_metadata(self):
-                            return self._metadata
-
-                        def set_code(self, code):
-                            pass
-
-                        def set_details(self, details):
-                            pass
-
-                        def abort(self, code, details):
-                            raise Exception(f"gRPC Abort: {code} - {details}")
 
                     context = MockContext(self.headers)
 
