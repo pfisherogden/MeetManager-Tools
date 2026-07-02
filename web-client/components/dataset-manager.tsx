@@ -150,11 +150,11 @@ export function DatasetManager() {
 				}
 				toast.error(res.message || "Upload failed");
 			}
-		} catch (error) {
+		} catch (error: any) {
 			if (process.env.NODE_ENV !== "production") {
 				console.error("E2E DEBUG: Upload error:", error);
 			}
-			toast.error("An error occurred during upload");
+			toast.error(error?.message || String(error) || "An error occurred during upload");
 		} finally {
 			setIsUploading(false);
 			if (fileInputRef.current) fileInputRef.current.value = "";
