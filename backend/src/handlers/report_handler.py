@@ -72,30 +72,31 @@ def _process_single_report_process(
         if os.path.exists(homebrew_lib):
             import ctypes.util
 
-            orig_find_library = ctypes.util.find_library
+            if ctypes.util.find_library.__name__ != "new_find_library":
+                orig_find_library = ctypes.util.find_library
 
-            def new_find_library(name):
-                res = orig_find_library(name)
-                if not res:
-                    base_name = name
-                    if name.startswith("lib"):
-                        base_name = name[3:]
-                    if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
-                        base_name = base_name.split("-")[0]
-                    exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
-                    if os.path.exists(exact_path):
-                        res = exact_path
-                    else:
-                        try:
-                            for f in os.listdir(homebrew_lib):
-                                if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
-                                    res = os.path.join(homebrew_lib, f)
-                                    break
-                        except Exception:
-                            pass
-                return res
+                def new_find_library(name):
+                    res = orig_find_library(name)
+                    if not res:
+                        base_name = name
+                        if name.startswith("lib"):
+                            base_name = name[3:]
+                        if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
+                            base_name = base_name.split("-")[0]
+                        exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
+                        if os.path.exists(exact_path):
+                            res = exact_path
+                        else:
+                            try:
+                                for f in os.listdir(homebrew_lib):
+                                    if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                                        res = os.path.join(homebrew_lib, f)
+                                        break
+                            except Exception:
+                                pass
+                    return res
 
-            ctypes.util.find_library = new_find_library
+                ctypes.util.find_library = new_find_library
 
     import msgpack
 
