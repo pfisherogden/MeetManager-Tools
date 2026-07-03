@@ -125,7 +125,7 @@ def _process_single_report_process(
 
         converter = MmToJsonConverter(table_data=cache_data)
         extractor = ReportDataExtractor(converter, full_data=full_data)
-        renderer = None
+        renderer: Any = None
         is_playwright = False
         if renderer_type is not None:
             if isinstance(renderer_type, str):
@@ -480,7 +480,7 @@ def _run_bundle_generation_job(
         ctx = multiprocessing.get_context("spawn")
         try:
             report_reqs = list(request.reports)
-            user_email = get_user_email(cast(str, uid))
+            user_email = get_user_email(uid)
 
             with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
                 for idx, report_req in enumerate(report_reqs):
