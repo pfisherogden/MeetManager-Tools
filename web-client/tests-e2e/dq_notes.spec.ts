@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import {
 	ensureDatasetActive,
+	getDynamicGatewayPort,
+	getDynamicGatewayUrl,
 	getE2ETestContext,
 	getFixtureData,
 	robustClick,
@@ -29,12 +31,14 @@ test.describe("DQ Notes Preservation", () => {
 		const token =
 			process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
 		const syncBase =
-			process.env.TEST_STATIC === "true" ? "http://localhost:8081" : baseURL;
+			process.env.TEST_STATIC === "true"
+				? `http://localhost:${getDynamicGatewayPort()}`
+				: baseURL;
 
 		const testFileName = getFilename("tiny_meet.json");
 		// Publish the meet data so the program file is generated on the backend
 		if (process.env.TEST_STATIC === "true") {
-			const gatewayUrl = "http://localhost:8081/api/grpc";
+			const gatewayUrl = getDynamicGatewayUrl();
 			const publishRes = await page.request.post(
 				`${gatewayUrl}/PublishMeetData`,
 				{

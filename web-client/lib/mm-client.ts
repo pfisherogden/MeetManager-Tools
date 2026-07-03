@@ -57,7 +57,90 @@ const authMiddleware = async function* (call: any, options: any) {
 	});
 };
 
-const clientFactory = createClientFactory().use(authMiddleware);
+const retryAndTimeoutMiddleware = async function* (call: any, options: any) {
+	if (call.responseStream || call.requestStream) {
+		return yield* call.next(call.request, options);
+	}
+
+	let timeoutMs = 30000; // default 30s timeout
+	if (
+		call.path.includes("GenerateReport") ||
+		call.path.includes("GenerateReportBundle")
+	) {
+		timeoutMs = 600000; // 10 minutes timeout for PDF generation
+	} else if (
+		call.path.includes("ValidateMeet") ||
+		call.path.includes("PublishMeetData")
+	) {
+		timeoutMs = 60000; // 1 minute timeout for validation/publishing
+	}
+
+	if (options.timeout !== undefined) {
+		timeoutMs = options.timeout;
+	}
+
+	const maxRetries = 3;
+	let attempt = 0;
+	let delay = 500; // start backoff delay at 500ms
+
+	while (true) {
+		attempt++;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => {
+			controller.abort();
+		}, timeoutMs);
+
+		const signal = controller.signal;
+		let onAbort: (() => void) | undefined;
+		if (options.signal) {
+			const extSignal = options.signal;
+			onAbort = () => controller.abort();
+			extSignal.addEventListener("abort", onAbort);
+			if (extSignal.aborted) {
+				controller.abort();
+			}
+		}
+
+		try {
+			return yield* call.next(call.request, {
+				...options,
+				signal,
+			});
+		} catch (error: any) {
+			const isTimeoutAbort =
+				controller.signal.aborted && !options.signal?.aborted;
+
+			if (options.signal?.aborted) {
+				throw error;
+			}
+
+			if (attempt >= maxRetries) {
+				if (isTimeoutAbort) {
+					throw new Error(
+						`gRPC call to ${call.path} timed out after ${timeoutMs}ms`,
+					);
+				}
+				throw error;
+			}
+
+			console.warn(
+				`gRPC call to ${call.path} failed (attempt ${attempt}/${maxRetries}):`,
+				error,
+			);
+			await new Promise((resolve) => setTimeout(resolve, delay));
+			delay *= 2; // exponential backoff
+		} finally {
+			clearTimeout(timeoutId);
+			if (options.signal && onAbort) {
+				options.signal.removeEventListener("abort", onAbort);
+			}
+		}
+	}
+};
+
+const clientFactory = createClientFactory()
+	.use(authMiddleware)
+	.use(retryAndTimeoutMiddleware);
 
 let cachedClient: MeetManagerServiceClient | null = null;
 let _resolvedHost: string = defaultHost;
