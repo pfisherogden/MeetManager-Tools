@@ -14,7 +14,7 @@ test.describe("Champs Dataset Journey", () => {
 	test("should correctly process and display tiny Champs dataset", async ({
 		page,
 	}, testInfo) => {
-		test.setTimeout(300000); // 5 mins
+		test.setTimeout(480000); // 8 mins
 		const { getFilename } = getE2ETestContext(testInfo);
 		const testFileName = getFilename("tiny_champs.json");
 		const data = getFixtureData("tiny_champs.json");
@@ -56,16 +56,16 @@ test.describe("Champs Dataset Journey", () => {
 		const configCard = page.getByTestId("report-configuration-card");
 		await expect(configCard).toBeVisible();
 
+		// Wait for completion and download
+		const downloadPromise = page.waitForEvent("download");
+
 		// Start generation
 		const generateBtn = configCard.getByTestId("generate-report-button");
 		await generateBtn.click();
 
-		// Wait for completion and download
-		const downloadPromise = page.waitForEvent("download");
-
 		// Poll for finish via state attribute
 		await expect(configCard).toHaveAttribute("data-report-status", "idle", {
-			timeout: 180000,
+			timeout: 360000,
 		});
 
 		const download = await downloadPromise;

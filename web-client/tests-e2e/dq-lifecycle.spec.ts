@@ -14,6 +14,7 @@ test.describe("DQ Lifecycle Journey", () => {
 	test("should process DQ from Judge app to Results PDF", async ({
 		page,
 		context,
+		baseURL,
 	}, testInfo) => {
 		test.setTimeout(300000); // 5 mins
 		const { getFilename } = getE2ETestContext(testInfo, page);
@@ -38,9 +39,9 @@ test.describe("DQ Lifecycle Journey", () => {
 		const _frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
 		// Align E2E URL Logic: Use baseURL as the source of truth for the monolith
-		const baseURL = testInfo.project.use.baseURL || "http://localhost:3100";
+		const baseAddr = baseURL || "http://localhost:3000";
 		const urlObj = new URL(judgeUrl);
-		const baseObj = new URL(baseURL);
+		const baseObj = new URL(baseAddr);
 
 		urlObj.protocol = baseObj.protocol;
 		urlObj.host = baseObj.host;

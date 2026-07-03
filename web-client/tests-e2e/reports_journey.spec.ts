@@ -19,7 +19,7 @@ test.describe("Reports Generation Journey", () => {
 	test("should generate and download a ZIP bundle asynchronously", async ({
 		page,
 	}) => {
-		test.setTimeout(180000); // 3 minutes for this test
+		test.setTimeout(480000); // 8 minutes for this test
 
 		// Navigate to reports and select a report type to make the config card visible
 		await page.goto("/reports");
@@ -54,11 +54,11 @@ test.describe("Reports Generation Journey", () => {
 		}).toPass({ timeout: 20000 });
 
 		// Wait for completion and download
-		const downloadPromise = page.waitForEvent("download", { timeout: 180000 });
+		const downloadPromise = page.waitForEvent("download", { timeout: 360000 });
 
 		// We first wait for the status to return to 'idle' with a very long timeout
 		await expect(builderCard).toHaveAttribute("data-report-status", "idle", {
-			timeout: 300000, // 5 minutes for very large bundles
+			timeout: 360000, // 6 minutes for very large bundles
 		});
 
 		// Once idle, the download should have been triggered

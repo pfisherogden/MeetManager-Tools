@@ -31,6 +31,7 @@ test.describe("DQ Notes Preservation", () => {
 		const syncBase =
 			process.env.TEST_STATIC === "true" ? "http://localhost:8081" : baseURL;
 
+		const testFileName = getFilename("tiny_meet.json");
 		// Publish the meet data so the program file is generated on the backend
 		if (process.env.TEST_STATIC === "true") {
 			const gatewayUrl = "http://localhost:8081/api/grpc";
@@ -44,12 +45,17 @@ test.describe("DQ Notes Preservation", () => {
 				},
 			);
 			expect(publishRes.ok()).toBe(true);
+		} else {
+			await page.goto("/admin", { waitUntil: "networkidle" });
+			const row = page.getByTestId(`dataset-row-${testFileName}`);
+			await row.getByTestId("publish-button").click();
+			const judgeUrlLocator = page.getByTestId("judge-app-url");
+			await expect(judgeUrlLocator).toBeVisible({ timeout: 30000 });
 		}
 
 		const syncUrl = encodeURIComponent(
 			`${syncBase}/api/sync-dqs?token=${token}&uid=${userId}`,
 		);
-		const testFileName = getFilename("tiny_meet.json");
 		const baseFilename = testFileName.endsWith(".json")
 			? testFileName.slice(0, -5)
 			: testFileName;
