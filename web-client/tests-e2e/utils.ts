@@ -114,6 +114,11 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		}
 	}
 
+	const restPort = getDynamicGatewayPort();
+	await page.addInitScript((port) => {
+		(window as any).__MM_TEST_PORT__ = port;
+	}, restPort);
+
 	// Navigate to home page first so we have a valid domain context in the browser
 	await page.goto("/");
 
@@ -129,6 +134,12 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 
 	page.on("console", (msg) => {
 		console.log(`[Browser Console] [${msg.type()}] ${msg.text()}`);
+	});
+
+	page.on("requestfailed", (request) => {
+		console.log(
+			`[Browser Network Error] ${request.method()} ${request.url()} failed with: ${request.failure()?.errorText}`,
+		);
 	});
 
 	return { userId };

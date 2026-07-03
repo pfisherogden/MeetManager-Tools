@@ -4,6 +4,13 @@ let cachedRestPort: number | null = null;
 
 async function getRestPort(): Promise<number> {
 	if (cachedRestPort !== null) return cachedRestPort;
+
+	// In E2E tests, read from window.__MM_TEST_PORT__ if set
+	if (typeof window !== "undefined" && (window as any).__MM_TEST_PORT__) {
+		cachedRestPort = (window as any).__MM_TEST_PORT__;
+		return cachedRestPort!;
+	}
+
 	try {
 		if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
 			const [_grpcPort, restPort] =

@@ -13,6 +13,7 @@ const nextConfig = {
 	images: {
 		unoptimized: true,
 	},
+	trailingSlash: true,
 	outputFileTracingRoot: "../../",
 	pageExtensions: isStatic ? ["tsx"] : ["js", "jsx", "ts", "tsx"],
 	experimental: {

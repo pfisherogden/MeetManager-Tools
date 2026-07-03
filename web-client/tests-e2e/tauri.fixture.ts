@@ -10,7 +10,7 @@ export const test = base.extend<{
 		// Path to built macOS app executable
 		const appPath = path.resolve(
 			__dirname,
-			"../src-tauri/target/release/bundle/macos/MM-Tools.app/Contents/MacOS/MM-Tools",
+			"../src-tauri/target/release/bundle/macos/MM-Tools.app/Contents/MacOS/app",
 		);
 
 		// Run Tauri app with remote debugging enabled

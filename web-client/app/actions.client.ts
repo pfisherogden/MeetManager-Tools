@@ -181,16 +181,16 @@ export async function uploadDataset(formData: FormData) {
 	const file = formData.get("file") as File;
 	if (!file) throw new Error("No file provided");
 
-	const buffer = await file.arrayBuffer();
-	const uint8Array = new Uint8Array(buffer);
-
-	// Convert uint8array to base64
-	let binary = "";
-	const len = uint8Array.byteLength;
-	for (let i = 0; i < len; i++) {
-		binary += String.fromCharCode(uint8Array[i]);
-	}
-	const base64Content = btoa(binary);
+	const base64Content = await new Promise<string>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => {
+			const result = reader.result as string;
+			const base64 = result.split(",")[1];
+			resolve(base64);
+		};
+		reader.onerror = (err) => reject(reader.error || err);
+		reader.readAsDataURL(file);
+	});
 
 	const response = await callRestGateway("UploadDataset", {
 		filename: file.name,
