@@ -37,3 +37,10 @@ for (const page of pages) {
 		console.warn(`File not found during prep: ${filepath}`);
 	}
 }
+
+// Swap actions import for static build
+const actionsPath = path.join(__dirname, "app/actions.ts");
+if (fs.existsSync(actionsPath)) {
+	fs.writeFileSync(actionsPath, 'export * from "./actions.client";\n', "utf8");
+	console.log("Prepped: app/actions.ts -> actions.client");
+}

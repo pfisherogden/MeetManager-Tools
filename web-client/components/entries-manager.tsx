@@ -3,7 +3,7 @@
 import { Medal, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Entry } from "@/lib/swim-meet-types";
 import { cn } from "@/lib/utils";
@@ -160,6 +160,18 @@ export function EntriesManager({ initialEntries }: EntriesManagerProps) {
 		: initialEntries;
 
 	const [data, setData] = useState<Entry[]>(filteredInitial);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions.client").then(({ getEntries }) => {
+				getEntries(eventFilter || undefined).then((res) => {
+					if (res?.entries) {
+						setData(res.entries);
+					}
+				});
+			});
+		}
+	}, [eventFilter]);
 
 	const handleAdd = () => {
 		const newEntry: Entry = {

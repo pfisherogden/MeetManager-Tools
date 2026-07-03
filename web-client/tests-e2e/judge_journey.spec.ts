@@ -16,6 +16,7 @@ test.describe("Mobile Judge App Journey", () => {
 	test("should allow a judge to login, select event, and submit DQ", async ({
 		page,
 		context,
+		baseURL,
 	}, testInfo) => {
 		test.setTimeout(300000); // 5 mins
 		const { getFilename } = getE2ETestContext(testInfo);
@@ -36,13 +37,13 @@ test.describe("Mobile Judge App Journey", () => {
 		let judgeUrl = (await judgeUrlLocator.textContent()) || "";
 
 		// Align E2E URL Logic: Use MOBILE_APP_URL as source of truth
-		const _mobileAppUrl = process.env.MOBILE_APP_URL || "http://localhost:8081";
+		const _mobileAppUrl = process.env.MOBILE_APP_URL || "http://localhost:8082";
 		const _frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
 		// Align E2E URL Logic: Use baseURL as the source of truth for the monolith
-		const baseURL = testInfo.project.use.baseURL || "http://localhost:3100";
+		const baseAddr = baseURL || "http://localhost:3000";
 		const urlObj = new URL(judgeUrl);
-		const baseObj = new URL(baseURL);
+		const baseObj = new URL(baseAddr);
 
 		urlObj.protocol = baseObj.protocol;
 		urlObj.host = baseObj.host;

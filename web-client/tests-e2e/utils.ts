@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
+	type APIResponse,
 	expect,
 	type Locator,
 	type Page,
@@ -99,20 +100,36 @@ export async function waitForJudgeApp(page: Page) {
 export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 	const { userId } = getE2ETestContext(testInfo, page);
 
-	// 1. Hit the dedicated mock login endpoint to synthesize session cookies on the server
-	const authResponse = await page.request.post(`/api/test/auth?uid=${userId}`);
-	if (!authResponse.ok()) {
-		throw new Error(
-			`Failed to authenticate test user ${userId}: ${authResponse.status()}`,
+	const isStatic = process.env.TEST_STATIC === "true";
+
+	if (!isStatic) {
+		// 1. Hit the dedicated mock login endpoint to synthesize session cookies on the server
+		const authResponse = await page.request.post(
+			`/api/test/auth?uid=${userId}`,
 		);
+		if (!authResponse.ok()) {
+			throw new Error(
+				`Failed to authenticate test user ${userId}: ${authResponse.status()}`,
+			);
+		}
 	}
 
-	// 2. Also set cookies on the client side context for good measure
-	// This helps with hydration and immediate client-side checks
-	await page.context().addCookies([
-		{ name: "x-user-id", value: userId, domain: "localhost", path: "/" },
-		{ name: "idToken", value: "dev-token", domain: "localhost", path: "/" },
-	]);
+	// Navigate to home page first so we have a valid domain context in the browser
+	await page.goto("/");
+
+	// Set cookies via document.cookie directly in the browser
+	await page.evaluate((uid) => {
+		document.cookie = `x-user-id=${uid}; path=/; max-age=31536000`;
+		document.cookie = `idToken=dev-token; path=/; max-age=31536000`;
+	}, userId);
+	console.log(
+		"[Utils] Cookie immediately after set:",
+		await page.evaluate(() => document.cookie),
+	);
+
+	page.on("console", (msg) => {
+		console.log(`[Browser Console] [${msg.type()}] ${msg.text()}`);
+	});
 
 	return { userId };
 }
@@ -129,17 +146,32 @@ export async function ensureDatasetActive(
 	const { userId } = await setupE2ESession(page, testInfo);
 	console.log(`[Utils] Ensuring ${filename} is active for ${userId}...`);
 
+	const isStatic = process.env.TEST_STATIC === "true";
+	const gatewayUrl = "http://localhost:8081/api/grpc";
+
 	// 2. Upload dataset directly via API
-	const uploadResponse = await page.request.post(
-		"/api/test/status?action=upload_dataset",
-		{
+	let uploadResponse: APIResponse;
+	if (isStatic) {
+		const base64Content = Buffer.from(JSON.stringify(data)).toString("base64");
+		uploadResponse = await page.request.post(`${gatewayUrl}/UploadDataset`, {
 			data: {
 				filename,
-				data_json: JSON.stringify(data),
+				content: base64Content,
 			},
 			headers: { "x-user-id": userId },
-		},
-	);
+		});
+	} else {
+		uploadResponse = await page.request.post(
+			"/api/test/status?action=upload_dataset",
+			{
+				data: {
+					filename,
+					data_json: JSON.stringify(data),
+				},
+				headers: { "x-user-id": userId },
+			},
+		);
+	}
 
 	if (!uploadResponse.ok()) {
 		const text = await uploadResponse.text();
@@ -149,13 +181,24 @@ export async function ensureDatasetActive(
 	}
 
 	// 3. Set as active via API
-	const activateResponse = await page.request.post(
-		"/api/test/status?action=set_active",
-		{
-			data: { filename },
-			headers: { "x-user-id": userId },
-		},
-	);
+	let activateResponse: APIResponse;
+	if (isStatic) {
+		activateResponse = await page.request.post(
+			`${gatewayUrl}/SetActiveDataset`,
+			{
+				data: { filename },
+				headers: { "x-user-id": userId },
+			},
+		);
+	} else {
+		activateResponse = await page.request.post(
+			"/api/test/status?action=set_active",
+			{
+				data: { filename },
+				headers: { "x-user-id": userId },
+			},
+		);
+	}
 
 	if (!activateResponse.ok()) {
 		const text = await activateResponse.text();
@@ -168,18 +211,20 @@ export async function ensureDatasetActive(
 	await expect
 		.poll(
 			async () => {
-				const res = await page.request.get(
-					"/api/test/status?action=list_datasets",
-					{
-						headers: { "x-user-id": userId },
-					},
-				);
+				const res = isStatic
+					? await page.request.post(`${gatewayUrl}/ListDatasets`, {
+							data: {},
+							headers: { "x-user-id": userId },
+						})
+					: await page.request.get("/api/test/status?action=list_datasets", {
+							headers: { "x-user-id": userId },
+						});
 				if (!res.ok()) return false;
 				const body = await res.json();
 				const current = body.datasets?.find(
 					(d: any) => d.filename === filename,
 				);
-				return current?.isActive === true;
+				return current?.isActive === true || current?.is_active === true;
 			},
 			{
 				message: `Waiting for dataset ${filename} to become active for ${userId}`,

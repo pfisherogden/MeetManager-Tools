@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Meet } from "@/lib/swim-meet-types";
 
@@ -62,6 +62,18 @@ interface MeetsManagerProps {
 
 export function MeetsManager({ initialMeets }: MeetsManagerProps) {
 	const [data, setData] = useState<Meet[]>(initialMeets);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions").then(({ getMeets }) => {
+				getMeets().then((res) => {
+					if (res?.meets) {
+						setData(res.meets);
+					}
+				});
+			});
+		}
+	}, []);
 
 	const handleAdd = () => {
 		const newMeet: Meet = {

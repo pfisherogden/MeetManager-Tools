@@ -263,7 +263,7 @@ jobs:
           npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           FRONTEND_URL: http://localhost:3000
-          MOBILE_APP_URL: http://localhost:8081
+          MOBILE_APP_URL: http://localhost:8082
           NEXT_PUBLIC_E2E_AUTH_BYPASS: 'true'
           SHARD_INDEX: ${{ matrix.shardIndex }}
           IS_E2E: 'true'

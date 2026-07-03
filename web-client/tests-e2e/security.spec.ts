@@ -49,6 +49,10 @@ test.describe("Security and Access Control", () => {
 	});
 
 	test("should block /api/data without a valid token", async ({ page }) => {
+		if (process.env.TEST_STATIC === "true") {
+			test.skip(true, "API routes are not available in static mode");
+			return;
+		}
 		await page.context().clearCookies();
 		const response = await page.request.get(
 			"/api/data?path=users/private/data.json",
@@ -59,6 +63,10 @@ test.describe("Security and Access Control", () => {
 	test("should allow /api/data for sample paths without a token", async ({
 		page,
 	}) => {
+		if (process.env.TEST_STATIC === "true") {
+			test.skip(true, "API routes are not available in static mode");
+			return;
+		}
 		await page.context().clearCookies();
 		const response = await page.request.get(
 			"/api/data?path=users/sample-user/tiny_meet.json",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { getGoogleConfig } from "@/app/actions";
 
 declare global {
 	interface Window {
@@ -32,7 +33,6 @@ export function useGooglePicker({
 	useEffect(() => {
 		async function fetchConfig() {
 			try {
-				const { getGoogleConfig } = await import("@/app/actions");
 				const config = await getGoogleConfig();
 				setApiKey(config.apiKey);
 				setAppId(config.appId);

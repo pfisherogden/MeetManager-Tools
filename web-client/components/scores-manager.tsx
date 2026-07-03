@@ -1,7 +1,7 @@
 "use client";
 
 import { Medal, Trophy } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EventScore, Score } from "@/lib/swim-meet-types";
@@ -58,11 +58,30 @@ export function ScoresManager({
 	initialEventScores = [],
 }: ScoresManagerProps) {
 	const [data, setData] = useState<Score[]>(initialScores);
+	const [localEventScores, setLocalEventScores] =
+		useState<EventScore[]>(initialEventScores);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions.client").then(({ getScores, getEventScores }) => {
+				getScores().then((res) => {
+					if (res?.scores) {
+						setData(res.scores);
+					}
+				});
+				getEventScores().then((res) => {
+					if (res?.scores) {
+						setLocalEventScores(res.scores);
+					}
+				});
+			});
+		}
+	}, []);
 
 	// Flatten event scores for table
 	const eventRows = useMemo(
 		() =>
-			initialEventScores
+			localEventScores
 				.flatMap((ev) =>
 					ev.entries.map((e) => ({
 						id: `ev-${ev.eventId}-${e.id}-${e.place}`, // unique key
@@ -82,7 +101,7 @@ export function ScoresManager({
 						return (a.place || 999) - (b.place || 999);
 					return a.eventName.localeCompare(b.eventName);
 				}),
-		[initialEventScores],
+		[localEventScores],
 	);
 
 	const columns = useMemo<Column<Score>[]>(() => {

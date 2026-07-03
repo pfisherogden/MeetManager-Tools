@@ -1,6 +1,7 @@
 "use client";
 import { Timer, Trophy, User, Users, Waves } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { GetDashboardStatsResponse } from "@/lib/proto/meetmanager/v1/meet_manager";
 
@@ -13,12 +14,25 @@ import { MeetValidation } from "@/components/meet-validation";
 
 export function Dashboard({ stats: backendStats }: DashboardProps) {
 	const { meetName } = useConfig();
+	const [stats, setStats] = useState<GetDashboardStatsResponse>(backendStats);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions").then(({ getDashboardStats }) => {
+				getDashboardStats().then((res) => {
+					if (res) {
+						setStats(res);
+					}
+				});
+			});
+		}
+	}, []);
 
 	// Use backend stats
 	const statItems = [
 		{
 			name: "Total Meets",
-			value: backendStats.meetCount,
+			value: stats.meetCount,
 			icon: Trophy,
 			href: "/meets",
 			color: "bg-pool-blue text-tile-white",
@@ -26,7 +40,7 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 		},
 		{
 			name: "Teams",
-			value: backendStats.teamCount,
+			value: stats.teamCount,
 			icon: Users,
 			href: "/teams",
 			color: "bg-sunshine text-foreground",
@@ -34,7 +48,7 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 		},
 		{
 			name: "Athletes",
-			value: backendStats.athleteCount,
+			value: stats.athleteCount,
 			icon: User,
 			href: "/athletes",
 			color: "bg-pool-light text-foreground",
@@ -42,7 +56,7 @@ export function Dashboard({ stats: backendStats }: DashboardProps) {
 		},
 		{
 			name: "Events",
-			value: backendStats.eventCount,
+			value: stats.eventCount,
 			icon: Timer,
 			href: "/events",
 			color: "bg-lane-red text-tile-white",

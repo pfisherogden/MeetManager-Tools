@@ -1,4 +1,9 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 const isStatic = process.env.EXPORT_STATIC === "true";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -10,13 +15,11 @@ const nextConfig = {
 	},
 	outputFileTracingRoot: "../../",
 	pageExtensions: isStatic ? ["tsx"] : ["js", "jsx", "ts", "tsx"],
-	experimental: isStatic
-		? {}
-		: {
-				serverActions: {
-					bodySizeLimit: "50mb",
-				},
-			},
+	experimental: {
+		serverActions: {
+			bodySizeLimit: "50mb",
+		},
+	},
 	generateBuildId: async () => {
 		return `build-${Date.now()}`;
 	},
@@ -26,11 +29,6 @@ const nextConfig = {
 	...(isStatic
 		? {
 				output: "export",
-				turbopack: {
-					resolveAlias: {
-						"@/app/actions": "./app/actions.client.ts",
-					},
-				},
 			}
 		: {
 				async rewrites() {

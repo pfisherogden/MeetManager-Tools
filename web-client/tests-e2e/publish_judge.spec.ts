@@ -26,14 +26,16 @@ test.describe("Publish to Judge App", () => {
 		await expect(publishBtn).toBeVisible();
 
 		// Capture the network request/response
-		const _publishPromise = page.waitForResponse(
+		const publishPromise = page.waitForResponse(
 			(r) =>
 				r.url().includes("/api/publish") ||
+				r.url().includes("PublishMeetData") ||
 				(r.request().method() === "POST" && r.url().includes("/admin")),
 			{ timeout: 30000 },
 		);
 
 		await publishBtn.click();
+		await publishPromise;
 
 		// Wait for success toast or message
 		await expect(page.locator("body")).toContainText(

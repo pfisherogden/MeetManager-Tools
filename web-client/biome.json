@@ -9,6 +9,7 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**",
+			"!**/*.svg",
 			"!**/node_modules",
 			"!**/.next",
 			"!**/dist",

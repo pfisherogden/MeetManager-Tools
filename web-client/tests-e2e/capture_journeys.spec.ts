@@ -51,9 +51,11 @@ test.describe("Visual Journey Capture", () => {
 		console.log("Captured: 2-coach-filtered-report.png");
 	});
 
-	test("capture judge app events", async ({ page }, testInfo) => {
+	test("capture judge app events", async ({ page, baseURL }, testInfo) => {
 		const { userId } = getE2ETestContext(testInfo);
-		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3100";
+		console.log("DEBUG: Playwright baseURL =", baseURL);
+		console.log("DEBUG: process.env.FRONTEND_URL =", process.env.FRONTEND_URL);
+		const frontendUrl = baseURL || "http://localhost:3000";
 		const judgeBase =
 			process.env.MOBILE_APP_URL || `${frontendUrl}/judge/index.html`;
 		await page.goto(`${judgeBase}?uid=${userId}`);

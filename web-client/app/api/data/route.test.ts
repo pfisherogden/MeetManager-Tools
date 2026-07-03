@@ -13,7 +13,6 @@ describe("GET /api/data", () => {
 	const originalEnv = process.env;
 
 	beforeEach(() => {
-		vi.resetModules();
 		process.env = { ...originalEnv };
 		vi.clearAllMocks();
 	});

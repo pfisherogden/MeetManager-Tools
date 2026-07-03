@@ -190,6 +190,7 @@ export function ReportsManager({
 	};
 
 	const startPolling = (jobId: string, _filename: string) => {
+		console.log("[ReportsManager] startPolling called with jobId:", jobId);
 		setJobId(jobId);
 		setJobProgress(0);
 		setJobMessage("Starting...");
@@ -199,7 +200,9 @@ export function ReportsManager({
 
 		pollingInterval.current = setInterval(async () => {
 			try {
+				console.log("[ReportsManager] Polling status for jobId:", jobId);
 				const status = await getJobStatus(jobId);
+				console.log("[ReportsManager] Received status:", status);
 				if (status.status === 3) {
 					// COMPLETED
 					setJobProgress(100);
@@ -210,7 +213,33 @@ export function ReportsManager({
 					// Trigger download if not already done
 					if (downloadTriggered.current !== jobId && status.bundleUrl) {
 						downloadTriggered.current = jobId;
-						window.location.href = status.bundleUrl;
+						const filename = _filename || "meet_reports.zip";
+
+						fetch(status.bundleUrl)
+							.then((res) => {
+								if (!res.ok) throw new Error("Failed to download file");
+								return res.blob();
+							})
+							.then((blob) => {
+								const blobUrl = URL.createObjectURL(blob);
+								const link = document.createElement("a");
+								link.href = blobUrl;
+								link.setAttribute("download", filename);
+								document.body.appendChild(link);
+								link.click();
+								document.body.removeChild(link);
+								URL.revokeObjectURL(blobUrl);
+							})
+							.catch((err) => {
+								console.error("Programmatic download failed:", err);
+								// Fallback
+								const link = document.createElement("a");
+								link.href = status.bundleUrl;
+								link.setAttribute("download", filename);
+								document.body.appendChild(link);
+								link.click();
+								document.body.removeChild(link);
+							});
 
 						// Also open any google sheets
 						if (status.googleSheetUrls && status.googleSheetUrls.length > 0) {
@@ -282,7 +311,9 @@ export function ReportsManager({
 					const link = document.createElement("a");
 					link.href = `data:application/pdf;base64,${result.pdfContentBase64}`;
 					link.download = result.filename || `${reportTitle}.pdf`;
+					document.body.appendChild(link);
 					link.click();
+					document.body.removeChild(link);
 				}
 				toast.success("Report generated successfully");
 			} else {
@@ -361,9 +392,11 @@ export function ReportsManager({
 				frontendUrl,
 			);
 
+			console.log("[ReportsManager] generateReportBundle result:", result);
 			if (result.success && result.jobId) {
 				startPolling(result.jobId, bundleName);
 			} else {
+				console.error("[ReportsManager] generateReportBundle failed:", result);
 				toast.error(result.message || "Failed to start bundle generation");
 				setIsBundling(false);
 			}

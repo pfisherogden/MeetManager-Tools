@@ -21,17 +21,49 @@ test.describe("DQ Notes Preservation", () => {
 		page,
 		baseURL,
 	}, testInfo) => {
-		const { userId } = getE2ETestContext(testInfo, page);
+		const { userId, getFilename } = getE2ETestContext(testInfo, page);
 		const testNote = "Test DQ note 123";
 
 		// 1. Submit DQ with note in Judge App
 		// We must provide sync_url so the app knows where to send the DQ
 		const token =
 			process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
+		const syncBase =
+			process.env.TEST_STATIC === "true" ? "http://localhost:8081" : baseURL;
+
+		const testFileName = getFilename("tiny_meet.json");
+		// Publish the meet data so the program file is generated on the backend
+		if (process.env.TEST_STATIC === "true") {
+			const gatewayUrl = "http://localhost:8081/api/grpc";
+			const publishRes = await page.request.post(
+				`${gatewayUrl}/PublishMeetData`,
+				{
+					data: {
+						frontend_url: syncBase,
+					},
+					headers: { "x-user-id": userId },
+				},
+			);
+			expect(publishRes.ok()).toBe(true);
+		} else {
+			await page.goto("/admin", { waitUntil: "networkidle" });
+			const row = page.getByTestId(`dataset-row-${testFileName}`);
+			await row.getByTestId("publish-button").click();
+			const judgeUrlLocator = page.getByTestId("judge-app-url");
+			await expect(judgeUrlLocator).toBeVisible({ timeout: 30000 });
+		}
+
 		const syncUrl = encodeURIComponent(
-			`${baseURL}/api/sync-dqs?token=${token}&uid=${userId}`,
+			`${syncBase}/api/sync-dqs?token=${token}&uid=${userId}`,
 		);
-		const judgeUrl = `/judge/index.html?sync_url=${syncUrl}`;
+		const baseFilename = testFileName.endsWith(".json")
+			? testFileName.slice(0, -5)
+			: testFileName;
+		const programPath = `users/${userId}/published/program_${baseFilename}.json`;
+		const programUrl = encodeURIComponent(
+			`${syncBase}/api/data?path=${programPath}&token=${token}`,
+		);
+		const judgeUrl = `/judge/index.html?program_url=${programUrl}&sync_url=${syncUrl}`;
 		console.log(`Navigating to Judge App: ${judgeUrl}`);
 		await page.goto(judgeUrl);
 		await waitForJudgeApp(page);
@@ -72,7 +104,10 @@ test.describe("DQ Notes Preservation", () => {
 		// Wait for sync response after save
 		console.log("Saving DQ...");
 		const syncPromise = page.waitForResponse(
-			(r) => r.url().includes("/api/submit-dq") && r.status() === 200,
+			(r) =>
+				(r.url().includes("/api/submit-dq") ||
+					r.url().includes("/api/sync-dqs")) &&
+				r.status() === 200,
 			{ timeout: 30000 },
 		);
 
@@ -97,6 +132,10 @@ test.describe("DQ Notes Preservation", () => {
 		await expect(historyModal).toContainText(testNote);
 
 		// 3. Verify note in MMTools Frontend
+		console.log(
+			"Cookies in Playwright context:",
+			await page.context().cookies(),
+		);
 		console.log("Checking frontend...");
 		await page.goto("/dqs");
 		await expect(page.locator("table")).toContainText(testNote, {

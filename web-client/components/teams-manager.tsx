@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Column, DataTable } from "@/components/data-table";
 import type { Team } from "@/lib/swim-meet-types";
 
@@ -75,6 +75,18 @@ interface TeamsManagerProps {
 
 export function TeamsManager({ initialTeams }: TeamsManagerProps) {
 	const [data, setData] = useState<Team[]>(initialTeams);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			import("@/app/actions.client").then(({ getTeams }) => {
+				getTeams().then((res) => {
+					if (res?.teams) {
+						setData(res.teams);
+					}
+				});
+			});
+		}
+	}, []);
 
 	const handleAdd = () => {
 		const newTeam: Team = {

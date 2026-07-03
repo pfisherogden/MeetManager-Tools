@@ -2,24 +2,54 @@ from __future__ import annotations
 
 import datetime
 import http.server
-import io
 import json
 import logging
 import multiprocessing
 import os
 import signal
+
+# Apply macOS Homebrew library resolution fallback under SIP as early as possible
+import sys
 import tempfile
 import threading
 import time
 import uuid
-import zipfile
 from collections import OrderedDict
 from concurrent import futures
-from concurrent.futures import ProcessPoolExecutor
-from typing import Any, cast
+from typing import Any
+
+if sys.platform == "darwin":
+    homebrew_lib = "/opt/homebrew/lib"
+    if os.path.exists(homebrew_lib):
+        import ctypes.util
+
+        if ctypes.util.find_library.__name__ != "new_find_library":
+            orig_find_library = ctypes.util.find_library
+
+            def new_find_library(name):
+                res = orig_find_library(name)
+                if not res:
+                    base_name = name
+                    if name.startswith("lib"):
+                        base_name = name[3:]
+                    if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
+                        base_name = base_name.split("-")[0]
+                    exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
+                    if os.path.exists(exact_path):
+                        res = exact_path
+                    else:
+                        try:
+                            for f in os.listdir(homebrew_lib):
+                                if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                                    res = os.path.join(homebrew_lib, f)
+                                    break
+                        except Exception:
+                            pass
+                return res
+
+            ctypes.util.find_library = new_find_library
 
 import grpc
-import msgpack
 from firebase_admin import auth
 
 # Import generated classes
@@ -38,8 +68,6 @@ from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from meet_validation import validate_meet_data
 from mm_to_json.mm_to_json import MmToJsonConverter
-from mm_to_json.reporting.playwright_renderer import PlaywrightRenderer
-from mm_to_json.reporting.weasy_renderer import WeasyRenderer
 from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
 
 # Configure logging
@@ -113,10 +141,11 @@ def _get_data_access_token() -> str:
 class JobManager:
     """Manages the state of background jobs using Firestore if available, otherwise in-memory."""
 
+    in_memory_jobs: dict[str, dict[str, Any]] = {}
+    lock = threading.Lock()
+
     def __init__(self):
         self.use_firestore = False
-        self.in_memory_jobs: dict[str, dict[str, Any]] = {}
-        self.lock = threading.Lock()
 
         # Check if we should use Firestore (if in production or emulator is explicitly set)
         if os.getenv("K_SERVICE") or os.getenv("FIRESTORE_EMULATOR_HOST") or os.getenv("USE_FIRESTORE") == "true":
@@ -161,6 +190,9 @@ class JobManager:
         else:
             with self.lock:
                 self.in_memory_jobs[job_id] = initial_state
+                logging.info(
+                    f"JobManager: create_job: added job_id={job_id}, keys={list(self.in_memory_jobs.keys())}, id(in_memory_jobs)={id(self.in_memory_jobs)}"
+                )
 
         return job_id
 
@@ -215,7 +247,11 @@ class JobManager:
             return None
         else:
             with self.lock:
-                return self.in_memory_jobs.get(job_id)
+                res = self.in_memory_jobs.get(job_id)
+                logging.info(
+                    f"JobManager: get_job: job_id={job_id}, found={res is not None}, keys={list(self.in_memory_jobs.keys())}, id(in_memory_jobs)={id(self.in_memory_jobs)}"
+                )
+                return res
 
 
 def msgpack_encode(obj):
@@ -227,247 +263,6 @@ def msgpack_encode(obj):
     return obj
 
 
-def _process_single_report_process(
-    report_req_type,
-    report_req_title,
-    report_req_team_filter,
-    report_req_gender_filter,
-    report_req_age_group_filter,
-    user_id,
-    columns_on_page,
-    show_relay_swimmers,
-    zebra_striping,
-    msgpack_path,
-    rtype_map,
-    renderer_type=None,
-    html_preview=False,
-    idx=0,
-    user_email=None,
-    include_blank_lanes=True,
-    break_every_six_events=True,
-):
-    import datetime
-    import logging
-    import os
-    import tempfile
-    import traceback
-
-    import msgpack
-
-    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
-    log_level = getattr(logging, log_level_str, logging.INFO)
-    logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
-    if log_level_str != "DEBUG":
-        logging.getLogger("fontTools").setLevel(logging.WARNING)
-        logging.getLogger("weasyprint").setLevel(logging.WARNING)
-    from mm_to_json.reporting.extractor import ReportDataExtractor
-
-    rtype = rtype_map.get(report_req_type, "psych")
-    title = report_req_title
-    start_time = datetime.datetime.now()
-    try:
-        with open(msgpack_path, "rb") as f:
-            unpacked = msgpack.unpack(f, raw=False)
-            full_data = unpacked["full_data"]
-            cache_data = unpacked["cache"]
-        load_duration = (datetime.datetime.now() - start_time).total_seconds()
-        render_start_time = datetime.datetime.now()
-        is_html = html_preview or (rtype == "program_html")
-        temp_fd, temp_path = tempfile.mkstemp(suffix=".html" if is_html else ".pdf")
-        os.close(temp_fd)
-
-        from mm_to_json.mm_to_json import MmToJsonConverter
-
-        converter = MmToJsonConverter(table_data=cache_data)
-        extractor = ReportDataExtractor(converter, full_data=full_data)
-        renderer: Any
-        if renderer_type == "playwright":
-            renderer = PlaywrightRenderer(output_path=temp_path)
-        else:
-            renderer = WeasyRenderer(output_path=temp_path)
-
-        report_data = None
-        if rtype == "psych":
-            report_data = extractor.extract_psych_sheet_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-            )
-            template = "psych_sheet.j2"
-        elif rtype == "entries" or rtype == "entries_hytek":
-            report_data = extractor.extract_meet_entries_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-            )
-            template = "entries_hytek.j2"
-        elif rtype == "lineups":
-            # Fallback to entries for lineups if not explicitly implemented
-            report_data = extractor.extract_meet_entries_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-            )
-            template = "lineups.j2"
-        elif rtype == "results":
-            report_data = extractor.extract_results_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-            )
-            template = "results.j2"
-        elif rtype == "entries_club":
-            report_data = extractor.extract_meet_entries_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-            )
-            template = "entries_club.j2"
-        elif rtype == "lane_timer_sheets":
-            report_data = extractor.extract_lane_timer_sheets_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-                include_blank_lanes=include_blank_lanes,
-                break_every_six_events=break_every_six_events,
-            )
-            template = "timer_sheets.j2"
-        elif rtype in ["program", "program_html", "judge_sheets"]:
-            report_data = extractor.extract_meet_program_data(
-                team_filter=report_req_team_filter,
-                report_title=title,
-                gender_filter=report_req_gender_filter,
-                age_group_filter=report_req_age_group_filter,
-                columns_on_page=columns_on_page,
-                show_relay_swimmers=show_relay_swimmers,
-                show_dq_lines=(rtype == "judge_sheets"),
-            )
-            template = "meet_program.j2"
-        elif rtype == "cts_export":
-            from mm_to_json.reporting.cts_writer import CTSScoreboardWriter
-
-            # Flatten sessions to get a list of all events
-            all_events = []
-            for session in full_data.get("sessions", []):
-                all_events.extend(session.get("events", []))
-
-            # CTS export generates multiple files. We'll return them as a list of dicts.
-            with tempfile.TemporaryDirectory() as cts_tmp_dir:
-                writer = CTSScoreboardWriter(full_data, all_events)
-                writer.generate_all(cts_tmp_dir)
-
-                # Read all files from the temp dir
-                files = []
-                for filename in os.listdir(cts_tmp_dir):
-                    with open(os.path.join(cts_tmp_dir, filename), "rb") as f:
-                        files.append({"filename": filename, "content": f.read()})
-
-                return {
-                    "success": True,
-                    "files": files,  # Multiple files for bundling
-                    "rtype": rtype,
-                    "idx": idx,
-                    "load_duration": load_duration,
-                    "render_duration": 0,
-                }
-        elif rtype == "check_in_sheet":
-            from mm_to_json.reporting.check_in_writer import SwimmerCheckInWriter
-
-            check_in_data = extractor.extract_check_in_data(team_filter=report_req_team_filter)
-
-            # 1. Try to generate Google Sheet (if email provided)
-            gs_url = None
-            if user_email:
-                try:
-                    gs_writer = SwimmerCheckInWriter(check_in_data, title=title)
-                    gs_url = gs_writer.generate_google_sheet(user_email=user_email)
-                except Exception as e:
-                    logging.warning(f"Google Sheet generation failed, but will still provide Excel backup: {e}")
-
-            # 2. Generate Excel Backup
-            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as xlsx_tmp:
-                excel_writer = SwimmerCheckInWriter(check_in_data, title=title)
-                excel_writer.generate_excel_backup(xlsx_tmp.name)
-                with open(xlsx_tmp.name, "rb") as f:
-                    content = f.read()
-                os.unlink(xlsx_tmp.name)
-
-            # 3. Build Result
-            res_files = []
-            # Main Excel File
-            filename = f"{title.replace(' ', '_')}_{idx}.xlsx" if title else f"check_in_{idx}.xlsx"
-            res_files.append({"filename": filename, "content": content})
-
-            # Google Sheet Shortcut
-            if gs_url:
-                shortcut_name = f"OPEN_GOOGLE_SHEET_{filename.replace('.xlsx', '.html')}"
-                with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as html_tmp:
-                    shortcut_writer = SwimmerCheckInWriter(check_in_data, title=title)
-                    shortcut_writer.generate_google_sheet_shortcut(gs_url, html_tmp.name)
-                    with open(html_tmp.name, "rb") as f:
-                        shortcut_content = f.read()
-                    os.unlink(html_tmp.name)
-                res_files.append({"filename": shortcut_name, "content": shortcut_content})
-
-            return {
-                "success": True,
-                "files": res_files,  # Multiple files for bundling
-                "content": content,  # Primary file for single download
-                "filename": filename,
-                "message": f"Google Sheet: {gs_url}" if gs_url else "Excel Backup generated",
-                "gs_url": gs_url,
-                "rtype": rtype,
-                "idx": idx,
-                "load_duration": load_duration,
-                "render_duration": 0,
-            }
-        if report_data:
-            report_data["zebra_striping"] = zebra_striping
-            if is_html:
-                html_content = renderer.render_to_html(report_data, template_name=template)
-                with open(temp_path, "wb") as f:
-                    f.write(html_content.encode("utf-8"))
-            else:
-                if template == "meet_program.j2":
-                    renderer.render_meet_program(report_data)
-                else:
-                    renderer.render_entries(report_data, template)
-        if os.path.exists(temp_path):
-            with open(temp_path, "rb") as f:
-                pdf_bytes = f.read()
-            os.unlink(temp_path)
-        else:
-            pdf_bytes = b""
-        render_duration = (datetime.datetime.now() - render_start_time).total_seconds()
-        ext = ".html" if is_html else ".pdf"
-
-        # Restore human-readable filenames (sanitized title or report type) with a timestamp to avoid collisions
-        safe_title = "".join(c for c in (title or rtype) if c.isalnum() or c in (" ", "_", "-")).strip()
-        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
-        final_filename = f"{safe_title}_{timestamp}{ext}"
-
-        html_str = pdf_bytes.decode("utf-8") if is_html else ""
-        return {
-            "success": True,
-            "content": pdf_bytes,
-            "filename": final_filename,
-            "html_content": html_str,
-            "rtype": rtype,
-            "idx": idx,
-            "load_duration": load_duration,
-            "render_duration": render_duration,
-        }
-    except Exception as e:
-        logging.error(f"Error in _process_single_report_process (idx {idx}): {traceback.format_exc()}")
-        return {"success": False, "error": str(e), "rtype": rtype, "idx": idx}
-
-
 class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def __init__(self):
         # Initialize storage provider
@@ -476,8 +271,32 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         if bucket_name:
             self.storage = GCSStorageProvider(bucket_name)
         else:
-            base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+            base_storage_dir = os.getenv("STORAGE_BASE_DIR")
+            if not base_storage_dir:
+                if getattr(sys, "frozen", False):
+                    base_storage_dir = os.path.join(getattr(sys, "_MEIPASS", ""), DATA_DIR)
+                else:
+                    base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+            logging.info(f"STORAGE_BASE_DIR resolved to: {base_storage_dir} (frozen={getattr(sys, 'frozen', False)})")
             self.storage = LocalStorageProvider(base_storage_dir)
+
+            # Ensure default Sample_Data.json exists in base_storage_dir
+            import shutil
+
+            sample_dest = os.path.join(base_storage_dir, SOURCE_FILE)
+            if not os.path.exists(sample_dest):
+                sample_src = ""
+                if getattr(sys, "frozen", False):
+                    sample_src = os.path.join(getattr(sys, "_MEIPASS", ""), "data", SOURCE_FILE)
+                else:
+                    sample_src = os.path.join(os.path.dirname(os.path.dirname(__file__)), DATA_DIR, SOURCE_FILE)
+
+                if os.path.exists(sample_src):
+                    logging.info(f"Copying default {SOURCE_FILE} to storage: {sample_dest}")
+                    os.makedirs(os.path.dirname(sample_dest), exist_ok=True)
+                    shutil.copy2(sample_src, sample_dest)
+                else:
+                    logging.warning(f"Default {SOURCE_FILE} source NOT FOUND at {sample_src}")
 
         self._user_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.current_file = SOURCE_FILE
@@ -1698,359 +1517,19 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         for k in sorted_keys:
             ev = event_dict[k]
             ev["entries"].sort(key=lambda x: x.place if x.place > 0 else 9999)
-
             resp_list.append(pb2.EventScore(event_id=ev["id"], event_name=ev["name"], entries=ev["entries"]))
 
         return pb2.GetEventScoresResponse(event_scores=resp_list)
 
     def GenerateReport(self, request, context):
-        request = request or pb2.GenerateReportRequest()
-        try:
-            # Support unauthenticated access for Sample_Data.json (for dev/debug)
-            # Otherwise require authentication
-            try:
-                # We must NOT use _check_auth here because it aborts immediately.
-                uid = getattr(context, "uid", None)
-                if uid is None and context:
-                    # If no uid in context, check for metadata override (E2E)
-                    try:
-                        metadata = dict(context.invocation_metadata())
-                        uid = metadata.get("x-user-id")
-                    except Exception:
-                        pass
+        from handlers.report_handler import generate_report
 
-                if uid is None:
-                    # Still no UID, check if it's local or auth disabled
-                    if os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE"):
-                        uid = "dev-user"
-
-                if uid:
-                    cache, _ = self._load_user_data(context)
-                else:
-                    raise ValueError("No authentication")
-            except Exception:
-                # Fallback to Sample_Data if no auth provided
-                sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
-                with open(sample_path) as f:
-                    cache = json.load(f)
-            rtype_map = {
-                pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
-                pb2.REPORT_TYPE_ENTRIES: "entries",
-                pb2.REPORT_TYPE_LINEUPS: "lineups",
-                pb2.REPORT_TYPE_RESULTS: "results",
-                pb2.REPORT_TYPE_MEET_PROGRAM: "program",
-                pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
-                pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
-                pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
-                pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
-                pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
-                pb2.REPORT_TYPE_CTS_EXPORT: "cts_export",
-                pb2.REPORT_TYPE_CHECK_IN_SHEET: "check_in_sheet",
-            }
-
-            from mm_to_json.mm_to_json import MmToJsonConverter
-
-            # Convert data once
-            converter = MmToJsonConverter(table_data=cache)
-            full_data = converter.convert()
-
-            # Serialize to msgpack for worker access
-            with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
-                msgpack_path = msgpack_tmp.name
-                msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
-
-            # Get user email for sharing (if applicable)
-            user_email = _get_user_email(cast(str, uid))
-
-            try:
-                res = _process_single_report_process(
-                    request.type,
-                    request.title,
-                    request.team_filter,
-                    request.gender_filter,
-                    request.age_group_filter,
-                    uid,
-                    request.columns_on_page if request.HasField("columns_on_page") else 2,
-                    request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
-                    request.zebra_striping if request.HasField("zebra_striping") else False,
-                    msgpack_path,
-                    rtype_map,
-                    request.renderer_type if hasattr(request, "renderer_type") else None,
-                    getattr(request, "html_preview", False),
-                    idx=0,
-                    user_email=user_email,
-                    include_blank_lanes=request.include_blank_lanes
-                    if request.HasField("include_blank_lanes")
-                    else True,
-                    break_every_six_events=request.break_every_six_events
-                    if request.HasField("break_every_six_events")
-                    else True,
-                )
-            finally:
-                # Cleanup msgpack file
-                if os.path.exists(msgpack_path):
-                    os.remove(msgpack_path)
-
-            if not res["success"]:
-                logging.error(f"Report generation failed in worker: {res.get('error')}")
-                return pb2.GenerateReportResponse(success=False, message=res["error"])
-
-            content_bytes = b""
-            filename = ""
-            html_str = ""
-
-            if "files" in res:
-                # Handle multiple files (e.g. CTS export) by zipping them
-                zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for f in res["files"]:
-                        zip_file.writestr(f["filename"], f["content"])
-                content_bytes = zip_buffer.getvalue()
-                filename = f"{res['rtype']}_export.zip"
-            else:
-                content_bytes = res["content"]
-                filename = res["filename"]
-                if filename.endswith(".html"):
-                    html_str = content_bytes.decode("utf-8")
-
-            logging.info(f"Report generated: {filename} ({len(content_bytes)} bytes)")
-
-            return pb2.GenerateReportResponse(
-                success=True,
-                message="Report generated successfully",
-                pdf_content=content_bytes if not filename.endswith(".html") else b"",
-                filename=filename,
-                html_content=html_str if html_str else None,
-                google_sheet_url=res.get("gs_url"),
-            )
-
-        except Exception as e:
-            logging.error(f"Error generating report: {e}")
-            return pb2.GenerateReportResponse(success=False, message=str(e))
+        return generate_report(request, context, self, pb2)
 
     def GenerateReportBundle(self, request, context):
-        """Asynchronously generates a report bundle."""
-        logging.info("GenerateReportBundle RPC called")
-        # Support unauthenticated access for Sample_Data.json (for dev/debug)
-        # Otherwise require authentication
-        try:
-            uid = self._check_auth(context)
-            if uid:
-                cache, _ = self._load_user_data(context)
-            else:
-                raise ValueError("No authentication")
-        except Exception:
-            # Fallback to Sample_Data if no auth provided
-            # This is safe because Sample_Data is public
-            sample_path = os.path.join(os.path.dirname(__file__), "..", "data", SOURCE_FILE)
-            with open(sample_path) as f:
-                cache = json.load(f)
-            uid = "sample-user"
+        from handlers.report_handler import generate_report_bundle
 
-        if request is None:
-            return pb2.GenerateReportBundleResponse(success=False, message="Missing request")
-
-        # Create background job
-        job_id = self.job_manager.create_job()
-        logging.info(f"Created background job {job_id}")
-
-        # Start background thread for generation
-        # Note: In Cloud Run, this thread gets CPU while polling requests are active.
-        thread = threading.Thread(target=self._run_bundle_generation_job, args=(job_id, request, uid, cache))
-        thread.start()
-
-        return pb2.GenerateReportBundleResponse(
-            success=True,
-            message="Bundle generation started",
-            job_id=job_id,
-        )
-
-    def _run_bundle_generation_job(self, job_id, request, uid, cache):
-        """Background worker for report bundle generation."""
-        logging.info(f"Background thread started for job {job_id}")
-        try:
-            self.job_manager.update_job(job_id, status=pb2.JOB_STATUS_PROCESSING, message="Converting data...")
-            logging.info(f"Job {job_id}: starting MmToJsonConverter")
-            rtype_map = {
-                pb2.REPORT_TYPE_PSYCH_UNSPECIFIED: "psych",
-                pb2.REPORT_TYPE_ENTRIES: "entries",
-                pb2.REPORT_TYPE_LINEUPS: "lineups",
-                pb2.REPORT_TYPE_RESULTS: "results",
-                pb2.REPORT_TYPE_MEET_PROGRAM: "program",
-                pb2.REPORT_TYPE_MEET_PROGRAM_HTML: "program_html",
-                pb2.REPORT_TYPE_ENTRIES_HYTEK: "entries_hytek",
-                pb2.REPORT_TYPE_ENTRIES_CLUB: "entries_club",
-                pb2.REPORT_TYPE_LANE_TIMER_SHEETS: "lane_timer_sheets",
-                pb2.REPORT_TYPE_JUDGE_SHEETS: "judge_sheets",
-                pb2.REPORT_TYPE_CTS_EXPORT: "cts_export",
-                pb2.REPORT_TYPE_CHECK_IN_SHEET: "check_in_sheet",
-            }
-
-            # Convert data once in main process
-            converter = MmToJsonConverter(table_data=cache)
-            full_data = converter.convert()
-
-            num_events = sum(len(s.get("events", [])) for s in full_data.get("sessions", []))
-            logging.info(f"Job {job_id}: data conversion complete. {num_events} events found.")
-
-            with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
-                msgpack_path = msgpack_tmp.name
-                msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
-                msgpack_tmp.flush()
-                msgpack_tmp.close()
-
-            tasks = []
-            max_workers = 3
-            self.job_manager.update_job(job_id, progress=0.05, message=f"Rendering {len(request.reports)} reports...")
-            logging.info(f"Job {job_id}: starting ProcessPoolExecutor with {max_workers} workers")
-
-            ctx = multiprocessing.get_context("spawn")
-            try:
-                # Store report requests for re-mapping results later
-                report_reqs = list(request.reports)
-
-                # Get user email for sharing
-                user_email = _get_user_email(cast(str, uid))
-
-                with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
-                    for idx, report_req in enumerate(report_reqs):
-                        tasks.append(
-                            executor.submit(
-                                _process_single_report_process,
-                                report_req.type,
-                                report_req.title,
-                                report_req.team_filter,
-                                report_req.gender_filter,
-                                report_req.age_group_filter,
-                                uid,
-                                report_req.columns_on_page if getattr(report_req, "columns_on_page", None) else 2,
-                                report_req.show_relay_swimmers if report_req.HasField("show_relay_swimmers") else True,
-                                report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
-                                msgpack_path,
-                                rtype_map,
-                                request.renderer_type if hasattr(request, "renderer_type") else None,
-                                False,  # html_preview
-                                idx,
-                                user_email,
-                                include_blank_lanes=report_req.include_blank_lanes
-                                if report_req.HasField("include_blank_lanes")
-                                else True,
-                                break_every_six_events=report_req.break_every_six_events
-                                if report_req.HasField("break_every_six_events")
-                                else True,
-                            )
-                        )
-
-                # PROGRESS TRACKING: Update as each task completes (unordered)
-                from concurrent.futures import as_completed
-
-                total_reports = len(tasks)
-                finished_count = 0
-
-                # We still need to wait for all results and gather them
-                # But we can update progress immediately as they finish
-                for _ in as_completed(tasks):
-                    finished_count += 1
-                    progress = 0.05 + (0.90 * (finished_count / total_reports))
-                    self.job_manager.update_job(
-                        job_id, progress=progress, message=f"Generated {finished_count}/{total_reports} reports"
-                    )
-                    logging.info(f"Job {job_id}: Progress update {finished_count}/{total_reports}")
-
-                # BUNDLING: Create ZIP in original order
-                zip_buffer = io.BytesIO()
-                gs_urls = []
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for i, future in enumerate(tasks):
-                        res = future.result()
-                        if res.get("success"):
-                            if "gs_url" in res and res["gs_url"]:
-                                gs_urls.append(res["gs_url"])
-
-                            if "files" in res:
-                                # Handle multiple files (e.g. CTS export)
-                                for f in res["files"]:
-                                    # Put them in a subdirectory to keep the ZIP organized
-                                    zip_file.writestr(f"CTS_Export/{f['filename']}", f["content"])
-                            else:
-                                zip_file.writestr(res["filename"], res["content"])
-
-                            logging.info(
-                                f"Job {job_id}: Report {i + 1}/{total_reports} ({res.get('rtype')}) added to bundle"
-                            )
-                        else:
-                            raise Exception(
-                                f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
-                            )
-            finally:
-                if os.path.exists(msgpack_path):
-                    os.remove(msgpack_path)
-
-            self.job_manager.update_job(job_id, message="Uploading bundle...")
-
-            num_reports = len(request.reports)
-            bundle_name = (
-                request.bundle_name
-                or f"meet_bundle_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{num_reports}_items.zip"
-            )
-            if not bundle_name.endswith(".zip"):
-                bundle_name += ".zip"
-
-            bundle_rel_path = os.path.join("users", uid, "published", "bundles", bundle_name)
-
-            with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as bundle_tmp:
-                bundle_tmp.write(zip_buffer.getvalue())
-                bundle_tmp_path = bundle_tmp.name
-                bundle_tmp.close()
-
-            try:
-                self.storage.upload_file(bundle_tmp_path, bundle_rel_path)
-            finally:
-                if os.path.exists(bundle_tmp_path):
-                    os.remove(bundle_tmp_path)
-
-            # Task C: Use Signed URL if available
-            bundle_url = self.storage.get_url(bundle_rel_path)
-
-            # Fallback: If get_url returned a relative path (e.g. /api/data?...)
-            # or if it's a GCS public URL that isn't signed (missing '?'),
-            # ensure it's a full URL using FRONTEND_URL.
-            from urllib.parse import urlparse
-
-            parsed_bundle = urlparse(bundle_url)
-            is_relative = bundle_url.startswith("/")
-            is_unsigned_gcs = (
-                parsed_bundle.netloc == "storage.googleapis.com" or parsed_bundle.netloc == "storage.cloud.google.com"
-            ) and not parsed_bundle.query
-
-            if is_relative or is_unsigned_gcs:
-                token = _get_data_access_token()
-                import urllib.parse
-
-                safe_bundle_path = urllib.parse.quote(bundle_rel_path)
-                # Try to get frontend_url from request if provided, otherwise from environment
-                frontend_base = getattr(request, "frontend_url", None) or os.getenv("FRONTEND_URL")
-                if not frontend_base:
-                    frontend_base = os.getenv("FRONTEND_PUBLIC_URL", "http://localhost:3100")
-
-                bundle_url = f"{frontend_base.rstrip('/')}/api/data?path={safe_bundle_path}&token={token}"
-                logging.info(f"Using absolute proxy fallback URL: {bundle_url}")
-
-            logging.info(f"Job {job_id}: Final bundle_url: {bundle_url}")
-
-            # ATOMIC UPDATE: Set everything at once to prevent race with poller
-            self.job_manager.update_job(
-                job_id,
-                status=pb2.JOB_STATUS_COMPLETED,
-                progress=1.0,
-                message="Complete",
-                bundle_url=bundle_url,
-                google_sheet_urls=gs_urls,
-            )
-
-        except Exception as e:
-            logging.error(f"Background job {job_id} failed: {e}")
-            self.job_manager.update_job(job_id, status=pb2.JOB_STATUS_FAILED, message=str(e))
+        return generate_report_bundle(request, context, self, pb2)
 
     def GetJobStatus(self, request, context):
         """Retrieves the status of a background job."""
@@ -2201,218 +1680,14 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         )
 
     def PublishMeetData(self, request, context):
-        request = request or pb2.PublishMeetDataRequest()
-        uid = self._check_auth(context)
-        cache, config = self._load_user_data(context)
-        current_file = config.get("active_dataset", SOURCE_FILE)
+        from handlers.publish_handler import publish_meet_data
 
-        try:
-            from mm_to_json.judge_app_extractor import JudgeAppExtractor
-
-            converter = MmToJsonConverter(table_data=cache)
-            extractor = JudgeAppExtractor(converter)
-            judge_data = extractor.extract_judge_data()
-
-            # Save to a user-specific public-accessible location via StorageProvider
-            base_filename = current_file
-            if base_filename.lower().endswith((".json", ".mdb")):
-                base_filename = os.path.splitext(base_filename)[0]
-
-            filename = f"program_{base_filename}.json"
-            user_pub_path = os.path.join("users", uid, "published", filename)
-
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
-                json.dump(judge_data, tmp)
-                tmp_path = tmp.name
-
-            try:
-                self.storage.upload_file(tmp_path, user_pub_path)
-            finally:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-
-            # Generate URLs
-            # Use the /api/data proxy for the program_url to avoid direct GCS signed URL issues.
-            # This works statelessly using the DATA_ACCESS_TOKEN.
-            token = _get_data_access_token()
-
-            # Use frontend_url from request if provided, otherwise environment variables
-            if request.frontend_url:
-                frontend_base = request.frontend_url.rstrip("/")
-            else:
-                frontend_base = os.getenv("FRONTEND_URL") or os.getenv("FRONTEND_PUBLIC_URL")
-                if not frontend_base:
-                    frontend_host = os.getenv("FRONTEND_PUBLIC_HOST", "localhost")
-                    frontend_port = os.getenv("FRONTEND_PORT", "3000")
-                    frontend_base = f"http://{frontend_host}:{frontend_port}"
-
-            # Correctly path-encode the user_pub_path
-            import urllib.parse
-
-            safe_pub_path = urllib.parse.quote(user_pub_path)
-            program_url = f"{frontend_base}/api/data?path={safe_pub_path}&token={token}"
-            sync_url = f"{frontend_base}/api/sync-dqs?token={token}&uid={uid}"
-
-            logging.info(f"PublishMeetData: frontend_base={frontend_base}, program_url={program_url}")
-
-            # Nested URLs must be fully encoded to be valid as a query parameter value.
-            # We use safe="" to ensure EVERYTHING including / and : is encoded for the final link.
-            # This is "Double Encoding" because program_url already has safe_pub_path encoded.
-            # But the Judge App will decode the query params ONCE, giving it the original program_url.
-            encoded_program = urllib.parse.quote(program_url, safe="")
-            encoded_sync = urllib.parse.quote(sync_url, safe="")
-
-            # Determine Judge App Base URL
-            # Priority:
-            # 1. JUDGE_APP_URL env var
-            # 2. Local fallback if frontend is on localhost (for E2E)
-            # 3. GitHub Pages production fallback
-            judge_app_base = os.getenv("JUDGE_APP_URL")
-            if not judge_app_base:
-                if "localhost" in frontend_base or "127.0.0.1" in frontend_base:
-                    # In local dev/E2E, judge app is served by frontend on port 3000
-                    # or via mobile-judge-app container on port 8081.
-                    # We prefer port 3000 as it's the primary entry point.
-                    judge_app_base = "http://localhost:3000/judge"
-                else:
-                    # Production GitHub Pages
-                    judge_app_base = "https://pfisherogden.github.io/MeetManager-Tools/judge"
-
-            judge_app_url = f"{judge_app_base}?program_url={encoded_program}&sync_url={encoded_sync}"
-            return pb2.PublishMeetDataResponse(success=True, message="Published", judge_app_url=judge_app_url)
-        except Exception as e:
-            logging.error(f"Publish failed: {e}")
-            return pb2.PublishMeetDataResponse(success=False, message=str(e))
+        return publish_meet_data(request, context, self, pb2)
 
     def SyncDQs(self, request, context):
-        # System-level bypass for stateless sync from mobile apps (authenticated by web-client proxy)
-        token = _get_data_access_token()
-        uid = request.uid
+        from handlers.dq_handler import sync_dqs
 
-        logging.info(
-            f"SyncDQs: Received request for UID: {self._mask_uid(uid)}, Payload length: {len(request.dqs_json)}"
-        )
-
-        if token and request.access_token == token:
-            uid = request.uid
-            logging.info(f"SyncDQs: Authenticated via system token for user {self._mask_uid(uid)}")
-        else:
-            uid = self._check_auth(context)
-
-        dqs_json = request.dqs_json
-
-        try:
-            # Parse to validate
-            dqs = json.loads(dqs_json)
-
-            # Save to user's dataset directory (as backup/log)
-            filename = "synced_dqs.json"
-            user_path = os.path.join("users", uid, filename)
-
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
-                json.dump(dqs, tmp, indent=2)
-                tmp_path = tmp.name
-
-            try:
-                self.storage.upload_file(tmp_path, user_path)
-            finally:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-
-            # Update the master database if it's an MDB
-            config = self._load_user_config(context)
-            active_filename = config.get("active_dataset")
-            if active_filename and active_filename.lower().endswith(".mdb"):
-                dataset_path = os.path.join("users", uid, active_filename)
-                if self.storage.exists(dataset_path):
-                    logging.info(f"Syncing DQs to MDB: {self._mask_path(dataset_path)} for user {self._mask_uid(uid)}")
-
-                    # Download MDB to local temp for writing
-                    with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp_mdb:
-                        tmp_mdb_path = tmp_mdb.name
-                        tmp_mdb.close()
-
-                    try:
-                        self.storage.download_file(dataset_path, tmp_mdb_path)
-
-                        # Resolve event pointers and relay status from human-readable numbers
-                        cache, _ = self._load_user_data(context)
-                        event_table = self._get_table(cache, "event")
-                        # Map eventNum (human #) to {ptr, is_relay}
-                        event_info_map = {}
-                        for e in event_table:
-                            # event_no is human #, event_ptr is MDB PK
-                            # mtevent is PK in Schema B
-                            h_num = self._safe_int(
-                                self._get_field(e, ["event_no", "Event_no"])
-                                or self._get_field(e, ["mtevent", "Mtevent"])
-                            )
-                            e_ptr = self._get_field(e, ["event_ptr", "Event_ptr"]) or self._get_field(
-                                e, ["mtevent", "Mtevent"]
-                            )
-                            # Ind_rel is 'R' for relays in Schema A, 'i_r' in Schema B?
-                            is_relay = (
-                                str(self._get_field(e, ["Ind_rel", "ind_rel", "i_r", "I_r"]) or "").upper() == "R"
-                            )
-
-                            if h_num and e_ptr:
-                                event_info_map[h_num] = {"ptr": e_ptr, "is_relay": is_relay}
-
-                        from mm_to_json import mdb_writer
-
-                        db = mdb_writer.open_db(tmp_mdb_path)
-                        try:
-                            updated_count = 0
-                            for dq in dqs:
-                                # Mobile app sends id, swimmer_id, event_id, dq_code, notes, heat, lane
-                                event_id = dq.get("event_id")
-                                athlete_id = dq.get("swimmer_id")
-                                dq_code = dq.get("dq_code", "")
-                                notes = dq.get("notes", "")
-                                heat = self._safe_int(dq.get("heat", 0))
-                                lane = self._safe_int(dq.get("lane", 0))
-
-                                info = event_info_map.get(self._safe_int(event_id))
-                                if info and athlete_id:
-                                    if mdb_writer.update_entry_status(
-                                        db,
-                                        info["ptr"],
-                                        athlete_id,
-                                        heat,
-                                        lane,
-                                        status="DQ",
-                                        dq_code=dq_code,
-                                        is_relay=info["is_relay"],
-                                    ):
-                                        updated_count += 1
-                                        logging.info(
-                                            f"Updated MDB DQ for swimmer {athlete_id} in event {event_id}. Notes: {notes}"
-                                        )
-
-                            db.close()
-                            # Upload updated MDB back to storage
-                            self.storage.upload_file(tmp_mdb_path, dataset_path)
-
-                            # Force cache invalidation so Next.js/Web-Client sees the DQ
-                            if uid in self._user_cache:
-                                del self._user_cache[uid]
-                            logging.info(
-                                f"Successfully updated {updated_count} entries in MDB for {self._mask_uid(uid)}"
-                            )
-                        finally:
-                            try:
-                                db.close()
-                            except Exception:
-                                pass
-                    finally:
-                        if os.path.exists(tmp_mdb_path):
-                            os.remove(tmp_mdb_path)
-
-            logging.info(f"Synced {len(dqs)} DQs for user {self._mask_uid(uid)}")
-            return pb2.SyncDQsResponse(success=True, message=f"Synced {len(dqs)} items")
-        except Exception as e:
-            logging.error(f"Sync failed: {e}")
-            return pb2.SyncDQsResponse(success=False, message=str(e))
+        return sync_dqs(request, context, self, pb2)
 
     def GetFile(self, request, context):
         # Allow unauthenticated access specifically for sample-user paths (public sample data)
@@ -2519,31 +1794,208 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             return ""
 
 
+ACTUAL_REST_PORT = 0
+
+
+def write_active_ports(grpc_port: int, rest_port: int):
+    try:
+        dir_path = os.path.expanduser("~/.mmtools")
+        os.makedirs(dir_path, exist_ok=True)
+        file_path = os.path.join(dir_path, "active_ports.json")
+        data = {
+            "grpc_port": grpc_port,
+            "rest_port": rest_port,
+            "pid": os.getpid(),
+            "timestamp": int(time.time()),
+        }
+        with open(file_path, "w") as f:
+            json.dump(data, f, indent=2)
+        logging.info(f"Wrote active ports to local registry: {file_path}")
+    except Exception as e:
+        logging.warning(f"Failed to write active ports to registry: {e}")
+
+
 def serve_health_check():
     import base64
 
     from google.protobuf import json_format
 
+    class MockContext:
+        def __init__(self, metadata_headers_or_user_id):
+            if isinstance(metadata_headers_or_user_id, str):
+                user_id = metadata_headers_or_user_id
+            else:
+                user_id = metadata_headers_or_user_id.get("x-user-id", "dev-user")
+            self._metadata = [("x-user-id", user_id)]
+
+        def invocation_metadata(self):
+            return self._metadata
+
+        def set_code(self, code):
+            pass
+
+        def set_details(self, details):
+            pass
+
+        def abort(self, code, details):
+            raise Exception(f"gRPC Abort: {code} - {details}")
+
     class HealthHandler(http.server.BaseHTTPRequestHandler):
+        def _send_cors_headers(self):
+            origin = self.headers.get("Origin")
+            if origin:
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Access-Control-Allow-Credentials", "true")
+            else:
+                self.send_header("Access-Control-Allow-Origin", "*")
+
         def do_OPTIONS(self):
             self.send_response(200)
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self._send_cors_headers()
             self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type, x-user-id, authorization")
             self.end_headers()
 
         def do_GET(self):
-            if self.path == "/health":
+            import urllib.parse
+
+            parsed_url = urllib.parse.urlparse(self.path)
+
+            if parsed_url.path == "/health":
                 self.send_response(200)
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self._send_cors_headers()
                 self.end_headers()
                 self.wfile.write(b"OK")
+            elif parsed_url.path == "/api/data":
+                params = urllib.parse.parse_qs(parsed_url.query)
+                token = params.get("token", [""])[0]
+                relative_path = params.get("path", [""])[0]
+
+                # Check data access token if configured
+                configured_token = _get_data_access_token()
+                if configured_token and token != configured_token:
+                    self.send_response(403)
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self.wfile.write(b"Unauthorized access")
+                    return
+
+                if not relative_path:
+                    self.send_response(400)
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self.wfile.write(b"Missing path parameter")
+                    return
+
+                try:
+                    # Resolve safe full path
+                    base_storage_dir = os.getenv("STORAGE_BASE_DIR")
+                    if not base_storage_dir:
+                        if getattr(sys, "frozen", False):
+                            base_storage_dir = os.path.join(getattr(sys, "_MEIPASS", ""), DATA_DIR)
+                        else:
+                            base_storage_dir = os.path.join(os.path.dirname(__file__), DATA_DIR)
+                    base_abs = os.path.abspath(base_storage_dir)
+                    full_path = os.path.abspath(os.path.join(base_abs, relative_path))
+
+                    logging.info(
+                        f"do_GET /api/data: path={relative_path} resolved base_abs={base_abs} full_path={full_path} exists={os.path.exists(full_path)}"
+                    )
+
+                    if not full_path.startswith(base_abs):
+                        self.send_response(403)
+                        self._send_cors_headers()
+                        self.end_headers()
+                        self.wfile.write(b"Access Denied")
+                        return
+
+                    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+                        self.send_response(404)
+                        self._send_cors_headers()
+                        self.end_headers()
+                        self.wfile.write(b"File Not Found")
+                        return
+
+                    # Determine Content-Type
+                    content_type = "application/octet-stream"
+                    if full_path.endswith(".zip"):
+                        content_type = "application/zip"
+                    elif full_path.endswith(".pdf"):
+                        content_type = "application/pdf"
+                    elif full_path.endswith(".html"):
+                        content_type = "text/html"
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self._send_cors_headers()
+                    self.send_header("Access-Control-Allow-Headers", "*")
+                    self.end_headers()
+
+                    with open(full_path, "rb") as f:
+                        self.wfile.write(f.read())
+
+                except Exception as e:
+                    self.send_response(500)
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self.wfile.write(str(e).encode("utf-8"))
             else:
                 self.send_response(404)
+                self._send_cors_headers()
                 self.end_headers()
 
         def do_POST(self):
-            if self.path.startswith("/api/grpc/"):
+            if self.path.startswith("/api/sync-dqs") or self.path.startswith("/api/submit-dq"):
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length).decode("utf-8")
+
+                # Parse query parameters safely
+                import urllib.parse
+
+                parsed_url = urllib.parse.urlparse(self.path)
+                params = urllib.parse.parse_qs(parsed_url.query)
+
+                token = params.get("token", [""])[0]
+                uid = params.get("uid", ["dev-user"])[0]
+
+                # Check data access token if configured
+                configured_token = _get_data_access_token()
+                if configured_token and token != configured_token:
+                    self.send_response(403)
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self.wfile.write(b"Unauthorized access")
+                    return
+
+                import json
+
+                try:
+                    payload = json.loads(body)
+                    if self.path.startswith("/api/submit-dq"):
+                        dqs_list = [payload]
+                    else:
+                        dqs_list = payload if isinstance(payload, list) else [payload]
+
+                    servicer = MeetManagerService()
+                    context = MockContext(uid)
+
+                    resp = servicer.SyncDQs(
+                        pb2.SyncDQsRequest(dqs_json=json.dumps(dqs_list), uid=uid, access_token=configured_token),
+                        context,
+                    )
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self._send_cors_headers()
+                    self.send_header("Access-Control-Allow-Headers", "*")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": resp.success, "message": resp.message}).encode("utf-8"))
+                except Exception as e:
+                    self.send_response(500)
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self.wfile.write(str(e).encode("utf-8"))
+            elif self.path.startswith("/api/grpc/"):
                 method_name = self.path[len("/api/grpc/") :]
 
                 content_length = int(self.headers.get("Content-Length", 0))
@@ -2554,14 +2006,9 @@ def serve_health_check():
                     method = getattr(servicer, method_name, None)
                     if not method:
                         self.send_response(404)
-                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self._send_cors_headers()
                         self.end_headers()
                         return
-
-                    class MockContext:
-                        def __init__(self, metadata_headers):
-                            user_id = metadata_headers.get("x-user-id", "dev-user")
-                            self.invocation_metadata = [("x-user-id", user_id)]
 
                     context = MockContext(self.headers)
 
@@ -2583,7 +2030,7 @@ def serve_health_check():
                         request_class = getattr(pb2, f"{method_name}Request", None)
                         if not request_class:
                             self.send_response(500)
-                            self.send_header("Access-Control-Allow-Origin", "*")
+                            self._send_cors_headers()
                             self.end_headers()
                             self.wfile.write(f"Request class not found: {method_name}Request".encode())
                             return
@@ -2599,29 +2046,64 @@ def serve_health_check():
 
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self._send_cors_headers()
                     self.send_header("Access-Control-Allow-Headers", "*")
                     self.end_headers()
                     self.wfile.write(resp_json.encode("utf-8"))
                 except Exception as e:
                     self.send_response(500)
-                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self._send_cors_headers()
                     self.end_headers()
                     self.wfile.write(str(e).encode("utf-8"))
             else:
                 self.send_response(404)
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self._send_cors_headers()
                 self.end_headers()
 
         def log_message(self, format, *args):
             return
 
-    try:
-        httpd = http.server.HTTPServer(("0.0.0.0", 8081), HealthHandler)
-        logging.info("REST Gateway + Health check server starting on port 8081...")
-        httpd.serve_forever()
-    except Exception as e:
-        logging.error(f"Failed to start REST Gateway server: {e}")
+    import socket
+    import socketserver
+
+    class ThreadingHTTPServerV6(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+        address_family = socket.AF_INET6
+
+    class ThreadingHTTPServerV4(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+        address_family = socket.AF_INET
+
+    rest_port = int(os.getenv("REST_PORT", "8081"))
+    httpd: Any = None
+    for port_attempt in range(rest_port, rest_port + 10):
+        try:
+            # Attempt dual-stack IPv6/IPv4 binding first
+            try:
+                httpd = ThreadingHTTPServerV6(("::", port_attempt), HealthHandler)
+                try:
+                    # Enable dual-stack explicitly (V6ONLY=0)
+                    httpd.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+                except Exception:
+                    pass
+            except Exception:
+                # Fallback to IPv4 wildcard
+                httpd = ThreadingHTTPServerV4(("0.0.0.0", port_attempt), HealthHandler)
+            rest_port = port_attempt
+            global ACTUAL_REST_PORT
+            ACTUAL_REST_PORT = rest_port
+            break
+        except Exception:
+            logging.warning(f"Port {port_attempt} already in use, trying next...")
+
+    if httpd is None:
+        logging.error("Failed to start REST Gateway server: no free ports found.")
+    else:
+        logging.info(f"REST Gateway + Health check server starting on port {rest_port}...")
+        try:
+            httpd.serve_forever()
+        except Exception as e:
+            logging.error(f"Error in REST Gateway server loop: {e}")
 
 
 def serve():
@@ -2710,13 +2192,59 @@ def serve():
         if (os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE")) and not in_docker
         else "0.0.0.0"
     )
-    server.add_insecure_port(f"{bind_address}:{port}")
-    logging.info(f"Server starting on {bind_address}:{port} with Health check (port 8081)...")
+    actual_port = server.add_insecure_port(f"{bind_address}:{port}")
+    logging.info(f"Server starting on {bind_address}:{actual_port}...")
     server.start()
+
+    # Wait briefly for ACTUAL_REST_PORT to be set by the health check thread
+    for _ in range(20):
+        if ACTUAL_REST_PORT > 0:
+            break
+        time.sleep(0.1)
+
+    write_active_ports(actual_port, ACTUAL_REST_PORT)
     server.wait_for_termination()
 
 
 if __name__ == "__main__":
+    import multiprocessing
+
+    multiprocessing.freeze_support()
+
+    import os
+    import sys
+
+    # Apply macOS Homebrew library resolution fallback under SIP
+    if sys.platform == "darwin":
+        homebrew_lib = "/opt/homebrew/lib"
+        if os.path.exists(homebrew_lib):
+            import ctypes.util
+
+            if ctypes.util.find_library.__name__ != "new_find_library":
+                orig_find_library = ctypes.util.find_library
+
+                def new_find_library(name):
+                    res = orig_find_library(name)
+                    if res:
+                        return res
+                    base_name = name
+                    if name.startswith("lib"):
+                        base_name = name[3:]
+                    if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
+                        base_name = base_name.split("-")[0]
+                    exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
+                    if os.path.exists(exact_path):
+                        return exact_path
+                    try:
+                        for f in os.listdir(homebrew_lib):
+                            if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
+                                return os.path.join(homebrew_lib, f)
+                    except Exception:
+                        pass
+                    return None
+
+                ctypes.util.find_library = new_find_library
+
     # Configure logging
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
     log_level = getattr(logging, log_level_str, logging.INFO)
