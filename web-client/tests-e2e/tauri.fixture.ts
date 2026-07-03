@@ -5,7 +5,8 @@ import { test as base } from "@playwright/test";
 export const test = base.extend<{
 	tauriApp: { wsEndpoint: string; process: any };
 }>({
-	tauriApp: async (_, use) => {
+	// biome-ignore lint/correctness/noEmptyPattern: Playwright requires object destructuring for first argument of fixtures
+	tauriApp: async ({}, use) => {
 		// Path to built macOS app executable
 		const appPath = path.resolve(
 			__dirname,
