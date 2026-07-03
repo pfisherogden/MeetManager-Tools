@@ -37,7 +37,7 @@ test.describe("Mobile Judge App Journey", () => {
 		let judgeUrl = (await judgeUrlLocator.textContent()) || "";
 
 		// Align E2E URL Logic: Use MOBILE_APP_URL as source of truth
-		const _mobileAppUrl = process.env.MOBILE_APP_URL || "http://localhost:8081";
+		const _mobileAppUrl = process.env.MOBILE_APP_URL || "http://localhost:8082";
 		const _frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
 		// Align E2E URL Logic: Use baseURL as the source of truth for the monolith
