@@ -100,3 +100,69 @@ export async function callRestGateway(method: string, payload: any) {
 		}
 	}
 }
+
+export async function downloadFile(
+	filename: string,
+	content: ArrayBuffer | string,
+	isBase64 = false,
+) {
+	const isTauri =
+		typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+
+	if (isTauri) {
+		try {
+			const { save } = await import("@tauri-apps/plugin-dialog");
+			const { writeFile } = await import("@tauri-apps/plugin-fs");
+
+			const savePath = await save({
+				defaultPath: filename,
+			});
+
+			if (!savePath) {
+				console.log("Download cancelled by user");
+				return;
+			}
+
+			let bytes: Uint8Array;
+			if (isBase64 && typeof content === "string") {
+				const binaryString = window.atob(content);
+				bytes = new Uint8Array(binaryString.length);
+				for (let i = 0; i < binaryString.length; i++) {
+					bytes[i] = binaryString.charCodeAt(i);
+				}
+			} else if (content instanceof ArrayBuffer) {
+				bytes = new Uint8Array(content);
+			} else if (typeof content === "string") {
+				const encoder = new TextEncoder();
+				bytes = encoder.encode(content);
+			} else {
+				throw new Error("Invalid content type for download");
+			}
+
+			await writeFile(savePath, bytes);
+			console.log(`Successfully saved file to ${savePath}`);
+		} catch (err) {
+			console.error("Tauri file save failed:", err);
+			throw err;
+		}
+	} else {
+		// Browser fallback
+		const link = document.createElement("a");
+		if (isBase64 && typeof content === "string") {
+			link.href = `data:application/octet-stream;base64,${content}`;
+		} else if (content instanceof ArrayBuffer) {
+			const blob = new Blob([content], { type: "application/octet-stream" });
+			link.href = URL.createObjectURL(blob);
+		} else {
+			const blob = new Blob([content], { type: "text/plain" });
+			link.href = URL.createObjectURL(blob);
+		}
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		if (!(content instanceof String) && typeof content !== "string") {
+			URL.revokeObjectURL(link.href);
+		}
+	}
+}
