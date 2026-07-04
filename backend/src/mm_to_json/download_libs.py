@@ -38,28 +38,34 @@ def download_libs(target_dir):
             logger.error(f"Error downloading {filename}: {e}")
 
 
-def check_and_download_jre(base_dir):
+def check_and_download_jre(base_dir, force=False):
     jre_dir = os.path.join(base_dir, "jre")
-    if os.path.exists(jre_dir):
+    if os.path.exists(jre_dir) and not force:
         logger.info(f"Local JRE already exists at {jre_dir}")
         return
 
-    # Check if a JVM is already found by jpype
-    import jpype
+    # Check if a JVM is already found by jpype (unless forced)
+    if not force:
+        import jpype
 
-    try:
-        # If this returns a path, jpype found a system-wide or environment Java
-        if jpype.getDefaultJVMPath():
-            logger.info("System JVM found, skipping JRE download.")
-            return
-    except Exception:
-        pass
+        try:
+            # If this returns a path, jpype found a system-wide or environment Java
+            if jpype.getDefaultJVMPath():
+                logger.info("System JVM found, skipping JRE download.")
+                return
+        except Exception:
+            pass
 
     sys_plat = platform.system().lower()
     if sys_plat == "darwin":
         os_name = "mac"
+        ext = ".tar.gz"
     elif sys_plat == "linux":
         os_name = "linux"
+        ext = ".tar.gz"
+    elif sys_plat == "windows":
+        os_name = "windows"
+        ext = ".zip"
     else:
         logger.warning(f"Unsupported platform for portable JRE: {sys_plat}")
         return
@@ -76,7 +82,13 @@ def check_and_download_jre(base_dir):
     url = ADOPTIUM_API.format(os=os_name, arch=arch_name)
     logger.info(f"Downloading portable JRE for {os_name}/{arch_name} from Adoptium...")
 
-    jre_archive = os.path.join(base_dir, "jre_temp.tar.gz")
+    # If force is True and JRE already exists, remove it first to allow clean overwrite
+    if force and os.path.exists(jre_dir):
+        import shutil
+
+        shutil.rmtree(jre_dir)
+
+    jre_archive = os.path.join(base_dir, f"jre_temp{ext}")
     try:
         # Use a proper User-Agent to avoid some API blocks
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -84,8 +96,14 @@ def check_and_download_jre(base_dir):
             out_file.write(response.read())
 
         logger.info("Extracting JRE...")
-        with tarfile.open(jre_archive, "r:gz") as tar:
-            tar.extractall(path=base_dir)
+        if ext == ".zip":
+            import zipfile
+
+            with zipfile.ZipFile(jre_archive, "r") as zip_ref:
+                zip_ref.extractall(base_dir)
+        else:
+            with tarfile.open(jre_archive, "r:gz") as tar:
+                tar.extractall(path=base_dir)
 
         # Temurin folders usually look like 'jdk-21.0.6+7-jre'
         # Let's find the new directory that isn't 'lib', 'jre', or other known ones
@@ -115,4 +133,4 @@ if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
     lib_dir = os.path.join(base_dir, "lib")
     download_libs(lib_dir)
-    check_and_download_jre(base_dir)
+    check_and_download_jre(base_dir, force=True)

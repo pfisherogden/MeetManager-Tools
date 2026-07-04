@@ -189,5 +189,9 @@ All agents MUST follow these workflow phases:
 - **Modular Design**: Business logic validations are decoupled from the gRPC transport layer. All integrity rules reside in `meet_validation.py`.
 - **Exhibition Swims**: Exhibition swims are marked by a non-empty `Pre_exh` or `Fin_exh` column in the `entry` (or `relay` for teams) tables. These do NOT count against TVSL rules limits (max 3 individual / 4 total events).
 
+### 20. Tauri Desktop App Architecture & WebView IPC Limits
+- **Dynamic Port Discovery**: The frontend queries `get_backend_port` via Rust dynamically on every request. Caching this port in JS module scope is strictly forbidden to avoid dynamic startup race conditions.
+- **Filesystem Bypass**: To download report packs/ZIPs in the desktop app, pass the URL to the custom Rust command `copy_file_from_storage(relative_path, dest_path)` which executes direct filesystem copies (`fs::copy`) natively. Large byte arrays must never be serialized as JSON arrays over WebView IPC.
+
 
 
