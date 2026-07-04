@@ -3,5 +3,10 @@
 	"identifier": "default",
 	"description": "enables the default permissions",
 	"windows": ["main"],
-	"permissions": ["core:default", "shell:allow-execute"]
+	"permissions": [
+		"core:default",
+		"shell:allow-execute",
+		"dialog:default",
+		"fs:default"
+	]
 }

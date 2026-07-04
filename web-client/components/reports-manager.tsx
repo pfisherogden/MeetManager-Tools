@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { RendererType } from "@/lib/proto/meetmanager/v1/meet_manager";
+import { downloadFile } from "@/lib/tauri-bridge";
 import { cn } from "@/lib/utils";
 
 const reportTypes = [
@@ -220,27 +221,14 @@ export function ReportsManager({
 							fetch(resolvedUrl)
 								.then((res) => {
 									if (!res.ok) throw new Error("Failed to download file");
-									return res.blob();
+									return res.arrayBuffer();
 								})
-								.then((blob) => {
-									const blobUrl = URL.createObjectURL(blob);
-									const link = document.createElement("a");
-									link.href = blobUrl;
-									link.setAttribute("download", filename);
-									document.body.appendChild(link);
-									link.click();
-									document.body.removeChild(link);
-									URL.revokeObjectURL(blobUrl);
+								.then((arrayBuffer) => {
+									downloadFile(filename, arrayBuffer);
 								})
 								.catch((err) => {
 									console.error("Programmatic download failed:", err);
-									// Fallback
-									const link = document.createElement("a");
-									link.href = resolvedUrl;
-									link.setAttribute("download", filename);
-									document.body.appendChild(link);
-									link.click();
-									document.body.removeChild(link);
+									toast.error("Failed to download reports bundle");
 								});
 						});
 
@@ -311,12 +299,14 @@ export function ReportsManager({
 						win.document.close();
 					}
 				} else if (result.pdfContentBase64) {
-					const link = document.createElement("a");
-					link.href = `data:application/pdf;base64,${result.pdfContentBase64}`;
-					link.download = result.filename || `${reportTitle}.pdf`;
-					document.body.appendChild(link);
-					link.click();
-					document.body.removeChild(link);
+					downloadFile(
+						result.filename || `${reportTitle}.pdf`,
+						result.pdfContentBase64,
+						true,
+					).catch((err) => {
+						console.error("PDF download failed:", err);
+						toast.error("Failed to save PDF report");
+					});
 				}
 				toast.success("Report generated successfully");
 			} else {
