@@ -1,10 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getSessions } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SessionsManager } from "@/components/sessions-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Session } from "@/lib/swim-meet-types";
-
-export const dynamic = "force-dynamic";
 
 interface ServerSession {
 	id: string;
@@ -16,30 +17,32 @@ interface ServerSession {
 	eventCount: number;
 }
 
-export default async function SessionsPage() {
-	let mappedSessions: Session[] = [];
+export default function SessionsPage() {
+	const [mappedSessions, setMappedSessions] = useState<Session[]>([]);
+	const [loading, setLoading] = useState(true);
 
 	// Mock meets for now, eventually fetch from backend
 	const meets = [{ id: "1", name: "Summer Championships" }];
 
-	try {
-		const response = (await getSessions()) as unknown as {
-			sessions: ServerSession[];
-		};
-		if (response?.sessions) {
-			mappedSessions = response.sessions.map((s) => ({
-				id: s.id,
-				meetId: s.meetId,
-				name: s.name,
-				date: s.date,
-				warmUpTime: s.warmUpTime,
-				startTime: s.startTime,
-				eventCount: s.eventCount,
-			}));
-		}
-	} catch (e) {
-		console.error("Failed to fetch sessions", e);
-	}
+	useEffect(() => {
+		getSessions()
+			.then((response: any) => {
+				if (response?.sessions) {
+					const mapped = response.sessions.map((s: ServerSession) => ({
+						id: s.id,
+						meetId: s.meetId,
+						name: s.name,
+						date: s.date,
+						warmUpTime: s.warmUpTime,
+						startTime: s.startTime,
+						eventCount: s.eventCount,
+					}));
+					setMappedSessions(mapped);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch sessions", e))
+			.finally(() => setLoading(false));
+	}, []);
 
 	return (
 		<>
@@ -55,7 +58,15 @@ export default async function SessionsPage() {
 							Manage meet sessions and schedules
 						</p>
 					</div>
-					<SessionsManager initialSessions={mappedSessions} meets={meets} />
+					{loading ? (
+						<div className="flex-1 flex items-center justify-center p-6">
+							<span className="text-muted-foreground animate-pulse">
+								Loading sessions...
+							</span>
+						</div>
+					) : (
+						<SessionsManager initialSessions={mappedSessions} meets={meets} />
+					)}
 				</div>
 			</SidebarInset>
 		</>

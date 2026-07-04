@@ -19,6 +19,7 @@ import {
 	generateReportBundle,
 	getJobStatus,
 	getTeams,
+	resolveBundleUrl,
 } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -215,31 +216,33 @@ export function ReportsManager({
 						downloadTriggered.current = jobId;
 						const filename = _filename || "meet_reports.zip";
 
-						fetch(status.bundleUrl)
-							.then((res) => {
-								if (!res.ok) throw new Error("Failed to download file");
-								return res.blob();
-							})
-							.then((blob) => {
-								const blobUrl = URL.createObjectURL(blob);
-								const link = document.createElement("a");
-								link.href = blobUrl;
-								link.setAttribute("download", filename);
-								document.body.appendChild(link);
-								link.click();
-								document.body.removeChild(link);
-								URL.revokeObjectURL(blobUrl);
-							})
-							.catch((err) => {
-								console.error("Programmatic download failed:", err);
-								// Fallback
-								const link = document.createElement("a");
-								link.href = status.bundleUrl;
-								link.setAttribute("download", filename);
-								document.body.appendChild(link);
-								link.click();
-								document.body.removeChild(link);
-							});
+						resolveBundleUrl(status.bundleUrl).then((resolvedUrl) => {
+							fetch(resolvedUrl)
+								.then((res) => {
+									if (!res.ok) throw new Error("Failed to download file");
+									return res.blob();
+								})
+								.then((blob) => {
+									const blobUrl = URL.createObjectURL(blob);
+									const link = document.createElement("a");
+									link.href = blobUrl;
+									link.setAttribute("download", filename);
+									document.body.appendChild(link);
+									link.click();
+									document.body.removeChild(link);
+									URL.revokeObjectURL(blobUrl);
+								})
+								.catch((err) => {
+									console.error("Programmatic download failed:", err);
+									// Fallback
+									const link = document.createElement("a");
+									link.href = resolvedUrl;
+									link.setAttribute("download", filename);
+									document.body.appendChild(link);
+									link.click();
+									document.body.removeChild(link);
+								});
+						});
 
 						// Also open any google sheets
 						if (status.googleSheetUrls && status.googleSheetUrls.length > 0) {

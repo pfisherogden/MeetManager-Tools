@@ -27,7 +27,7 @@ test.describe("Filtered Navigation", () => {
 		await expect(entriesLink).toBeVisible({ timeout: 15000 });
 		await entriesLink.click();
 
-		await expect(page).toHaveURL(/\/entries\?event=\d+/);
+		await expect(page).toHaveURL(/\/entries\/?\?event=\d+/);
 
 		// Should show data, not "No data available"
 		await expect(page.locator("table tbody tr")).not.toHaveCount(0, {
@@ -47,7 +47,7 @@ test.describe("Filtered Navigation", () => {
 		await expect(relaysLink).toBeVisible({ timeout: 15000 });
 		await relaysLink.click();
 
-		await expect(page).toHaveURL(/\/relays\?event=\d+/);
+		await expect(page).toHaveURL(/\/relays\/?\?event=\d+/);
 
 		// Should show data
 		await expect(page.locator("table tbody tr")).not.toHaveCount(0, {

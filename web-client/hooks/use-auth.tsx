@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		if (!loading && !isAuthDisabled && !user) {
 			const isPublicPath =
 				pathname === "/login" ||
+				pathname === "/login/" ||
 				pathname.startsWith("/judge") ||
 				pathname.startsWith("/api/test") ||
 				pathname.startsWith("/api/data");

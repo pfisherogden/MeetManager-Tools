@@ -13,10 +13,34 @@ import {
 let defaultHost = "backend:8080";
 
 if (typeof window === "undefined") {
-	defaultHost =
-		process.env.BACKEND_URL ||
-		process.env.BACKEND_INTERNAL_HOST ||
-		"backend:8080";
+	let resolvedHost =
+		process.env.BACKEND_URL || process.env.BACKEND_INTERNAL_HOST;
+
+	if (!resolvedHost) {
+		try {
+			const fs = require("node:fs");
+			const path = require("node:path");
+			const os = require("node:os");
+			const homedir = os.homedir();
+			const registryPath = path.join(homedir, ".mmtools", "active_ports.json");
+			if (fs.existsSync(registryPath)) {
+				const data = JSON.parse(fs.readFileSync(registryPath, "utf-8"));
+				if (data?.grpc_port) {
+					resolvedHost = `localhost:${data.grpc_port}`;
+					console.log(
+						`[mm-client] Resolved backend gRPC host from active_ports.json: ${resolvedHost}`,
+					);
+				}
+			}
+		} catch (e) {
+			console.warn(
+				"[mm-client] Failed to resolve active gRPC port from active_ports.json",
+				e,
+			);
+		}
+	}
+
+	defaultHost = resolvedHost || "backend:8080";
 } else {
 	const port = process.env.NEXT_PUBLIC_BACKEND_PORT || "8081";
 	defaultHost = `localhost:${port}`;
@@ -57,7 +81,91 @@ const authMiddleware = async function* (call: any, options: any) {
 	});
 };
 
-const clientFactory = createClientFactory().use(authMiddleware);
+const retryAndTimeoutMiddleware = async function* (call: any, options: any) {
+	if (call.responseStream || call.requestStream) {
+		return yield* call.next(call.request, options);
+	}
+
+	let timeoutMs = 30000; // default 30s timeout
+	const pathName = call.method?.path || "";
+	if (
+		pathName.includes("GenerateReport") ||
+		pathName.includes("GenerateReportBundle")
+	) {
+		timeoutMs = 600000; // 10 minutes timeout for PDF generation
+	} else if (
+		pathName.includes("ValidateMeet") ||
+		pathName.includes("PublishMeetData")
+	) {
+		timeoutMs = 60000; // 1 minute timeout for validation/publishing
+	}
+
+	if (options.timeout !== undefined) {
+		timeoutMs = options.timeout;
+	}
+
+	const maxRetries = 3;
+	let attempt = 0;
+	let delay = 500; // start backoff delay at 500ms
+
+	while (true) {
+		attempt++;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => {
+			controller.abort();
+		}, timeoutMs);
+
+		const signal = controller.signal;
+		let onAbort: (() => void) | undefined;
+		if (options.signal) {
+			const extSignal = options.signal;
+			onAbort = () => controller.abort();
+			extSignal.addEventListener("abort", onAbort);
+			if (extSignal.aborted) {
+				controller.abort();
+			}
+		}
+
+		try {
+			return yield* call.next(call.request, {
+				...options,
+				signal,
+			});
+		} catch (error: any) {
+			const isTimeoutAbort =
+				controller.signal.aborted && !options.signal?.aborted;
+
+			if (options.signal?.aborted) {
+				throw error;
+			}
+
+			if (attempt >= maxRetries) {
+				if (isTimeoutAbort) {
+					throw new Error(
+						`gRPC call to ${pathName} timed out after ${timeoutMs}ms`,
+					);
+				}
+				throw error;
+			}
+
+			console.warn(
+				`gRPC call to ${pathName} failed (attempt ${attempt}/${maxRetries}):`,
+				error,
+			);
+			await new Promise((resolve) => setTimeout(resolve, delay));
+			delay *= 2; // exponential backoff
+		} finally {
+			clearTimeout(timeoutId);
+			if (options.signal && onAbort) {
+				options.signal.removeEventListener("abort", onAbort);
+			}
+		}
+	}
+};
+
+const clientFactory = createClientFactory()
+	.use(authMiddleware)
+	.use(retryAndTimeoutMiddleware);
 
 let cachedClient: MeetManagerServiceClient | null = null;
 let _resolvedHost: string = defaultHost;

@@ -114,6 +114,11 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		}
 	}
 
+	const restPort = getDynamicGatewayPort();
+	await page.addInitScript((port) => {
+		(window as any).__MM_TEST_PORT__ = port;
+	}, restPort);
+
 	// Navigate to home page first so we have a valid domain context in the browser
 	await page.goto("/");
 
@@ -131,7 +136,42 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		console.log(`[Browser Console] [${msg.type()}] ${msg.text()}`);
 	});
 
+	page.on("requestfailed", (request) => {
+		console.log(
+			`[Browser Network Error] ${request.method()} ${request.url()} failed with: ${request.failure()?.errorText}`,
+		);
+	});
+
 	return { userId };
+}
+
+export function getDynamicGatewayPort(): number {
+	if (process.env.REST_PORT) {
+		return parseInt(process.env.REST_PORT, 10);
+	}
+	if (process.env.BACKEND_PORT) {
+		return parseInt(process.env.BACKEND_PORT, 10);
+	}
+	try {
+		const homedir = require("node:os").homedir();
+		const registryPath = path.join(homedir, ".mmtools", "active_ports.json");
+		if (fs.existsSync(registryPath)) {
+			const data = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+			if (data.rest_port) {
+				console.log(
+					`[E2E Utils] Discovered active REST port: ${data.rest_port}`,
+				);
+				return data.rest_port;
+			}
+		}
+	} catch (e) {
+		console.warn("[E2E Utils] Failed to read active ports registry:", e);
+	}
+	return 8081;
+}
+
+export function getDynamicGatewayUrl(): string {
+	return `http://localhost:${getDynamicGatewayPort()}/api/grpc`;
 }
 
 /**
@@ -147,7 +187,7 @@ export async function ensureDatasetActive(
 	console.log(`[Utils] Ensuring ${filename} is active for ${userId}...`);
 
 	const isStatic = process.env.TEST_STATIC === "true";
-	const gatewayUrl = "http://localhost:8081/api/grpc";
+	const gatewayUrl = getDynamicGatewayUrl();
 
 	// 2. Upload dataset directly via API
 	let uploadResponse: APIResponse;

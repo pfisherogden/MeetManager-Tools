@@ -21,6 +21,7 @@ export function middleware(request: NextRequest) {
 	// Define public paths that don't require authentication
 	const isPublicPath =
 		pathname === "/login" ||
+		pathname === "/login/" ||
 		pathname.startsWith("/judge") ||
 		pathname.startsWith("/api/test") ||
 		pathname.startsWith("/api/submit-dq") ||
