@@ -112,7 +112,6 @@ export async function downloadFile(
 	if (isTauri) {
 		try {
 			const { save } = await import("@tauri-apps/plugin-dialog");
-			const { writeFile } = await import("@tauri-apps/plugin-fs");
 
 			const savePath = await save({
 				defaultPath: filename,
@@ -139,7 +138,10 @@ export async function downloadFile(
 				throw new Error("Invalid content type for download");
 			}
 
-			await writeFile(savePath, bytes);
+			await invoke("save_file_to_path", {
+				path: savePath,
+				data: Array.from(bytes),
+			});
 			console.log(`Successfully saved file to ${savePath}`);
 		} catch (err) {
 			console.error("Tauri file save failed:", err);

@@ -12,6 +12,16 @@ fn get_backend_port(state: tauri::State<'_, BackendState>) -> String {
     port.clone()
 }
 
+#[tauri::command]
+fn save_file_to_path(path: String, data: Vec<u8>) -> Result<(), String> {
+    use std::fs::File;
+    use std::io::Write;
+    let mut file = File::create(&path).map_err(|e| e.to_string())?;
+    file.write_all(&data).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -99,7 +109,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_backend_port])
+        .invoke_handler(tauri::generate_handler![get_backend_port, save_file_to_path])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
