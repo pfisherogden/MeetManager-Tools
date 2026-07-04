@@ -474,7 +474,17 @@ def _run_bundle_generation_job(
             msgpack_tmp.close()
 
         tasks = []
-        max_workers = 3
+        env_max_workers = os.getenv("REPORT_MAX_WORKERS")
+        if env_max_workers:
+            try:
+                max_workers = int(env_max_workers)
+            except ValueError:
+                max_workers = 3
+        elif os.getenv("K_SERVICE"):
+            max_workers = 3  # Cloud Run CPU limit safety
+        else:
+            max_workers = min(os.cpu_count() or 4, 8)
+
         servicer.job_manager.update_job(job_id, progress=0.05, message=f"Rendering {len(request.reports)} reports...")
         logging.info(f"Job {job_id}: starting ProcessPoolExecutor with {max_workers} workers")
 
