@@ -1,22 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 
-let cachedRestPort: number | null = null;
-
 export async function getRestPort(): Promise<number> {
-	if (cachedRestPort !== null) return cachedRestPort;
-
 	// In E2E tests, read from window.__MM_TEST_PORT__ if set
 	if (typeof window !== "undefined" && (window as any).__MM_TEST_PORT__) {
-		cachedRestPort = (window as any).__MM_TEST_PORT__;
-		return cachedRestPort!;
+		return (window as any).__MM_TEST_PORT__;
 	}
 
 	try {
 		if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
 			const portStr = await invoke<string>("get_backend_port");
-			const restPort = Number.parseInt(portStr, 10);
-			cachedRestPort = restPort;
-			return restPort;
+			return Number.parseInt(portStr, 10) || 8081;
 		}
 	} catch (e) {
 		console.warn("Failed to get Tauri REST port, falling back to 8081", e);
@@ -113,6 +106,35 @@ export async function downloadFile(
 		try {
 			const { save } = await import("@tauri-apps/plugin-dialog");
 
+			// If content is a URL pointing to a storage file, use dynamic filesystem copy
+			if (
+				typeof content === "string" &&
+				!isBase64 &&
+				(content.startsWith("http") || content.startsWith("/api/data"))
+			) {
+				const urlObj = new URL(content);
+				const relativePath = urlObj.searchParams.get("path");
+				if (!relativePath) {
+					throw new Error("No path parameter found in download URL");
+				}
+
+				const savePath = await save({
+					defaultPath: filename,
+				});
+
+				if (!savePath) {
+					console.log("Download cancelled by user");
+					return;
+				}
+
+				await invoke("copy_file_from_storage", {
+					relativePath: relativePath,
+					destPath: savePath,
+				});
+				console.log(`Successfully copied file from storage to ${savePath}`);
+				return;
+			}
+
 			const savePath = await save({
 				defaultPath: filename,
 			});
@@ -150,7 +172,13 @@ export async function downloadFile(
 	} else {
 		// Browser fallback
 		const link = document.createElement("a");
-		if (isBase64 && typeof content === "string") {
+		if (
+			typeof content === "string" &&
+			!isBase64 &&
+			(content.startsWith("http") || content.startsWith("/api/data"))
+		) {
+			link.href = content;
+		} else if (isBase64 && typeof content === "string") {
 			link.href = `data:application/octet-stream;base64,${content}`;
 		} else if (content instanceof ArrayBuffer) {
 			const blob = new Blob([content], { type: "application/octet-stream" });
@@ -163,7 +191,7 @@ export async function downloadFile(
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
-		if (!(content instanceof String) && typeof content !== "string") {
+		if (!(content instanceof ArrayBuffer) && typeof content !== "string") {
 			URL.revokeObjectURL(link.href);
 		}
 	}
