@@ -21,6 +21,22 @@ fn save_file_to_path(path: String, data: Vec<u8>) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn copy_file_from_storage(
+    app: tauri::AppHandle,
+    relative_path: String,
+    dest_path: String,
+) -> Result<(), String> {
+    use std::fs;
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let src_path = app_data_dir.join(&relative_path);
+    if !src_path.exists() {
+        return Err(format!("Source file does not exist: {:?}", src_path));
+    }
+    fs::copy(&src_path, &dest_path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -109,7 +125,11 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_backend_port, save_file_to_path])
+        .invoke_handler(tauri::generate_handler![
+            get_backend_port,
+            save_file_to_path,
+            copy_file_from_storage
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -218,18 +218,10 @@ export function ReportsManager({
 						const filename = _filename || "meet_reports.zip";
 
 						resolveBundleUrl(status.bundleUrl).then((resolvedUrl) => {
-							fetch(resolvedUrl)
-								.then((res) => {
-									if (!res.ok) throw new Error("Failed to download file");
-									return res.arrayBuffer();
-								})
-								.then((arrayBuffer) => {
-									downloadFile(filename, arrayBuffer);
-								})
-								.catch((err) => {
-									console.error("Programmatic download failed:", err);
-									toast.error("Failed to download reports bundle");
-								});
+							downloadFile(filename, resolvedUrl).catch((err) => {
+								console.error("Programmatic download failed:", err);
+								toast.error("Failed to download reports bundle");
+							});
 						});
 
 						// Also open any google sheets
