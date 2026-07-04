@@ -3,9 +3,15 @@ name: Compile & Package Desktop Clients
 on:
   push:
     branches:
+      - main
       - 'feature/desktop-client'
       - 'feat/desktop*'
       - 'fix/desktop*'
+  pull_request:
+    paths:
+      - 'web-client/src-tauri/**'
+      - 'web-client/lib/tauri-bridge.ts'
+      - '.github/workflows/desktop-build.yml'
   workflow_dispatch:
 
 jobs:
@@ -41,6 +47,7 @@ jobs:
           cd backend
           uv pip install --system -e .
           uv pip install --system pyinstaller
+          uv run python src/mm_to_json/download_libs.py
 
       - name: Package Python Backend with PyInstaller
         shell: bash
