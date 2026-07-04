@@ -1,10 +1,12 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { getEntries } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { EntriesManager } from "@/components/entries-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Entry as UIEntry } from "@/lib/swim-meet-types";
-
-export const dynamic = "force-dynamic";
 
 interface ServerEntry {
 	id: number;
@@ -23,43 +25,43 @@ interface ServerEntry {
 	points?: number;
 }
 
-export default async function EntriesPage({
-	searchParams,
-}: {
-	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-	const params = await searchParams;
-	const eventId = params.event as string | undefined;
-	const athleteId = params.athlete as string | undefined;
+function EntriesPageContent() {
+	const searchParams = useSearchParams();
+	const eventId = searchParams.get("event") || undefined;
+	const athleteId = searchParams.get("athlete") || undefined;
 
-	let mappedEntries: UIEntry[] = [];
+	const [mappedEntries, setMappedEntries] = useState<UIEntry[]>([]);
+	const [loading, setLoading] = useState(true);
 
-	try {
-		// Cast to unknown then to shape because proto definition is stale locally
-		const list = (await getEntries(eventId, athleteId)) as unknown as {
-			entries: ServerEntry[];
-		};
-		if (list?.entries) {
-			mappedEntries = list.entries.map((e) => ({
-				id: e.id.toString(), // assuming server provides index as ID
-				eventName: e.eventName || `Event ${e.eventId}`, // Fallback if missing
-				eventId: e.eventId.toString(),
-				athleteId: e.athleteId.toString(),
-				athleteName: e.athleteName,
-				teamId: e.teamId ? e.teamId.toString() : "",
-				teamName: e.teamName,
-				teamColor: e.teamColor,
-				seedTime: e.seedTime,
-				finalTime: e.finalTime || null,
-				place: e.place || null,
-				heat: e.heat || 0,
-				lane: e.lane || 0,
-				points: e.points || 0,
-			}));
-		}
-	} catch (e) {
-		console.error("Failed to fetch entries", e);
-	}
+	useEffect(() => {
+		setLoading(true);
+		getEntries(eventId, athleteId)
+			.then((list: any) => {
+				if (list?.entries) {
+					const mapped = list.entries.map((e: ServerEntry) => ({
+						id: e.id.toString(),
+						eventName: e.eventName || `Event ${e.eventId}`,
+						eventId: e.eventId.toString(),
+						athleteId: e.athleteId.toString(),
+						athleteName: e.athleteName,
+						teamId: e.teamId ? e.teamId.toString() : "",
+						teamName: e.teamName,
+						teamColor: e.teamColor,
+						seedTime: e.seedTime,
+						finalTime: e.finalTime || null,
+						place: e.place || null,
+						heat: e.heat || 0,
+						lane: e.lane || 0,
+						points: e.points || 0,
+					}));
+					setMappedEntries(mapped);
+				} else {
+					setMappedEntries([]);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch entries", e))
+			.finally(() => setLoading(false));
+	}, [eventId, athleteId]);
 
 	return (
 		<>
@@ -75,9 +77,33 @@ export default async function EntriesPage({
 							Manage individual event entries and results
 						</p>
 					</div>
-					<EntriesManager initialEntries={mappedEntries} />
+					{loading ? (
+						<div className="flex-1 flex items-center justify-center p-6">
+							<span className="text-muted-foreground animate-pulse">
+								Loading entries...
+							</span>
+						</div>
+					) : (
+						<EntriesManager initialEntries={mappedEntries} />
+					)}
 				</div>
 			</SidebarInset>
 		</>
+	);
+}
+
+export default function EntriesPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex-1 flex items-center justify-center p-6">
+					<span className="text-muted-foreground animate-pulse">
+						Loading entries...
+					</span>
+				</div>
+			}
+		>
+			<EntriesPageContent />
+		</Suspense>
 	);
 }

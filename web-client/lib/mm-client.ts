@@ -13,10 +13,34 @@ import {
 let defaultHost = "backend:8080";
 
 if (typeof window === "undefined") {
-	defaultHost =
-		process.env.BACKEND_URL ||
-		process.env.BACKEND_INTERNAL_HOST ||
-		"backend:8080";
+	let resolvedHost =
+		process.env.BACKEND_URL || process.env.BACKEND_INTERNAL_HOST;
+
+	if (!resolvedHost) {
+		try {
+			const fs = require("node:fs");
+			const path = require("node:path");
+			const os = require("node:os");
+			const homedir = os.homedir();
+			const registryPath = path.join(homedir, ".mmtools", "active_ports.json");
+			if (fs.existsSync(registryPath)) {
+				const data = JSON.parse(fs.readFileSync(registryPath, "utf-8"));
+				if (data?.grpc_port) {
+					resolvedHost = `localhost:${data.grpc_port}`;
+					console.log(
+						`[mm-client] Resolved backend gRPC host from active_ports.json: ${resolvedHost}`,
+					);
+				}
+			}
+		} catch (e) {
+			console.warn(
+				"[mm-client] Failed to resolve active gRPC port from active_ports.json",
+				e,
+			);
+		}
+	}
+
+	defaultHost = resolvedHost || "backend:8080";
 } else {
 	const port = process.env.NEXT_PUBLIC_BACKEND_PORT || "8081";
 	defaultHost = `localhost:${port}`;
@@ -63,14 +87,15 @@ const retryAndTimeoutMiddleware = async function* (call: any, options: any) {
 	}
 
 	let timeoutMs = 30000; // default 30s timeout
+	const pathName = call.method?.path || "";
 	if (
-		call.path.includes("GenerateReport") ||
-		call.path.includes("GenerateReportBundle")
+		pathName.includes("GenerateReport") ||
+		pathName.includes("GenerateReportBundle")
 	) {
 		timeoutMs = 600000; // 10 minutes timeout for PDF generation
 	} else if (
-		call.path.includes("ValidateMeet") ||
-		call.path.includes("PublishMeetData")
+		pathName.includes("ValidateMeet") ||
+		pathName.includes("PublishMeetData")
 	) {
 		timeoutMs = 60000; // 1 minute timeout for validation/publishing
 	}
@@ -117,14 +142,14 @@ const retryAndTimeoutMiddleware = async function* (call: any, options: any) {
 			if (attempt >= maxRetries) {
 				if (isTimeoutAbort) {
 					throw new Error(
-						`gRPC call to ${call.path} timed out after ${timeoutMs}ms`,
+						`gRPC call to ${pathName} timed out after ${timeoutMs}ms`,
 					);
 				}
 				throw error;
 			}
 
 			console.warn(
-				`gRPC call to ${call.path} failed (attempt ${attempt}/${maxRetries}):`,
+				`gRPC call to ${pathName} failed (attempt ${attempt}/${maxRetries}):`,
 				error,
 			);
 			await new Promise((resolve) => setTimeout(resolve, delay));

@@ -4,7 +4,8 @@ test.describe("Security and Access Control", () => {
 	// Skip redirect tests if E2E auth bypass is enabled, as it deliberately disables redirections.
 	const isBypassActive =
 		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
-		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
+		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
+		process.env.TEST_STATIC === "true";
 
 	test("should redirect unauthenticated users from dashboard to login", async ({
 		page,

@@ -114,7 +114,17 @@ class LocalStorageProvider(StorageProvider):
 
         api_base = frontend_url
         if "localhost" in api_base or "127.0.0.1" in api_base:
-            gateway_port = os.getenv("BACKEND_PORT", "8081")
+            import sys
+
+            gateway_port = None
+            for mod in list(sys.modules.values()):
+                if mod and hasattr(mod, "ACTUAL_REST_PORT"):
+                    val = mod.ACTUAL_REST_PORT
+                    if val:
+                        gateway_port = str(val)
+                        break
+            if not gateway_port:
+                gateway_port = os.getenv("BACKEND_PORT", "8081")
             api_base = f"http://localhost:{gateway_port}"
 
         token = os.getenv("DATA_ACCESS_TOKEN") or "mmtools-default-secret-2024"

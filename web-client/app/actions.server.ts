@@ -471,6 +471,7 @@ export async function getJobStatus(jobId: string) {
 			progress: response.progress,
 			message: response.message,
 			bundleUrl: response.bundleUrl,
+			googleSheetUrls: response.googleSheetUrls || [],
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (getJobStatus):", err);
@@ -650,4 +651,8 @@ export async function getGoogleConfig() {
 			env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ||
 			"39869978853",
 	};
+}
+
+export async function resolveBundleUrl(bundleUrl: string): Promise<string> {
+	return bundleUrl;
 }

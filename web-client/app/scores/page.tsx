@@ -1,41 +1,41 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getEventScores, getScores } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ScoresManager } from "@/components/scores-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Score as UIScore } from "@/lib/swim-meet-types";
 
-export const dynamic = "force-dynamic";
+export default function ScoresPage() {
+	const [mappedScores, setMappedScores] = useState<UIScore[]>([]);
+	const [mappedEventScores, setMappedEventScores] = useState<any[]>([]);
+	const [loading, setLoading] = useState(true);
 
-export default async function ScoresPage() {
-	let mappedScores: UIScore[] = [];
-	let mappedEventScores: any[] = [];
-
-	try {
-		const [scoreList, eventScoresList] = await Promise.all([
-			getScores(),
-			getEventScores(),
-		]);
-
-		if (scoreList?.scores) {
-			mappedScores = scoreList.scores.map((s) => ({
-				id: s.teamId.toString(),
-				meetId: "1",
-				teamId: s.teamId.toString(),
-				teamName: s.teamName,
-				individualPoints: s.individualPoints,
-				relayPoints: s.relayPoints,
-				totalPoints: s.totalPoints,
-				rank: s.rank,
-				meetName: s.meetName,
-			}));
-		}
-
-		if (eventScoresList?.eventScores) {
-			mappedEventScores = eventScoresList.eventScores;
-		}
-	} catch (e) {
-		console.error("Failed to fetch scores", e);
-	}
+	useEffect(() => {
+		Promise.all([getScores(), getEventScores()])
+			.then(([scoreList, eventScoresList]) => {
+				if (scoreList?.scores) {
+					const mapped = scoreList.scores.map((s) => ({
+						id: s.teamId.toString(),
+						meetId: "1",
+						teamId: s.teamId.toString(),
+						teamName: s.teamName,
+						individualPoints: s.individualPoints,
+						relayPoints: s.relayPoints,
+						totalPoints: s.totalPoints,
+						rank: s.rank,
+						meetName: s.meetName,
+					}));
+					setMappedScores(mapped);
+				}
+				if (eventScoresList?.eventScores) {
+					setMappedEventScores(eventScoresList.eventScores);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch scores", e))
+			.finally(() => setLoading(false));
+	}, []);
 
 	return (
 		<>
@@ -51,10 +51,18 @@ export default async function ScoresPage() {
 							Live meet scores and standings
 						</p>
 					</div>
-					<ScoresManager
-						initialScores={mappedScores}
-						initialEventScores={mappedEventScores}
-					/>
+					{loading ? (
+						<div className="flex-1 flex items-center justify-center p-6">
+							<span className="text-muted-foreground animate-pulse">
+								Loading scores...
+							</span>
+						</div>
+					) : (
+						<ScoresManager
+							initialScores={mappedScores}
+							initialEventScores={mappedEventScores}
+						/>
+					)}
 				</div>
 			</SidebarInset>
 		</>

@@ -37,11 +37,7 @@ test.describe("Visual Journey Capture", () => {
 		const configCard = page.getByTestId("report-configuration-card");
 		await expect(configCard).toBeAttached();
 
-		// Filter for Blue Dolphins
-		await configCard
-			.getByRole("combobox")
-			.filter({ hasText: /All Teams/i })
-			.click();
+		await configCard.getByTestId("team-filter-trigger").click();
 		await page.getByRole("option", { name: "Blue Dolphins" }).click();
 
 		await page.screenshot({

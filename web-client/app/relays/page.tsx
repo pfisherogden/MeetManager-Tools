@@ -1,43 +1,48 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { getRelays } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { RelaysManager } from "@/components/relays-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Relay as UIRelay } from "@/lib/swim-meet-types";
 
-export const dynamic = "force-dynamic";
+function RelaysPageContent() {
+	const searchParams = useSearchParams();
+	const eventId = searchParams.get("event") || undefined;
 
-export default async function RelaysPage({
-	searchParams,
-}: {
-	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-	const params = await searchParams;
-	const eventId = params.event as string | undefined;
+	const [mappedRelays, setMappedRelays] = useState<UIRelay[]>([]);
+	const [loading, setLoading] = useState(true);
 
-	let mappedRelays: UIRelay[] = [];
-
-	try {
-		const list = await getRelays(eventId);
-		if (list?.relays) {
-			mappedRelays = list.relays.map((r) => ({
-				id: r.id.toString(),
-				eventId: r.eventId.toString(),
-				eventName: r.eventName || `Event ${r.eventId}`,
-				teamId: r.teamId.toString(),
-				teamName: r.teamName,
-				teamColor: "", // Backend will provide if needed, or derived from teamId
-				leg1: r.leg1Name,
-				leg2: r.leg2Name,
-				leg3: r.leg3Name,
-				leg4: r.leg4Name,
-				seedTime: r.seedTime,
-				finalTime: r.finalTime || null,
-				place: r.place ? r.place : null,
-			}));
-		}
-	} catch (e) {
-		console.error("Failed to fetch relays", e);
-	}
+	useEffect(() => {
+		setLoading(true);
+		getRelays(eventId)
+			.then((list) => {
+				if (list?.relays) {
+					const mapped = list.relays.map((r) => ({
+						id: String(r.id),
+						eventId: String(r.eventId),
+						eventName: r.eventName || `Event ${r.eventId}`,
+						teamId: String(r.teamId),
+						teamName: r.teamName,
+						teamColor: "",
+						leg1: r.leg1Name,
+						leg2: r.leg2Name,
+						leg3: r.leg3Name,
+						leg4: r.leg4Name,
+						seedTime: r.seedTime,
+						finalTime: r.finalTime || null,
+						place: r.place ? r.place : null,
+					}));
+					setMappedRelays(mapped);
+				} else {
+					setMappedRelays([]);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch relays", e))
+			.finally(() => setLoading(false));
+	}, [eventId]);
 
 	return (
 		<>
@@ -53,9 +58,33 @@ export default async function RelaysPage({
 							Manage relay teams and entries
 						</p>
 					</div>
-					<RelaysManager initialRelays={mappedRelays} />
+					{loading ? (
+						<div className="flex-1 flex items-center justify-center p-6">
+							<span className="text-muted-foreground animate-pulse">
+								Loading relays...
+							</span>
+						</div>
+					) : (
+						<RelaysManager initialRelays={mappedRelays} />
+					)}
 				</div>
 			</SidebarInset>
 		</>
+	);
+}
+
+export default function RelaysPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex-1 flex items-center justify-center p-6">
+					<span className="text-muted-foreground animate-pulse">
+						Loading relays...
+					</span>
+				</div>
+			}
+		>
+			<RelaysPageContent />
+		</Suspense>
 	);
 }

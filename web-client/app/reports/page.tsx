@@ -1,10 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getTeams } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReportsManager } from "@/components/reports-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Team as UITeam } from "@/lib/swim-meet-types";
-
-export const dynamic = "force-dynamic";
 
 interface ServerTeam {
 	id: number;
@@ -12,25 +13,29 @@ interface ServerTeam {
 	code: string;
 }
 
-export default async function ReportsPage() {
-	let mappedTeams: UITeam[] = [];
+export default function ReportsPage() {
+	const [mappedTeams, setMappedTeams] = useState<UITeam[]>([]);
+	const [loading, setLoading] = useState(true);
 
-	try {
-		const list = (await getTeams()) as unknown as { teams: ServerTeam[] };
-		if (list?.teams) {
-			mappedTeams = list.teams.map((t) => ({
-				id: String(t.id),
-				name: t.name,
-				abbreviation: t.code || "",
-				city: "",
-				state: "",
-				athleteCount: 0,
-				color: "#000000",
-			}));
-		}
-	} catch (e) {
-		console.error("Failed to fetch teams for reports", e);
-	}
+	useEffect(() => {
+		getTeams()
+			.then((list: any) => {
+				if (list?.teams) {
+					const mapped = list.teams.map((t: ServerTeam) => ({
+						id: String(t.id),
+						name: t.name,
+						abbreviation: t.code || "",
+						city: "",
+						state: "",
+						athleteCount: 0,
+						color: "#000000",
+					}));
+					setMappedTeams(mapped);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch teams for reports", e))
+			.finally(() => setLoading(false));
+	}, []);
 
 	return (
 		<>
@@ -46,7 +51,15 @@ export default async function ReportsPage() {
 							Generate and customize PDF reports from meet data
 						</p>
 					</div>
-					<ReportsManager initialTeams={mappedTeams} />
+					{loading ? (
+						<div className="flex-1 flex items-center justify-center p-6">
+							<span className="text-muted-foreground animate-pulse">
+								Loading reports...
+							</span>
+						</div>
+					) : (
+						<ReportsManager initialTeams={mappedTeams} />
+					)}
 				</div>
 			</SidebarInset>
 		</>

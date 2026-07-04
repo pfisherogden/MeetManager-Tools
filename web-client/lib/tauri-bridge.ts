@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 let cachedRestPort: number | null = null;
 
-async function getRestPort(): Promise<number> {
+export async function getRestPort(): Promise<number> {
 	if (cachedRestPort !== null) return cachedRestPort;
 
 	// In E2E tests, read from window.__MM_TEST_PORT__ if set
@@ -13,8 +13,8 @@ async function getRestPort(): Promise<number> {
 
 	try {
 		if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
-			const [_grpcPort, restPort] =
-				await invoke<[number, number]>("get_backend_ports");
+			const portStr = await invoke<string>("get_backend_port");
+			const restPort = Number.parseInt(portStr, 10);
 			cachedRestPort = restPort;
 			return restPort;
 		}
@@ -51,13 +51,21 @@ export async function callRestGateway(method: string, payload: any) {
 		}, timeoutMs);
 
 		try {
+			let userId = "desktop-user";
+			if (typeof document !== "undefined") {
+				const match = document.cookie.match(/(?:^|; )x-user-id=([^;]*)/);
+				if (match) {
+					userId = decodeURIComponent(match[1]);
+				}
+			}
+
 			const response = await fetch(
 				`http://localhost:${restPort}/api/grpc/${method}`,
 				{
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
-						"x-user-id": "desktop-user", // Desktop mode runs with local/mock auth credentials
+						"x-user-id": userId,
 					},
 					body: JSON.stringify(payload),
 					signal: controller.signal,

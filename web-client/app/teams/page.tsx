@@ -1,30 +1,35 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getTeams } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TeamsManager } from "@/components/teams-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Team as UITeam } from "@/lib/swim-meet-types";
 
-export const dynamic = "force-dynamic";
+export default function TeamsPage() {
+	const [mappedTeams, setMappedTeams] = useState<UITeam[]>([]);
+	const [loading, setLoading] = useState(true);
 
-export default async function TeamsPage() {
-	let mappedTeams: UITeam[] = [];
-
-	try {
-		const teamList: any = await getTeams();
-		if (teamList?.teams) {
-			mappedTeams = teamList.teams.map((t: any) => ({
-				id: t.id.toString(),
-				name: t.name,
-				abbreviation: t.code,
-				city: t.city,
-				state: t.state,
-				athleteCount: t.athleteCount,
-				color: t.color || "#3b82f6",
-			}));
-		}
-	} catch (e) {
-		console.error("Failed to fetch teams", e);
-	}
+	useEffect(() => {
+		getTeams()
+			.then((teamList: any) => {
+				if (teamList?.teams) {
+					const mapped = teamList.teams.map((t: any) => ({
+						id: t.id.toString(),
+						name: t.name,
+						abbreviation: t.code,
+						city: t.city,
+						state: t.state,
+						athleteCount: t.athleteCount,
+						color: t.color || "#3b82f6",
+					}));
+					setMappedTeams(mapped);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch teams", e))
+			.finally(() => setLoading(false));
+	}, []);
 
 	return (
 		<>
@@ -40,7 +45,15 @@ export default async function TeamsPage() {
 							Manage swim teams and organizations
 						</p>
 					</div>
-					<TeamsManager initialTeams={mappedTeams} />
+					{loading ? (
+						<div className="flex-1 flex items-center justify-center p-6">
+							<span className="text-muted-foreground animate-pulse">
+								Loading teams...
+							</span>
+						</div>
+					) : (
+						<TeamsManager initialTeams={mappedTeams} />
+					)}
 				</div>
 			</SidebarInset>
 		</>

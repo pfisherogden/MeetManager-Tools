@@ -99,8 +99,8 @@ export function AthletesManager({
 	initialAthletes,
 	teams,
 }: AthletesManagerProps) {
-	const [data, setData] = useState<Athlete[]>(initialAthletes);
-	const [localTeams, setLocalTeams] = useState(teams);
+	const [data, setData] = useState<Athlete[]>(initialAthletes || []);
+	const [localTeams, setLocalTeams] = useState(teams || []);
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {

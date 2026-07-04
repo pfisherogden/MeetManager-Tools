@@ -1,12 +1,13 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getDashboardStats } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Dashboard } from "@/components/dashboard";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
-export const dynamic = "force-dynamic";
-
-export default async function HomePage() {
-	let stats: any = {
+export default function HomePage() {
+	const [stats, setStats] = useState<any>({
 		meetCount: 0,
 		teamCount: 0,
 		athleteCount: 0,
@@ -15,16 +16,19 @@ export default async function HomePage() {
 		totalTeams: 0,
 		totalEvents: 0,
 		totalResults: 0,
-	};
+	});
+	const [loading, setLoading] = useState(true);
 
-	try {
-		const fetchedStats = await getDashboardStats();
-		if (fetchedStats) {
-			stats = fetchedStats;
-		}
-	} catch (e) {
-		console.error("Failed to fetch dashboard stats", e);
-	}
+	useEffect(() => {
+		getDashboardStats()
+			.then((fetchedStats) => {
+				if (fetchedStats) {
+					setStats(fetchedStats);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch dashboard stats", e))
+			.finally(() => setLoading(false));
+	}, []);
 
 	return (
 		<>
@@ -34,7 +38,15 @@ export default async function HomePage() {
 					<SidebarTrigger className="-ml-1" />
 				</header>
 				<div className="flex-1 overflow-auto">
-					<Dashboard stats={stats} />
+					{loading ? (
+						<div className="flex h-full w-full items-center justify-center p-6 min-h-[200px]">
+							<span className="text-muted-foreground animate-pulse">
+								Loading dashboard...
+							</span>
+						</div>
+					) : (
+						<Dashboard stats={stats} />
+					)}
 				</div>
 			</SidebarInset>
 		</>

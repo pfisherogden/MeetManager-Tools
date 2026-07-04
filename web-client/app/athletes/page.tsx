@@ -1,48 +1,52 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getAthletes, getTeams } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AthletesManager } from "@/components/athletes-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Athlete as UIAthlete } from "@/lib/swim-meet-types";
 
-export const dynamic = "force-dynamic";
+export default function AthletesPage() {
+	const [mappedAthletes, setMappedAthletes] = useState<UIAthlete[]>([]);
+	const [teamOptions, setTeamOptions] = useState<
+		{ id: string; name: string }[]
+	>([]);
+	const [loading, setLoading] = useState(true);
 
-export default async function AthletesPage() {
-	let mappedAthletes: UIAthlete[] = [];
-	let teamOptions: { id: string; name: string }[] = [];
+	useEffect(() => {
+		Promise.all([getAthletes(), getTeams()])
+			.then(([athleteList, teamsResponse]) => {
+				const teamColorMap: Record<number, string> = {};
+				if (teamsResponse?.teams) {
+					const options = teamsResponse.teams.map((t) => ({
+						id: t.id.toString(),
+						name: t.name,
+					}));
+					setTeamOptions(options);
+					for (const t of teamsResponse.teams) {
+						teamColorMap[t.id] = t.color;
+					}
+				}
 
-	try {
-		const [athleteList, teamsResponse] = await Promise.all([
-			getAthletes(),
-			getTeams(),
-		]);
-
-		const teamColorMap: Record<number, string> = {};
-		if (teamsResponse?.teams) {
-			teamOptions = teamsResponse.teams.map((t) => ({
-				id: t.id.toString(),
-				name: t.name,
-			}));
-			for (const t of teamsResponse.teams) {
-				teamColorMap[t.id] = t.color;
-			}
-		}
-
-		if (athleteList?.athletes) {
-			mappedAthletes = athleteList.athletes.map((a) => ({
-				id: a.id.toString(),
-				firstName: a.firstName,
-				lastName: a.lastName,
-				teamId: a.teamId.toString(),
-				teamName: a.teamName,
-				dateOfBirth: a.dateOfBirth,
-				gender: a.gender as "M" | "F",
-				age: a.age,
-				teamColor: teamColorMap[a.teamId],
-			}));
-		}
-	} catch (e) {
-		console.error("Failed to fetch athletes or teams", e);
-	}
+				if (athleteList?.athletes) {
+					const athletes = athleteList.athletes.map((a) => ({
+						id: a.id.toString(),
+						firstName: a.firstName,
+						lastName: a.lastName,
+						teamId: a.teamId.toString(),
+						teamName: a.teamName,
+						dateOfBirth: a.dateOfBirth,
+						gender: a.gender as "M" | "F",
+						age: a.age,
+						teamColor: teamColorMap[a.teamId],
+					}));
+					setMappedAthletes(athletes);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch athletes or teams", e))
+			.finally(() => setLoading(false));
+	}, []);
 
 	return (
 		<>
@@ -58,10 +62,18 @@ export default async function AthletesPage() {
 							Manage athlete profiles and team assignments
 						</p>
 					</div>
-					<AthletesManager
-						initialAthletes={mappedAthletes}
-						teams={teamOptions}
-					/>
+					{loading ? (
+						<div className="flex items-center justify-center p-6 min-h-[200px]">
+							<span className="text-muted-foreground animate-pulse">
+								Loading athletes...
+							</span>
+						</div>
+					) : (
+						<AthletesManager
+							initialAthletes={mappedAthletes}
+							teams={teamOptions}
+						/>
+					)}
 				</div>
 			</SidebarInset>
 		</>

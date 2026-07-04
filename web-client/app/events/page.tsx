@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getEvents, getSessions } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { EventsManager } from "@/components/events-manager";
@@ -5,46 +8,44 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import type { Session, SwimEvent } from "@/lib/swim-meet-types";
 import { formatAgeGroup } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
+export default function EventsPage() {
+	const [mappedEvents, setMappedEvents] = useState<SwimEvent[]>([]);
+	const [sessions, setSessions] = useState<Session[]>([]);
+	const [loading, setLoading] = useState(true);
 
-export default async function EventsPage() {
-	let mappedEvents: SwimEvent[] = [];
-	let sessions: Session[] = [];
-
-	try {
-		const [eventsList, sessionsList] = await Promise.all([
-			getEvents(),
-			getSessions(),
-		]);
-
-		if (eventsList?.events) {
-			mappedEvents = eventsList.events.map((e) => ({
-				id: e.id.toString(),
-				sessionId: e.session.toString(),
-				eventNumber: e.eventNo, // Use correct field
-				distance: e.distance,
-				stroke: e.stroke,
-				gender: e.gender,
-				ageGroup: e.ageGroup || formatAgeGroup(e.lowAge, e.highAge),
-				entryCount: e.entryCount || 0,
-				isRelay: e.isRelay,
-			}));
-		}
-
-		if (sessionsList?.sessions) {
-			sessions = sessionsList.sessions.map((s) => ({
-				id: s.id,
-				meetId: s.meetId,
-				name: s.name,
-				date: s.date,
-				startTime: s.startTime,
-				warmUpTime: s.warmUpTime,
-				eventCount: s.eventCount,
-			}));
-		}
-	} catch (e) {
-		console.error("Failed to fetch events or sessions", e);
-	}
+	useEffect(() => {
+		Promise.all([getEvents(), getSessions()])
+			.then(([eventsList, sessionsList]) => {
+				if (eventsList?.events) {
+					const mapped = eventsList.events.map((e) => ({
+						id: e.id.toString(),
+						sessionId: e.session.toString(),
+						eventNumber: e.eventNo,
+						distance: e.distance,
+						stroke: e.stroke,
+						gender: e.gender,
+						ageGroup: e.ageGroup || formatAgeGroup(e.lowAge, e.highAge),
+						entryCount: e.entryCount || 0,
+						isRelay: e.isRelay,
+					}));
+					setMappedEvents(mapped);
+				}
+				if (sessionsList?.sessions) {
+					const sess = sessionsList.sessions.map((s) => ({
+						id: s.id,
+						meetId: s.meetId,
+						name: s.name,
+						date: s.date,
+						startTime: s.startTime,
+						warmUpTime: s.warmUpTime,
+						eventCount: s.eventCount,
+					}));
+					setSessions(sess);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch events or sessions", e))
+			.finally(() => setLoading(false));
+	}, []);
 
 	return (
 		<>
@@ -60,7 +61,15 @@ export default async function EventsPage() {
 							Manage swim events and heats
 						</p>
 					</div>
-					<EventsManager initialEvents={mappedEvents} sessions={sessions} />
+					{loading ? (
+						<div className="flex-1 flex items-center justify-center p-6">
+							<span className="text-muted-foreground animate-pulse">
+								Loading events...
+							</span>
+						</div>
+					) : (
+						<EventsManager initialEvents={mappedEvents} sessions={sessions} />
+					)}
 				</div>
 			</SidebarInset>
 		</>

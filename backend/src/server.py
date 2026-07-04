@@ -1945,6 +1945,8 @@ def serve_health_check():
                 self.end_headers()
 
         def do_POST(self):
+            import json
+
             if self.path.startswith("/api/sync-dqs") or self.path.startswith("/api/submit-dq"):
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
@@ -2003,28 +2005,120 @@ def serve_health_check():
 
                 try:
                     servicer = MeetManagerService()
-                    method = getattr(servicer, method_name, None)
-                    if not method:
-                        self.send_response(404)
-                        self._send_cors_headers()
-                        self.end_headers()
-                        return
 
-                    context = MockContext(self.headers)
+                    if method_name in ["GetDisqualifications", "DeleteDq", "ClearAllDqs"]:
+                        uid = self.headers.get("x-user-id") or "desktop-user"
+                        if method_name == "GetDisqualifications":
+                            filename = "synced_dqs.json"
+                            user_path = f"users/{uid}/{filename}"
+                            dqs = []
+                            if servicer.storage.exists(user_path):
+                                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                                    tmp_path = tmp.name
+                                try:
+                                    servicer.storage.download_file(user_path, tmp_path)
+                                    with open(tmp_path, encoding="utf-8") as f:
+                                        dqs = json.load(f)
+                                except Exception as e:
+                                    logging.error(f"Error reading synced_dqs.json: {e}")
+                                finally:
+                                    if os.path.exists(tmp_path):
+                                        os.remove(tmp_path)
+
+                            formatted_dqs = []
+                            for dq in dqs:
+                                formatted_dqs.append(
+                                    {
+                                        "id": dq.get("clientDqId") or dq.get("id") or "",
+                                        "event": dq.get("event") or dq.get("event_id") or "",
+                                        "heat": dq.get("heat") or 0,
+                                        "lane": dq.get("lane") or 0,
+                                        "swimmer": dq.get("swimmer") or "",
+                                        "client_id": dq.get("client_id") or "",
+                                        "infraction_code": dq.get("infraction_code") or dq.get("dq_code") or "",
+                                        "notes": dq.get("notes") or "",
+                                        "ingested": dq.get("ingested") or True,
+                                        "createdAt": dq.get("createdAt") or dq.get("timestamp") or "",
+                                    }
+                                )
+                            resp_json = json.dumps({"disqualifications": formatted_dqs})
+                        elif method_name == "DeleteDq":
+                            data = json.loads(body) if body else {}
+                            dq_id = data.get("dqId")
+                            filename = "synced_dqs.json"
+                            user_path = f"users/{uid}/{filename}"
+                            dqs = []
+                            if servicer.storage.exists(user_path):
+                                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                                    tmp_path = tmp.name
+                                try:
+                                    servicer.storage.download_file(user_path, tmp_path)
+                                    with open(tmp_path, encoding="utf-8") as f:
+                                        dqs = json.load(f)
+                                except Exception as e:
+                                    logging.error(f"Error reading synced_dqs.json: {e}")
+                                finally:
+                                    if os.path.exists(tmp_path):
+                                        os.remove(tmp_path)
+
+                            updated_dqs = [dq for dq in dqs if (dq.get("clientDqId") or dq.get("id")) != dq_id]
+
+                            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp_w:
+                                json.dump(updated_dqs, tmp_w, indent=2)
+                                tmp_path = tmp_w.name
+                            try:
+                                servicer.storage.upload_file(tmp_path, user_path)
+                            finally:
+                                if os.path.exists(tmp_path):
+                                    os.remove(tmp_path)
+
+                            if uid in servicer._user_cache:
+                                del servicer._user_cache[uid]
+                            resp_json = json.dumps({"success": True, "message": "DQ deleted"})
+                        else:  # ClearAllDqs
+                            filename = "synced_dqs.json"
+                            user_path = f"users/{uid}/{filename}"
+                            if servicer.storage.exists(user_path):
+                                servicer.storage.delete_file(user_path)
+                            if uid in servicer._user_cache:
+                                del servicer._user_cache[uid]
+                            resp_json = json.dumps({"success": True, "message": "DQs cleared"})
+
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self._send_cors_headers()
+                        self.send_header("Access-Control-Allow-Headers", "*")
+                        self.end_headers()
+                        self.wfile.write(resp_json.encode("utf-8"))
+                        return
+                    else:
+                        method = getattr(servicer, method_name, None)
+                        if not method:
+                            self.send_response(404)
+                            self._send_cors_headers()
+                            self.end_headers()
+                            return
+
+                        context = MockContext(self.headers)
 
                     if method_name == "UploadDataset":
                         import json
 
                         data = json.loads(body)
                         filename = data["filename"]
-                        content = base64.b64decode(data["content"])
+                        content_str = data["content"]
+                        if "," in content_str:
+                            content_str = content_str.split(",", 1)[1]
+                        content = base64.b64decode(content_str)
 
                         def request_generator():
                             yield pb2.UploadDatasetRequest(filename=filename)
                             yield pb2.UploadDatasetRequest(chunk=content)
 
                         resp = servicer.UploadDataset(request_generator(), context)
-                        resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True)
+                        resp_dict = json_format.MessageToDict(
+                            resp, preserving_proto_field_name=True, use_integers_for_enums=True
+                        )
                         resp_json = json.dumps(resp_dict)
                     else:
                         request_class = getattr(pb2, f"{method_name}Request", None)
@@ -2041,7 +2135,9 @@ def serve_health_check():
                         req = json_format.ParseDict(json_data, request_class())
 
                         resp = method(req, context)
-                        resp_dict = json_format.MessageToDict(resp, preserving_proto_field_name=True)
+                        resp_dict = json_format.MessageToDict(
+                            resp, preserving_proto_field_name=True, use_integers_for_enums=True
+                        )
                         resp_json = json.dumps(resp_dict)
 
                     self.send_response(200)

@@ -1,22 +1,25 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getMeets } from "@/app/actions";
 import { AppSidebar } from "@/components/app-sidebar";
 import { MeetsManager } from "@/components/meets-manager";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+export default function MeetsPage() {
+	const [mappedMeets, setMappedMeets] = useState<any[]>([]);
+	const [loading, setLoading] = useState(true);
 
-export default async function MeetsPage() {
-	let mappedMeets: any[] = [];
-
-	try {
-		const meetsResponse = await getMeets();
-		if (meetsResponse?.meets) {
-			mappedMeets = meetsResponse.meets;
-		}
-	} catch (e) {
-		console.error("Failed to fetch meets", e);
-	}
+	useEffect(() => {
+		getMeets()
+			.then((meetsResponse) => {
+				if (meetsResponse?.meets) {
+					setMappedMeets(meetsResponse.meets);
+				}
+			})
+			.catch((e) => console.error("Failed to fetch meets", e))
+			.finally(() => setLoading(false));
+	}, []);
 
 	return (
 		<>
@@ -37,7 +40,15 @@ export default async function MeetsPage() {
 							className="hidden"
 						/>
 					</div>
-					<MeetsManager initialMeets={mappedMeets} />
+					{loading ? (
+						<div className="flex items-center justify-center p-6 min-h-[200px]">
+							<span className="text-muted-foreground animate-pulse">
+								Loading meets...
+							</span>
+						</div>
+					) : (
+						<MeetsManager initialMeets={mappedMeets} />
+					)}
 				</div>
 			</SidebarInset>
 		</>
