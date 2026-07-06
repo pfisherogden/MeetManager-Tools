@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload Installer Artifacts
         if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: mmtools-desktop-${{ matrix.platform }}
           path: |
@@ -121,3 +121,50 @@ jobs:
             web-client/src-tauri/target/release/bundle/dmg/*.dmg
             web-client/src-tauri/target/release/bundle/macos/*.app
             scripts/trust-app.command
+
+  release-desktop:
+    needs: build-desktop
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mmtools-desktop-macos
+          path: ./artifacts-macos
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mmtools-desktop-windows
+          path: ./artifacts-windows
+
+      - name: Package and Rename Binaries
+        shell: bash
+        run: |
+          mkdir -p release-binaries
+          # Find and copy dmg
+          find ./artifacts-macos -name "*.dmg" -exec cp {} ./release-binaries/MM-Tools-macOS.dmg \;
+          # Find and copy msi
+          find ./artifacts-windows -name "*.msi" -exec cp {} ./release-binaries/MM-Tools-Windows.msi \;
+
+      - name: Upload binaries to latest Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Delete tag and release if they exist
+          gh release delete latest --yes || true
+          gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/latest || true
+          
+          # Create new latest release and upload renamed binaries
+          gh release create latest \
+            --title "Latest Desktop Release" \
+            --notes "Automated build of the latest desktop application." \
+            --prerelease \
+            ./release-binaries/MM-Tools-macOS.dmg \
+            ./release-binaries/MM-Tools-Windows.msi

@@ -2,7 +2,7 @@ name: Deploy Mobile Judge App to GitHub Pages
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["CI", "Compile & Package Desktop Clients"]
     branches: [main]
     types:
       - completed
