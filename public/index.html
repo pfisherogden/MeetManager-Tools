@@ -239,22 +239,23 @@
             <!-- Desktop Application Card (Featured) -->
             <div class="card grid-full">
                 <div>
-                    <span class="tag">Flagship Desktop App</span>
+                    <span class="tag">Central Controller</span>
                     <h3>MeetManager Tools Desktop</h3>
-                    <p>The centralized hub for meet coordinators and referees. Direct local filesystem access for uploading MDB databases, rapid multi-threaded PDF report package builders, and automatic local data synchronization with deck apps.</p>
+                    <p>The core application for meet managers, coordinators, and deck officials. MMTools simplifies swim meet operations by parsing your meet databases, generating high-fidelity PDF program sheets and CTS scoreboard files, and syncing data in real-time to mobile judge apps on the deck.</p>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px;">
                         <div>
-                            <strong style="color: var(--text-main); font-size: 14px;">Key Capabilities:</strong>
+                            <strong style="color: var(--text-main); font-size: 14px;">Key Benefits:</strong>
                             <ul class="features-list">
-                                <li>Direct local <code>.mdb</code> file ingestion and updates</li>
-                                <li>Multi-threaded PDF generation (speeds up to 8x faster)</li>
-                                <li>Automatic dynamic port and service discovery</li>
-                                <li>Fully offline-capable for poor deck connectivity</li>
+                                <li><strong>Easy Meet Import:</strong> Drag and drop your meet database to instantly load events, entries, and rosters.</li>
+                                <li><strong>Fast PDF Reports:</strong> Generate beautifully formatted heat sheets, psych sheets, and starter lists in seconds.</li>
+                                <li><strong>Real-time Deck Syncing:</strong> Push heat/lane updates and sync disqualifications (DQs) instantly with deck officials.</li>
+                                <li><strong>Scoreboard Exports:</strong> Directly generate CTS and Wahoo! Results scoreboard compatible files.</li>
                             </ul>
                         </div>
                         <div>
-                            <strong style="color: var(--text-main); font-size: 14px;">Latest Installers:</strong>
+                            <strong style="color: var(--text-main); font-size: 14px;">Download MMTools Desktop:</strong>
+                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Get the latest version of the desktop controller for your operating system.</p>
                             <div class="button-group" style="margin-top: 10px;">
                                 <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-macOS.dmg" class="button button-primary">
                                      Download for Mac (.dmg)
@@ -267,8 +268,8 @@
                     </div>
 
                     <div class="trust-instructions">
-                        <strong> macOS Security Notice:</strong> Since the application is packaged directly from CI/CD, macOS may block launch with an "unidentified developer" warning. 
-                        To bypass, download the installer, extract it, and run the included <code>trust-app.command</code> script, or right-click the app in Finder and choose <strong>Open</strong>.
+                        <strong> macOS Installation Note:</strong> Since the application is compiled and packaged securely via GitHub Actions, macOS might warn about an "unidentified developer" on first launch. 
+                        To run the app, simply download the installer, open it, and right-click the MMTools app icon, then select <strong>Open</strong> from the context menu to authorize it.
                     </div>
                 </div>
             </div>
