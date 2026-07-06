@@ -4,6 +4,7 @@ use tauri_plugin_shell::ShellExt;
 
 struct BackendState {
     port: Mutex<String>,
+    child: Mutex<Option<tauri_plugin_shell::process::CommandChild>>,
 }
 
 #[tauri::command]
@@ -59,10 +60,11 @@ pub fn run() {
 
             app.manage(BackendState {
                 port: Mutex::new("8081".to_string()),
+                child: Mutex::new(None),
             });
 
             // "mmtools-backend" refers to the sidecar defined in tauri.conf.json
-            let (mut rx, _child) = shell
+            let (mut rx, child) = shell
                 .sidecar("mmtools-backend")
                 .expect("failed to setup sidecar")
                 .env("STORAGE_BASE_DIR", &app_data_str)
@@ -70,6 +72,10 @@ pub fn run() {
                 .env("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
                 .spawn()
                 .expect("failed to spawn sidecar");
+
+            let state = app.state::<BackendState>();
+            let mut child_guard = state.child.lock().unwrap();
+            *child_guard = Some(child);
 
             let handle = app.handle().clone();
             // Log sidecar output in background
@@ -130,6 +136,19 @@ pub fn run() {
             save_file_to_path,
             copy_file_from_storage
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                let child = {
+                    let state = app_handle.state::<BackendState>();
+                    let x = state.child.lock().unwrap().take();
+                    x
+                };
+                if let Some(child) = child {
+                    let _ = child.kill();
+                    log::info!("Sidecar process terminated successfully.");
+                }
+            }
+        });
 }

@@ -2170,21 +2170,26 @@ def serve_health_check():
         daemon_threads = True
         address_family = socket.AF_INET
 
+    in_docker = os.path.exists("/.dockerenv")
+    is_local = (os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE")) and not in_docker
+    bind_v6 = "::1" if is_local else "::"
+    bind_v4 = "127.0.0.1" if is_local else "0.0.0.0"
+
     rest_port = int(os.getenv("REST_PORT", "8081"))
     httpd: Any = None
     for port_attempt in range(rest_port, rest_port + 10):
         try:
             # Attempt dual-stack IPv6/IPv4 binding first
             try:
-                httpd = ThreadingHTTPServerV6(("::", port_attempt), HealthHandler)
+                httpd = ThreadingHTTPServerV6((bind_v6, port_attempt), HealthHandler)
                 try:
                     # Enable dual-stack explicitly (V6ONLY=0)
                     httpd.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
                 except Exception:
                     pass
             except Exception:
-                # Fallback to IPv4 wildcard
-                httpd = ThreadingHTTPServerV4(("0.0.0.0", port_attempt), HealthHandler)
+                # Fallback to IPv4
+                httpd = ThreadingHTTPServerV4((bind_v4, port_attempt), HealthHandler)
             rest_port = port_attempt
             global ACTUAL_REST_PORT
             ACTUAL_REST_PORT = rest_port
@@ -2288,7 +2293,21 @@ def serve():
         if (os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE")) and not in_docker
         else "0.0.0.0"
     )
-    actual_port = server.add_insecure_port(f"{bind_address}:{port}")
+    grpc_port = int(port)
+    actual_port = 0
+    for port_attempt in range(grpc_port, grpc_port + 10):
+        try:
+            res = server.add_insecure_port(f"{bind_address}:{port_attempt}")
+            if res > 0:
+                actual_port = res
+                break
+        except Exception:
+            logging.warning(f"gRPC Port {port_attempt} already in use, trying next...")
+
+    if actual_port == 0:
+        logging.error("Failed to start gRPC server: no free ports found.")
+        sys.exit(1)
+
     logging.info(f"Server starting on {bind_address}:{actual_port}...")
     server.start()
 
