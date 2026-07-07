@@ -268,8 +268,23 @@
                     </div>
 
                     <div class="trust-instructions">
-                        <strong> macOS Installation Note:</strong> Since the application is compiled and packaged securely via GitHub Actions, macOS might warn about an "unidentified developer" on first launch. 
-                        To run the app, simply download the installer, open it, and right-click the MMTools app icon, then select <strong>Open</strong> from the context menu to authorize it.
+                        <strong> macOS Installation Note:</strong> Since the application is compiled and packaged securely via GitHub Actions, macOS will show an "unidentified developer" warning on first launch. You can authorize <strong>only this specific app</strong> without changing your Mac's global security settings using one of these methods:
+                        <div style="margin-top: 10px;">
+                            <strong>Method 1: Open Anyway (Standard)</strong>
+                            <ol style="margin: 4px 0 12px 20px; padding: 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                                <li>Double-click the downloaded app to trigger the warning dialog, then click <strong>Cancel</strong>.</li>
+                                <li>Open your Mac's <strong>System Settings</strong> and navigate to <strong>Privacy & Security</strong>.</li>
+                                <li>Scroll down to the <strong>Security</strong> section. You will see a note stating: <em>"MM-Tools" was blocked from use because it is not from an identified developer</em>.</li>
+                                <li>Click the <strong>Open Anyway</strong> button and enter your Mac credentials. This authorizes only MMTools.</li>
+                            </ol>
+                        </div>
+                        <div>
+                            <strong>Method 2: Remove Quarantine Flag (Terminal)</strong>
+                            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                                Alternatively, you can clear the download quarantine flag for MMTools alone. Open your Terminal and run:
+                                <code style="display: block; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; margin-top: 6px; font-family: monospace; color: var(--accent);">xattr -d com.apple.quarantine /Applications/MM-Tools.app</code>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
