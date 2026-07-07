@@ -2341,6 +2341,18 @@ if __name__ == "__main__":
         logging.getLogger("weasyprint").setLevel(logging.WARNING)
         logging.getLogger("jpype").setLevel(logging.WARNING)
 
+    # CLI check for WeasyPrint loading (used by GHA to validate bundling)
+    if len(sys.argv) > 1 and sys.argv[1] == "--check-weasyprint":
+        try:
+            import weasyprint  # noqa: F401
+
+            print("SUCCESS: WeasyPrint imported successfully.")
+            sys.exit(0)
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
+            print(f"FAILURE: WeasyPrint import failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
     serve()
-# Triggering fresh CI run with clean lint state
-# Triggering fresh CI run with clean lint state

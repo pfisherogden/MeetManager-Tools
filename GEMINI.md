@@ -193,5 +193,12 @@ All agents MUST follow these workflow phases:
 - **Dynamic Port Discovery**: The frontend queries `get_backend_port` via Rust dynamically on every request. Caching this port in JS module scope is strictly forbidden to avoid dynamic startup race conditions.
 - **Filesystem Bypass**: To download report packs/ZIPs in the desktop app, pass the URL to the custom Rust command `copy_file_from_storage(relative_path, dest_path)` which executes direct filesystem copies (`fs::copy`) natively. Large byte arrays must never be serialized as JSON arrays over WebView IPC.
 
+### 21. Windows Dependency Packaging & Sidecar Stdin Monitoring
+- **WeasyPrint Windows DLLs**: WeasyPrint requires Cairo, Pango, and GObject libraries on Windows. In GHA, install `mingw-w64-x86_64-pango` via MSYS2 `pacman` and copy all bin DLLs into `backend/src/mm_to_json/lib/` for PyInstaller packaging. Point WeasyPrint to them at startup using `WEASYPRINT_DLL_DIRECTORIES`.
+- **GHA Matrix Checks**: The GHA workflow matrix uses `platform: windows` (NOT `windows-latest`). Using `windows-latest` in matrix platform checks will cause steps to be silently skipped.
+- **Orphan Sidecar Process Prevention**: The Python sidecar supports stdin parent monitoring to prevent orphan background processes. Ensure `MONITOR_PARENT_PROCESS=true` is set when spawning the sidecar in Tauri, and do not enable it in headless/Docker environments to avoid immediate container exits.
+- **Sidecar Package Validation**: Always run the compiled sidecar with `--check-weasyprint` on both macOS and Windows runners to validate library loading before building installers.
+
+
 
 
