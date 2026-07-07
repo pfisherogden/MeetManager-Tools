@@ -51,7 +51,7 @@ jobs:
           uv run python src/mm_to_json/download_libs.py
 
       - name: Install Pango/Cairo DLLs on Windows
-        if: matrix.platform == 'windows-latest'
+        if: matrix.platform == 'windows'
         shell: bash
         run: |
           c:/msys64/usr/bin/bash -lc "pacman -Syy --noconfirm --needed mingw-w64-x86_64-pango"
@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           cd backend
-          if [ "${{ matrix.platform }}" = "windows-latest" ]; then
+          if [ "${{ matrix.platform }}" = "windows" ]; then
             pyinstaller --onefile --add-data "data/Sample_Data.json;data" --add-data "src/mm_to_json/jre;mm_to_json/jre" --add-data "src/mm_to_json/lib;mm_to_json/lib" --add-data "src/mm_to_json/reporting/templates;mm_to_json/reporting/templates" --name ${{ matrix.output_name }} src/server.py
           else
             pyinstaller --onefile --add-data "data/Sample_Data.json:data" --add-data "src/mm_to_json/jre:mm_to_json/jre" --add-data "src/mm_to_json/lib:mm_to_json/lib" --add-data "src/mm_to_json/reporting/templates:mm_to_json/reporting/templates" --name ${{ matrix.output_name }} src/server.py
@@ -75,6 +75,13 @@ jobs:
           else
             echo "web-client/src-tauri not found. Skipping sidecar binary copy."
           fi
+
+      - name: Validate Packaged Sidecar Binary
+        shell: bash
+        run: |
+          cd backend
+          echo "Testing packaged binary execution..."
+          dist/${{ matrix.output_name }}${{ matrix.sidecar_ext }} --check-weasyprint
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
