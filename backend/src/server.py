@@ -610,8 +610,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         """Masks sensitive parts of a path for safe logging."""
         if not path:
             return ""
-        if path.startswith("users/"):
-            parts = path.split("/")
+        normalized_path = path.replace("\\", "/")
+        if normalized_path.startswith("users/"):
+            parts = normalized_path.split("/")
             if len(parts) > 1:
                 uid = parts[1]
                 masked_uid = self._mask_uid(uid)
@@ -994,7 +995,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             for rel_path in files:
                 # ONLY allow files in the root user directory (not subdirs like 'published/' or 'bundles/')
                 # rel_path looks like "users/UID/filename.ext" or "users/UID/published/file.json"
-                parts = rel_path.split("/")
+                normalized_path = rel_path.replace("\\", "/")
+                parts = normalized_path.split("/")
                 if len(parts) != 3:
                     continue
 

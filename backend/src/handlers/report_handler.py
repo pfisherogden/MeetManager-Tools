@@ -244,12 +244,16 @@ def _process_single_report_process(
                 except Exception as e:
                     logging.warning(f"Google Sheet generation failed, but will still provide Excel backup: {e}")
 
-            with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as xlsx_tmp:
+            xlsx_tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+            xlsx_tmp.close()
+            try:
                 excel_writer = SwimmerCheckInWriter(check_in_data, title=title)
                 excel_writer.generate_excel_backup(xlsx_tmp.name)
                 with open(xlsx_tmp.name, "rb") as f_read:
                     content = f_read.read()
-                os.unlink(xlsx_tmp.name)
+            finally:
+                if os.path.exists(xlsx_tmp.name):
+                    os.unlink(xlsx_tmp.name)
 
             res_files = []
             filename = f"{title.replace(' ', '_')}_{idx}.xlsx" if title else f"check_in_{idx}.xlsx"
@@ -257,12 +261,16 @@ def _process_single_report_process(
 
             if gs_url:
                 shortcut_name = f"OPEN_GOOGLE_SHEET_{filename.replace('.xlsx', '.html')}"
-                with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as html_tmp:
+                html_tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
+                html_tmp.close()
+                try:
                     shortcut_writer = SwimmerCheckInWriter(check_in_data, title=title)
                     shortcut_writer.generate_google_sheet_shortcut(gs_url, html_tmp.name)
                     with open(html_tmp.name, "rb") as f_read:
                         shortcut_content = f_read.read()
-                    os.unlink(html_tmp.name)
+                finally:
+                    if os.path.exists(html_tmp.name):
+                        os.unlink(html_tmp.name)
                 res_files.append({"filename": shortcut_name, "content": shortcut_content})
 
             return {

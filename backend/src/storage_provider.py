@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 class StorageProvider(ABC):
     def _sanitize_path(self, path: str) -> str:
         """Masks sensitive parts of the path (e.g. UIDs)."""
-        if path.startswith("users/"):
-            parts = path.split("/")
+        normalized_path = path.replace("\\", "/")
+        if normalized_path.startswith("users/"):
+            parts = normalized_path.split("/")
             if len(parts) > 1:
                 uid = parts[1]
                 masked_uid = f"{uid[:4]}...{uid[-4:]}" if len(uid) > 8 else "***"
@@ -72,7 +73,7 @@ class LocalStorageProvider(StorageProvider):
         for root, _, filenames in os.walk(full_prefix_path):
             for filename in filenames:
                 rel_path = os.path.relpath(os.path.join(root, filename), self.base_dir)
-                files.append(rel_path)
+                files.append(rel_path.replace("\\", "/"))
         logger.debug(f"LocalStorageProvider: found {len(files)} files")
         return files
 
