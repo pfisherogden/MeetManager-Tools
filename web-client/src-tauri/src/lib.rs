@@ -63,13 +63,13 @@ pub fn run() {
                 child: Mutex::new(None),
             });
 
-            // "mmtools-backend" refers to the sidecar defined in tauri.conf.json
             let (mut rx, child) = shell
                 .sidecar("mmtools-backend")
                 .expect("failed to setup sidecar")
                 .env("STORAGE_BASE_DIR", &app_data_str)
                 .env("GRPC_AUTH_DISABLED", "true")
                 .env("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
+                .env("MONITOR_PARENT_PROCESS", "true")
                 .spawn()
                 .expect("failed to spawn sidecar");
 

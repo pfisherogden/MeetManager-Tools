@@ -7,68 +7,35 @@ import logging
 import multiprocessing
 import os
 import signal
-
-# Apply macOS Homebrew library resolution fallback under SIP as early as possible
 import sys
 import tempfile
 import threading
 import time
+import typing
 import uuid
 from collections import OrderedDict
 from concurrent import futures
 from typing import Any
 
-if sys.platform == "darwin":
-    homebrew_lib = "/opt/homebrew/lib"
-    if os.path.exists(homebrew_lib):
-        import ctypes.util
-
-        if ctypes.util.find_library.__name__ != "new_find_library":
-            orig_find_library = ctypes.util.find_library
-
-            def new_find_library(name):
-                res = orig_find_library(name)
-                if not res:
-                    base_name = name
-                    if name.startswith("lib"):
-                        base_name = name[3:]
-                    if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
-                        base_name = base_name.split("-")[0]
-                    exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
-                    if os.path.exists(exact_path):
-                        res = exact_path
-                    else:
-                        try:
-                            for f in os.listdir(homebrew_lib):
-                                if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
-                                    res = os.path.join(homebrew_lib, f)
-                                    break
-                        except Exception:
-                            pass
-                return res
-
-            ctypes.util.find_library = new_find_library
-
 import grpc
 from firebase_admin import auth
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc
+
+from meet_validation import validate_meet_data
+from mm_to_json.mm_to_json import MmToJsonConverter
+from mm_to_json.platform_setup import setup_platform_env
+from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
 
 # Import generated classes
 try:
     from meetmanager.v1 import meet_manager_pb2 as pb2
     from meetmanager.v1 import meet_manager_pb2_grpc as pb2_grpc
 except ImportError:
-    # Fallback for environments where protos aren't generated yet
-    # We use cast to Any to avoid mypy errors when this fallback is active
-    import typing
-
     pb2 = typing.cast(Any, None)
     pb2_grpc = typing.cast(Any, None)
 
-from grpc_health.v1 import health, health_pb2, health_pb2_grpc
-
-from meet_validation import validate_meet_data
-from mm_to_json.mm_to_json import MmToJsonConverter
-from storage_provider import GCSStorageProvider, LocalStorageProvider, StorageProvider
+# Configure platform-specific environments
+setup_platform_env()
 
 # Configure logging
 log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
