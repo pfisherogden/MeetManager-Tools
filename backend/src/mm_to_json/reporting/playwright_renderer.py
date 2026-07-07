@@ -32,7 +32,8 @@ class PlaywrightRenderer:
 
         tz = pytz.timezone("America/Los_Angeles")
         # Format like MM: "2:17 PM 5/29/2026"
-        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%-I:%M %p %-m/%-d/%Y")
+        fmt = "%#I:%M %p %#m/%#d/%Y" if os.name == "nt" else "%-I:%M %p %-m/%-d/%Y"
+        render_data["generation_time"] = datetime.datetime.now(tz).strftime(fmt)
 
         return template.render(**render_data)
 
@@ -53,7 +54,8 @@ class PlaywrightRenderer:
             display_meet = meet_name or "Meet Manager Tools"
 
             tz = pytz.timezone("America/Los_Angeles")
-            gen_time = datetime.datetime.now(tz).strftime("%-I:%M %p %-m/%-d/%Y")
+            fmt = "%#I:%M %p %#m/%#d/%Y" if os.name == "nt" else "%-I:%M %p %-m/%-d/%Y"
+            gen_time = datetime.datetime.now(tz).strftime(fmt)
 
             header_html = f"""
             <div style="font-family: Helvetica, Arial, sans-serif; font-size: 8pt; width: 100%; margin: 0 0.5in; border-bottom: 0.5pt solid #000; padding-top: 0.4in; padding-bottom: 3pt;">

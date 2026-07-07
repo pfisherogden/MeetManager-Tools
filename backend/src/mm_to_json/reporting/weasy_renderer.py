@@ -32,8 +32,9 @@ class WeasyRenderer:
 
         tz = pytz.timezone("America/Los_Angeles")
         # Format like MM: "2:17 PM 5/29/2026"
-        # %-m and %-d remove leading zeros on Linux/Unix
-        render_data["generation_time"] = datetime.datetime.now(tz).strftime("%-I:%M %p %-m/%-d/%Y")
+        # %-m and %-d remove leading zeros on Linux/Unix, %#I, %#m, %#d on Windows (MSVC)
+        fmt = "%#I:%M %p %#m/%#d/%Y" if os.name == "nt" else "%-I:%M %p %-m/%-d/%Y"
+        render_data["generation_time"] = datetime.datetime.now(tz).strftime(fmt)
 
         return template.render(**render_data)
 
