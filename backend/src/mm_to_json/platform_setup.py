@@ -51,11 +51,7 @@ def setup_platform_env():
                 ctypes.util.find_library = new_find_library
                 logger.info("macOS target detected: patched ctypes.util.find_library for Homebrew SIP support.")
 
-    # 2. Orphaning Process Prevention (Self-Termination Monitor)
-    # Start a daemon thread that blocks on sys.stdin.read(1). If the parent
-    # process (Tauri) terminates, the OS closes stdin, read(1) returns EOF,
-    # and this thread terminates the Python sidecar.
-    if os.environ.get("MONITOR_PARENT_PROCESS") != "false":
+    if os.environ.get("MONITOR_PARENT_PROCESS") == "true":
         stdin_thread = threading.Thread(target=_monitor_parent_stdin, daemon=True)
         stdin_thread.start()
 
