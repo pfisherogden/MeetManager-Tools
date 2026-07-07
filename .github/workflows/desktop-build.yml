@@ -50,6 +50,14 @@ jobs:
           uv pip install --system pyinstaller
           uv run python src/mm_to_json/download_libs.py
 
+      - name: Install Pango/Cairo DLLs on Windows
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          c:/msys64/usr/bin/bash -lc "pacman -Syy --noconfirm --needed mingw-w64-x86_64-pango"
+          mkdir -p backend/src/mm_to_json/lib
+          cp /c/msys64/mingw64/bin/*.dll backend/src/mm_to_json/lib/
+
       - name: Package Python Backend with PyInstaller
         shell: bash
         run: |

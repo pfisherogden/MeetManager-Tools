@@ -37,3 +37,23 @@ def test_path_normalization_list_datasets():
 
     assert "Singers23.mdb" in parsed_files
     assert "config.json" in parsed_files
+
+
+def test_setup_platform_env_windows():
+    from unittest.mock import patch
+
+    from mm_to_json.platform_setup import setup_platform_env
+
+    # Mock os.name to simulate Windows and os.path.exists to simulate found JRE lib folder
+    # We set MONITOR_PARENT_PROCESS to false to avoid starting parent process monitor thread in test
+    with (
+        patch("os.name", "nt"),
+        patch("os.path.exists", return_value=True),
+        patch.dict("os.environ", {"MONITOR_PARENT_PROCESS": "false"}),
+    ):
+        import os
+
+        setup_platform_env()
+        assert "WEASYPRINT_DLL_DIRECTORIES" in os.environ
+        assert os.environ["WEASYPRINT_DLL_DIRECTORIES"].endswith("lib")
+        assert os.environ["WEASYPRINT_DLL_DIRECTORIES"] in os.environ["PATH"]

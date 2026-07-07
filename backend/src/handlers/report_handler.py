@@ -62,41 +62,12 @@ def _process_single_report_process(
     import datetime
     import logging
     import os
-    import sys
     import tempfile
     import traceback
 
-    # Apply macOS Homebrew library resolution fallback under SIP
-    if sys.platform == "darwin":
-        homebrew_lib = "/opt/homebrew/lib"
-        if os.path.exists(homebrew_lib):
-            import ctypes.util
+    from mm_to_json.platform_setup import setup_platform_env
 
-            if ctypes.util.find_library.__name__ != "new_find_library":
-                orig_find_library = ctypes.util.find_library
-
-                def new_find_library(name):
-                    res = orig_find_library(name)
-                    if not res:
-                        base_name = name
-                        if name.startswith("lib"):
-                            base_name = name[3:]
-                        if "-" in base_name and not base_name.startswith("harfbuzz-subset"):
-                            base_name = base_name.split("-")[0]
-                        exact_path = os.path.join(homebrew_lib, f"lib{base_name}.dylib")
-                        if os.path.exists(exact_path):
-                            res = exact_path
-                        else:
-                            try:
-                                for f in os.listdir(homebrew_lib):
-                                    if f.startswith(f"lib{base_name}") and f.endswith(".dylib"):
-                                        res = os.path.join(homebrew_lib, f)
-                                        break
-                            except Exception:
-                                pass
-                    return res
-
-                ctypes.util.find_library = new_find_library
+    setup_platform_env()
 
     import msgpack
 
