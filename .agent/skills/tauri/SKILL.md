@@ -31,3 +31,9 @@ The application runs as a hybrid Tauri desktop client. The frontend is built usi
   just fix
   just lint
   ```
+
+## Windows Compatibility & Dependency Packaging
+1. **WeasyPrint DLLs**: WeasyPrint relies on external shared C libraries (Cairo, Pango, GObject) to compile and render PDF reports on Windows. On the Windows builder runner, these must be installed (e.g. via MSYS2 pacman `mingw-w64-x86_64-pango`) and copied into the `backend/src/mm_to_json/lib/` directory so PyInstaller bundles them. Point WeasyPrint to them at startup by setting the `WEASYPRINT_DLL_DIRECTORIES` env var.
+2. **Orphan Sidecar Process Prevention**: If the Tauri host app crashes or is force-terminated, the sidecar child process can leak. Set `MONITOR_PARENT_PROCESS=true` in the sidecar's environment when spawning it from Tauri (in `lib.rs`). This enables a stdin-monitoring daemon thread in Python that will exit immediately upon parent EOF. Do NOT enable this check in headless/Docker environments.
+3. **Validation**: Always run the packaged sidecar binary with `--check-weasyprint` in GHA before building the final MSI/DMG installers to catch packaging regressions early.
+
