@@ -11,6 +11,7 @@ on:
     paths:
       - 'web-client/src-tauri/**'
       - 'web-client/lib/tauri-bridge.ts'
+      - 'backend/src/**'
       - '.github/workflows/desktop-build.yml'
   workflow_dispatch:
 
