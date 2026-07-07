@@ -15,6 +15,27 @@ def get_classpath():
     return jars
 
 
+def get_potential_jvm_paths(local_jre: str, system: str) -> list[str]:
+    """Returns a list of potential paths to the JVM library inside a local JRE folder."""
+    potentials = []
+    if system == "Darwin":
+        potentials = [
+            os.path.join(local_jre, "Contents", "Home", "lib", "server", "libjvm.dylib"),
+            os.path.join(local_jre, "lib", "server", "libjvm.dylib"),
+        ]
+    elif system == "Windows":
+        potentials = [
+            os.path.join(local_jre, "bin", "server", "jvm.dll"),
+            os.path.join(local_jre, "bin", "client", "jvm.dll"),
+        ]
+    else:
+        potentials = [
+            os.path.join(local_jre, "lib", "server", "libjvm.so"),
+            os.path.join(local_jre, "lib", "client", "libjvm.so"),
+        ]
+    return potentials
+
+
 def ensure_jvm_started():
     """Starts the JVM if not already started."""
     if jpype.isJVMStarted():
@@ -29,18 +50,16 @@ def ensure_jvm_started():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     local_jre = os.path.join(base_dir, "jre")
     if os.path.exists(local_jre):
-        # macOS Corretto location: jre/Contents/Home/lib/server/libjvm.dylib
-        # Linux Corretto location: jre/lib/server/libjvm.so
         import platform
 
-        if platform.system() == "Darwin":
-            potential = os.path.join(local_jre, "Contents", "Home", "lib", "server", "libjvm.dylib")
-        else:
-            potential = os.path.join(local_jre, "lib", "server", "libjvm.so")
+        system = platform.system()
+        potentials = get_potential_jvm_paths(local_jre, system)
 
-        if os.path.exists(potential):
-            jvm_path = potential
-            logger.debug(f"Using local JRE at {jvm_path}")
+        for potential in potentials:
+            if os.path.exists(potential):
+                jvm_path = potential
+                logger.debug(f"Using local JRE at {jvm_path}")
+                break
 
     # 2. Fallback to system default if no local JRE
     if not jvm_path:
