@@ -34,6 +34,11 @@ build-frontend-debug:
     @echo "Building frontend with debug options..."
     cd web-client && NODE_OPTIONS="--max-old-space-size=4096" npm run build -- --debug
 
+# Build Tauri desktop application
+build-tauri:
+    @echo "Building Tauri desktop app..."
+    cd web-client && npx tauri build
+
 # Start services in the background
 up:
     @echo "Starting services..."
@@ -173,6 +178,15 @@ test-e2e-judge:
 test-e2e-reports:
     @echo "Running Reports E2E Tests..."
     cd web-client && npx playwright test --workers=1 tests-e2e/reports_journey.spec.ts
+
+# Run Tauri desktop app E2E smoke tests (automatically builds the app first if missing)
+test-tauri-e2e +ARGS="":
+    @if [ ! -d "web-client/src-tauri/target" ]; then \
+        echo "Tauri build target not found. Compiling Tauri desktop app..."; \
+        just build-tauri; \
+    fi
+    @echo "Running Playwright Tauri Desktop E2E tests..."
+    cd web-client && npx playwright test --config playwright.tauri.config.ts {{ARGS}}
 
 test-e2e-sharded shard total:
     @echo "Running Playwright E2E Tests (Shard {{shard}}/{{total}})..."
