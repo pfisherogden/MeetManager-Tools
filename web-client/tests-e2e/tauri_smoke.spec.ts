@@ -49,7 +49,9 @@ test("Tauri Desktop App smoke test & performance check", async ({
 	});
 	const navDuration = Date.now() - navStart;
 	console.log(`Consecutive page load completed in ${navDuration}ms`);
-
 	// Assert that cached navigation is fast (under 1500ms)
 	expect(navDuration).toBeLessThan(1500);
+
+	// Cleanly close the browser context to finalize trace/screenshot capture before process teardown
+	await browser.close();
 });
