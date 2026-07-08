@@ -1,16 +1,44 @@
 import { chromium, expect } from "@playwright/test";
 import { test } from "./tauri.fixture";
 
-test("Tauri Desktop App smoke test", async ({ tauriApp }) => {
+test("Tauri Desktop App smoke test & performance check", async ({
+	tauriApp,
+}) => {
 	// Connect Playwright to the Tauri WebView using CDP (Chrome DevTools Protocol)
 	const browser = await chromium.connectOverCDP(tauriApp.wsEndpoint);
 	const contexts = browser.contexts();
-	const page = contexts[0].pages()[0];
+	if (contexts.length === 0) {
+		throw new Error("No browser contexts found");
+	}
+	let page = contexts[0].pages()[0];
+	if (!page) {
+		page = await contexts[0].waitForEvent("page");
+	}
 
-	// Navigate to Tauri's local origin (tauri://localhost/)
-	await page.goto("tauri://localhost/");
+	// Determine origin protocol
+	const defaultUrl =
+		process.platform === "win32"
+			? "http://tauri.localhost/"
+			: "tauri://localhost/";
 
-	// Assert that we are on the main page and can see critical elements
-	await expect(page.locator("text=Dataset Management")).toBeVisible();
-	await expect(page.getByTestId("upload-dataset-button")).toBeVisible();
+	// Measure initial load time (including JVM initialization)
+	const initialStart = Date.now();
+	await page.goto(defaultUrl);
+	await expect(page.locator("text=Sign in with Google")).toBeVisible({
+		timeout: 30000,
+	});
+	const initialDuration = Date.now() - initialStart;
+	console.log(`Initial page load completed in ${initialDuration}ms`);
+
+	// Measure consecutive load performance (verifies cache hit / no slow DB reload)
+	const navStart = Date.now();
+	await page.goto(defaultUrl);
+	await expect(page.locator("text=Sign in with Google")).toBeVisible({
+		timeout: 15000,
+	});
+	const navDuration = Date.now() - navStart;
+	console.log(`Consecutive page load completed in ${navDuration}ms`);
+
+	// Assert that cached navigation is fast (under 1500ms)
+	expect(navDuration).toBeLessThan(1500);
 });

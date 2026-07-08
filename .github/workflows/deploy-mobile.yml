@@ -63,6 +63,8 @@ jobs:
         run: |
           mkdir -p gh-pages-root
           cp -r public/* gh-pages-root/ || true
+          DEPLOY_TIME=$(TZ="America/Los_Angeles" date "+%Y-%m-%d %I:%M:%S %p %Z")
+          sed -i "s/{{DEPLOY_TIMESTAMP}}/${DEPLOY_TIME}/g" gh-pages-root/index.html
           mkdir -p gh-pages-root/judge
           cp -r mobile-judge-app/dist/* gh-pages-root/judge/
           mkdir -p gh-pages-root/viewer

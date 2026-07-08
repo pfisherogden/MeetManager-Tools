@@ -136,6 +136,22 @@ jobs:
           # Builds the installer for the host operating system
           npx tauri build
 
+      - name: Run Tauri E2E Smoke Tests
+        if: matrix.platform == 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
+        continue-on-error: true
+        env:
+          TAURI_BUILD_PROFILE: "release"
+        run: |
+          cd web-client
+          npx playwright test --config playwright.tauri.config.ts
+
+      - name: Upload Playwright Test Results
+        if: always() && matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-${{ matrix.platform }}
+          path: web-client/playwright-report/
+
       - name: Upload Installer Artifacts
         if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
         uses: actions/upload-artifact@v4

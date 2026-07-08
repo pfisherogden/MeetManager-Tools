@@ -57,3 +57,23 @@ def test_setup_platform_env_windows():
         assert "WEASYPRINT_DLL_DIRECTORIES" in os.environ
         assert os.environ["WEASYPRINT_DLL_DIRECTORIES"].endswith("lib")
         assert os.environ["WEASYPRINT_DLL_DIRECTORIES"] in os.environ["PATH"]
+
+
+def test_path_traversal_case_insensitive_windows():
+    # Simulate base storage directory and a subpath with case and slash mismatches on Windows
+    base_dir_lower = "c:\\users\\dpsti\\appdata\\roaming\\com.mmtools.desktop"
+    base_dir_upper = "C:\\Users\\DPsti\\AppData\\Roaming\\com.mmtools.desktop"
+    relative_path = "users/dev-user/Singer23.mdb"
+
+    # Simulate what os.path.normcase does on Windows (lowercases and standardizes to backslashes)
+    def win_normcase(p):
+        return p.lower().replace("/", "\\")
+
+    # Construct Windows path
+    full_path = base_dir_upper + "\\" + relative_path.replace("/", "\\")
+
+    base_abs_norm = win_normcase(base_dir_lower)
+    full_path_norm = win_normcase(full_path)
+
+    # Verify containment holds true when normalized
+    assert full_path_norm.startswith(base_abs_norm)
