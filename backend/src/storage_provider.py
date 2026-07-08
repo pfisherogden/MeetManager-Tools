@@ -57,7 +57,11 @@ class LocalStorageProvider(StorageProvider):
         base_abs = os.path.abspath(self.base_dir)
         full_path = os.path.abspath(os.path.join(base_abs, path))
 
-        if not full_path.startswith(base_abs):
+        # Use normcase to handle case-insensitive and slash-agnostic comparison on Windows
+        base_abs_norm = os.path.normcase(base_abs)
+        full_path_norm = os.path.normcase(full_path)
+
+        if not full_path_norm.startswith(base_abs_norm):
             raise PermissionError(f"Path traversal attempt detected: {path}")
 
         return full_path
