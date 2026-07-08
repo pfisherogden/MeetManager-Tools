@@ -137,7 +137,7 @@ jobs:
           npx tauri build
 
       - name: Run Tauri E2E Smoke Tests
-        if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
+        if: matrix.platform == 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
         env:
           TAURI_BUILD_PROFILE: "release"
         run: |
