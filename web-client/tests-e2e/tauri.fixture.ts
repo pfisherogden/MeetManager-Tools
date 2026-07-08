@@ -7,33 +7,65 @@ export const test = base.extend<{
 }>({
 	// biome-ignore lint/correctness/noEmptyPattern: Playwright requires object destructuring for first argument of fixtures
 	tauriApp: async ({}, use) => {
-		// Path to built macOS app executable
-		const appPath = path.resolve(
-			__dirname,
-			"../src-tauri/target/release/bundle/macos/MM-Tools.app/Contents/MacOS/app",
-		);
+		// Determine the binary path
+		let appPath = process.env.TAURI_APP_PATH;
+		if (!appPath) {
+			const targetDir =
+				process.env.TAURI_BUILD_PROFILE === "debug" ? "debug" : "release";
+			if (process.platform === "win32") {
+				// On Windows, the binary is app.exe
+				appPath = path.resolve(
+					__dirname,
+					`../src-tauri/target/${targetDir}/app.exe`,
+				);
+			} else if (process.platform === "darwin") {
+				// On macOS, try the bundle first, fallback to the bare target binary
+				const bundlePath = path.resolve(
+					__dirname,
+					`../src-tauri/target/${targetDir}/bundle/macos/MM-Tools.app/Contents/MacOS/app`,
+				);
+				const barePath = path.resolve(
+					__dirname,
+					`../src-tauri/target/${targetDir}/app`,
+				);
+				const fs = require("node:fs");
+				appPath = fs.existsSync(bundlePath) ? bundlePath : barePath;
+			} else {
+				// On Linux, the binary is app
+				appPath = path.resolve(
+					__dirname,
+					`../src-tauri/target/${targetDir}/app`,
+				);
+			}
+		}
 
 		// Run Tauri app with remote debugging enabled
-		const tauriProcess = spawn(appPath, [], {
-			env: {
-				...process.env,
-				TAURI_DEBUG: "1",
-			},
-		});
+		const env: Record<string, string> = {
+			...process.env,
+			TAURI_DEBUG: "1",
+		};
+		if (process.platform === "win32") {
+			// On Windows, WebView2 requires WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS to expose remote debugging CDP
+			env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--remote-debugging-port=0";
+		}
+
+		const tauriProcess = spawn(appPath, [], { env });
 
 		// Wait for remote debugging websocket to print in stdout/stderr
 		let wsEndpoint = "";
 		await new Promise<void>((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				reject(
-					new Error("Timeout waiting for Tauri remote debugging WebSocket"),
+					new Error(
+						`Timeout waiting for Tauri remote debugging WebSocket at path: ${appPath}`,
+					),
 				);
 			}, 30000);
 
 			tauriProcess.stderr.on("data", (data) => {
 				const text = data.toString();
 				const match = text.match(
-					/DevTools listening on (ws:\/\/localhost:\d+\/devtools\/browser\/[a-f0-9-]+)/,
+					/DevTools listening on (ws:\/\/(?:localhost|127\.0\.0\.1):\d+\/devtools\/browser\/[a-f0-9-]+)/,
 				);
 				if (match) {
 					wsEndpoint = match[1];
