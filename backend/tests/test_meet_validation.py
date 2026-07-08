@@ -496,3 +496,47 @@ def test_relays_with_ns_scored_logic():
     assert any("Team Del Prado 'B'" in m for m in messages)
     assert any("Team Del Prado 'C'" in m for m in messages)
     assert not any("Team Del Prado 'A'" in m for m in messages)
+
+
+def test_ns_scratch_with_times():
+    """Verify that swimmers with NS/Scratch/DQ-7 and a valid time in another event are flagged."""
+    cache = {
+        "athlete": [
+            {"ath_no": 1, "first_name": "Alice", "last_name": "Smith", "ath_age": 10, "ath_sex": "F", "team_no": 100},
+            {"ath_no": 2, "first_name": "Bob", "last_name": "Jones", "ath_age": 12, "ath_sex": "M", "team_no": 100},
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
+        "event": [
+            {"event_ptr": 10, "event_no": 1, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+            {"event_ptr": 11, "event_no": 2, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+            {"event_ptr": 12, "event_no": 3, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+            {"event_ptr": 13, "event_no": 4, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+        ],
+        "entry": [
+            # Alice: Event 10 has a valid time, Event 11 is NS
+            {"ath_no": 1, "event_ptr": 10, "fin_time": 30.5, "fin_stat": "", "fin_heat": 1, "fin_lane": 3},
+            {"ath_no": 1, "event_ptr": 11, "fin_time": 0.0, "fin_stat": "NS", "fin_heat": 1, "fin_lane": 4},
+            # Bob: Event 12 has a valid time, Event 13 is DQ with code 7P (Declared False Start)
+            {"ath_no": 2, "event_ptr": 12, "fin_time": 28.2, "fin_stat": "", "fin_heat": 1, "fin_lane": 2},
+            {
+                "ath_no": 2,
+                "event_ptr": 13,
+                "fin_time": 0.0,
+                "fin_stat": "Q",
+                "fin_dqcode": "7P",
+                "fin_heat": 1,
+                "fin_lane": 5,
+            },
+        ],
+        "relay": [],
+        "relaynames": [],
+    }
+
+    findings = validate_meet_data(cache)
+    ns_scratch_findings = [f for f in findings if f.category == "NS/Scratch with Times"]
+    assert len(ns_scratch_findings) == 2
+    assert all(f.severity == pb2.VALIDATION_SEVERITY_WARNING for f in ns_scratch_findings)
+
+    messages = [f.message for f in ns_scratch_findings]
+    assert any("Alice Smith" in m and "NS/Scratch/DQ-7" in m for m in messages)
+    assert any("Bob Jones" in m and "NS/Scratch/DQ-7" in m for m in messages)

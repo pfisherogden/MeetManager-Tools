@@ -201,12 +201,14 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
 
     # Pass 1: Build older times map (15-18) for young swimmer fast times comparison
     older_times: dict[tuple[str, int, str], list[float]] = collections.defaultdict(list)
+    athlete_has_valid_time = set()
     for entry in entries:
         ath_id = safe_int(get_field(entry, ["ath_no", "Ath_no"]))
         evt_id = safe_int(get_field(entry, ["event_ptr", "Event_ptr"]) or get_field(entry, ["event_no", "Event_no"]))
         fin_time = safe_float(get_field(entry, ["fin_time", "Fin_time"]))
         fin_stat = safe_str(get_field(entry, ["fin_stat", "Fin_stat"])).upper()
-        if fin_time > 0 and fin_stat not in ["Q", "R"]:
+        if fin_time > 0 and fin_stat not in ["Q", "R", "NS"]:
+            athlete_has_valid_time.add(ath_id)
             ath_info = athletes_map.get(ath_id)
             if ath_info:
                 age = safe_int(ath_info.get("age", 0))
@@ -293,6 +295,24 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                         severity=pb2.VALIDATION_SEVERITY_CRITICAL,
                         category="Scratched with Time",
                         message=f"{ath_name} in {evt_desc} (Heat {fin_heat}, Lane {fin_lane}): Scratched but has time {fin_time:.2f}s.",
+                        affected_id=str(ath_id),
+                    )
+                )
+
+        # 11. NS/Scratch with Times (WARNING)
+        if ath_id in athlete_has_valid_time:
+            is_ns = fin_stat == "NS"
+            is_scratch = fin_stat == "R" or scr_stat == 1
+            fin_dq = safe_str(get_field(entry, ["fin_dqcode", "Fin_dqcode"])).strip().upper()
+            is_dfs_dq = fin_stat == "Q" and fin_dq.startswith("7")
+
+            if is_ns or is_scratch or is_dfs_dq:
+                loc = f" (Heat {fin_heat}, Lane {fin_lane})" if fin_heat > 0 and fin_lane > 0 else ""
+                findings.append(
+                    pb2.ValidationFinding(
+                        severity=pb2.VALIDATION_SEVERITY_WARNING,
+                        category="NS/Scratch with Times",
+                        message=f"{ath_name} in {evt_desc}{loc}: Swimmer marked as NS/Scratch/DQ-7 but has valid times in other events.",
                         affected_id=str(ath_id),
                     )
                 )
