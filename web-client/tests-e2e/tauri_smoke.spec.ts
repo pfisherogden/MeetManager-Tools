@@ -29,16 +29,22 @@ test("Tauri Desktop App smoke test & performance check", async ({
 	// Measure initial load time (including JVM initialization)
 	const initialStart = Date.now();
 	await page.goto(defaultUrl);
-	await expect(page.locator("text=Dataset Management")).toBeVisible({
+	await expect(page.locator("text=Welcome to SwimMeet Pro")).toBeVisible({
 		timeout: 30000,
 	});
 	const initialDuration = Date.now() - initialStart;
 	console.log(`Initial page load completed in ${initialDuration}ms`);
 
+	// Verify we can navigate to the Admin page and see Dataset Management
+	await page.click("text=Admin");
+	await expect(page.locator("text=Dataset Management")).toBeVisible({
+		timeout: 15000,
+	});
+
 	// Measure consecutive load performance (verifies cache hit / no slow DB reload)
 	const navStart = Date.now();
 	await page.goto(defaultUrl);
-	await expect(page.locator("text=Dataset Management")).toBeVisible({
+	await expect(page.locator("text=Welcome to SwimMeet Pro")).toBeVisible({
 		timeout: 15000,
 	});
 	const navDuration = Date.now() - navStart;
