@@ -171,7 +171,7 @@ export function getDynamicGatewayPort(): number {
 }
 
 export function getDynamicGatewayUrl(): string {
-	return `http://localhost:${getDynamicGatewayPort()}/api/grpc`;
+	return `http://127.0.0.1:${getDynamicGatewayPort()}/api/grpc`;
 }
 
 /**

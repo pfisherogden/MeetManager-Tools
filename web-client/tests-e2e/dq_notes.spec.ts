@@ -32,7 +32,7 @@ test.describe("DQ Notes Preservation", () => {
 			process.env.DATA_ACCESS_TOKEN || "mmtools-default-secret-2024";
 		const syncBase =
 			process.env.TEST_STATIC === "true"
-				? `http://localhost:${getDynamicGatewayPort()}`
+				? `http://127.0.0.1:${getDynamicGatewayPort()}`
 				: baseURL;
 
 		const testFileName = getFilename("tiny_meet.json");
