@@ -7,7 +7,13 @@ test("Tauri Desktop App smoke test & performance check", async ({
 	// Connect Playwright to the Tauri WebView using CDP (Chrome DevTools Protocol)
 	const browser = await chromium.connectOverCDP(tauriApp.wsEndpoint);
 	const contexts = browser.contexts();
-	const page = contexts[0].pages()[0];
+	if (contexts.length === 0) {
+		throw new Error("No browser contexts found");
+	}
+	let page = contexts[0].pages()[0];
+	if (!page) {
+		page = await contexts[0].waitForEvent("page");
+	}
 
 	// Determine origin protocol
 	const defaultUrl =
