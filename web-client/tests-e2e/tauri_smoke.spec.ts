@@ -55,3 +55,59 @@ test("Tauri Desktop App smoke test & performance check", async ({
 	// Cleanly close the browser context to finalize trace/screenshot capture before process teardown
 	await browser.close();
 });
+
+test("Tauri Desktop App functional navigation & data query check", async ({
+	tauriApp,
+}) => {
+	// Connect Playwright to the Tauri WebView using CDP (Chrome DevTools Protocol)
+	const browser = await chromium.connectOverCDP(tauriApp.wsEndpoint);
+	const contexts = browser.contexts();
+	if (contexts.length === 0) {
+		throw new Error("No browser contexts found");
+	}
+	let page = contexts[0].pages()[0];
+	if (!page) {
+		page = await contexts[0].waitForEvent("page");
+	}
+
+	const defaultUrl =
+		process.platform === "win32"
+			? "http://tauri.localhost/"
+			: "tauri://localhost/";
+
+	await page.goto(defaultUrl);
+	await expect(page.locator("text=Welcome to SwimMeet Pro")).toBeVisible({
+		timeout: 30000,
+	});
+
+	// 1. Navigation to Teams
+	await page.click("text=Teams");
+	await expect(
+		page.locator("text=Manage swim teams and organizations"),
+	).toBeVisible({
+		timeout: 15000,
+	});
+	// Verify table columns exist
+	await expect(page.locator("text=Team Name")).toBeVisible({ timeout: 10000 });
+
+	// 2. Navigation to Athletes
+	await page.click("text=Athletes");
+	await expect(
+		page.locator("text=Manage athlete profiles and team assignments"),
+	).toBeVisible({
+		timeout: 15000,
+	});
+
+	// 3. Navigation to Admin (Dataset Manager)
+	await page.click("text=Admin");
+	await expect(page.locator("text=Dataset Management")).toBeVisible({
+		timeout: 15000,
+	});
+	// Verify that the sample data is copied and active
+	await expect(page.locator("text=Sample_Data.json")).toBeVisible({
+		timeout: 15000,
+	});
+
+	// Cleanly close the browser context to finalize trace/screenshot capture
+	await browser.close();
+});
