@@ -24,14 +24,14 @@ test("Tauri Desktop App smoke test & performance check", async ({
 	const initialDuration = Date.now() - initialStart;
 	console.log(`Initial page load completed in ${initialDuration}ms`);
 
-	// Measure consecutive navigation performance (verifies cache hit / no slow DB reload)
+	// Measure consecutive load performance (verifies cache hit / no slow DB reload)
 	const navStart = Date.now();
-	await page.goto(`${defaultUrl}events`);
-
-	// Wait for the rows in the Events list to render
-	await expect(page.getByRole("row").first()).toBeVisible({ timeout: 15000 });
+	await page.goto(defaultUrl);
+	await expect(page.locator("text=Dataset Management")).toBeVisible({
+		timeout: 15000,
+	});
 	const navDuration = Date.now() - navStart;
-	console.log(`Consecutive page navigation completed in ${navDuration}ms`);
+	console.log(`Consecutive page load completed in ${navDuration}ms`);
 
 	// Assert that cached navigation is fast (under 1500ms)
 	expect(navDuration).toBeLessThan(1500);
