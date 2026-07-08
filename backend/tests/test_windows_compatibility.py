@@ -77,4 +77,3 @@ def test_path_traversal_case_insensitive_windows():
 
     # Verify containment holds true when normalized
     assert full_path_norm.startswith(base_abs_norm)
-
