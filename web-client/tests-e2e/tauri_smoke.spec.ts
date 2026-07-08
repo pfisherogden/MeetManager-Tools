@@ -1,6 +1,11 @@
 import { chromium, expect } from "@playwright/test";
 import { test } from "./tauri.fixture";
 
+test.skip(
+	process.platform !== "win32",
+	"Playwright CDP E2E testing of native WebViews is only supported on Windows (WebView2). macOS uses WebKit (WKWebView) which does not expose a CDP endpoint.",
+);
+
 test("Tauri Desktop App smoke test & performance check", async ({
 	tauriApp,
 }) => {
