@@ -49,6 +49,15 @@ export const test = base.extend<{
 			}
 		}
 
+		// Ensure the binary exists before spawning
+		if (!fs.existsSync(appPath)) {
+			throw new Error(
+				`Tauri binary not found at "${appPath}".\n` +
+					`Please compile the desktop app first by running:\n` +
+					`  cd web-client && npx tauri build`,
+			);
+		}
+
 		// Run Tauri app with remote debugging enabled
 		const env: Record<string, string> = {
 			...process.env,
