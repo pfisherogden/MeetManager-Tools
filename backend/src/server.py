@@ -54,7 +54,7 @@ def pacific_time_converter(secs):
         return time.localtime(secs)
 
 
-logging.Formatter.converter = pacific_time_converter
+logging.Formatter.converter = staticmethod(pacific_time_converter)
 
 
 class JsonFormatter(logging.Formatter):
