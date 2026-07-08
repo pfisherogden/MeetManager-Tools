@@ -680,7 +680,7 @@ export async function getDashboardStats() {
 
 export async function publishMeetData(_filename: string, _baseUrl: string) {
 	const restPort = await getRestPort();
-	const localUrl = `http://localhost:${restPort}`;
+	const localUrl = `http://127.0.0.1:${restPort}`;
 	const response = await callRestGateway("PublishMeetData", {
 		frontendUrl: localUrl,
 	});
@@ -897,7 +897,7 @@ export async function resolveBundleUrl(bundleUrl: string): Promise<string> {
 	if (!bundleUrl) return "";
 	const restPort = await getRestPort();
 	if (bundleUrl.startsWith("/")) {
-		return `http://localhost:${restPort}${bundleUrl}`;
+		return `http://127.0.0.1:${restPort}${bundleUrl}`;
 	}
 	try {
 		const url = new URL(bundleUrl);
@@ -907,7 +907,7 @@ export async function resolveBundleUrl(bundleUrl: string): Promise<string> {
 			url.protocol === "tauri:"
 		) {
 			url.protocol = "http:";
-			url.host = `localhost:${restPort}`;
+			url.host = `127.0.0.1:${restPort}`;
 			return url.toString();
 		}
 	} catch (_e) {}

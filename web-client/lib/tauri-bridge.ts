@@ -53,7 +53,7 @@ export async function callRestGateway(method: string, payload: any) {
 			}
 
 			const response = await fetch(
-				`http://localhost:${restPort}/api/grpc/${method}`,
+				`http://127.0.0.1:${restPort}/api/grpc/${method}`,
 				{
 					method: "POST",
 					headers: {

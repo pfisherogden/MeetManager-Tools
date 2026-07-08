@@ -2135,6 +2135,7 @@ def serve_health_check():
                     self.end_headers()
                     self.wfile.write(resp_json.encode("utf-8"))
                 except Exception as e:
+                    logging.exception("Error in REST Gateway do_POST handler")
                     self.send_response(500)
                     self._send_cors_headers()
                     self.end_headers()
@@ -2160,24 +2161,28 @@ def serve_health_check():
 
     in_docker = os.path.exists("/.dockerenv")
     is_local = (os.getenv("GRPC_AUTH_DISABLED") == "true" or not os.getenv("K_SERVICE")) and not in_docker
-    bind_v6 = "::1" if is_local else "::"
+    bind_v6 = "::"
     bind_v4 = "127.0.0.1" if is_local else "0.0.0.0"
 
     rest_port = int(os.getenv("REST_PORT", "8081"))
     httpd: Any = None
     for port_attempt in range(rest_port, rest_port + 10):
         try:
-            # Attempt dual-stack IPv6/IPv4 binding first
-            try:
-                httpd = ThreadingHTTPServerV6((bind_v6, port_attempt), HealthHandler)
-                try:
-                    # Enable dual-stack explicitly (V6ONLY=0)
-                    httpd.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
-                except Exception:
-                    pass
-            except Exception:
-                # Fallback to IPv4
+            if is_local:
+                # Local dev/desktop: bind strictly to IPv4 127.0.0.1 to avoid Windows localhost loopback mismatch
                 httpd = ThreadingHTTPServerV4((bind_v4, port_attempt), HealthHandler)
+            else:
+                # Staging/Production: attempt dual-stack IPv6/IPv4 binding
+                try:
+                    httpd = ThreadingHTTPServerV6((bind_v6, port_attempt), HealthHandler)
+                    try:
+                        # Enable dual-stack explicitly (V6ONLY=0)
+                        httpd.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+                    except Exception:
+                        pass
+                except Exception:
+                    # Fallback to IPv4
+                    httpd = ThreadingHTTPServerV4((bind_v4, port_attempt), HealthHandler)
             rest_port = port_attempt
             global ACTUAL_REST_PORT
             ACTUAL_REST_PORT = rest_port

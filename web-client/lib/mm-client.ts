@@ -26,7 +26,7 @@ if (typeof window === "undefined") {
 			if (fs.existsSync(registryPath)) {
 				const data = JSON.parse(fs.readFileSync(registryPath, "utf-8"));
 				if (data?.grpc_port) {
-					resolvedHost = `localhost:${data.grpc_port}`;
+					resolvedHost = `127.0.0.1:${data.grpc_port}`;
 					console.log(
 						`[mm-client] Resolved backend gRPC host from active_ports.json: ${resolvedHost}`,
 					);
@@ -43,7 +43,7 @@ if (typeof window === "undefined") {
 	defaultHost = resolvedHost || "backend:8080";
 } else {
 	const port = process.env.NEXT_PUBLIC_BACKEND_PORT || "8081";
-	defaultHost = `localhost:${port}`;
+	defaultHost = `127.0.0.1:${port}`;
 }
 
 const authMiddleware = async function* (call: any, options: any) {
@@ -184,7 +184,7 @@ async function getOrInitClient(): Promise<MeetManagerServiceClient> {
 				const ports = await invoke<[number, number]>("get_backend_ports");
 				if (ports?.[0]) {
 					const dynamicPort = ports[0];
-					targetHost = `localhost:${dynamicPort}`;
+					targetHost = `127.0.0.1:${dynamicPort}`;
 					console.log(
 						`Tauri dynamic discovery: resolved backend port to ${dynamicPort}`,
 					);
