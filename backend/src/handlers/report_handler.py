@@ -34,6 +34,23 @@ class ReportServicerContext(Protocol):
 SOURCE_FILE = "Sample_Data.json"
 
 
+# Configure logging in local Pacific Time (PT) for California
+def pacific_time_converter(secs):
+    import time
+
+    try:
+        import zoneinfo
+
+        tz = zoneinfo.ZoneInfo("America/Los_Angeles")
+    except Exception:
+        return time.localtime(secs)
+    dt = datetime.datetime.fromtimestamp(secs, tz=tz)
+    return dt.timetuple()
+
+
+logging.Formatter.converter = pacific_time_converter
+
+
 def msgpack_encode(obj):
     if isinstance(obj, (datetime.datetime, datetime.date)):
         return obj.isoformat()
@@ -74,6 +91,7 @@ def _process_single_report_process(
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
     log_level = getattr(logging, log_level_str, logging.INFO)
     logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+    logging.Formatter.converter = pacific_time_converter
     if log_level_str != "DEBUG":
         logging.getLogger("fontTools").setLevel(logging.WARNING)
         logging.getLogger("weasyprint").setLevel(logging.WARNING)
