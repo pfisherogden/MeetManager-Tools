@@ -42,6 +42,21 @@ log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
 log_level = getattr(logging, log_level_str, logging.INFO)
 
 
+# Configure logging in local Pacific Time (PT) for California
+def pacific_time_converter(secs):
+    try:
+        import zoneinfo
+
+        tz = zoneinfo.ZoneInfo("America/Los_Angeles")
+    except Exception:
+        return time.localtime(secs)
+    dt = datetime.datetime.fromtimestamp(secs, tz=tz)
+    return dt.timetuple()
+
+
+logging.Formatter.converter = pacific_time_converter
+
+
 class JsonFormatter(logging.Formatter):
     """Simple JSON formatter for Cloud Run structured logging."""
 
