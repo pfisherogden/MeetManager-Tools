@@ -42,10 +42,10 @@ def pacific_time_converter(secs):
         import zoneinfo
 
         tz = zoneinfo.ZoneInfo("America/Los_Angeles")
+        dt = datetime.datetime.fromtimestamp(secs, tz=tz)
+        return dt.timetuple()
     except Exception:
         return time.localtime(secs)
-    dt = datetime.datetime.fromtimestamp(secs, tz=tz)
-    return dt.timetuple()
 
 
 logging.Formatter.converter = pacific_time_converter

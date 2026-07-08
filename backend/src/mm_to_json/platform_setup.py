@@ -13,7 +13,9 @@ def setup_platform_env():
     # 1. Platform-Specific Library / DLL Resolution
     if os.name == "nt":
         # Windows WeasyPrint DLL Resolution (Cairo / Pango / GObject)
-        lib_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib")
+        lib_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
+        if not os.path.exists(lib_dir):
+            lib_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib")
         if os.path.exists(lib_dir):
             logger.info(f"Windows target detected: adding bundled DLL folder to environment: {lib_dir}")
             os.environ["WEASYPRINT_DLL_DIRECTORIES"] = lib_dir
