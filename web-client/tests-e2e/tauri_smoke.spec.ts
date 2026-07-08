@@ -29,7 +29,7 @@ test("Tauri Desktop App smoke test & performance check", async ({
 	// Measure initial load time (including JVM initialization)
 	const initialStart = Date.now();
 	await page.goto(defaultUrl);
-	await expect(page.locator("text=Sign in with Google")).toBeVisible({
+	await expect(page.locator("text=Dataset Management")).toBeVisible({
 		timeout: 30000,
 	});
 	const initialDuration = Date.now() - initialStart;
@@ -38,7 +38,7 @@ test("Tauri Desktop App smoke test & performance check", async ({
 	// Measure consecutive load performance (verifies cache hit / no slow DB reload)
 	const navStart = Date.now();
 	await page.goto(defaultUrl);
-	await expect(page.locator("text=Sign in with Google")).toBeVisible({
+	await expect(page.locator("text=Dataset Management")).toBeVisible({
 		timeout: 15000,
 	});
 	const navDuration = Date.now() - navStart;

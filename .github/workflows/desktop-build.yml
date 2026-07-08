@@ -138,7 +138,6 @@ jobs:
 
       - name: Run Tauri E2E Smoke Tests
         if: matrix.platform == 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
-        continue-on-error: true
         env:
           TAURI_BUILD_PROFILE: "release"
         run: |
