@@ -64,6 +64,12 @@ pub fn run() {
                 child: Mutex::new(None),
             });
 
+            let resource_dir = app
+                .path()
+                .resource_dir()
+                .expect("failed to get resource dir");
+            let resource_dir_str = resource_dir.to_string_lossy().to_string();
+
             let (mut rx, child) = shell
                 .sidecar("mmtools-backend")
                 .expect("failed to setup sidecar")
@@ -71,6 +77,7 @@ pub fn run() {
                 .env("GRPC_AUTH_DISABLED", "true")
                 .env("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
                 .env("MONITOR_PARENT_PROCESS", "true")
+                .env("TAURI_RESOURCE_DIR", &resource_dir_str)
                 .spawn()
                 .expect("failed to spawn sidecar");
 
@@ -129,6 +136,35 @@ pub fn run() {
                     }
                 }
             });
+
+            // Wait for backend REST server to start and port to become connectable
+            log::info!("Waiting for backend REST server to start...");
+            let mut ready = false;
+            let start_time = std::time::Instant::now();
+            let timeout = std::time::Duration::from_secs(15);
+            
+            while start_time.elapsed() < timeout {
+                let current_port = {
+                    let state = app.state::<BackendState>();
+                    let port_guard = state.port.lock().unwrap();
+                    port_guard.clone()
+                };
+                
+                if current_port != "8081" || start_time.elapsed() > std::time::Duration::from_millis(500) {
+                    let addr = format!("127.0.0.1:{}", current_port);
+                    if let Ok(_stream) = std::net::TcpStream::connect(&addr) {
+                        log::info!("Successfully connected to backend REST server at {}", addr);
+                        ready = true;
+                        break;
+                    }
+                }
+                
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            
+            if !ready {
+                log::error!("Backend REST server failed to start within timeout.");
+            }
 
             Ok(())
         })

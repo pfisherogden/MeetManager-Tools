@@ -960,14 +960,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             if hasattr(self.storage, "_get_full_path"):
                 logging.info("ListDatasets: Checking local path")
 
-            # Retry loop for eventual consistency in CI environments            files = []
-            for attempt in range(5):
-                files = self.storage.list_files(user_prefix)
-                if files:
-                    break
-                if attempt < 4:
-                    logging.info(f"ListDatasets: No files found for {self._mask_uid(uid)}, retrying in 2s...")
-                    time.sleep(2)
+            files = self.storage.list_files(user_prefix)
 
             logging.info(f"ListDatasets: Found {len(files)} files in {self._mask_path(user_prefix)}: {files}")
 

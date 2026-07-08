@@ -46,9 +46,39 @@ def ensure_jvm_started():
     # Discover JVM path
     jvm_path = None
 
-    # 1. Try local JRE first to avoid system warnings on macOS
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    local_jre = os.path.join(base_dir, "jre")
+    # 1. Try resolving via environment variable from Tauri first
+    import sys
+
+    local_jre = None
+    tauri_resource_dir = os.getenv("TAURI_RESOURCE_DIR")
+    if tauri_resource_dir:
+        tauri_jre_binaries = os.path.join(tauri_resource_dir, "binaries", "jre")
+        if os.path.exists(tauri_jre_binaries):
+            local_jre = tauri_jre_binaries
+            logger.debug(f"Found JRE via TAURI_RESOURCE_DIR binaries: {local_jre}")
+        else:
+            tauri_jre = os.path.join(tauri_resource_dir, "jre")
+            if os.path.exists(tauri_jre):
+                local_jre = tauri_jre
+                logger.debug(f"Found JRE via TAURI_RESOURCE_DIR direct: {local_jre}")
+
+    # 2. Fallback to frozen executable location path discovery
+    if not local_jre and getattr(sys, "frozen", False):
+        exe_dir = os.path.dirname(sys.executable)
+        tauri_jre_binaries = os.path.join(exe_dir, "binaries", "jre")
+        if os.path.exists(tauri_jre_binaries):
+            local_jre = tauri_jre_binaries
+            logger.debug(f"Found JRE in Tauri binaries resources: {local_jre}")
+        else:
+            tauri_jre = os.path.join(exe_dir, "jre")
+            if os.path.exists(tauri_jre):
+                local_jre = tauri_jre
+                logger.debug(f"Found JRE in Tauri resources: {local_jre}")
+
+    if not local_jre:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        local_jre = os.path.join(base_dir, "jre")
+
     if os.path.exists(local_jre):
         import platform
 
