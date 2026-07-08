@@ -68,15 +68,17 @@ jobs:
         run: |
           cd backend
           if [ "${{ matrix.platform }}" = "windows" ]; then
-            pyinstaller --onefile --add-data "data/Sample_Data.json;data" --add-data "src/mm_to_json/jre;mm_to_json/jre" --add-data "src/mm_to_json/lib;mm_to_json/lib" --add-data "src/mm_to_json/reporting/templates;mm_to_json/reporting/templates" --name ${{ matrix.output_name }} src/server.py
+            pyinstaller --onefile --add-data "data/Sample_Data.json;data" --add-data "src/mm_to_json/lib;mm_to_json/lib" --add-data "src/mm_to_json/reporting/templates;mm_to_json/reporting/templates" --name ${{ matrix.output_name }} src/server.py
           else
-            pyinstaller --onefile --add-data "data/Sample_Data.json:data" --add-data "src/mm_to_json/jre:mm_to_json/jre" --add-data "src/mm_to_json/lib:mm_to_json/lib" --add-data "src/mm_to_json/reporting/templates:mm_to_json/reporting/templates" --name ${{ matrix.output_name }} src/server.py
+            pyinstaller --onefile --add-data "data/Sample_Data.json:data" --add-data "src/mm_to_json/lib:mm_to_json/lib" --add-data "src/mm_to_json/reporting/templates:mm_to_json/reporting/templates" --name ${{ matrix.output_name }} src/server.py
           fi
           
           # Move output to Tauri's sidecars directory in web-client if it exists
           if [ -d "../web-client/src-tauri" ]; then
             mkdir -p ../web-client/src-tauri/binaries
             cp dist/${{ matrix.output_name }}${{ matrix.sidecar_ext }} ../web-client/src-tauri/binaries/
+            # Copy JRE as a resource to binaries/jre so Tauri packages it
+            cp -r src/mm_to_json/jre ../web-client/src-tauri/binaries/
           else
             echo "web-client/src-tauri not found. Skipping sidecar binary copy."
           fi

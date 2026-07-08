@@ -35,6 +35,7 @@
 			"icons/icon.ico"
 		],
 		"externalBin": ["binaries/mmtools-backend"],
+		"resources": ["binaries/jre"],
 		"android": {
 			"debugApplicationIdSuffix": ".debug"
 		}
