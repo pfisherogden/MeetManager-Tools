@@ -62,6 +62,14 @@ export const test = base.extend<{
 
 		const tauriProcess = spawn(appPath, [], { env });
 
+		// Pipe child process logs to the test console for debugging
+		tauriProcess.stdout.on("data", (data) => {
+			console.log(`[Tauri App STDOUT] ${data.toString().trim()}`);
+		});
+		tauriProcess.stderr.on("data", (data) => {
+			console.error(`[Tauri App STDERR] ${data.toString().trim()}`);
+		});
+
 		// Wait for remote debugging websocket or port to become active
 		let wsEndpoint = "";
 		if (process.platform === "win32") {
