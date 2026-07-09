@@ -141,7 +141,17 @@ def ensure_jvm_started():
         except Exception as e:
             logger.warning(f"Failed to configure Windows SetErrorMode: {e}")
 
-        # 2. Add JRE bin directory to PATH and DLL search paths
+        # 2. Configure process DLL search directories to enable AddDllDirectory paths
+        try:
+            import ctypes
+
+            # LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000
+            ctypes.windll.kernel32.SetDefaultDllDirectories(0x00001000)
+            logger.info("Configured process default DLL search directories via SetDefaultDllDirectories.")
+        except Exception as e:
+            logger.warning(f"Failed to call SetDefaultDllDirectories: {e}")
+
+        # 3. Add JRE bin directory to PATH and DLL search paths
         bin_dir = os.path.dirname(os.path.dirname(jvm_path))
         os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
         if hasattr(os, "add_dll_directory"):
@@ -151,19 +161,20 @@ def ensure_jvm_started():
             except Exception as e:
                 logger.warning(f"Failed to add JRE bin to DLL search path: {e}")
 
-        # 3. Preload critical sibling DLLs to prevent JNI_CreateJavaVM dynamic loading failure
+        # 4. Preload critical sibling DLLs using Altered Search Path to resolve dynamic dependencies
         import ctypes
 
-        for dll_name in ["verify.dll", "java.dll", "zip.dll", "jimage.dll"]:
+        for dll_name in ["java.dll", "verify.dll", "zip.dll", "jimage.dll"]:
             dll_path = os.path.join(bin_dir, dll_name)
             if os.path.exists(dll_path):
                 try:
-                    handle = ctypes.windll.kernel32.LoadLibraryW(dll_path)
+                    # LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008
+                    handle = ctypes.windll.kernel32.LoadLibraryExW(dll_path, None, 0x00000008)
                     if handle != 0:
                         logger.info(f"Successfully preloaded JRE sibling DLL: {dll_name} (handle={handle})")
                     else:
                         err = ctypes.windll.kernel32.GetLastError()
-                        logger.warning(f"Failed to preload sibling DLL {dll_name} via LoadLibraryW. WinError: {err}")
+                        logger.warning(f"Failed to preload sibling DLL {dll_name} via LoadLibraryExW. WinError: {err}")
                 except Exception as e:
                     logger.warning(f"Failed to preload sibling DLL {dll_name}: {e}")
 
