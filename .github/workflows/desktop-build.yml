@@ -148,14 +148,14 @@ jobs:
 
       - name: Upload Playwright Test Results
         if: always() && matrix.platform == 'windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-results-${{ matrix.platform }}
           path: web-client/playwright-report/
 
       - name: Upload Installer Artifacts
         if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mmtools-desktop-${{ matrix.platform }}
           path: |
