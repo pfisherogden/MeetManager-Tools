@@ -129,6 +129,10 @@ def ensure_jvm_started():
 
     # Hardening JRE sibling dependency resolution on Windows
     if os.name == "nt":
+        # Strip long path prefix if present (e.g. \\?\) to avoid LoadLibrary confusion
+        if jvm_path.startswith("\\\\?\\"):
+            jvm_path = jvm_path[4:]
+
         # 1. Disable Windows critical error popups to prevent headless process hangs
         try:
             import ctypes
@@ -161,22 +165,30 @@ def ensure_jvm_started():
             except Exception as e:
                 logger.warning(f"Failed to add JRE bin to DLL search path: {e}")
 
-        # 4. Preload critical sibling DLLs using Altered Search Path to resolve dynamic dependencies
+        # 4. Preload critical JRE DLLs using Altered Search Path
+        # We must load jvm.dll first, as java.dll and other siblings depend directly on it!
         import ctypes
 
+        dlls_to_load = [jvm_path]
         for dll_name in ["java.dll", "verify.dll", "zip.dll", "jimage.dll"]:
-            dll_path = os.path.join(bin_dir, dll_name)
+            dlls_to_load.append(os.path.join(bin_dir, dll_name))
+
+        for dll_path in dlls_to_load:
+            if dll_path.startswith("\\\\?\\"):
+                dll_path = dll_path[4:]
             if os.path.exists(dll_path):
                 try:
                     # LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008
                     handle = ctypes.windll.kernel32.LoadLibraryExW(dll_path, None, 0x00000008)
                     if handle != 0:
-                        logger.info(f"Successfully preloaded JRE sibling DLL: {dll_name} (handle={handle})")
+                        logger.info(f"Successfully preloaded JRE DLL: {os.path.basename(dll_path)} (handle={handle})")
                     else:
                         err = ctypes.windll.kernel32.GetLastError()
-                        logger.warning(f"Failed to preload sibling DLL {dll_name} via LoadLibraryExW. WinError: {err}")
+                        logger.warning(
+                            f"Failed to preload JRE DLL {os.path.basename(dll_path)} via LoadLibraryExW. WinError: {err}"
+                        )
                 except Exception as e:
-                    logger.warning(f"Failed to preload sibling DLL {dll_name}: {e}")
+                    logger.warning(f"Failed to preload JRE DLL {os.path.basename(dll_path)}: {e}")
 
     # -Djava.class.path must be set at startup
     # Increase max heap to 512MB for large MDB files
