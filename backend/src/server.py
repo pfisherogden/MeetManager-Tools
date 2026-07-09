@@ -1765,7 +1765,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             for idx, f in enumerate(findings):
                 logging.debug(
                     f"ValidateMeet Finding [{idx}]: Category='{f.category}', Severity={f.severity}, "
-                    f"AffectedId='{f.affectedId}', Message='{f.message}'"
+                    f"AffectedId='{f.affected_id}', Message='{f.message}'"
                 )
 
             duration = (datetime.datetime.now() - start_time).total_seconds() * 1000.0
