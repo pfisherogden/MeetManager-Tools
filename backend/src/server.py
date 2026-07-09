@@ -2427,4 +2427,19 @@ if __name__ == "__main__":
             print(f"FAILURE: WeasyPrint import failed: {e}", file=sys.stderr)
             sys.exit(1)
 
+    # CLI check for JVM startup (used by GHA to validate JRE and JPype bundling)
+    if len(sys.argv) > 1 and sys.argv[1] == "--check-jvm":
+        try:
+            from mm_to_json.mdb_writer import ensure_jvm_started
+
+            ensure_jvm_started()
+            print("SUCCESS: JVM started successfully.")
+            sys.exit(0)
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
+            print(f"FAILURE: JVM start failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
     serve()
