@@ -624,12 +624,27 @@ export async function validateActiveMeet() {
 		return {
 			success: response.success,
 			message: response.message,
-			findings: response.findings.map((f) => ({
-				severity: f.severity,
-				category: f.category,
-				message: f.message,
-				affectedId: f.affectedId,
-			})),
+			findings: (response.findings || []).map((f: any) => {
+				let severity = f.severity;
+				if (typeof severity === "string") {
+					const s = severity.toUpperCase().trim();
+					if (s === "VALIDATION_SEVERITY_CRITICAL" || s === "CRITICAL") {
+						severity = 3;
+					} else if (s === "VALIDATION_SEVERITY_WARNING" || s === "WARNING") {
+						severity = 2;
+					} else if (s === "VALIDATION_SEVERITY_INFO" || s === "INFO") {
+						severity = 1;
+					} else {
+						severity = 0;
+					}
+				}
+				return {
+					severity: typeof severity === "number" ? severity : 0,
+					category: f.category,
+					message: f.message,
+					affectedId: f.affected_id ?? f.affectedId ?? "",
+				};
+			}),
 		};
 	} catch (err: any) {
 		return {

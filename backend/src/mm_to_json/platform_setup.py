@@ -7,6 +7,9 @@ import threading
 
 logger = logging.getLogger(__name__)
 
+_monitor_started = False
+_monitor_lock = threading.Lock()
+
 
 def setup_platform_env():
     """Initializes platform-specific environment settings (e.g. DLL paths, ctypes patches, process monitors)."""
@@ -64,13 +67,19 @@ def setup_platform_env():
         except Exception as e:
             logger.warning(f"Failed to set Linux PR_SET_PDEATHSIG: {e}")
 
+    global _monitor_started
     if os.environ.get("MONITOR_PARENT_PROCESS") == "true":
         import multiprocessing
 
         if multiprocessing.parent_process() is None:
-            logger.info("Starting parent process stdin monitor thread in main process.")
-            stdin_thread = threading.Thread(target=_monitor_parent_stdin, daemon=True)
-            stdin_thread.start()
+            with _monitor_lock:
+                if not _monitor_started:
+                    logger.info("Starting parent process stdin monitor thread in main process.")
+                    stdin_thread = threading.Thread(target=_monitor_parent_stdin, daemon=True)
+                    stdin_thread.start()
+                    _monitor_started = True
+                else:
+                    logger.info("Parent process monitor thread already started.")
         else:
             logger.info("Skipping parent stdin monitor thread in child worker process.")
 

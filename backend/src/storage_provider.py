@@ -61,7 +61,8 @@ class LocalStorageProvider(StorageProvider):
         base_abs_norm = os.path.normcase(base_abs)
         full_path_norm = os.path.normcase(full_path)
 
-        if not full_path_norm.startswith(base_abs_norm):
+        base_prefix = base_abs_norm if base_abs_norm.endswith(os.sep) else base_abs_norm + os.sep
+        if not (full_path_norm == base_abs_norm or full_path_norm.startswith(base_prefix)):
             raise PermissionError(f"Path traversal attempt detected: {path}")
 
         return full_path

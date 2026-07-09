@@ -19,8 +19,8 @@ def test_mdb_date_and_type_integrity(tmp_path):
         pytest.skip("Template MDB not found in container")
 
     # 1. Export schema and rows from template
-    conv = MmToJsonConverter(mdb_path=template_path)
-    full_schema = conv.export_full_schema()
+    with MmToJsonConverter(mdb_path=template_path) as conv:
+        full_schema = conv.export_full_schema()
 
     addr1_col = next(c for c in full_schema["tables"]["Meet"]["columns"] if c["name"] == "Meet_addr1")
     print(f"DEBUG: Exported Meet_addr1 col def: {addr1_col}")
@@ -52,10 +52,10 @@ def test_mdb_date_and_type_integrity(tmp_path):
     restore_db(str(json_path), str(target_mdb))
 
     # 5. Load back and verify
-    restored_conv = MmToJsonConverter(mdb_path=str(target_mdb))
-    rm_df = restored_conv.tables.get("meet")
-    assert rm_df is not None and not rm_df.empty
-    rm = rm_df.iloc[0]
+    with MmToJsonConverter(mdb_path=str(target_mdb)) as restored_conv:
+        rm_df = restored_conv.tables.get("meet")
+        assert rm_df is not None and not rm_df.empty
+        rm = rm_df.iloc[0]
 
     # Verify Text
     assert rm.get("meet_name1") == "Type Integrity Test"
@@ -87,8 +87,8 @@ def test_mdb_date_and_type_integrity(tmp_path):
 
     restore_db(str(json_path), str(target_mdb))
 
-    restored_conv_2 = MmToJsonConverter(mdb_path=str(target_mdb))
-    rm2 = restored_conv_2.tables.get("meet").iloc[0]
+    with MmToJsonConverter(mdb_path=str(target_mdb)) as restored_conv_2:
+        rm2 = restored_conv_2.tables.get("meet").iloc[0]
 
     # It should be truncated to 30 chars without crashing
     assert len(rm2.get("meet_addr1")) <= 30

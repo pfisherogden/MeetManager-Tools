@@ -58,6 +58,27 @@ class MmToJsonConverter:
         else:
             self._load_from_db()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def __del__(self):
+        self.close()
+
+    def close(self):
+        if hasattr(self, "db") and self.db is not None:
+            try:
+                import jpype
+
+                if jpype.isJVMStarted():
+                    self.db.close()
+            except Exception as e:
+                logger.error(f"Error closing Jackcess database: {e}")
+            finally:
+                self.db = None
+
     @property
     def tables(self):
         return self._tables

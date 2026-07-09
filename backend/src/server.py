@@ -493,9 +493,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                         break
                     dst.write(chunk)
 
-            converter = MmToJsonConverter(mdb_path=tmp_path)
-            # Use export_raw for consistent normalization with JSON loading
-            return converter.export_raw()
+            with MmToJsonConverter(mdb_path=tmp_path) as converter:
+                # Use export_raw for consistent normalization with JSON loading
+                return converter.export_raw()
         except Exception as e:
             logging.error(f"Error loading MDB: {e}")
             return {}
@@ -1934,8 +1934,8 @@ def serve_health_check():
                     # Use normcase to handle case-insensitive and slash-agnostic comparison on Windows
                     base_abs_norm = os.path.normcase(base_abs)
                     full_path_norm = os.path.normcase(full_path)
-
-                    if not full_path_norm.startswith(base_abs_norm):
+                    base_prefix = base_abs_norm if base_abs_norm.endswith(os.sep) else base_abs_norm + os.sep
+                    if not (full_path_norm == base_abs_norm or full_path_norm.startswith(base_prefix)):
                         self.send_response(403)
                         self._send_cors_headers()
                         self.end_headers()

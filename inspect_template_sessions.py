@@ -26,8 +26,8 @@ def inspect():
         print(f"Template not found: {TEMPLATE_MDB}")
         return
 
-    conv = MmToJsonConverter(mdb_path=str(TEMPLATE_MDB))
-    full_schema = conv.export_full_schema()
+    with MmToJsonConverter(mdb_path=str(TEMPLATE_MDB)) as conv:
+        full_schema = conv.export_full_schema()
     full_schema = to_python(full_schema)
     
     # Filter for session-related tables
