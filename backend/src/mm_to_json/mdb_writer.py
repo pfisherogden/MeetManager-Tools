@@ -36,6 +36,15 @@ def get_potential_jvm_paths(local_jre: str, system: str) -> list[str]:
     return potentials
 
 
+def sanitize_windows_path(path: str) -> str:
+    """Strips the Windows long path prefix (\\?\\) if present, as JNI loaders often fail to parse it."""
+    if os.name == "nt" and path.startswith("\\\\?\\"):
+        if path.startswith("\\\\?\\UNC\\"):
+            return "\\\\" + path[8:]
+        return path[4:]
+    return path
+
+
 def ensure_jvm_started():
     """Starts the JVM if not already started."""
     if jpype.isJVMStarted():
@@ -112,7 +121,9 @@ def ensure_jvm_started():
         logger.error("Startup Failure: No Jackcess JAR libraries found in lib/ directory.")
         raise RuntimeError("No libraries found in lib/. Cannot start JVM for Jackcess.")
 
-    classpath = os.pathsep.join(jars)
+    jvm_path = sanitize_windows_path(jvm_path)
+    sanitized_jars = [sanitize_windows_path(jar) for jar in jars]
+    classpath = os.pathsep.join(sanitized_jars)
     logger.info(f"Classifying classpath with {len(jars)} JAR libraries...")
     logger.info(f"Target JVM Location: {jvm_path}")
 
