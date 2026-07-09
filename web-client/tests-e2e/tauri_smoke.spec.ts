@@ -134,6 +134,51 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 		timeout: 60000,
 	});
 
+	// 6. Navigation to Reports & PDF generation (Single PDF)
+	console.log(
+		"E2E TEST: Navigating to Reports and generating single report...",
+	);
+	await page.click("text=Reports");
+	await expect(
+		page.locator("text=Select a report type to configure and generate"),
+	).toBeVisible({
+		timeout: 15000,
+	});
+
+	// Select the Psych Sheet report card to show the configuration options
+	const psychCard = page.getByTestId("report-card-psych-sheet");
+	await psychCard.click();
+
+	const generateBtn = page.getByTestId("generate-report-button");
+	await expect(generateBtn).toBeVisible({ timeout: 10000 });
+	await generateBtn.click();
+
+	// Wait for the success toast message
+	await expect(page.locator("text=Report generated successfully")).toBeVisible({
+		timeout: 45000,
+	});
+	console.log("E2E TEST: Single PDF report generated successfully.");
+
+	// 7. Add to Pack and generate ZIP bundle
+	console.log("E2E TEST: Adding report to pack and generating ZIP bundle...");
+	await page.getByRole("button", { name: /Add to Pack/i }).click();
+
+	const builderCard = page.getByTestId("report-builder-card");
+	const generateBundleBtn = builderCard.getByTestId("generate-bundle-button");
+	await expect(generateBundleBtn).toBeVisible({ timeout: 10000 });
+	await generateBundleBtn.click();
+
+	// Assert the status transitions to bundling
+	await expect(builderCard).toHaveAttribute("data-report-status", "bundling", {
+		timeout: 15000,
+	});
+
+	// Wait for the bundle generation to complete and return to idle status
+	await expect(builderCard).toHaveAttribute("data-report-status", "idle", {
+		timeout: 60000,
+	});
+	console.log("E2E TEST: ZIP bundle generated successfully.");
+
 	// Cleanly close the browser context to finalize trace/screenshot capture
 	await browser.close();
 });

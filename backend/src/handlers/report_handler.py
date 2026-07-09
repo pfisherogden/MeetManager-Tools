@@ -485,14 +485,28 @@ def _run_bundle_generation_job(
             max_workers = min(os.cpu_count() or 4, 8)
 
         servicer.job_manager.update_job(job_id, progress=0.05, message=f"Rendering {len(request.reports)} reports...")
-        logging.info(f"Job {job_id}: starting ProcessPoolExecutor with {max_workers} workers")
+        is_frozen = getattr(sys, "frozen", False)
+        executor_class: Any
+        executor_kwargs: dict[str, Any]
+        if is_frozen:
+            from concurrent.futures import ThreadPoolExecutor
 
-        ctx = multiprocessing.get_context("spawn")
+            logging.info(
+                f"Job {job_id}: running in frozen environment. Using ThreadPoolExecutor with {max_workers} workers."
+            )
+            executor_class = ThreadPoolExecutor
+            executor_kwargs = {"max_workers": max_workers}
+        else:
+            logging.info(f"Job {job_id}: starting ProcessPoolExecutor with {max_workers} workers")
+            executor_class = ProcessPoolExecutor
+            ctx = multiprocessing.get_context("spawn")
+            executor_kwargs = {"max_workers": max_workers, "mp_context": ctx}
+
         try:
             report_reqs = list(request.reports)
             user_email = get_user_email(uid)
 
-            with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
+            with executor_class(**executor_kwargs) as executor:
                 for idx, report_req in enumerate(report_reqs):
                     tasks.append(
                         executor.submit(
