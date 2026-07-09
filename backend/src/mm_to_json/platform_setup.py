@@ -76,16 +76,47 @@ def setup_platform_env():
 
 
 def _monitor_parent_stdin():
-    logger.debug("Starting parent process stdin monitor thread...")
-    if sys.stdin is None:
-        logger.warning("sys.stdin is None. Parent process stdin monitor cannot run.")
-        return
+    logger.info("Parent process monitor thread started.")
+    parent_pid = os.getppid()
 
-    try:
-        sys.stdin.read(1)
-    except Exception as e:
-        logger.debug(f"Parent process stdin monitor read exception: {e}")
-    finally:
-        logger.warning("Parent process stream closed (EOF detected). Terminating sidecar immediately...")
-        # Force immediate exit of the process without throwing exceptions or cleaning up handlers
-        os._exit(0)
+    # On Windows, we poll process existence to avoid blocking on STD_INPUT_HANDLE (which deadlocks JVM startup)
+    if sys.platform.startswith("win"):
+        import ctypes
+        import time
+
+        # synchronize = 0x00100000; process_query_limited_information = 0x1000
+        synchronize = 0x00100000
+        process_query_limited_information = 0x1000
+        try:
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.OpenProcess(synchronize | process_query_limited_information, False, parent_pid)
+            if not handle:
+                logger.warning("Parent process handle could not be opened. Exiting sidecar.")
+                os._exit(0)
+
+            # STILL_ACTIVE = 259
+            exit_code = ctypes.c_ulong(259)
+            while True:
+                time.sleep(1.0)
+                kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+                if exit_code.value != 259:
+                    logger.info("Parent process terminated. Shutting down sidecar...")
+                    kernel32.CloseHandle(handle)
+                    os._exit(0)
+        except Exception as e:
+            logger.warning(f"Parent process Win32 monitor failed: {e}. Falling back to sleep loop.")
+            while True:
+                time.sleep(1.0)
+    else:
+        # On POSIX, use standard stdin blocking read
+        if sys.stdin is None:
+            logger.warning("sys.stdin is None. Parent process stdin monitor cannot run.")
+            return
+
+        try:
+            sys.stdin.read(1)
+        except Exception as e:
+            logger.debug(f"Parent process stdin monitor read exception: {e}")
+        finally:
+            logger.warning("Parent process stream closed (EOF detected). Terminating sidecar immediately...")
+            os._exit(0)
