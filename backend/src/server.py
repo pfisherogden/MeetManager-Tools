@@ -1756,6 +1756,18 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             events = self._get_table(cache, "event")
             entries = self._get_table(cache, "entry")
 
+            # Detailed structured debug logs
+            logging.debug(
+                f"ValidateMeet: cache tables retrieved. Athletes count: {len(athletes)}, "
+                f"Events count: {len(events)}, Entries count: {len(entries)}"
+            )
+            logging.debug(f"ValidateMeet: validate_meet_data returned {len(findings)} findings.")
+            for idx, f in enumerate(findings):
+                logging.debug(
+                    f"ValidateMeet Finding [{idx}]: Category='{f.category}', Severity={f.severity}, "
+                    f"AffectedId='{f.affectedId}', Message='{f.message}'"
+                )
+
             duration = (datetime.datetime.now() - start_time).total_seconds() * 1000.0
             logging.info(
                 f"gRPC: ValidateMeet completed successfully in {duration:.1f}ms. "

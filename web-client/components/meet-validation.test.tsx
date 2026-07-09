@@ -70,4 +70,23 @@ describe("MeetValidation", () => {
 			screen.getAllByText("Swimmer C has 0 backup timers").length,
 		).toBeGreaterThanOrEqual(1);
 	});
+
+	it("filters findings by category when category chip is clicked", async () => {
+		render(<MeetValidation />);
+		const runBtn = screen.getByText("Run Validation Check");
+		fireEvent.click(runBtn);
+
+		await waitFor(() => {
+			expect(screen.getByText("Swimmer A exceeds limits")).toBeDefined();
+		});
+
+		// Find the "Rules Limit" category chip button and click it
+		const chip = screen.getByRole("button", { name: /Rules Limit/ });
+		fireEvent.click(chip);
+
+		// Now, "Swimmer A exceeds limits" (Rules Limit) should be visible
+		expect(screen.queryByText("Swimmer A exceeds limits")).not.toBeNull();
+		// But "Swimmer B has 0 backup timers" (0 Backup Timers) should NOT be visible
+		expect(screen.queryByText("Swimmer B has 0 backup timers")).toBeNull();
+	});
 });

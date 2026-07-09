@@ -192,9 +192,7 @@ export function MeetValidation() {
 	};
 
 	const toggleCategory = (cat: string) => {
-		setSelectedCategories((prev) =>
-			prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-		);
+		setSelectedCategories((prev) => (prev.includes(cat) ? [] : [cat]));
 	};
 
 	const handleSort = (field: SortField) => {
