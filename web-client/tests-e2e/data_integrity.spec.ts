@@ -75,8 +75,8 @@ test.describe("Data Integrity and UI Rendering", () => {
 	}) => {
 		await page.goto("/reports");
 
-		const psychCard = page.getByTestId("report-card-psych-sheet");
-		await robustClick(psychCard);
+		const meetProgramCard = page.getByTestId("report-card-meet-program-(pdf)");
+		await robustClick(meetProgramCard);
 
 		const configCard = page.getByTestId("report-configuration-card");
 		await expect(configCard).toBeVisible();
@@ -88,9 +88,9 @@ test.describe("Data Integrity and UI Rendering", () => {
 		const filename = download.suggestedFilename();
 		console.log(`Downloaded filename: ${filename}`);
 
-		// Verify filename matches the human readable pattern (Psych Sheet_YYYYMMDD-HHMM.pdf)
-		expect(filename).toContain("Psych Sheet");
-		expect(filename).toMatch(/Psych Sheet_\d{8}-\d{4}\.pdf/);
+		// Verify filename matches the human readable pattern (Meet Program PDF_YYYYMMDD-HHMM.pdf)
+		expect(filename).toContain("Meet Program PDF");
+		expect(filename).toMatch(/Meet Program PDF_\d{8}-\d{4}\.pdf/);
 		expect(filename).not.toMatch(/[a-zA-Z0-9]{20,}_/); // No long UID prefix
 	});
 

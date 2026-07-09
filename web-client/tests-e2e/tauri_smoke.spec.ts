@@ -145,9 +145,9 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 		timeout: 15000,
 	});
 
-	// Select the Psych Sheet report card to show the configuration options
-	const psychCard = page.getByTestId("report-card-psych-sheet");
-	await psychCard.click();
+	// Select the Meet Program report card to show the configuration options
+	const meetProgramCard = page.getByTestId("report-card-meet-program-(pdf)");
+	await meetProgramCard.click();
 
 	const generateBtn = page.getByTestId("generate-report-button");
 	await expect(generateBtn).toBeVisible({ timeout: 10000 });
