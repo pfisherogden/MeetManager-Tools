@@ -110,8 +110,7 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	});
 
 	// 4. Upload a real MDB database to trigger the JRE/JVM and MDB parser code paths
-	const mdbRelativePath =
-		"../../backend/data/users/desktop-user/2026-06-27 Bay Club @ Del Prado.mdb";
+	const mdbRelativePath = "./testdata.mdb";
 	const mdbAbsolutePath = path.resolve(__dirname, mdbRelativePath);
 	console.log(`E2E TEST: Uploading MDB file from ${mdbAbsolutePath}`);
 
@@ -124,9 +123,7 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	});
 
 	// Verify that the new database file is active in the list
-	await expect(
-		page.locator("text=2026-06-27 Bay Club @ Del Prado.mdb"),
-	).toBeVisible({
+	await expect(page.locator("text=testdata.mdb")).toBeVisible({
 		timeout: 15000,
 	});
 
