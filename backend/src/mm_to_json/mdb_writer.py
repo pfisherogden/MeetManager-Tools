@@ -127,6 +127,17 @@ def ensure_jvm_started():
     logger.info(f"Classifying classpath with {len(jars)} JAR libraries...")
     logger.info(f"Target JVM Location: {jvm_path}")
 
+    # Add JRE bin directory to PATH and DLL search paths on Windows to allow jvm.dll to load sibling dependencies (like java.dll)
+    if os.name == "nt":
+        bin_dir = os.path.dirname(os.path.dirname(jvm_path))
+        os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+        if hasattr(os, "add_dll_directory"):
+            try:
+                os.add_dll_directory(bin_dir)
+                logger.info(f"Added JRE bin directory to DLL search path: {bin_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to add JRE bin to DLL search path: {e}")
+
     # -Djava.class.path must be set at startup
     # Increase max heap to 512MB for large MDB files
     start_time = datetime.datetime.now()
