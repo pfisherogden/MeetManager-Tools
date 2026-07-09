@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import { chromium, expect } from "@playwright/test";
 import { test } from "./tauri.fixture";
 
@@ -107,6 +108,36 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	await expect(page.locator("text=Sample_Data.json")).toBeVisible({
 		timeout: 15000,
 	});
+
+	// 4. Upload a real MDB database to trigger the JRE/JVM and MDB parser code paths
+	const mdbRelativePath =
+		"../../backend/data/users/desktop-user/2026-06-27 Bay Club @ Del Prado.mdb";
+	const mdbAbsolutePath = path.resolve(__dirname, mdbRelativePath);
+	console.log(`E2E TEST: Uploading MDB file from ${mdbAbsolutePath}`);
+
+	const fileInput = page.locator("input[type=file]");
+	await fileInput.setInputFiles(mdbAbsolutePath);
+
+	// Wait for the upload success toast message
+	await expect(page.locator("text=Dataset uploaded successfully")).toBeVisible({
+		timeout: 45000,
+	});
+
+	// Verify that the new database file is active in the list
+	await expect(
+		page.locator("text=2026-06-27 Bay Club @ Del Prado.mdb"),
+	).toBeVisible({
+		timeout: 15000,
+	});
+
+	// 5. Navigate back to Dashboard to confirm stats are loaded and parsed successfully from MDB
+	await page.click("text=Dashboard");
+	await expect(page.locator("text=Welcome to SwimMeet Pro")).toBeVisible({
+		timeout: 15000,
+	});
+
+	// Wait for the dashboard counters to display non-zero statistics
+	await expect(page.locator("text=Meets")).toBeVisible({ timeout: 15000 });
 
 	// Cleanly close the browser context to finalize trace/screenshot capture
 	await browser.close();
