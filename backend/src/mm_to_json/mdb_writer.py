@@ -140,7 +140,7 @@ def ensure_jvm_started():
             # SEM_FAILCRITICALERRORS = 0x0001
             # SEM_NOGPFAULTERRORBOX = 0x0002
             # SEM_NOOPENFILEERRORBOX = 0x8000
-            ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002 | 0x8000)
+            ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002 | 0x8000)  # type: ignore
             logger.info("Disabled Windows critical error popups via SetErrorMode.")
         except Exception as e:
             logger.warning(f"Failed to configure Windows SetErrorMode: {e}")
@@ -150,7 +150,7 @@ def ensure_jvm_started():
             import ctypes
 
             # LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000
-            ctypes.windll.kernel32.SetDefaultDllDirectories(0x00001000)
+            ctypes.windll.kernel32.SetDefaultDllDirectories(0x00001000)  # type: ignore
             logger.info("Configured process default DLL search directories via SetDefaultDllDirectories.")
         except Exception as e:
             logger.warning(f"Failed to call SetDefaultDllDirectories: {e}")
@@ -179,11 +179,11 @@ def ensure_jvm_started():
             if os.path.exists(dll_path):
                 try:
                     # LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008
-                    handle = ctypes.windll.kernel32.LoadLibraryExW(dll_path, None, 0x00000008)
+                    handle = ctypes.windll.kernel32.LoadLibraryExW(dll_path, None, 0x00000008)  # type: ignore
                     if handle != 0:
                         logger.info(f"Successfully preloaded JRE DLL: {os.path.basename(dll_path)} (handle={handle})")
                     else:
-                        err = ctypes.windll.kernel32.GetLastError()
+                        err = ctypes.windll.kernel32.GetLastError()  # type: ignore
                         logger.warning(
                             f"Failed to preload JRE DLL {os.path.basename(dll_path)} via LoadLibraryExW. WinError: {err}"
                         )
