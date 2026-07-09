@@ -147,9 +147,15 @@ export function MeetValidation() {
 			const query = searchQuery.toLowerCase().trim();
 			list = list.filter(
 				(f) =>
-					f.message.toLowerCase().includes(query) ||
-					f.category.toLowerCase().includes(query) ||
-					f.affectedId.toLowerCase().includes(query),
+					String(f.message || "")
+						.toLowerCase()
+						.includes(query) ||
+					String(f.category || "")
+						.toLowerCase()
+						.includes(query) ||
+					String(f.affectedId || "")
+						.toLowerCase()
+						.includes(query),
 			);
 		}
 
@@ -312,6 +318,7 @@ export function MeetValidation() {
 											<button
 												key={cat}
 												type="button"
+												data-testid={`category-chip-${cat}`}
 												onClick={() => toggleCategory(cat)}
 												className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
 													active
@@ -450,9 +457,13 @@ export function MeetValidation() {
 												<div className="shrink-0 pt-0.5">
 													{getSeverityBadge(finding.severity)}
 												</div>
-												<div className="font-semibold text-slate-700 tracking-wide text-xs uppercase pt-1">
+												<button
+													type="button"
+													onClick={() => toggleCategory(finding.category)}
+													className="font-semibold text-slate-700 tracking-wide text-xs uppercase pt-1 text-left hover:text-blue-600 transition-colors cursor-pointer"
+												>
 													{finding.category}
-												</div>
+												</button>
 												<div className="font-mono text-xs bg-slate-100/80 border border-slate-200/50 text-slate-600 px-2 py-0.5 rounded text-center w-fit">
 													{finding.affectedId
 														? `ID: ${finding.affectedId}`

@@ -81,7 +81,7 @@ describe("MeetValidation", () => {
 		});
 
 		// Find the "Rules Limit" category chip button and click it
-		const chip = screen.getByRole("button", { name: /Rules Limit/ });
+		const chip = screen.getByTestId("category-chip-Rules Limit");
 		fireEvent.click(chip);
 
 		// Now, "Swimmer A exceeds limits" (Rules Limit) should be visible
