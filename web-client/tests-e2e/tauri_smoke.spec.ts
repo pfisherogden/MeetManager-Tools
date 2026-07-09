@@ -130,7 +130,9 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	});
 
 	// Wait for the dashboard counters to display non-zero statistics
-	await expect(page.locator("text=Meets")).toBeVisible({ timeout: 60000 });
+	await expect(page.locator("text=Total Meets")).toBeVisible({
+		timeout: 60000,
+	});
 
 	// Cleanly close the browser context to finalize trace/screenshot capture
 	await browser.close();
