@@ -135,7 +135,9 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	});
 
 	// 6. Navigation to Reports & PDF generation (Single PDF)
-	console.log("E2E TEST: Navigating to Reports and generating single report...");
+	console.log(
+		"E2E TEST: Navigating to Reports and generating single report...",
+	);
 	await page.click("text=Reports");
 	await expect(
 		page.locator("text=Select a report type to configure and generate"),
