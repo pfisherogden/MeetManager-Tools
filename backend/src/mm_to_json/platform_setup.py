@@ -54,8 +54,14 @@ def setup_platform_env():
                 logger.info("macOS target detected: patched ctypes.util.find_library for Homebrew SIP support.")
 
     if os.environ.get("MONITOR_PARENT_PROCESS") == "true":
-        stdin_thread = threading.Thread(target=_monitor_parent_stdin, daemon=True)
-        stdin_thread.start()
+        import multiprocessing
+
+        if multiprocessing.parent_process() is None:
+            logger.info("Starting parent process stdin monitor thread in main process.")
+            stdin_thread = threading.Thread(target=_monitor_parent_stdin, daemon=True)
+            stdin_thread.start()
+        else:
+            logger.info("Skipping parent stdin monitor thread in child worker process.")
 
 
 def _monitor_parent_stdin():
