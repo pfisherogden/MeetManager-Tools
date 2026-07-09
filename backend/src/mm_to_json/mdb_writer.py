@@ -143,7 +143,13 @@ def ensure_jvm_started():
     start_time = datetime.datetime.now()
     try:
         logger.info("Executing JNI startJVM call...")
-        jpype.startJVM(jvm_path, "-Djava.class.path=" + classpath, "-Xmx512m")
+        jpype.startJVM(
+            jvm_path,
+            "-Djava.class.path=" + classpath,
+            "-Xmx512m",
+            "-Xrs",
+            interrupt=False,
+        )
         duration = (datetime.datetime.now() - start_time).total_seconds() * 1000
         logger.info(f"Java Virtual Machine (JVM) booted successfully in {duration:.1f}ms")
     except RuntimeError as e:
