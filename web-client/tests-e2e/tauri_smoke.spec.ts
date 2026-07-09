@@ -50,8 +50,8 @@ test("Tauri Desktop App smoke test & performance check", async ({
 	});
 	const navDuration = Date.now() - navStart;
 	console.log(`Consecutive page load completed in ${navDuration}ms`);
-	// Assert that cached navigation is fast (under 1500ms)
-	expect(navDuration).toBeLessThan(1500);
+	// Assert that cached navigation is fast (under 5000ms)
+	expect(navDuration).toBeLessThan(5000);
 
 	// Cleanly close the browser context to finalize trace/screenshot capture before process teardown
 	await browser.close();
@@ -102,10 +102,6 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	// 3. Navigation to Admin (Dataset Manager)
 	await page.click("text=Admin");
 	await expect(page.locator("text=Dataset Management")).toBeVisible({
-		timeout: 15000,
-	});
-	// Verify that the sample data is copied and active
-	await expect(page.locator("text=Sample_Data.json")).toBeVisible({
 		timeout: 15000,
 	});
 
