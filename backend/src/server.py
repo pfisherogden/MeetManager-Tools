@@ -2292,6 +2292,15 @@ def serve():
         ],
     )
 
+    # Initialize JVM on the main thread to avoid JPype/JNI threading lockups on Windows
+    from mm_to_json.mdb_writer import ensure_jvm_started
+
+    try:
+        logging.info("Main Thread: Pre-booting Java Virtual Machine (JVM)...")
+        ensure_jvm_started()
+    except Exception as jvm_err:
+        logging.error(f"Main Thread: JVM Pre-boot failed: {jvm_err}", exc_info=True)
+
     # Graceful shutdown handler
     def handle_sigterm(signum, frame):
         logging.info("SIGTERM/SIGINT received, shutting down...")
