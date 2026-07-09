@@ -15,6 +15,8 @@ export default function AthletesPage() {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
+		const startTime = performance.now();
+		console.log("[Performance] Athletes page load sequence initiated.");
 		Promise.all([getAthletes(), getTeams()])
 			.then(([athleteList, teamsResponse]) => {
 				const teamColorMap: Record<number, string> = {};
@@ -42,9 +44,15 @@ export default function AthletesPage() {
 						teamColor: teamColorMap[a.teamId],
 					}));
 					setMappedAthletes(athletes);
+					const duration = performance.now() - startTime;
+					console.log(
+						`[Performance] Athletes loaded in ${duration.toFixed(1)}ms. Found ${athletes.length} athletes.`,
+					);
 				}
 			})
-			.catch((e) => console.error("Failed to fetch athletes or teams", e))
+			.catch((e) => {
+				console.error("[Performance] Failed to fetch athletes or teams", e);
+			})
 			.finally(() => setLoading(false));
 	}, []);
 

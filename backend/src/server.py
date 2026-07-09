@@ -43,7 +43,11 @@ log_level = getattr(logging, log_level_str, logging.INFO)
 
 
 # Configure logging in local Pacific Time (PT) for California
-def pacific_time_converter(secs):
+def pacific_time_converter(*args):
+    import datetime
+    import time
+
+    secs = args[-1] if args else time.time()
     try:
         import zoneinfo
 
@@ -54,7 +58,7 @@ def pacific_time_converter(secs):
         return time.localtime(secs)
 
 
-logging.Formatter.converter = staticmethod(pacific_time_converter)
+logging.Formatter.converter = pacific_time_converter
 
 
 class JsonFormatter(logging.Formatter):
@@ -505,17 +509,28 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return upload_dataset(request_iterator, context, self, pb2)
 
     def GetDashboardStats(self, request, context):
+        start_time = datetime.datetime.now()
         request = request or pb2.GetDashboardStatsRequest()
-        cache, _ = self._load_user_data(context)
+        logging.info("gRPC: GetDashboardStats request received.")
+        try:
+            cache, _ = self._load_user_data(context)
+            teams = self._get_table(cache, "team")
+            athletes = self._get_table(cache, "athlete")
+            events = self._get_table(cache, "event")
+            meets = self._get_table(cache, "meet")
 
-        teams = self._get_table(cache, "team")
-        athletes = self._get_table(cache, "athlete")
-        events = self._get_table(cache, "event")
-        meets = self._get_table(cache, "meet")
+            duration = (datetime.datetime.now() - start_time).total_seconds() * 1000
+            logging.info(
+                f"gRPC: GetDashboardStats completed successfully in {duration:.1f}ms. "
+                f"Meets: {len(meets)}, Teams: {len(teams)}, Athletes: {len(athletes)}, Events: {len(events)}"
+            )
 
-        return pb2.GetDashboardStatsResponse(
-            meet_count=len(meets), team_count=len(teams), athlete_count=len(athletes), event_count=len(events)
-        )
+            return pb2.GetDashboardStatsResponse(
+                meet_count=len(meets), team_count=len(teams), athlete_count=len(athletes), event_count=len(events)
+            )
+        except Exception as e:
+            logging.error(f"gRPC Error: GetDashboardStats failed: {e}", exc_info=True)
+            raise
 
     def _get_team_color(self, team_id: int) -> str:
         """Assign a stable, pleasing color to a team based on its ID."""
@@ -641,37 +656,43 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetMeetsResponse(meets=meets)
 
     def GetTeams(self, request, context):
+        start_time = datetime.datetime.now()
         request = request or pb2.GetTeamsRequest()
-        uid = self._check_auth(context)
-        cache, _ = self._load_user_data(context)
+        self._check_auth(context)
+        logging.info("gRPC: GetTeams request received.")
+        try:
+            cache, _ = self._load_user_data(context)
 
-        data = self._get_table(cache, "team")
-        athletes = self._get_table(cache, "athlete")
+            data = self._get_table(cache, "team")
+            athletes = self._get_table(cache, "athlete")
 
-        logging.debug(f"DEBUG: GetTeams for user {self._mask_uid(uid)}, found {len(data)} teams")
+            # Count athletes per team
+            ath_counts: dict[int, int] = {}
+            for ath in athletes:
+                t_id = self._safe_int(self._get_field(ath, ["team_no", "team", "t_id", "Team_no"]))
+                ath_counts[t_id] = ath_counts.get(t_id, 0) + 1
 
-        # Count athletes per team
-        ath_counts: dict[int, int] = {}
-        for ath in athletes:
-            t_id = self._safe_int(self._get_field(ath, ["team_no", "team", "t_id", "Team_no"]))
-            ath_counts[t_id] = ath_counts.get(t_id, 0) + 1
-
-        teams = []
-        for item in data:
-            t_id = self._safe_int(self._get_field(item, ["team_no", "team", "t_id", "Team_no"]))
-            teams.append(
-                pb2.Team(
-                    id=t_id,
-                    name=str(self._get_field(item, ["team_name", "tname", "Team_name"]) or "Unknown"),
-                    code=str(self._get_field(item, ["team_abbr", "tabbr", "Team_abbr"]) or ""),
-                    lsc=str(self._get_field(item, ["team_lsc", "tlsc"]) or ""),
-                    city=str(self._get_field(item, ["team_city", "tcity"]) or ""),
-                    state=str(self._get_field(item, ["team_statenew", "tstate"]) or ""),
-                    athlete_count=ath_counts.get(t_id, 0),
-                    color=self._get_team_color(t_id),
+            teams = []
+            for item in data:
+                t_id = self._safe_int(self._get_field(item, ["team_no", "team", "t_id", "Team_no"]))
+                teams.append(
+                    pb2.Team(
+                        id=t_id,
+                        name=str(self._get_field(item, ["team_name", "tname", "Team_name"]) or "Unknown"),
+                        code=str(self._get_field(item, ["team_abbr", "tabbr", "Team_abbr"]) or ""),
+                        lsc=str(self._get_field(item, ["team_lsc", "tlsc"]) or ""),
+                        city=str(self._get_field(item, ["team_city", "tcity"]) or ""),
+                        state=str(self._get_field(item, ["team_statenew", "tstate"]) or ""),
+                        athlete_count=ath_counts.get(t_id, 0),
+                        color=self._get_team_color(t_id),
+                    )
                 )
-            )
-        return pb2.GetTeamsResponse(teams=teams)
+            duration = (datetime.datetime.now() - start_time).total_seconds() * 1000
+            logging.info(f"gRPC: GetTeams completed successfully in {duration:.1f}ms. Total Teams: {len(teams)}")
+            return pb2.GetTeamsResponse(teams=teams)
+        except Exception as e:
+            logging.error(f"gRPC Error: GetTeams failed: {e}", exc_info=True)
+            raise
 
     def GetTeam(self, request, context):
         request = request or pb2.GetTeamRequest()
@@ -707,43 +728,53 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         return pb2.GetTeamResponse()
 
     def GetAthletes(self, request, context):
+        start_time = datetime.datetime.now()
         request = request or pb2.GetAthletesRequest()
-        cache, _ = self._load_user_data(context)
-        data = self._get_table(cache, "athlete")
+        logging.info("gRPC: GetAthletes request received.")
+        try:
+            cache, _ = self._load_user_data(context)
+            data = self._get_table(cache, "athlete")
 
-        # Build teams map for name lookups
-        teams_map = {}
-        for t in self._get_table(cache, "team"):
-            t_no = self._safe_int(self._get_field(t, ["team_no", "Team_no"]))
-            t_name = self._get_field(t, ["team_name", "Team_name"])
-            if t_no:
-                teams_map[t_no] = t_name
+            # Build teams map for name lookups
+            teams_map = {}
+            for t in self._get_table(cache, "team"):
+                t_no = self._safe_int(self._get_field(t, ["team_no", "Team_no"]))
+                t_name = self._get_field(t, ["team_name", "Team_name"])
+                if t_no:
+                    teams_map[t_no] = t_name
 
-        athletes = []
-        for item in data:
-            t_id = self._safe_int(self._get_field(item, ["team_no", "Team_no"]))
-            if request and request.team_id and str(t_id) != request.team_id:
-                continue
+            athletes = []
+            for item in data:
+                t_id = self._safe_int(self._get_field(item, ["team_no", "Team_no"]))
+                if request and request.team_id and str(t_id) != request.team_id:
+                    continue
 
-            dob_raw = self._get_field(item, ["ath_birthdate", "birth_date", "Birth_date"]) or ""
-            # dob_raw could be a pandas Timestamp or string
-            dob = str(dob_raw).split(" ")[0] if dob_raw else ""
+                dob_raw = self._get_field(item, ["ath_birthdate", "birth_date", "Birth_date"]) or ""
+                # dob_raw could be a pandas Timestamp or string
+                dob = str(dob_raw).split(" ")[0] if dob_raw else ""
 
-            athletes.append(
-                pb2.Athlete(
-                    id=self._safe_int(self._get_field(item, ["ath_no", "Ath_no"])),
-                    first_name=str(self._get_field(item, ["first_name", "First_name"]) or ""),
-                    last_name=str(self._get_field(item, ["last_name", "Last_name"]) or ""),
-                    gender=str(self._get_field(item, ["ath_sex", "Ath_sex"]) or ""),
-                    age=self._safe_int(self._get_field(item, ["ath_age", "Ath_age"])),
-                    team_id=t_id,
-                    team_name=str(teams_map.get(t_id, "Unknown") or "Unknown"),
-                    school_year=str(self._get_field(item, ["school_yr", "Schl_yr"]) or ""),
-                    reg_no=str(self._get_field(item, ["reg_no", "Reg_no"]) or ""),
-                    date_of_birth=str(dob or ""),
+                athletes.append(
+                    pb2.Athlete(
+                        id=self._safe_int(self._get_field(item, ["ath_no", "Ath_no"])),
+                        first_name=str(self._get_field(item, ["first_name", "First_name"]) or ""),
+                        last_name=str(self._get_field(item, ["last_name", "Last_name"]) or ""),
+                        gender=str(self._get_field(item, ["ath_sex", "Ath_sex"]) or ""),
+                        age=self._safe_int(self._get_field(item, ["ath_age", "Ath_age"])),
+                        team_id=t_id,
+                        team_name=str(teams_map.get(t_id, "Unknown") or "Unknown"),
+                        school_year=str(self._get_field(item, ["school_yr", "Schl_yr"]) or ""),
+                        reg_no=str(self._get_field(item, ["reg_no", "Reg_no"]) or ""),
+                        date_of_birth=str(dob or ""),
+                    )
                 )
+            duration = (datetime.datetime.now() - start_time).total_seconds() * 1000
+            logging.info(
+                f"gRPC: GetAthletes completed successfully in {duration:.1f}ms. Total Athletes: {len(athletes)}"
             )
-        return pb2.GetAthletesResponse(athletes=athletes)
+            return pb2.GetAthletesResponse(athletes=athletes)
+        except Exception as e:
+            logging.error(f"gRPC Error: GetAthletes failed: {e}", exc_info=True)
+            raise
 
     def GetAthlete(self, request, context):
         request = request or pb2.GetAthleteRequest()

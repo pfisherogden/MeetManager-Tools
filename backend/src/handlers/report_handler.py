@@ -35,9 +35,11 @@ SOURCE_FILE = "Sample_Data.json"
 
 
 # Configure logging in local Pacific Time (PT) for California
-def pacific_time_converter(secs):
+def pacific_time_converter(*args):
+    import datetime
     import time
 
+    secs = args[-1] if args else time.time()
     try:
         import zoneinfo
 
@@ -48,7 +50,7 @@ def pacific_time_converter(secs):
         return time.localtime(secs)
 
 
-logging.Formatter.converter = staticmethod(pacific_time_converter)
+logging.Formatter.converter = pacific_time_converter
 
 
 def msgpack_encode(obj):
@@ -91,7 +93,7 @@ def _process_single_report_process(
     log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
     log_level = getattr(logging, log_level_str, logging.INFO)
     logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
-    logging.Formatter.converter = staticmethod(pacific_time_converter)
+    logging.Formatter.converter = pacific_time_converter
     if log_level_str != "DEBUG":
         logging.getLogger("fontTools").setLevel(logging.WARNING)
         logging.getLogger("weasyprint").setLevel(logging.WARNING)

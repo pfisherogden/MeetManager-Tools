@@ -73,10 +73,17 @@ export function DatasetManager() {
 	const { googleAccessToken } = useAuth();
 
 	const fetchDatasets = useCallback(async () => {
+		const startTime = performance.now();
+		console.log("[Performance] Fetching datasets list...");
 		try {
 			const res = await listDatasets();
 			setDatasets(res.datasets);
+			const duration = performance.now() - startTime;
+			console.log(
+				`[Performance] Datasets list fetched in ${duration.toFixed(1)}ms. Found ${res.datasets.length} datasets.`,
+			);
 		} catch (_error) {
+			console.error("[Performance] Failed to load datasets", _error);
 			toast.error("Failed to load datasets");
 		} finally {
 			setIsLoading(false);
@@ -128,6 +135,10 @@ export function DatasetManager() {
 				`E2E DEBUG: Uploading file: ${file.name}, size: ${file.size}`,
 			);
 		}
+		const startTime = performance.now();
+		console.log(
+			`[Performance] Uploading dataset file: ${file.name} (${(file.size / 1024).toFixed(1)} KB)...`,
+		);
 		setIsUploading(true);
 		const formData = new FormData();
 		formData.append("file", file);
@@ -137,20 +148,32 @@ export function DatasetManager() {
 				console.log("E2E DEBUG: Calling uploadDataset action...");
 			}
 			const res = await uploadDataset(formData);
+			const duration = performance.now() - startTime;
 
 			if (res.success) {
+				console.log(
+					`[Performance] Dataset ${file.name} uploaded successfully in ${duration.toFixed(1)}ms.`,
+				);
 				if (process.env.NODE_ENV !== "production") {
 					console.log("E2E DEBUG: Upload success!");
 				}
 				toast.success("Dataset uploaded successfully");
 				await fetchDatasets();
 			} else {
+				console.error(
+					`[Performance] Dataset upload failed after ${duration.toFixed(1)}ms: ${res.message}`,
+				);
 				if (process.env.NODE_ENV !== "production") {
 					console.log(`E2E DEBUG: Upload failed: ${res.message}`);
 				}
 				toast.error(res.message || "Upload failed");
 			}
 		} catch (error: any) {
+			const duration = performance.now() - startTime;
+			console.error(
+				`[Performance] Dataset upload encountered error after ${duration.toFixed(1)}ms:`,
+				error,
+			);
 			if (process.env.NODE_ENV !== "production") {
 				console.error("E2E DEBUG: Upload error:", error);
 			}
