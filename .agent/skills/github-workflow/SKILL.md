@@ -28,9 +28,11 @@ description: Mandatory practices for GitHub workflows and session continuity in 
 - **Dependency Management**: Use `uv` (Python) or `npm` (JS) and run lockfile updates immediately after any change.
 
 ### Phase 3: Verification & Closure
+- **Mandatory Local Testing First**: ALWAYS run all formatting, linting, type-checking (`just fix`, `just lint`, `just type-check-backend`), and unit/integration tests locally before committing or pushing. Relying on GHA for initial feedback is slow and forbidden.
 - **Local Verification**: 100% pass on `just lint`, `just type-check-backend`, and `just test-backend-fast`.
 - **5-Cycle Rule**: For major refactors, run the relevant test suite **5 times consecutively** to catch flakiness.
 - **CI/CD Pass**: Merge ONLY after all GitHub Actions are green on the PR.
+- **Strict Definition of Done**: NEVER declare a task as completed, write a final walkthrough, or report work done to the user until the Pull Request is successfully merged into the `main` branch and all post-merge GHA workflows pass.
 - **Issue Closure**: Only close after the PR is merged and CI/CD passes on the `main` branch.
 
 ## Session Continuity & Resilience

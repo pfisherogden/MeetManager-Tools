@@ -91,10 +91,12 @@ All agents MUST follow these workflow phases:
 - **Dependency Protocol**: Use `uv` (Python) or `npm` (JS) and update lockfiles immediately after adding packages.
 
 ### Phase 4: Verification & Closure
+- **Mandatory Local Testing First**: ALWAYS run all formatting, linting, type-checking (`just fix`, `just lint`, `just type-check-backend`), and unit/integration/E2E tests locally before pushing or relying on GHA workflows to find issues. Local loops are significantly faster.
 - **Local Verification**: 100% pass on linting (`just fix` / `just lint`), type-checking (`just type-check-backend`), and all unit/integration/E2E tests before pushing to a branch. This includes both frontend and backend checks.
 - **CI/CD Monitoring**: **Mandatory** - After submitting a PR, you MUST monitor the GitHub Action checks using `gh pr checks --watch`. 
 - **CI/CD Pass**: PR merging is ONLY permitted after all GitHub Actions are green. 
 - **Merge Protocol**: Use `--squash` for merging PRs to keep a clean history.
+- **Strict Definition of Done**: NEVER declare a task as completed, write a final walkthrough, or report work done to the user until the Pull Request is successfully merged into the `main` branch and all post-merge GHA workflows pass.
 - **Communication**: Provide **periodic** progress updates in the `pfo-gemcli` Google Chat space.
   - **Work Started**: Post a message when beginning a task or after a major design phase.
   - **Progress Updates**: Post updates every 15-20 minutes or at major milestones (e.g., "Tests passed locally, pushing PR").
