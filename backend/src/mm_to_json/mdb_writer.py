@@ -127,8 +127,21 @@ def ensure_jvm_started():
     logger.info(f"Classifying classpath with {len(jars)} JAR libraries...")
     logger.info(f"Target JVM Location: {jvm_path}")
 
-    # Add JRE bin directory to PATH and DLL search paths on Windows to allow jvm.dll to load sibling dependencies (like java.dll)
+    # Hardening JRE sibling dependency resolution on Windows
     if os.name == "nt":
+        # 1. Disable Windows critical error popups to prevent headless process hangs
+        try:
+            import ctypes
+
+            # SEM_FAILCRITICALERRORS = 0x0001
+            # SEM_NOGPFAULTERRORBOX = 0x0002
+            # SEM_NOOPENFILEERRORBOX = 0x8000
+            ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002 | 0x8000)
+            logger.info("Disabled Windows critical error popups via SetErrorMode.")
+        except Exception as e:
+            logger.warning(f"Failed to configure Windows SetErrorMode: {e}")
+
+        # 2. Add JRE bin directory to PATH and DLL search paths
         bin_dir = os.path.dirname(os.path.dirname(jvm_path))
         os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
         if hasattr(os, "add_dll_directory"):
@@ -137,6 +150,18 @@ def ensure_jvm_started():
                 logger.info(f"Added JRE bin directory to DLL search path: {bin_dir}")
             except Exception as e:
                 logger.warning(f"Failed to add JRE bin to DLL search path: {e}")
+
+        # 3. Preload critical sibling DLLs to prevent JNI_CreateJavaVM dynamic loading failure
+        import ctypes
+
+        for dll_name in ["verify.dll", "java.dll", "zip.dll", "jimage.dll"]:
+            dll_path = os.path.join(bin_dir, dll_name)
+            if os.path.exists(dll_path):
+                try:
+                    ctypes.CDLL(dll_path)
+                    logger.info(f"Successfully preloaded JRE sibling DLL: {dll_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to preload sibling DLL {dll_name}: {e}")
 
     # -Djava.class.path must be set at startup
     # Increase max heap to 512MB for large MDB files
