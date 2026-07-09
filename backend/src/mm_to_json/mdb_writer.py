@@ -158,8 +158,12 @@ def ensure_jvm_started():
             dll_path = os.path.join(bin_dir, dll_name)
             if os.path.exists(dll_path):
                 try:
-                    ctypes.CDLL(dll_path)
-                    logger.info(f"Successfully preloaded JRE sibling DLL: {dll_name}")
+                    handle = ctypes.windll.kernel32.LoadLibraryW(dll_path)
+                    if handle != 0:
+                        logger.info(f"Successfully preloaded JRE sibling DLL: {dll_name} (handle={handle})")
+                    else:
+                        err = ctypes.windll.kernel32.GetLastError()
+                        logger.warning(f"Failed to preload sibling DLL {dll_name} via LoadLibraryW. WinError: {err}")
                 except Exception as e:
                     logger.warning(f"Failed to preload sibling DLL {dll_name}: {e}")
 
