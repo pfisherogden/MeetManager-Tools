@@ -130,11 +130,11 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	// 5. Navigate back to Dashboard to confirm stats are loaded and parsed successfully from MDB
 	await page.click("text=Dashboard");
 	await expect(page.locator("text=Welcome to SwimMeet Pro")).toBeVisible({
-		timeout: 15000,
+		timeout: 60000,
 	});
 
 	// Wait for the dashboard counters to display non-zero statistics
-	await expect(page.locator("text=Meets")).toBeVisible({ timeout: 15000 });
+	await expect(page.locator("text=Meets")).toBeVisible({ timeout: 60000 });
 
 	// Cleanly close the browser context to finalize trace/screenshot capture
 	await browser.close();

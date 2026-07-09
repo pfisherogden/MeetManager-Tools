@@ -52,6 +52,16 @@ def setup_platform_env():
 
                 ctypes.util.find_library = new_find_library
                 logger.info("macOS target detected: patched ctypes.util.find_library for Homebrew SIP support.")
+    elif sys.platform.startswith("linux"):
+        # Configure Linux native parent death signal (PR_SET_PDEATHSIG)
+        try:
+            import ctypes
+            libc = ctypes.CDLL("libc.so.6")
+            # PR_SET_PDEATHSIG = 1; SIGTERM = 15
+            libc.prctl(1, 15)
+            logger.info("Linux native PR_SET_PDEATHSIG configured successfully.")
+        except Exception as e:
+            logger.warning(f"Failed to set Linux PR_SET_PDEATHSIG: {e}")
 
     if os.environ.get("MONITOR_PARENT_PROCESS") == "true":
         import multiprocessing
@@ -66,6 +76,10 @@ def setup_platform_env():
 
 def _monitor_parent_stdin():
     logger.debug("Starting parent process stdin monitor thread...")
+    if sys.stdin is None:
+        logger.warning("sys.stdin is None. Parent process stdin monitor cannot run.")
+        return
+
     try:
         sys.stdin.read(1)
     except Exception as e:
