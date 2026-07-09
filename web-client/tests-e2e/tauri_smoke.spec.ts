@@ -110,7 +110,7 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	});
 
 	// 4. Upload a real MDB database to trigger the JRE/JVM and MDB parser code paths
-	const mdbRelativePath = "./testdata.mdb";
+	const mdbRelativePath = "./Singers23.mdb";
 	const mdbAbsolutePath = path.resolve(__dirname, mdbRelativePath);
 	console.log(`E2E TEST: Uploading MDB file from ${mdbAbsolutePath}`);
 
@@ -123,7 +123,7 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	});
 
 	// Verify that the new database file is active in the list
-	await expect(page.locator("text=testdata.mdb")).toBeVisible({
+	await expect(page.locator("text=Singers23.mdb")).toBeVisible({
 		timeout: 15000,
 	});
 
