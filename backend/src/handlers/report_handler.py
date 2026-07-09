@@ -486,6 +486,8 @@ def _run_bundle_generation_job(
 
         servicer.job_manager.update_job(job_id, progress=0.05, message=f"Rendering {len(request.reports)} reports...")
         is_frozen = getattr(sys, "frozen", False)
+        executor_class: Any
+        executor_kwargs: dict[str, Any]
         if is_frozen:
             from concurrent.futures import ThreadPoolExecutor
 
