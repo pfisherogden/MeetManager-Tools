@@ -19,8 +19,8 @@ logging.basicConfig(level=logging.INFO)
 def validate(template_mdb, historical_mdbs, owner_team="DP"):
     # Load template data once
     print(f"Loading template: {template_mdb}")
-    template_conv = MmToJsonConverter(mdb_path=template_mdb)
-    full_template = template_conv.export_full_schema()
+    with MmToJsonConverter(mdb_path=template_mdb) as template_conv:
+        full_template = template_conv.export_full_schema()
     full_template["tables"] = {str(k): v for k, v in full_template["tables"].items()}
 
     template_rows = {name: t_def["rows"] for name, t_def in full_template["tables"].items()}
@@ -34,8 +34,8 @@ def validate(template_mdb, historical_mdbs, owner_team="DP"):
 
         print(f"\nValidating against: {mdb_path}")
         # Extract historical metadata
-        target_conv = MmToJsonConverter(mdb_path=mdb_path)
-        target_meet = target_conv.tables.get("meet").iloc[0]
+        with MmToJsonConverter(mdb_path=mdb_path) as target_conv:
+            target_meet = target_conv.tables.get("meet").iloc[0]
 
         # Determine name, date, lanes, location
         name = target_meet.get("meet_name1")

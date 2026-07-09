@@ -144,25 +144,21 @@ export async function downloadFile(
 				return;
 			}
 
-			let bytes: Uint8Array;
+			let base64Data: string;
 			if (isBase64 && typeof content === "string") {
-				const binaryString = window.atob(content);
-				bytes = new Uint8Array(binaryString.length);
-				for (let i = 0; i < binaryString.length; i++) {
-					bytes[i] = binaryString.charCodeAt(i);
-				}
+				base64Data = content;
 			} else if (content instanceof ArrayBuffer) {
-				bytes = new Uint8Array(content);
+				base64Data = uint8ArrayToBase64(new Uint8Array(content));
 			} else if (typeof content === "string") {
 				const encoder = new TextEncoder();
-				bytes = encoder.encode(content);
+				base64Data = uint8ArrayToBase64(encoder.encode(content));
 			} else {
 				throw new Error("Invalid content type for download");
 			}
 
 			await invoke("save_file_to_path", {
 				path: savePath,
-				data: Array.from(bytes),
+				data_base64: base64Data,
 			});
 			console.log(`Successfully saved file to ${savePath}`);
 		} catch (err) {
@@ -195,4 +191,13 @@ export async function downloadFile(
 			URL.revokeObjectURL(link.href);
 		}
 	}
+}
+
+function uint8ArrayToBase64(arr: Uint8Array): string {
+	let binary = "";
+	const len = arr.byteLength;
+	for (let i = 0; i < len; i++) {
+		binary += String.fromCharCode(arr[i]);
+	}
+	return window.btoa(binary);
 }

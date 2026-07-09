@@ -54,36 +54,35 @@ def test_full_season_generation_and_load(tmp_path):
     assert generated_file.exists()
 
     # Load it back
-    conv = MmToJsonConverter(mdb_path=str(generated_file))
+    with MmToJsonConverter(mdb_path=str(generated_file)) as conv:
+        # Verify Meet Info
+        meet_info = conv.get_meet_info()
+        assert meet_info["meetName"] == "FAST vs Del Prado"
+        assert meet_info["meetLocation"] == "Del Prado Cabana Club"
+        assert meet_info["numLanes"] == 6
 
-    # Verify Meet Info
-    meet_info = conv.get_meet_info()
-    assert meet_info["meetName"] == "FAST vs Del Prado"
-    assert meet_info["meetLocation"] == "Del Prado Cabana Club"
-    assert meet_info["numLanes"] == 6
+        # Verify Data Purge (Athletes should be empty)
+        athletes = conv.tables.get("athlete")
+        assert athletes is None or len(athletes) == 0
 
-    # Verify Data Purge (Athletes should be empty)
-    athletes = conv.tables.get("athlete")
-    assert athletes is None or len(athletes) == 0
+        # Verify Sessions (Should be exactly 1)
+        sessions = conv.get_session_info()
+        assert len(sessions) == 1
+        assert sessions[0].number == 1
 
-    # Verify Sessions (Should be exactly 1)
-    sessions = conv.get_session_info()
-    assert len(sessions) == 1
-    assert sessions[0].number == 1
+        # Verify Events (All should be in Session 1)
+        events = conv.get_all_events()
+        assert len(events) > 0
+        for _event in events:
+            # Check raw table if possible or internal state
+            pass
 
-    # Verify Events (All should be in Session 1)
-    events = conv.get_all_events()
-    assert len(events) > 0
-    for _event in events:
-        # Check raw table if possible or internal state
-        pass
-
-    # Verify Scoring (Standard 5/3/2/1)
-    scoring = conv.tables.get("scoring")
-    if scoring is not None and not scoring.empty:
-        row = scoring.iloc[0]
-        # Check standard ind scoring
-        for i, val in enumerate([5, 3, 2, 1], 1):
-            col = f"Ind{i}"
-            if col in scoring.columns:
-                assert int(row[col]) == val
+        # Verify Scoring (Standard 5/3/2/1)
+        scoring = conv.tables.get("scoring")
+        if scoring is not None and not scoring.empty:
+            row = scoring.iloc[0]
+            # Check standard ind scoring
+            for i, val in enumerate([5, 3, 2, 1], 1):
+                col = f"Ind{i}"
+                if col in scoring.columns:
+                    assert int(row[col]) == val

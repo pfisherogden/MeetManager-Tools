@@ -27,8 +27,8 @@ def to_python(data):
 
 def create_verify_mdb(template_path, output_mdb):
     print(f"Loading template: {template_path}")
-    conv = MmToJsonConverter(template_path)
-    full_template = conv.export_full_schema()
+    with MmToJsonConverter(template_path) as conv:
+        full_template = conv.export_full_schema()
     full_template["tables"] = {str(k): v for k, v in full_template["tables"].items()}
 
     # Use first meet from schedule

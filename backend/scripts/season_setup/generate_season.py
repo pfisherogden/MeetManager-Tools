@@ -75,10 +75,9 @@ def generate(template_path, output_dir, year, owner_team="DP"):
         os.makedirs(season_data_dir)
 
     print(f"Loading template: {template_path}")
-    template_conv = MmToJsonConverter(mdb_path=template_path)
-
-    # Export full schema including definitions
-    full_template = template_conv.export_full_schema()
+    with MmToJsonConverter(mdb_path=template_path) as template_conv:
+        # Export full schema including definitions
+        full_template = template_conv.export_full_schema()
     # Normalize keys to Python strings in full_template too
     full_template["tables"] = {str(k): v for k, v in full_template["tables"].items()}
 

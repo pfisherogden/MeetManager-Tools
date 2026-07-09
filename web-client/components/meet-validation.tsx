@@ -46,7 +46,7 @@ export function MeetValidation() {
 	const [selectedSeverities, setSelectedSeverities] = useState<number[]>([
 		1, 2, 3,
 	]);
-	const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+	const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 
 	// Sort state
@@ -135,11 +135,11 @@ export function MeetValidation() {
 		let list = [...results.findings];
 
 		// 1. Severity filter
-		list = list.filter((f) => selectedSeverities.includes(f.severity));
+		list = list.filter((f) => f && selectedSeverities.includes(f.severity));
 
 		// 2. Category filter
-		if (selectedCategories.length > 0) {
-			list = list.filter((f) => selectedCategories.includes(f.category));
+		if (selectedCategory) {
+			list = list.filter((f) => f && f.category === selectedCategory);
 		}
 
 		// 3. Search query filter
@@ -147,15 +147,16 @@ export function MeetValidation() {
 			const query = searchQuery.toLowerCase().trim();
 			list = list.filter(
 				(f) =>
-					String(f.message || "")
+					f &&
+					(String(f.message || "")
 						.toLowerCase()
 						.includes(query) ||
-					String(f.category || "")
-						.toLowerCase()
-						.includes(query) ||
-					String(f.affectedId || "")
-						.toLowerCase()
-						.includes(query),
+						String(f.category || "")
+							.toLowerCase()
+							.includes(query) ||
+						String(f.affectedId || "")
+							.toLowerCase()
+							.includes(query)),
 			);
 		}
 
@@ -185,7 +186,7 @@ export function MeetValidation() {
 	}, [
 		results,
 		selectedSeverities,
-		selectedCategories,
+		selectedCategory,
 		searchQuery,
 		sortField,
 		sortDirection,
@@ -198,7 +199,7 @@ export function MeetValidation() {
 	};
 
 	const toggleCategory = (cat: string) => {
-		setSelectedCategories((prev) => (prev.includes(cat) ? [] : [cat]));
+		setSelectedCategory((prev) => (prev === cat ? null : cat));
 	};
 
 	const handleSort = (field: SortField) => {
@@ -303,9 +304,9 @@ export function MeetValidation() {
 								<div className="flex flex-wrap gap-1.5">
 									<button
 										type="button"
-										onClick={() => setSelectedCategories([])}
+										onClick={() => setSelectedCategory(null)}
 										className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-											selectedCategories.length === 0
+											!selectedCategory
 												? "bg-slate-800 text-white shadow-sm"
 												: "bg-slate-100 text-slate-600 hover:bg-slate-200"
 										}`}
@@ -313,7 +314,7 @@ export function MeetValidation() {
 										All Categories
 									</button>
 									{Object.entries(counts.categories).map(([cat, count]) => {
-										const active = selectedCategories.includes(cat);
+										const active = selectedCategory === cat;
 										return (
 											<button
 												key={cat}

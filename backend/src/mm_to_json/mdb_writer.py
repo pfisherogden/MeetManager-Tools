@@ -1,11 +1,13 @@
 import logging
 import os
+import threading
 
 import jpype
 import jpype.imports
 from jpype.types import *  # noqa: F403
 
 logger = logging.getLogger(__name__)
+_jvm_lock = threading.Lock()
 
 
 def get_classpath():
@@ -50,6 +52,13 @@ def ensure_jvm_started():
     if jpype.isJVMStarted():
         return
 
+    with _jvm_lock:
+        if jpype.isJVMStarted():
+            return
+        _ensure_jvm_started_locked()
+
+
+def _ensure_jvm_started_locked():
     logger.info("Initializing Java Virtual Machine (JVM) startup sequence...")
 
     # Discover JVM path

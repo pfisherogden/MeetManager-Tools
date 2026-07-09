@@ -38,12 +38,11 @@ def test_export_full_schema_handles_unknown_tables(tmp_path):
     # Patch mdb_writer to avoid JRE/JPype requirement in this test
     with patch("mm_to_json.mm_to_json.mdb_writer") as mock_writer:
         mock_writer.open_db.return_value = mock_db
-        conv = MmToJsonConverter(mdb_path=str(dummy_mdb))
-        # Note: In __init__, it calls mdb_writer.open_db(mdb_path)
-        # We need to make sure the mock_db is what's used
-        conv.db = mock_db
-
-        schema = conv.export_full_schema()
+        with MmToJsonConverter(mdb_path=str(dummy_mdb)) as conv:
+            # Note: In __init__, it calls mdb_writer.open_db(mdb_path)
+            # We need to make sure the mock_db is what's used
+            conv.db = mock_db
+            schema = conv.export_full_schema()
 
         assert "NewTable" in schema["tables"]
         assert schema["tables"]["NewTable"]["columns"][0]["name"] == "Strange_Column"
