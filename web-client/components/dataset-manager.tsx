@@ -102,6 +102,7 @@ export function DatasetManager() {
 			try {
 				await uploadDatasetFromDrive(file.id, file.name);
 				toast.success(`Successfully imported ${file.name} from Drive`);
+				router.refresh();
 				await fetchDatasets();
 			} catch (_error) {
 				toast.error("Drive import failed");
@@ -109,7 +110,7 @@ export function DatasetManager() {
 				setIsUploading(false);
 			}
 		},
-		[fetchDatasets],
+		[fetchDatasets, router.refresh],
 	);
 
 	const { openPicker, isLoaded: isDriveLoaded } = useGooglePicker({
@@ -158,6 +159,7 @@ export function DatasetManager() {
 					console.log("E2E DEBUG: Upload success!");
 				}
 				toast.success("Dataset uploaded successfully");
+				router.refresh();
 				await fetchDatasets();
 			} else {
 				console.error(

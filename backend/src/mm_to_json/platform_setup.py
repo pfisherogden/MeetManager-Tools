@@ -56,6 +56,7 @@ def setup_platform_env():
         # Configure Linux native parent death signal (PR_SET_PDEATHSIG)
         try:
             import ctypes
+
             libc = ctypes.CDLL("libc.so.6")
             # PR_SET_PDEATHSIG = 1; SIGTERM = 15
             libc.prctl(1, 15)
