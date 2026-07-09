@@ -190,16 +190,28 @@ def ensure_jvm_started():
                 except Exception as e:
                     logger.warning(f"Failed to preload JRE DLL {os.path.basename(dll_path)}: {e}")
 
-    # -Djava.class.path must be set at startup
-    # Increase max heap to 512MB for large MDB files
+    # Resolve Java Home if using portable JRE on Windows to prevent internal classloader resolution issues
+    extra_jvm_args = [
+        "-Djava.class.path=" + classpath,
+        "-Djava.awt.headless=true",
+        "-Djava.net.preferIPv4Stack=true",
+        "-XX:+UseSerialGC",
+        "-Xmx512m",
+        "-Xrs",
+    ]
+    if os.name == "nt" and "jre" in jvm_path.lower():
+        bin_dir = os.path.dirname(os.path.dirname(jvm_path))
+        jre_home = os.path.dirname(bin_dir)
+        if os.path.exists(jre_home):
+            extra_jvm_args.append("-Djava.home=" + jre_home)
+            logger.info(f"Adding Java Home property for portable JRE: {jre_home}")
+
     start_time = datetime.datetime.now()
     try:
-        logger.info("Executing JNI startJVM call...")
+        logger.info("Executing JNI startJVM call with headless and network optimization flags...")
         jpype.startJVM(
             jvm_path,
-            "-Djava.class.path=" + classpath,
-            "-Xmx512m",
-            "-Xrs",
+            *extra_jvm_args,
             interrupt=False,
         )
         duration = (datetime.datetime.now() - start_time).total_seconds() * 1000
