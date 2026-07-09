@@ -12,6 +12,8 @@ export default function TeamsPage() {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
+		const startTime = performance.now();
+		console.log("[Performance] Teams page load sequence initiated.");
 		getTeams()
 			.then((teamList: any) => {
 				if (teamList?.teams) {
@@ -25,9 +27,15 @@ export default function TeamsPage() {
 						color: t.color || "#3b82f6",
 					}));
 					setMappedTeams(mapped);
+					const duration = performance.now() - startTime;
+					console.log(
+						`[Performance] Teams loaded in ${duration.toFixed(1)}ms. Found ${mapped.length} teams.`,
+					);
 				}
 			})
-			.catch((e) => console.error("Failed to fetch teams", e))
+			.catch((e) => {
+				console.error("[Performance] Failed to fetch teams", e);
+			})
 			.finally(() => setLoading(false));
 	}, []);
 

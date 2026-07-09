@@ -89,6 +89,8 @@ jobs:
           cd backend
           echo "Testing packaged binary execution..."
           dist/${{ matrix.output_name }}${{ matrix.sidecar_ext }} --check-weasyprint
+          echo "Testing JVM startup execution (with 20s timeout)..."
+          python -c "import subprocess, sys; sys.exit(subprocess.run(['dist/${{ matrix.output_name }}${{ matrix.sidecar_ext }}', '--check-jvm'], timeout=20).returncode)"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

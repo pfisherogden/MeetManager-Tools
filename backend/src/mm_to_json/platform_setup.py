@@ -52,19 +52,71 @@ def setup_platform_env():
 
                 ctypes.util.find_library = new_find_library
                 logger.info("macOS target detected: patched ctypes.util.find_library for Homebrew SIP support.")
+    elif sys.platform.startswith("linux"):
+        # Configure Linux native parent death signal (PR_SET_PDEATHSIG)
+        try:
+            import ctypes
+
+            libc = ctypes.CDLL("libc.so.6")
+            # PR_SET_PDEATHSIG = 1; SIGTERM = 15
+            libc.prctl(1, 15)
+            logger.info("Linux native PR_SET_PDEATHSIG configured successfully.")
+        except Exception as e:
+            logger.warning(f"Failed to set Linux PR_SET_PDEATHSIG: {e}")
 
     if os.environ.get("MONITOR_PARENT_PROCESS") == "true":
-        stdin_thread = threading.Thread(target=_monitor_parent_stdin, daemon=True)
-        stdin_thread.start()
+        import multiprocessing
+
+        if multiprocessing.parent_process() is None:
+            logger.info("Starting parent process stdin monitor thread in main process.")
+            stdin_thread = threading.Thread(target=_monitor_parent_stdin, daemon=True)
+            stdin_thread.start()
+        else:
+            logger.info("Skipping parent stdin monitor thread in child worker process.")
 
 
 def _monitor_parent_stdin():
-    logger.debug("Starting parent process stdin monitor thread...")
-    try:
-        sys.stdin.read(1)
-    except Exception as e:
-        logger.debug(f"Parent process stdin monitor read exception: {e}")
-    finally:
-        logger.warning("Parent process stream closed (EOF detected). Terminating sidecar immediately...")
-        # Force immediate exit of the process without throwing exceptions or cleaning up handlers
-        os._exit(0)
+    logger.info("Parent process monitor thread started.")
+    parent_pid = os.getppid()
+
+    # On Windows, we poll process existence to avoid blocking on STD_INPUT_HANDLE (which deadlocks JVM startup)
+    if sys.platform.startswith("win"):
+        import ctypes
+        import time
+
+        # synchronize = 0x00100000; process_query_limited_information = 0x1000
+        synchronize = 0x00100000
+        process_query_limited_information = 0x1000
+        try:
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.OpenProcess(synchronize | process_query_limited_information, False, parent_pid)
+            if not handle:
+                logger.warning("Parent process handle could not be opened. Exiting sidecar.")
+                os._exit(0)
+
+            # STILL_ACTIVE = 259
+            exit_code = ctypes.c_ulong(259)
+            while True:
+                time.sleep(1.0)
+                kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+                if exit_code.value != 259:
+                    logger.info("Parent process terminated. Shutting down sidecar...")
+                    kernel32.CloseHandle(handle)
+                    os._exit(0)
+        except Exception as e:
+            logger.warning(f"Parent process Win32 monitor failed: {e}. Falling back to sleep loop.")
+            while True:
+                time.sleep(1.0)
+    else:
+        # On POSIX, use standard stdin blocking read
+        if sys.stdin is None:
+            logger.warning("sys.stdin is None. Parent process stdin monitor cannot run.")
+            return
+
+        try:
+            sys.stdin.read(1)
+        except Exception as e:
+            logger.debug(f"Parent process stdin monitor read exception: {e}")
+        finally:
+            logger.warning("Parent process stream closed (EOF detected). Terminating sidecar immediately...")
+            os._exit(0)

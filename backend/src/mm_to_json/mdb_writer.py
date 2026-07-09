@@ -36,17 +36,27 @@ def get_potential_jvm_paths(local_jre: str, system: str) -> list[str]:
     return potentials
 
 
+def sanitize_windows_path(path: str) -> str:
+    """Strips the Windows long path prefix (\\?\\) if present, as JNI loaders often fail to parse it."""
+    if os.name == "nt" and path.startswith("\\\\?\\"):
+        if path.startswith("\\\\?\\UNC\\"):
+            return "\\\\" + path[8:]
+        return path[4:]
+    return path
+
+
 def ensure_jvm_started():
     """Starts the JVM if not already started."""
     if jpype.isJVMStarted():
         return
 
-    logger.debug("Starting JVM...")
+    logger.info("Initializing Java Virtual Machine (JVM) startup sequence...")
 
     # Discover JVM path
     jvm_path = None
 
     # 1. Try resolving via environment variable from Tauri first
+    import datetime
     import sys
 
     local_jre = None
@@ -55,12 +65,12 @@ def ensure_jvm_started():
         tauri_jre_binaries = os.path.join(tauri_resource_dir, "binaries", "jre")
         if os.path.exists(tauri_jre_binaries):
             local_jre = tauri_jre_binaries
-            logger.debug(f"Found JRE via TAURI_RESOURCE_DIR binaries: {local_jre}")
+            logger.info(f"Resolved JRE via TAURI_RESOURCE_DIR binaries: {local_jre}")
         else:
             tauri_jre = os.path.join(tauri_resource_dir, "jre")
             if os.path.exists(tauri_jre):
                 local_jre = tauri_jre
-                logger.debug(f"Found JRE via TAURI_RESOURCE_DIR direct: {local_jre}")
+                logger.info(f"Resolved JRE via TAURI_RESOURCE_DIR direct: {local_jre}")
 
     # 2. Fallback to frozen executable location path discovery
     if not local_jre and getattr(sys, "frozen", False):
@@ -68,56 +78,149 @@ def ensure_jvm_started():
         tauri_jre_binaries = os.path.join(exe_dir, "binaries", "jre")
         if os.path.exists(tauri_jre_binaries):
             local_jre = tauri_jre_binaries
-            logger.debug(f"Found JRE in Tauri binaries resources: {local_jre}")
+            logger.info(f"Resolved JRE in Tauri binaries resources: {local_jre}")
         else:
             tauri_jre = os.path.join(exe_dir, "jre")
             if os.path.exists(tauri_jre):
                 local_jre = tauri_jre
-                logger.debug(f"Found JRE in Tauri resources: {local_jre}")
+                logger.info(f"Resolved JRE in Tauri resources: {local_jre}")
 
     if not local_jre:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         local_jre = os.path.join(base_dir, "jre")
+        logger.info(f"Fallback JRE directory checked: {local_jre} (exists={os.path.exists(local_jre)})")
 
     if os.path.exists(local_jre):
         import platform
 
         system = platform.system()
         potentials = get_potential_jvm_paths(local_jre, system)
+        logger.info(f"Scanning {len(potentials)} potential JVM library paths in JRE...")
 
         for potential in potentials:
             if os.path.exists(potential):
                 jvm_path = potential
-                logger.debug(f"Using local JRE at {jvm_path}")
+                logger.info(f"Found JRE JVM library at: {jvm_path}")
                 break
 
     # 2. Fallback to system default if no local JRE
     if not jvm_path:
+        logger.info("Local JRE not found or missing JVM library, attempting system default JVM lookup...")
         try:
             jvm_path = jpype.getDefaultJVMPath()
+            logger.info(f"Found system default JVM path: {jvm_path}")
         except Exception as e:
-            logger.debug(f"Failed to get default JVM path: {e}")
+            logger.warning(f"Failed to resolve default system JVM path: {e}")
 
     if not jvm_path:
+        logger.error("Startup Failure: JRE JVM library could not be located on the system.")
         raise RuntimeError("Java Runtime (JRE) not found. Please install Java or run download_libs.py.")
 
     jars = get_classpath()
     if not jars:
+        logger.error("Startup Failure: No Jackcess JAR libraries found in lib/ directory.")
         raise RuntimeError("No libraries found in lib/. Cannot start JVM for Jackcess.")
 
-    classpath = os.pathsep.join(jars)
-    logger.debug(f"Classpath: {classpath}")
-    logger.debug(f"JVM Path: {jvm_path}")
+    jvm_path = sanitize_windows_path(jvm_path)
+    sanitized_jars = [sanitize_windows_path(jar) for jar in jars]
+    classpath = os.pathsep.join(sanitized_jars)
+    logger.info(f"Classifying classpath with {len(jars)} JAR libraries...")
+    logger.info(f"Target JVM Location: {jvm_path}")
 
-    # -Djava.class.path must be set at startup
-    # Increase max heap to 512MB for large MDB files
+    # Hardening JRE sibling dependency resolution on Windows
+    if os.name == "nt":
+        # Strip long path prefix if present (e.g. \\?\) to avoid LoadLibrary confusion
+        if jvm_path.startswith("\\\\?\\"):
+            jvm_path = jvm_path[4:]
+
+        # 1. Disable Windows critical error popups to prevent headless process hangs
+        try:
+            import ctypes
+
+            # SEM_FAILCRITICALERRORS = 0x0001
+            # SEM_NOGPFAULTERRORBOX = 0x0002
+            # SEM_NOOPENFILEERRORBOX = 0x8000
+            ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002 | 0x8000)  # type: ignore
+            logger.info("Disabled Windows critical error popups via SetErrorMode.")
+        except Exception as e:
+            logger.warning(f"Failed to configure Windows SetErrorMode: {e}")
+
+        # 2. Configure process DLL search directories to enable AddDllDirectory paths
+        try:
+            import ctypes
+
+            # LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000
+            ctypes.windll.kernel32.SetDefaultDllDirectories(0x00001000)  # type: ignore
+            logger.info("Configured process default DLL search directories via SetDefaultDllDirectories.")
+        except Exception as e:
+            logger.warning(f"Failed to call SetDefaultDllDirectories: {e}")
+
+        # 3. Add JRE bin directory to PATH and DLL search paths
+        bin_dir = os.path.dirname(os.path.dirname(jvm_path))
+        os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+        if hasattr(os, "add_dll_directory"):
+            try:
+                os.add_dll_directory(bin_dir)
+                logger.info(f"Added JRE bin directory to DLL search path: {bin_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to add JRE bin to DLL search path: {e}")
+
+        # 4. Preload critical JRE DLLs using Altered Search Path
+        # We must load jvm.dll first, as java.dll and other siblings depend directly on it!
+        import ctypes
+
+        dlls_to_load = [jvm_path]
+        for dll_name in ["java.dll", "verify.dll", "zip.dll", "jimage.dll"]:
+            dlls_to_load.append(os.path.join(bin_dir, dll_name))
+
+        for dll_path in dlls_to_load:
+            if dll_path.startswith("\\\\?\\"):
+                dll_path = dll_path[4:]
+            if os.path.exists(dll_path):
+                try:
+                    # LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008
+                    handle = ctypes.windll.kernel32.LoadLibraryExW(dll_path, None, 0x00000008)  # type: ignore
+                    if handle != 0:
+                        logger.info(f"Successfully preloaded JRE DLL: {os.path.basename(dll_path)} (handle={handle})")
+                    else:
+                        err = ctypes.windll.kernel32.GetLastError()  # type: ignore
+                        logger.warning(
+                            f"Failed to preload JRE DLL {os.path.basename(dll_path)} via LoadLibraryExW. WinError: {err}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to preload JRE DLL {os.path.basename(dll_path)}: {e}")
+
+    # Resolve Java Home if using portable JRE on Windows to prevent internal classloader resolution issues
+    extra_jvm_args = [
+        "-Djava.class.path=" + classpath,
+        "-Djava.awt.headless=true",
+        "-Djava.net.preferIPv4Stack=true",
+        "-XX:+UseSerialGC",
+        "-Xmx512m",
+        "-Xrs",
+    ]
+    if os.name == "nt" and "jre" in jvm_path.lower():
+        bin_dir = os.path.dirname(os.path.dirname(jvm_path))
+        jre_home = os.path.dirname(bin_dir)
+        if os.path.exists(jre_home):
+            extra_jvm_args.append("-Djava.home=" + jre_home)
+            logger.info(f"Adding Java Home property for portable JRE: {jre_home}")
+
+    start_time = datetime.datetime.now()
     try:
-        jpype.startJVM(jvm_path, "-Djava.class.path=" + classpath, "-Xmx512m")
-        logger.debug("JVM started successfully with -Xmx512m.")
+        logger.info("Executing JNI startJVM call with headless and network optimization flags...")
+        jpype.startJVM(
+            jvm_path,
+            *extra_jvm_args,
+            interrupt=False,
+        )
+        duration = (datetime.datetime.now() - start_time).total_seconds() * 1000
+        logger.info(f"Java Virtual Machine (JVM) booted successfully in {duration:.1f}ms")
     except RuntimeError as e:
         if "JVM is already started" in str(e):
-            logger.debug("JVM already started, continuing...")
+            logger.info("JVM already started in current process context.")
         else:
+            logger.error(f"JVM Startup Error: {e}", exc_info=True)
             raise
 
 
@@ -128,16 +231,21 @@ def open_db(mdb_path):
     """
     ensure_jvm_started()
 
+    import datetime
+
     from com.healthmarketscience.jackcess import DatabaseBuilder
     from java.io import File
 
-    logger.debug(f"Opening file via Jackcess: {mdb_path}")
-    # Open in read/write mode (default)
-    # Jackcess 3.x+ usually auto-detects version and handling
-    # If the DB has no password (which verified tests show), simple open works.
-    db = DatabaseBuilder.open(File(mdb_path))
-    logger.debug("Database opened successfully via Jackcess.")
-    return db
+    logger.info(f"Jackcess opening Access Database: {os.path.basename(mdb_path)}")
+    start_time = datetime.datetime.now()
+    try:
+        db = DatabaseBuilder.open(File(mdb_path))
+        duration = (datetime.datetime.now() - start_time).total_seconds() * 1000
+        logger.info(f"Access Database loaded and parsed in {duration:.1f}ms")
+        return db
+    except Exception as e:
+        logger.error(f"Failed to load Access Database: {e}", exc_info=True)
+        raise
 
 
 def _add_row(db, table_name, **kwargs):

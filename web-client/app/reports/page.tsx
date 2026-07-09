@@ -18,6 +18,8 @@ export default function ReportsPage() {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
+		const startTime = performance.now();
+		console.log("[Performance] Reports page load sequence initiated.");
 		getTeams()
 			.then((list: any) => {
 				if (list?.teams) {
@@ -31,9 +33,15 @@ export default function ReportsPage() {
 						color: "#000000",
 					}));
 					setMappedTeams(mapped);
+					const duration = performance.now() - startTime;
+					console.log(
+						`[Performance] Reports page teams loaded in ${duration.toFixed(1)}ms. Found ${mapped.length} teams.`,
+					);
 				}
 			})
-			.catch((e) => console.error("Failed to fetch teams for reports", e))
+			.catch((e) => {
+				console.error("[Performance] Failed to fetch teams for reports", e);
+			})
 			.finally(() => setLoading(false));
 	}, []);
 

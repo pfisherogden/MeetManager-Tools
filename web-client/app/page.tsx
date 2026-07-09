@@ -20,13 +20,21 @@ export default function HomePage() {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
+		const startTime = performance.now();
+		console.log("[Performance] Dashboard load sequence initiated.");
 		getDashboardStats()
 			.then((fetchedStats) => {
 				if (fetchedStats) {
 					setStats(fetchedStats);
 				}
+				const duration = performance.now() - startTime;
+				console.log(
+					`[Performance] Dashboard stats loaded in ${duration.toFixed(1)}ms`,
+				);
 			})
-			.catch((e) => console.error("Failed to fetch dashboard stats", e))
+			.catch((e) => {
+				console.error("[Performance] Failed to fetch dashboard stats", e);
+			})
 			.finally(() => setLoading(false));
 	}, []);
 

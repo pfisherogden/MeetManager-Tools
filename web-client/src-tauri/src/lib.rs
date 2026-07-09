@@ -70,6 +70,9 @@ pub fn run() {
                 .expect("failed to get resource dir");
             let resource_dir_str = resource_dir.to_string_lossy().to_string();
 
+            // Propagate LOG_LEVEL if set, otherwise default to INFO
+            let log_level = std::env::var("LOG_LEVEL").unwrap_or_else(|_| "INFO".to_string());
+
             let (mut rx, child) = shell
                 .sidecar("mmtools-backend")
                 .expect("failed to setup sidecar")
@@ -78,6 +81,7 @@ pub fn run() {
                 .env("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
                 .env("MONITOR_PARENT_PROCESS", "true")
                 .env("TAURI_RESOURCE_DIR", &resource_dir_str)
+                .env("LOG_LEVEL", &log_level)
                 .spawn()
                 .expect("failed to spawn sidecar");
 
@@ -141,7 +145,7 @@ pub fn run() {
             log::info!("Waiting for backend REST server to start...");
             let mut ready = false;
             let start_time = std::time::Instant::now();
-            let timeout = std::time::Duration::from_secs(15);
+            let timeout = std::time::Duration::from_secs(45);
             
             while start_time.elapsed() < timeout {
                 let current_port = {
