@@ -1744,6 +1744,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def ValidateMeet(self, request, context):
         """Validate the active dataset for registry anomalies and rules violations."""
+        import datetime
+
+        start_time = datetime.datetime.now()
         try:
             cache, _ = self._load_user_data(context)
             findings = validate_meet_data(cache)
@@ -1752,6 +1755,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             athletes = self._get_table(cache, "athlete")
             events = self._get_table(cache, "event")
             entries = self._get_table(cache, "entry")
+
+            duration = (datetime.datetime.now() - start_time).total_seconds() * 1000.0
+            logging.info(
+                f"gRPC: ValidateMeet completed successfully in {duration:.1f}ms. "
+                f"Analyzed {len(athletes)} swimmers, {len(events)} events, {len(entries)} entries. Findings count: {len(findings)}"
+            )
 
             return pb2.ValidateMeetResponse(
                 success=True,
