@@ -31,3 +31,8 @@ When checking meet data, apply these TVSL Rules logic:
 ### 3. No Show (NS) / Missing Times
 - Generates informational logs of scheduled swims that have no time and no status (or `"NS"` status), indicating possible stopwatch or manual entry failures.
 
+### 4. Team Splashes Limit
+- **Rule**: Validate that no team exceeds the league limit of 420 splashes in a meet.
+- **Formula**: Total Splashes = (Count of non-scratched individual entries) + (4 * Count of non-scratched relay entries).
+- **Scratches**: Excluded from splash counts (status `R`/`NS`, or `scr_stat == 1`).
+

@@ -196,6 +196,7 @@ All agents MUST follow these workflow phases:
 ### 19. Meet Validation Mappings & Exhibition Bypasses
 - **Modular Design**: Business logic validations are decoupled from the gRPC transport layer. All integrity rules reside in `meet_validation.py`.
 - **Exhibition Swims**: Exhibition swims are marked by a non-empty `Pre_exh` or `Fin_exh` column in the `entry` (or `relay` for teams) tables. These do NOT count against TVSL rules limits (max 3 individual / 4 total events).
+- **League Splashes Limit (TVSL Max 420)**: Validate that no team exceeds 420 splashes in a meet. Individual swims count as 1 splash, and relay team entries count as 4 splashes. Explicitly scratched entries (status `R`/`NS`, or `scr_stat == 1` for individuals; status `R`/`NS` for relays) are excluded from the splash count.
 
 ### 20. Tauri Desktop App Architecture & WebView IPC Limits
 - **Dynamic Port Discovery**: The frontend queries `get_backend_port` via Rust dynamically on every request. Caching this port in JS module scope is strictly forbidden to avoid dynamic startup race conditions.
