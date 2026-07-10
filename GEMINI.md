@@ -150,6 +150,12 @@ All agents MUST follow these workflow phases:
 - **Rule**: Cross-page navigation links (e.g., "View Entries") MUST propagate the relevant ID (e.g., `?event=123`). Backend handlers MUST respect these filters while defaulting to "all data" if the ID is missing or `0`.
 
 ## Recent Learnings & Persistent Decisions
+- **2026-07-10**: **Adversarial Code Review Hardening & Platform Optimizations**:
+  - **Tauri WebView IPC base64 optimization**: Pass Base64 strings instead of JSON integer arrays for binary files to avoid WebView IPC memory/concurrency overhead.
+  - **Access MDB File Handle Locking (Windows)**: Implement clean database connection closing (`.close()`, `__exit__`, `__del__` using `jpype.isJVMStarted()`) to release Access database locks and prevent WinError 32 during cleanup on Windows.
+  - **Process Monitor Thread Safety**: Avoid thread leaks in the sidecar process stdin monitor by lock-guarding thread spawning to ensure a single singleton monitor thread.
+  - **JVM Thread Safety**: Lock JNI/JVM startup calls (`_jvm_lock` / `ensure_jvm_started`) to prevent concurrent threads from racing during multi-threaded Playwright/report rendering.
+  - **Gatekeeper Unpacking Latency**: On macOS, PyInstaller single-file executables (`--onefile`) extract their dynamic assets to a temporary folder under `/var/folders/` at startup, causing a ~10-second Gatekeeper signature verification delay before Python executes. Once started, internal JVM boot (JPype JNI) takes under 250ms and stats queries take ~100ms.
 - **2026-05-01**: **Full Functional Stabilization**:
   - Resolved major data regressions by standardizing case-insensitive gRPC handlers.
   - Hardened authentication with double-layered redirects (Middleware + AuthProvider).
