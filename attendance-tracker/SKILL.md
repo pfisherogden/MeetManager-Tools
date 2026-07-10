@@ -60,3 +60,30 @@ When a new `.mdb` file arrives for a meet:
 - [ ] QR Code tab contains scannable image and valid parsed URL matching the exact target hostname.
 - [ ] Bi-directional sync verified (Columns 5/6 using ID Column 14).
 - [ ] All temporary files and audit spreadsheets are git-ignored and not checked in.
+
+## Operational & Running Constraints
+
+### 1. Spaced File Paths in Justfile Recipes
+- **Problem**: Justfile recipes like `just extract mdb_path` do not support path arguments containing spaces out of the box because the command arguments are evaluated in shell context without automatic outer quoting.
+- **Workaround**: Copy the target `.mdb` file to a temporary location without spaces (e.g. `attendance-tracker/.tmp/meet.mdb`) prior to running the recipe:
+  ```bash
+  mkdir -p attendance-tracker/.tmp
+  cp "/path/with spaces/meet.mdb" attendance-tracker/.tmp/meet.mdb
+  just extract .tmp/meet.mdb
+  ```
+
+### 2. Host Disk Space Cleanups
+- **Problem**: Unzipping championship-scale `.zip` backups and downloading spreadsheets for local auditing can quickly exhaust host storage.
+- **Rule**: Always clean up unzipped folders and downloaded sheets immediately after completion. Note that extracted Windows `.mdb` files may have read-only bits that block simple `rm -rf`. Force clean them using:
+  ```bash
+  chmod -R 777 attendance-tracker/.tmp && rm -rf attendance-tracker/.tmp
+  rm -f attendance-tracker/audit_sheet.xlsx
+  ```
+
+### 3. Local Host Test Execution (macOS)
+- **Problem**: Running the full backend test suite (`just test-backend-local`) on a macOS host fails due to `weasyprint` expecting `libgobject-2.0-0` (which is usually not present outside the Docker containers).
+- **Rule**: To run backend tests on the host without Docker container dependencies, ignore the WeasyPrint test suite:
+  ```bash
+  cd backend && PYTHONPATH=src:scripts/season_setup uv run pytest tests/ --ignore=tests/test_weasy_reporting.py
+  ```
+
