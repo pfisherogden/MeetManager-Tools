@@ -47,7 +47,10 @@ def get_venue_info(host, config):
 
 
 def get_team_name(abbr, config):
-    return config.get("teams", {}).get(abbr, abbr)
+    val = config.get("teams", {}).get(abbr, abbr)
+    if isinstance(val, dict):
+        return val.get("name", abbr)
+    return val
 
 
 def to_python(obj):
