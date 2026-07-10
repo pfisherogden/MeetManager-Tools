@@ -18,6 +18,16 @@ class SeasonTransformer:
         self.table_defs = {str(k): v for k, v in table_defs.items()} if table_defs else {}
         self.team_ids = {}  # Track team abbr -> ID
 
+        self.config = {}
+        try:
+            config_dir = os.path.dirname(os.path.abspath(__file__))
+            venues_path = os.path.join(config_dir, "config", "venues.json")
+            if os.path.exists(venues_path):
+                with open(venues_path) as f:
+                    self.config = json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load venues.json in transformer: {e}")
+
         # Standard table aliases to match MmToJsonConverter logic
         self.table_aliases = {
             "meet": ["Meet", "MEET", "meet"],
@@ -767,6 +777,18 @@ class SeasonTransformer:
 
             if existing_id is not None:
                 self.team_ids[abbr.upper()] = existing_id
+                team_conf = self.config.get("teams", {}).get(abbr.upper())
+                if team_conf:
+                    target_lsc = team_conf.get("lsc", "TV") if isinstance(team_conf, dict) else "TV"
+                    for t in teams:
+                        found_abbr = None
+                        for k, v in t.items():
+                            if str(k).lower() in abbr_cols:
+                                found_abbr = str(v).strip().upper()
+                        if found_abbr == abbr.upper():
+                            for k in t.keys():
+                                if str(k).lower() in ["lsc", "team_lsc"]:
+                                    t[k] = target_lsc
             else:
                 logger.info(f"Adding missing team: {abbr} ({name}) to {key}")
 
@@ -787,6 +809,11 @@ class SeasonTransformer:
                 elif key in self.table_defs:
                     template_rec = {c["name"]: None for c in self.table_defs[key].get("columns", [])}
 
+                team_conf = self.config.get("teams", {}).get(abbr.upper())
+                target_lsc = "TV"
+                if isinstance(team_conf, dict):
+                    target_lsc = team_conf.get("lsc", "TV")
+
                 if template_rec:
                     for k, _v in template_rec.items():
                         lk = k.lower()
@@ -797,7 +824,7 @@ class SeasonTransformer:
                         elif lk in ["short", "team_short", "short_name"]:
                             matched_team[k] = name[:15]
                         elif lk in ["lsc", "team_lsc"]:
-                            matched_team[k] = "TV"
+                            matched_team[k] = target_lsc
                         elif lk in ["ttype", "team_type"]:
                             matched_team[k] = "AGE"
                         elif lk in ["team", "team_no", "team_ptr"]:
@@ -812,7 +839,7 @@ class SeasonTransformer:
                         "TCode": abbr,
                         "TName": name,
                         "Short": name[:15],
-                        "LSC": "TV",
+                        "LSC": target_lsc,
                         "TType": "AGE",
                         "Team_no": new_id,
                     }

@@ -540,3 +540,93 @@ def test_ns_scratch_with_times():
     messages = [f.message for f in ns_scratch_findings]
     assert any("Alice Smith" in m and "NS/Scratch/DQ-7" in m for m in messages)
     assert any("Bob Jones" in m and "NS/Scratch/DQ-7" in m for m in messages)
+
+
+def test_team_splashes_limit():
+    """Verify that team splashes limit checks count correctly and trigger warning when > 420."""
+    # Under limit: 420 splashes (400 individual + 5 relays = 420)
+    cache_under = {
+        "athlete": [
+            {"ath_no": i, "first_name": f"Swimmer{i}", "last_name": "Test", "ath_age": 10, "ath_sex": "F", "team_no": 1}
+            for i in range(1, 401)
+        ],
+        "team": [{"team_no": 1, "team_name": "Stingrays", "team_lsc": "SR"}],
+        "event": [{"event_ptr": 1, "event_no": 1, "event_sex": "F", "low_age": 0, "high_age": 0, "ind_rel": "I"}],
+        "entry": [
+            {"ath_no": i, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "fin_heat": 1, "fin_lane": 1}
+            for i in range(1, 401)
+        ],
+        "relay": [{"team_ptr": 1, "event_ptr": 2, "fin_stat": ""} for _ in range(5)],
+        "relaynames": [],
+    }
+
+    findings = validate_meet_data(cache_under)
+    splashes_findings = [f for f in findings if f.category == "Splashes Limit"]
+    assert len(splashes_findings) == 0
+
+    # Over limit: 421 splashes (401 individual + 5 relays = 421)
+    cache_over = {
+        "athlete": [
+            {"ath_no": i, "first_name": f"Swimmer{i}", "last_name": "Test", "ath_age": 10, "ath_sex": "F", "team_no": 1}
+            for i in range(1, 402)
+        ],
+        "team": [{"team_no": 1, "team_name": "Stingrays", "team_lsc": "SR"}],
+        "event": [{"event_ptr": 1, "event_no": 1, "event_sex": "F", "low_age": 0, "high_age": 0, "ind_rel": "I"}],
+        "entry": [
+            {"ath_no": i, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "fin_heat": 1, "fin_lane": 1}
+            for i in range(1, 402)
+        ],
+        "relay": [{"team_ptr": 1, "event_ptr": 2, "fin_stat": ""} for _ in range(5)],
+        "relaynames": [],
+    }
+
+    findings = validate_meet_data(cache_over)
+    splashes_findings = [f for f in findings if f.category == "Splashes Limit"]
+    assert len(splashes_findings) == 1
+    assert splashes_findings[0].severity == pb2.VALIDATION_SEVERITY_WARNING
+    assert "exceeds splashes limit" in splashes_findings[0].message
+    assert "421" in splashes_findings[0].message
+
+    # Scratches excluded: 401 entries total but 2 individual scratched, 1 relay scratched
+    # 401 individual (2 scratched) + 5 relays (1 scratched) = 399 + 4 * 4 = 415 splashes (under limit)
+    entry_with_scratches = []
+    for i in range(1, 402):
+        if i == 1:
+            entry_with_scratches.append(
+                {"ath_no": i, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "R", "fin_heat": 1, "fin_lane": 1}
+            )
+        elif i == 2:
+            entry_with_scratches.append(
+                {
+                    "ath_no": i,
+                    "event_ptr": 1,
+                    "fin_time": 0.0,
+                    "fin_stat": "",
+                    "scr_stat": 1,
+                    "fin_heat": 1,
+                    "fin_lane": 1,
+                }
+            )
+        else:
+            entry_with_scratches.append(
+                {"ath_no": i, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "fin_heat": 1, "fin_lane": 1}
+            )
+
+    relays_with_scratch = [{"team_ptr": 1, "event_ptr": 2, "fin_stat": ""} for _ in range(4)]
+    relays_with_scratch.append({"team_ptr": 1, "event_ptr": 2, "fin_stat": "R"})
+
+    cache_scratches = {
+        "athlete": [
+            {"ath_no": i, "first_name": f"Swimmer{i}", "last_name": "Test", "ath_age": 10, "ath_sex": "F", "team_no": 1}
+            for i in range(1, 402)
+        ],
+        "team": [{"team_no": 1, "team_name": "Stingrays", "team_lsc": "SR"}],
+        "event": [{"event_ptr": 1, "event_no": 1, "event_sex": "F", "low_age": 0, "high_age": 0, "ind_rel": "I"}],
+        "entry": entry_with_scratches,
+        "relay": relays_with_scratch,
+        "relaynames": [],
+    }
+
+    findings = validate_meet_data(cache_scratches)
+    splashes_findings = [f for f in findings if f.category == "Splashes Limit"]
+    assert len(splashes_findings) == 0

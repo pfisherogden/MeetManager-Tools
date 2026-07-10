@@ -10,11 +10,11 @@
   },
 
   "teams": {
-    "FAST": "FAST Dolphins",
-    "DP": "Del Prado Stingrays",
-    "SHRK": "Pleasanton Meadows Sharks",
-    "BCTW": "Bay Club Tidal Waves",
-    "BH": "Briarhill Swim Team",
-    "CW": "Castlewood Barracudas"
+    "FAST": { "name": "FAST Dolphins", "lsc": "TV" },
+    "DP": { "name": "Del Prado Stingrays", "lsc": "TV" },
+    "SHRK": { "name": "Pleasanton Meadows Sharks", "lsc": "" },
+    "BCTW": { "name": "Bay Club Tidal Waves", "lsc": "TV" },
+    "BH": { "name": "Briarhill Swim Team", "lsc": "TV" },
+    "CB": { "name": "Castlewood Barracudas", "lsc": "VS" }
   }
 }

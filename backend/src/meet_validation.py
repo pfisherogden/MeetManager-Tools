@@ -132,7 +132,7 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                     )
                 )
 
-    athletes_map = {}
+    athletes_map: dict[int, dict[str, Any]] = {}
     for ath in athletes:
         ath_id = safe_int(get_field(ath, ["ath_no", "Ath_no"]))
         if ath_id:
@@ -516,6 +516,51 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                     category="Rules Limit",
                     message=f"Swimmer {name} exceeds total entry limits with {ind_count + rel_count} total entries (max: 4).",
                     affected_id=str(ath_id),
+                )
+            )
+
+    # 2. Team Splashes Validation
+    team_splashes: dict[int, int] = collections.defaultdict(int)
+
+    # Count individual swims (excluding scratches)
+    for entry in entries:
+        ath_id = safe_int(get_field(entry, ["ath_no", "Ath_no"]))
+        fin_stat = safe_str(get_field(entry, ["fin_stat", "Fin_stat"])).upper()
+        scr_stat = safe_int(get_field(entry, ["scr_stat", "Scr_stat"]))
+
+        # Exclude scratches and no shows
+        if fin_stat == "R" or fin_stat == "NS" or scr_stat == 1:
+            continue
+
+        ath_info = athletes_map.get(ath_id)
+        if ath_info:
+            t_no = safe_int(ath_info.get("team_no", 0))
+            if t_no:
+                team_splashes[t_no] += 1
+
+    # Count relay team entries (excluding scratches)
+    for r in relays:
+        t_no = safe_int(get_field(r, ["team_ptr", "team_no", "Team_ptr", "Team_no"]))
+        fin_stat = safe_str(get_field(r, ["fin_stat", "Fin_stat"])).upper()
+
+        # Exclude scratches and no shows
+        if fin_stat == "R" or fin_stat == "NS":
+            continue
+
+        if t_no:
+            team_splashes[t_no] += 4
+
+    # Check limits
+    for t_no, count in team_splashes.items():
+        if count > 420:
+            team_info = teams_map.get(t_no, {})
+            t_name = str(team_info.get("name", f"Team #{t_no}"))
+            findings.append(
+                pb2.ValidationFinding(
+                    severity=pb2.VALIDATION_SEVERITY_WARNING,
+                    category="Splashes Limit",
+                    message=f"Team {t_name} exceeds splashes limit with {count} splashes (max: 420).",
+                    affected_id=str(t_no),
                 )
             )
 
