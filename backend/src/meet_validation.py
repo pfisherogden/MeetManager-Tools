@@ -207,7 +207,9 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         evt_id = safe_int(get_field(entry, ["event_ptr", "Event_ptr"]) or get_field(entry, ["event_no", "Event_no"]))
         fin_time = safe_float(get_field(entry, ["fin_time", "Fin_time"]))
         fin_stat = safe_str(get_field(entry, ["fin_stat", "Fin_stat"])).upper()
-        if fin_time > 0 and fin_stat not in ["Q", "R", "NS"]:
+        fin_dq = safe_str(get_field(entry, ["fin_dqcode", "Fin_dqcode"])).strip().upper()
+        is_dfs_dq = fin_stat == "Q" and fin_dq.startswith("7")
+        if fin_time > 0 and fin_stat not in ["R", "NS"] and not is_dfs_dq:
             athlete_has_valid_time.add(ath_id)
             ath_info = athletes_map.get(ath_id)
             if ath_info:
