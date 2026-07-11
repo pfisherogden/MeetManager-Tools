@@ -630,3 +630,54 @@ def test_team_splashes_limit():
     findings = validate_meet_data(cache_scratches)
     splashes_findings = [f for f in findings if f.category == "Splashes Limit"]
     assert len(splashes_findings) == 0
+
+
+def test_ns_scratch_with_dq_times():
+    """Verify that swimmers with regular DQs (time > 0) are counted as present for NS/Scratch checks."""
+    cache = {
+        "athlete": [
+            {"ath_no": 1, "first_name": "Alice", "last_name": "Smith", "ath_age": 10, "ath_sex": "F", "team_no": 100},
+            {"ath_no": 2, "first_name": "Bob", "last_name": "Jones", "ath_age": 12, "ath_sex": "M", "team_no": 100},
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
+        "event": [
+            {"event_ptr": 10, "event_no": 1, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+            {"event_ptr": 11, "event_no": 2, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+        ],
+        "entry": [
+            # Alice: Event 10 has a regular stroke DQ (3P) with time 30.5, Event 11 is NS.
+            # This should trigger the warning because she has a recorded time (swam).
+            {
+                "ath_no": 1,
+                "event_ptr": 10,
+                "fin_time": 30.5,
+                "fin_stat": "Q",
+                "fin_dqcode": "3P",
+                "fin_heat": 1,
+                "fin_lane": 3,
+            },
+            {"ath_no": 1, "event_ptr": 11, "fin_time": 0.0, "fin_stat": "NS", "fin_heat": 1, "fin_lane": 4},
+            # Bob: Event 10 has a DFS DQ (7P) with time 0.0 (no swim), Event 11 is NS.
+            # This should NOT trigger because Bob has no recorded times (did not swim).
+            {
+                "ath_no": 2,
+                "event_ptr": 10,
+                "fin_time": 0.0,
+                "fin_stat": "Q",
+                "fin_dqcode": "7P",
+                "fin_heat": 1,
+                "fin_lane": 2,
+            },
+            {"ath_no": 2, "event_ptr": 11, "fin_time": 0.0, "fin_stat": "NS", "fin_heat": 1, "fin_lane": 5},
+        ],
+        "relay": [],
+        "relaynames": [],
+    }
+
+    findings = validate_meet_data(cache)
+    ns_scratch_findings = [f for f in findings if f.category == "NS/Scratch with Times"]
+
+    # Alice should be flagged, Bob should not
+    assert len(ns_scratch_findings) == 1
+    assert ns_scratch_findings[0].affected_id == "1"
+    assert "Alice Smith" in ns_scratch_findings[0].message
