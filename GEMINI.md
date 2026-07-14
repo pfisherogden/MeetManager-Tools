@@ -150,6 +150,9 @@ All agents MUST follow these workflow phases:
 - **Rule**: Cross-page navigation links (e.g., "View Entries") MUST propagate the relevant ID (e.g., `?event=123`). Backend handlers MUST respect these filters while defaulting to "all data" if the ID is missing or `0`.
 
 ## Recent Learnings & Persistent Decisions
+- **2026-07-13**: **Short Name Signature Matching & Swimmer Best Stroke Reports Styling**:
+  - **Short Last Name ID Signature Matching**: When generating swimmer registration signatures (e.g. `VU**` for the last name "Vu" from 14-character padded registration numbers), non-alphabetic padding characters (like `*`) must be stripped before matching against the league top times records. This ensures swimmers with short names are correctly matched to their TVSL League ranks.
+  - **Consolidated Best Stroke Report Sorting**: Sort first by TVSL League Rank, then Team Rank. Cells with league top 20 times are highlighted in light lavender (`#E2D4F7`). Ties use `/` delimiter and consume the corresponding slots.
 - **2026-07-10**: **Adversarial Code Review Hardening & Platform Optimizations**:
   - **Tauri WebView IPC base64 optimization**: Pass Base64 strings instead of JSON integer arrays for binary files to avoid WebView IPC memory/concurrency overhead.
   - **Access MDB File Handle Locking (Windows)**: Implement clean database connection closing (`.close()`, `__exit__`, `__del__` using `jpype.isJVMStarted()`) to release Access database locks and prevent WinError 32 during cleanup on Windows.
