@@ -167,6 +167,13 @@ All agents MUST follow these workflow phases:
   - Fixed cross-page filtering and restored missing Report Pack Builder options.
   - Achieved 100% green CI with 20/20 E2E pass rate across all modules.
 
+- **2026-07-15**: **TVSL Championships Entry Verification**:
+  - **Goal**: Verify if entered swimmers are placed in their top TVSL League Top 20 events by comparing parsed SD3 entries against computed best stroke rankings.
+  - **Swimmer Filtering**: Swimmers with no entries in the meet (out of town, unavailable) are excluded from verification.
+  - **Entry Counts Tuning**: If a swimmer has 1-2 individual entries (e.g. because they are swimming relays), they are not flagged for missing individual events unless the events they are entered into are not their top rankings.
+  - **Tied-Rank Verification Safeguards**: To avoid false-positives when a swimmer has multiple equal-ranked top events (e.g., four tied 1st place events but only 3 entries), missed events are only flagged if their rank is strictly better than the worst entered individual event.
+  - **PDF Layout**: Highlight the worst-ranked entered stroke in yellow as the primary candidate to drop/replace. Repeats table headers on page wraps (`repeatRows=1` in ReportLab) and adds a generation timestamp and legend.
+
 ### 11. Season Setup Automation
 - **Rule**: Use the `season-setup` skill when configuring MDB files for a new swim season.
 - **Architecture**:
