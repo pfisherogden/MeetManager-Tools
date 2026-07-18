@@ -101,6 +101,21 @@ def get_stroke_name(stroke_val: Any, is_relay: bool) -> str:
     return "Unknown"
 
 
+def get_tvsl_age_group_index(age: int) -> int:
+    if age <= 6:
+        return 0
+    elif age <= 8:
+        return 1
+    elif age <= 10:
+        return 2
+    elif age <= 12:
+        return 3
+    elif age <= 14:
+        return 4
+    else:
+        return 5
+
+
 def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
     """Validate the active dataset for registry anomalies and rules violations."""
     findings = []
@@ -172,11 +187,17 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         fin_exh = safe_str(get_field(entry, ["fin_exh", "Fin_exh"])).upper()
         is_exh = pre_exh != "" or fin_exh != ""
 
-        if ath_id and evt_id:
-            athlete_entries[ath_id].append({"evt_id": evt_id, "is_exhibition": is_exh})
+        scr_stat = safe_int(get_field(entry, ["scr_stat", "Scr_stat"]))
+        fin_stat = safe_str(get_field(entry, ["fin_stat", "Fin_stat"])).strip().upper()
+        pre_stat = safe_str(get_field(entry, ["pre_stat", "Pre_stat"])).strip().upper()
+        is_scr = scr_stat == 1 or fin_stat in ["R", "NS"] or pre_stat in ["R", "NS"]
 
-    # 2. Map relay team exhibition status to (evt_ptr, team_no, relay_no)
+        if ath_id and evt_id:
+            athlete_entries[ath_id].append({"evt_id": evt_id, "is_exhibition": is_exh, "is_scratched": is_scr})
+
+    # 2. Map relay team exhibition/scratch status to (evt_ptr, team_no, relay_no)
     relay_exh_map = {}
+    relay_scratched_map = {}
     for r in relays:
         evt_id = safe_int(get_field(r, ["event_ptr", "Event_ptr"]))
         t_no = safe_int(get_field(r, ["team_ptr", "team_no", "Team_ptr", "Team_no"]))
@@ -185,6 +206,11 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         fin_exh = safe_str(get_field(r, ["fin_exh", "Fin_exh"])).upper()
         is_exh = pre_exh != "" or fin_exh != ""
         relay_exh_map[(evt_id, t_no, r_no)] = is_exh
+
+        fin_stat = safe_str(get_field(r, ["fin_stat", "Fin_stat"])).strip().upper()
+        pre_stat = safe_str(get_field(r, ["pre_stat", "Pre_stat"])).strip().upper()
+        is_scr = fin_stat in ["R", "NS"] or pre_stat in ["R", "NS"]
+        relay_scratched_map[(evt_id, t_no, r_no)] = is_scr
 
     # 3. Map relay names (leg assignments) to athlete_entries
     for rn in relay_names:
@@ -197,7 +223,8 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
             continue
         if ath_id and evt_id:
             is_exh = relay_exh_map.get((evt_id, t_no, r_no), False)
-            athlete_entries[ath_id].append({"evt_id": evt_id, "is_exhibition": is_exh})
+            is_scr = relay_scratched_map.get((evt_id, t_no, r_no), False)
+            athlete_entries[ath_id].append({"evt_id": evt_id, "is_exhibition": is_exh, "is_scratched": is_scr})
 
     # Pass 1: Build older times map (15-18) for young swimmer fast times comparison
     older_times: dict[tuple[str, int, str], list[float]] = collections.defaultdict(list)
@@ -238,7 +265,12 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         place = safe_int(get_field(entry, ["fin_place", "place", "Fin_place"]))
 
         ath = athletes_map.get(ath_id, {})
+        t_no = safe_int(ath.get("team_no", 0))
+        t_info = teams_map.get(t_no, {})
+        t_code = t_info.get("lsc", "")
         ath_name = str(ath.get("name", f"Swimmer #{ath_id}"))
+        if t_code:
+            ath_name = f"{ath_name} [{t_code}]"
         evt = events_map.get(evt_id, {})
         evt_desc = evt.get("desc", f"Event {evt_id}")
 
@@ -425,10 +457,14 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
     for ath in athletes:
         ath_id = safe_int(get_field(ath, ["ath_no", "Ath_no"]))
         ath_info = athletes_map.get(ath_id, {})
+        t_no = safe_int(ath_info.get("team_no", 0))
+        t_info = teams_map.get(t_no, {})
+        t_code = t_info.get("lsc", "")
         name = str(ath_info.get("name", f"Swimmer #{ath_id}"))
+        if t_code:
+            name = f"{name} [{t_code}]"
         gender = str(ath_info.get("gender", ""))
         age = safe_int(ath_info.get("age", 0))
-        t_no = safe_int(ath_info.get("team_no", 0))
 
         # CRITICAL: Missing gender
         if not gender or gender not in ["M", "F", "B", "G", "W"]:
@@ -458,11 +494,14 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         ind_count = 0
         rel_count = 0
         for item in ath_evts:
+            if item.get("is_scratched", False):
+                continue
             if item["is_exhibition"]:
                 continue
             evt_info = events_map.get(item["evt_id"])
             if evt_info:
-                if evt_info["is_relay"]:
+                is_relay = evt_info["is_relay"]
+                if is_relay:
                     rel_count += 1
                 else:
                     ind_count += 1
@@ -480,18 +519,45 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                         )
                     )
 
-                # WARNING: Age group mismatch
+                # WARNING: Age group mismatch (TVSL Rules 13 / 14a)
                 low = evt_info["low_age"]
                 high = evt_info["high_age"]
-                if (low > 0 and age < low) or (high > 0 and age > high):
+
+                # Check swimming down (always a violation)
+                if high > 0 and age > high:
                     findings.append(
                         pb2.ValidationFinding(
                             severity=pb2.VALIDATION_SEVERITY_WARNING,
                             category="Entries",
-                            message=f"Swimmer {name} (age {age}) entered in Event {evt_info['desc']} restricted to ages {low}-{high}.",
+                            message=f"Swimmer {name} (age {age}) entered in Event {evt_info['desc']} restricted to younger swimmers (max age: {high}).",
                             affected_id=str(ath_id),
                         )
                     )
+                # Check swimming up
+                elif low > 0 and age < low:
+                    if not is_relay:
+                        # Individual event: cannot swim up (Rule 13)
+                        findings.append(
+                            pb2.ValidationFinding(
+                                severity=pb2.VALIDATION_SEVERITY_WARNING,
+                                category="Swim Up Limit",
+                                message=f"Swimmer {name} (age {age}) is swimming up in individual Event {evt_info['desc']} (restricted to ages {low}-{high}), which is not permitted under TVSL Rule 13.",
+                                affected_id=str(ath_id),
+                            )
+                        )
+                    else:
+                        # Relay event: can swim up by at most one age group (Rule 14a)
+                        event_group_idx = get_tvsl_age_group_index(high)
+                        swimmer_group_idx = get_tvsl_age_group_index(age)
+                        if event_group_idx > swimmer_group_idx + 1:
+                            findings.append(
+                                pb2.ValidationFinding(
+                                    severity=pb2.VALIDATION_SEVERITY_WARNING,
+                                    category="Swim Up Limit",
+                                    message=f"Swimmer {name} (age {age}) is swimming up too far in relay Event {evt_info['desc']} (restricted to ages {low}-{high}), exceeding the max one age group up limit under TVSL Rule 14a.",
+                                    affected_id=str(ath_id),
+                                )
+                            )
 
         if ind_count > 3:
             findings.append(

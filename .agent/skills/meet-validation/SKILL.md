@@ -22,6 +22,7 @@ When checking meet data, apply these TVSL Rules logic:
 - **Individual Events**: Max 3 per athlete.
 - **Total Events**: Max 4 per athlete (individual + relays).
 - **Exhibition Exemption**: Swims marked as exhibition (`Pre_exh` or `Fin_exh` containing non-empty characters in `entry` or `relay` tables) do **not** count towards the athlete's entry limits.
+- **Scratch Exemption**: Entries that are scratched (status `R`/`NS`, or `scr_stat == 1` for individuals; status `R`/`NS` for relays) do **not** count towards the athlete's entry limits.
 - **Relay Event Entry**: Relay entries must be looked up in the `relay` table (linked to the athlete via the `relaynames` table). Relays are not present in the individual `entry` table.
 
 ### 2. Points Awarded with DQs
@@ -35,4 +36,9 @@ When checking meet data, apply these TVSL Rules logic:
 - **Rule**: Validate that no team exceeds the league limit of 420 splashes in a meet.
 - **Formula**: Total Splashes = (Count of non-scratched individual entries) + (4 * Count of non-scratched relay entries).
 - **Scratches**: Excluded from splash counts (status `R`/`NS`, or `scr_stat == 1`).
+
+### 5. Swim Up Rules (Rules 13 / 14a)
+- **Individual Events**: Swim-ups are strictly prohibited (Rule 13).
+- **Relay Events**: Swim-ups are permitted up to exactly one age group up (Rule 14a). Swim-ups beyond 1 age group are flagged.
+- **Swimming Down**: Always prohibited in both individual and relay events.
 

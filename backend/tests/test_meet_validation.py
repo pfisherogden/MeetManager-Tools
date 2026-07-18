@@ -681,3 +681,127 @@ def test_ns_scratch_with_dq_times():
     assert len(ns_scratch_findings) == 1
     assert ns_scratch_findings[0].affected_id == "1"
     assert "Alice Smith" in ns_scratch_findings[0].message
+
+
+def test_scratched_entries_limits():
+    """Verify that scratched individual and relay entries do not count towards swimmer's limits."""
+    cache = {
+        "athlete": [
+            {
+                "ath_no": 1,
+                "first_name": "Katherine",
+                "last_name": "Lewis",
+                "ath_age": 15,
+                "ath_sex": "F",
+                "team_no": 100,
+            },
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
+        "event": [
+            {"event_ptr": 1, "event_no": 1, "event_sex": "F", "low_age": 15, "high_age": 18, "ind_rel": "I"},
+            {"event_ptr": 2, "event_no": 2, "event_sex": "F", "low_age": 15, "high_age": 18, "ind_rel": "I"},
+            {"event_ptr": 3, "event_no": 3, "event_sex": "F", "low_age": 15, "high_age": 18, "ind_rel": "I"},
+            {"event_ptr": 4, "event_no": 4, "event_sex": "F", "low_age": 15, "high_age": 18, "ind_rel": "R"},
+            {"event_ptr": 5, "event_no": 5, "event_sex": "F", "low_age": 15, "high_age": 18, "ind_rel": "R"},
+        ],
+        "entry": [
+            {"ath_no": 1, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
+            {"ath_no": 1, "event_ptr": 2, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
+            # Katherine has scratched from event 3 (individual)
+            {"ath_no": 1, "event_ptr": 3, "fin_time": 0.0, "fin_stat": "", "scr_stat": 1},
+        ],
+        "relay": [
+            {"team_ptr": 100, "event_ptr": 4, "relay_no": 1, "fin_stat": ""},
+            # Scratched relay
+            {"team_ptr": 100, "event_ptr": 5, "relay_no": 1, "fin_stat": "R"},
+        ],
+        "relaynames": [
+            {"ath_no": 1, "event_ptr": 4, "team_no": 100, "relay_no": 1, "pos_no": 1},
+            {"ath_no": 1, "event_ptr": 5, "team_no": 100, "relay_no": 1, "pos_no": 1},
+        ],
+    }
+
+    findings = validate_meet_data(cache)
+    rules_limit_findings = [f for f in findings if f.category == "Rules Limit"]
+
+    # Katherine should not be flagged because her active entries count is:
+    # 2 active individual (Event 1, 2) + 1 active relay (Event 4) = 3 total.
+    assert len(rules_limit_findings) == 0
+
+
+def test_tvsl_swim_up_rules():
+    """Verify individual/relay swim up limits according to TVSL Rules 13/14a."""
+    cache = {
+        "athlete": [
+            # Swimmer Alice: age 8 (standard group 1: 8&U)
+            {"ath_no": 1, "first_name": "Alice", "last_name": "Smith", "ath_age": 8, "ath_sex": "F", "team_no": 100},
+            # Swimmer Bob: age 14 (standard group 4: 13-14)
+            {"ath_no": 2, "first_name": "Bob", "last_name": "Jones", "ath_age": 14, "ath_sex": "M", "team_no": 100},
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
+        "event": [
+            # Event 1: Individual 9-10 (restricted to 9-10). Alice swimming here is a violation.
+            {"event_ptr": 1, "event_no": 1, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I"},
+            # Event 2: Relay 9-10 (restricted to 9-10). Alice swimming here is swimming up by exactly 1 age group -> ALLOWED!
+            {"event_ptr": 2, "event_no": 2, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "R"},
+            # Event 3: Relay 11-12 (restricted to 11-12). Alice swimming here is swimming up by 2 age groups -> WARNING!
+            {"event_ptr": 3, "event_no": 3, "event_sex": "F", "low_age": 11, "high_age": 12, "ind_rel": "R"},
+            # Event 4: Relay 9-10 (restricted to 9-10). Bob swimming here is swimming down -> WARNING!
+            {"event_ptr": 4, "event_no": 4, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "R"},
+        ],
+        "entry": [
+            {"ath_no": 1, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
+        ],
+        "relay": [
+            {"team_ptr": 100, "event_ptr": 2, "relay_no": 1, "fin_stat": ""},
+            {"team_ptr": 100, "event_ptr": 3, "relay_no": 1, "fin_stat": ""},
+            {"team_ptr": 100, "event_ptr": 4, "relay_no": 1, "fin_stat": ""},
+        ],
+        "relaynames": [
+            {"ath_no": 1, "event_ptr": 2, "team_no": 100, "relay_no": 1, "pos_no": 1},
+            {"ath_no": 1, "event_ptr": 3, "team_no": 100, "relay_no": 1, "pos_no": 1},
+            {"ath_no": 2, "event_ptr": 4, "team_no": 100, "relay_no": 1, "pos_no": 1},
+        ],
+    }
+
+    findings = validate_meet_data(cache)
+    swim_up_findings = [f for f in findings if f.category == "Swim Up Limit"]
+    mismatch_findings = [f for f in findings if f.category == "Entries" and "restricted" in f.message]
+
+    # 1 individual swim up (Alice in Event 1) + 1 relay swim up too far (Alice in Event 3)
+    assert len(swim_up_findings) == 2
+    assert any("individual Event" in f.message for f in swim_up_findings)
+    assert any("relay Event" in f.message for f in swim_up_findings)
+
+    # 1 swimming down mismatch (Bob in Event 4)
+    assert len(mismatch_findings) == 1
+    assert "younger swimmers" in mismatch_findings[0].message
+
+
+def test_swimmer_team_code():
+    """Verify that swimmer team code (LSC) is appended to swimmer's name in warnings/errors."""
+    cache = {
+        "athlete": [
+            {"ath_no": 1, "first_name": "Alice", "last_name": "Smith", "ath_age": 10, "ath_sex": "F", "team_no": 100},
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
+        "event": [
+            {
+                "event_ptr": 1,
+                "event_no": 1,
+                "event_sex": "M",
+                "low_age": 9,
+                "high_age": 10,
+                "ind_rel": "I",
+            },  # Gender mismatch
+        ],
+        "entry": [
+            {"ath_no": 1, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
+        ],
+        "relay": [],
+        "relaynames": [],
+    }
+
+    findings = validate_meet_data(cache)
+    assert len(findings) > 0
+    assert "Alice Smith [DP]" in findings[0].message
