@@ -62,6 +62,7 @@ export const test = base.extend<{
 		const env: Record<string, string> = {
 			...process.env,
 			TAURI_DEBUG: "1",
+			TAURI_WEBVIEW_DEBUGGABLE: "1",
 		};
 		if (process.platform === "win32") {
 			// On Windows, WebView2 requires WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS to expose remote debugging CDP
@@ -85,7 +86,7 @@ export const test = base.extend<{
 			wsEndpoint = "http://127.0.0.1:9222";
 			// Poll the CDP endpoint until it is active
 			let active = false;
-			for (let i = 0; i < 30; i++) {
+			for (let i = 0; i < 120; i++) {
 				try {
 					const res = await fetch("http://127.0.0.1:9222/json/version");
 					if (res.ok) {
