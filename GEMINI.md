@@ -174,6 +174,13 @@ All agents MUST follow these workflow phases:
   - **Tied-Rank Verification Safeguards**: To avoid false-positives when a swimmer has multiple equal-ranked top events (e.g., four tied 1st place events but only 3 entries), missed events are only flagged if their rank is strictly better than the worst entered individual event.
   - **PDF Layout**: Highlight the worst-ranked entered stroke in yellow as the primary candidate to drop/replace. Repeats table headers on page wraps (`repeatRows=1` in ReportLab) and adds a generation timestamp and legend.
 
+- **2026-07-18**: **TVSL Championships Results Celebration Report**:
+  - **Goal**: Generate a parent/swimmer-facing results celebration report from the final TVSL Championships MDB results database.
+  - **Time-Drop Tiers**: Grouped time drops into motivating categories: "The Fingertip Finish" (<0.5s), "The Streamline Surge" (0.5s-1.99s), "The Sonic Surge" (2.0s-4.99s), and "The Tidal Wave" (5.0s+).
+  - **Celebration Highlights**: Included relay collective drops, a "Clean Sweep Club" of swimmers with 100% PBs, and total team time-saved metrics.
+  - **Design & Layout**: Customized WeasyPrint PDF layout using a Forest Green and Champagne Gold color system, Georgia/Helvetica font pairing, and `display: table` print standard.
+
+
 ### 11. Season Setup Automation
 - **Rule**: Use the `season-setup` skill when configuring MDB files for a new swim season.
 - **Architecture**:
