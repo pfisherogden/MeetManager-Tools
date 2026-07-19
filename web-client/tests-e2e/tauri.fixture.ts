@@ -64,10 +64,19 @@ export const test = base.extend<{
 			TAURI_DEBUG: "1",
 			TAURI_WEBVIEW_DEBUGGABLE: "1",
 		};
+		let tmpUserDataDir = "";
 		if (process.platform === "win32") {
 			// On Windows, WebView2 requires WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS to expose remote debugging CDP
 			env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS =
-				"--remote-debugging-port=9222";
+				"--remote-debugging-port=9223";
+
+			// Force a unique WebView2 user data folder to avoid sharing processes or file locks in parallel/sequential runs
+			tmpUserDataDir = path.join(
+				process.env.TEMP || process.env.TMP || "C:\\temp",
+				`webview2-test-data-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+			);
+			fs.mkdirSync(tmpUserDataDir, { recursive: true });
+			env.WEBVIEW2_USER_DATA_FOLDER = tmpUserDataDir;
 		}
 
 		const tauriProcess = spawn(appPath, [], { env });
@@ -88,9 +97,9 @@ export const test = base.extend<{
 			for (let i = 0; i < 120; i++) {
 				for (const host of ["127.0.0.1", "localhost"]) {
 					try {
-						const res = await fetch(`http://${host}:9222/json/version`);
+						const res = await fetch(`http://${host}:9223/json/version`);
 						if (res.ok) {
-							activeUrl = `http://${host}:9222`;
+							activeUrl = `http://${host}:9223`;
 							break;
 						}
 					} catch (_e) {
@@ -104,7 +113,7 @@ export const test = base.extend<{
 			}
 			if (!activeUrl) {
 				throw new Error(
-					"Timeout waiting for WebView2 remote debugging port 9222 to become active",
+					"Timeout waiting for WebView2 remote debugging port 9223 to become active",
 				);
 			}
 			wsEndpoint = activeUrl;
@@ -143,5 +152,16 @@ export const test = base.extend<{
 
 		// Teardown
 		tauriProcess.kill();
+
+		// Clean up the temp user data directory after process exits
+		if (tmpUserDataDir) {
+			setTimeout(() => {
+				try {
+					fs.rmSync(tmpUserDataDir, { recursive: true, force: true });
+				} catch (_e) {
+					// Ignore lock release failures from exiting processes
+				}
+			}, 2000);
+		}
 	},
 });
