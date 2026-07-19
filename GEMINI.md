@@ -176,10 +176,15 @@ All agents MUST follow these workflow phases:
 
 - **2026-07-18**: **TVSL Championships Results Celebration Report**:
   - **Goal**: Generate a parent/swimmer-facing results celebration report from the final TVSL Championships MDB results database.
-  - **Time-Drop Tiers**: Grouped time drops into motivating categories: "The Fingertip Finish" (<0.5s), "The Streamline Surge" (0.5s-1.99s), "The Sonic Surge" (2.0s-4.99s), and "The Tidal Wave" (5.0s+).
-  - **Celebration Highlights**: Included relay collective drops, a "Clean Sweep Club" of swimmers with 100% PBs, and total team time-saved metrics.
-  - **Design & Layout**: Customized WeasyPrint PDF layout using a Forest Green and Champagne Gold color system, Georgia/Helvetica font pairing, and `display: table` print standard.
+  - **Individual PR Layout**: Displays all individual time improvements in a unified table, sorted strictly by age group, gender, last name, first name, and event. Time drops are highlighted in uniform yellow badges with no star icons.
+  - **Relay PR Layout**: Lists all relay teams that beat their seed times (excluding team letter identifiers), including the full roster of named swimmers (1st leg to 4th leg).
+  - **Design & Layout**: Customized WeasyPrint PDF layout using a Red and Black color system, Georgia/Helvetica font pairing, and `display: table` print standard.
 
+- **2026-07-19**: **TVSL Championships Swimmer & Group Points Reports**:
+  - **Goal**: Generate swimmer point leaderboards and age group/gender total points summary reports from the final TVSL Championships MDB results database.
+  - **Individual & Relay Points split**: Swimmers get 100% of individual event points (`ev_score` in `entry` table) and 25% of relay team points (`ev_score` in `relay` table, mapped using `relaynames`).
+  - **Sorting & Grouping**: Grouped by age group and gender, ranked descending by points earned (most to least). Total group summary ranked descending by contribution.
+  - **Design**: Maintained matching Red & Black Stingrays branding styled for landscape print layout.
 
 ### 11. Season Setup Automation
 - **Rule**: Use the `season-setup` skill when configuring MDB files for a new swim season.
