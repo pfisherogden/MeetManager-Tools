@@ -13,13 +13,13 @@
 		"withGlobalTauri": true,
 		"windows": [
 			{
+				"label": "main",
 				"title": "MeetManager Tools",
 				"width": 1280,
 				"height": 800,
 				"resizable": true,
 				"fullscreen": false,
-				"devtools": true,
-				"additionalBrowserArguments": "--remote-debugging-port=9223"
+				"devtools": true
 			}
 		],
 		"security": {
