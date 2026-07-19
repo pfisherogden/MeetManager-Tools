@@ -83,26 +83,31 @@ export const test = base.extend<{
 		// Wait for remote debugging websocket or port to become active
 		let wsEndpoint = "";
 		if (process.platform === "win32") {
-			wsEndpoint = "http://127.0.0.1:9222";
-			// Poll the CDP endpoint until it is active
-			let active = false;
+			// Poll the CDP endpoint until it is active (checking both 127.0.0.1 and localhost)
+			let activeUrl = "";
 			for (let i = 0; i < 120; i++) {
-				try {
-					const res = await fetch("http://127.0.0.1:9222/json/version");
-					if (res.ok) {
-						active = true;
-						break;
+				for (const host of ["127.0.0.1", "localhost"]) {
+					try {
+						const res = await fetch(`http://${host}:9222/json/version`);
+						if (res.ok) {
+							activeUrl = `http://${host}:9222`;
+							break;
+						}
+					} catch (_e) {
+						// Ignore connection errors
 					}
-				} catch (_e) {
-					// Ignore connection errors during startup
+				}
+				if (activeUrl) {
+					break;
 				}
 				await new Promise((resolve) => setTimeout(resolve, 500));
 			}
-			if (!active) {
+			if (!activeUrl) {
 				throw new Error(
 					"Timeout waiting for WebView2 remote debugging port 9222 to become active",
 				);
 			}
+			wsEndpoint = activeUrl;
 		} else {
 			// On macOS/Linux, parse from stderr
 			await new Promise<void>((resolve, reject) => {
