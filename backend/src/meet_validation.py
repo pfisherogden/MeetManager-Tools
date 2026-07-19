@@ -622,11 +622,12 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
     # Count individual swims (excluding scratches)
     for entry in entries:
         ath_id = safe_int(get_field(entry, ["ath_no", "Ath_no"]))
-        fin_stat = safe_str(get_field(entry, ["fin_stat", "Fin_stat"])).upper()
+        fin_stat = safe_str(get_field(entry, ["fin_stat", "Fin_stat"])).strip().upper()
+        pre_stat = safe_str(get_field(entry, ["pre_stat", "Pre_stat"])).strip().upper()
         scr_stat = safe_int(get_field(entry, ["scr_stat", "Scr_stat"]))
 
         # Exclude scratches and no shows
-        if fin_stat == "R" or fin_stat == "NS" or scr_stat == 1:
+        if fin_stat in ["R", "NS"] or pre_stat in ["R", "NS"] or scr_stat == 1:
             continue
 
         ath_info = athletes_map.get(ath_id)
@@ -638,10 +639,11 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
     # Count relay team entries (excluding scratches)
     for r in relays:
         t_no = safe_int(get_field(r, ["team_ptr", "team_no", "Team_ptr", "Team_no"]))
-        fin_stat = safe_str(get_field(r, ["fin_stat", "Fin_stat"])).upper()
+        fin_stat = safe_str(get_field(r, ["fin_stat", "Fin_stat"])).strip().upper()
+        pre_stat = safe_str(get_field(r, ["pre_stat", "Pre_stat"])).strip().upper()
 
         # Exclude scratches and no shows
-        if fin_stat == "R" or fin_stat == "NS":
+        if fin_stat in ["R", "NS"] or pre_stat in ["R", "NS"]:
             continue
 
         if t_no:

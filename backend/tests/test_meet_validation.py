@@ -587,8 +587,10 @@ def test_team_splashes_limit():
     assert "exceeds splashes limit" in splashes_findings[0].message
     assert "421" in splashes_findings[0].message
 
-    # Scratches excluded: 401 entries total but 2 individual scratched, 1 relay scratched
-    # 401 individual (2 scratched) + 5 relays (1 scratched) = 399 + 4 * 4 = 415 splashes (under limit)
+    # Scratches excluded: 401 entries total but 3 individual scratched, 2 relays scratched
+    # 401 individual (3 scratched: 1 via fin_stat R, 1 via scr_stat 1, 1 via pre_stat NS)
+    # 5 relays (2 scratched: 1 via fin_stat R, 1 via pre_stat R)
+    # Total splashes: 398 individual + 3 * 4 relay = 398 + 12 = 410 splashes (under limit)
     entry_with_scratches = []
     for i in range(1, 402):
         if i == 1:
@@ -607,13 +609,26 @@ def test_team_splashes_limit():
                     "fin_lane": 1,
                 }
             )
+        elif i == 3:
+            entry_with_scratches.append(
+                {
+                    "ath_no": i,
+                    "event_ptr": 1,
+                    "fin_time": 0.0,
+                    "fin_stat": "",
+                    "pre_stat": "NS",
+                    "fin_heat": 1,
+                    "fin_lane": 1,
+                }
+            )
         else:
             entry_with_scratches.append(
                 {"ath_no": i, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "fin_heat": 1, "fin_lane": 1}
             )
 
-    relays_with_scratch = [{"team_ptr": 1, "event_ptr": 2, "fin_stat": ""} for _ in range(4)]
+    relays_with_scratch = [{"team_ptr": 1, "event_ptr": 2, "fin_stat": ""} for _ in range(3)]
     relays_with_scratch.append({"team_ptr": 1, "event_ptr": 2, "fin_stat": "R"})
+    relays_with_scratch.append({"team_ptr": 1, "event_ptr": 2, "pre_stat": "R"})
 
     cache_scratches = {
         "athlete": [
