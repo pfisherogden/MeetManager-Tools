@@ -787,7 +787,14 @@ def test_swimmer_team_code():
         ],
         "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
         "event": [
-            {"event_ptr": 1, "event_no": 1, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "I"}, # Gender mismatch
+            {
+                "event_ptr": 1,
+                "event_no": 1,
+                "event_sex": "M",
+                "low_age": 9,
+                "high_age": 10,
+                "ind_rel": "I",
+            },  # Gender mismatch
         ],
         "entry": [
             {"ath_no": 1, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
@@ -807,7 +814,14 @@ def test_swimmer_team_code():
         ],
         "team": [{"team_no": 100, "team_name": "Del Prado", "team_abbr": "DP_ABBR", "team_lsc": "TV"}],
         "event": [
-            {"event_ptr": 1, "event_no": 1, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "I"}, # Gender mismatch
+            {
+                "event_ptr": 1,
+                "event_no": 1,
+                "event_sex": "M",
+                "low_age": 9,
+                "high_age": 10,
+                "ind_rel": "I",
+            },  # Gender mismatch
         ],
         "entry": [
             {"ath_no": 1, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
@@ -831,8 +845,24 @@ def test_champs_single_entry():
         ],
         "team": [{"team_no": 100, "team_name": "Del Prado", "team_abbr": "DP"}],
         "event": [
-            {"event_ptr": 1, "event_no": 1, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I", "desc": "Girls 9-10 25 Free"},
-            {"event_ptr": 2, "event_no": 2, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I", "desc": "Girls 9-10 25 Back"},
+            {
+                "event_ptr": 1,
+                "event_no": 1,
+                "event_sex": "F",
+                "low_age": 9,
+                "high_age": 10,
+                "ind_rel": "I",
+                "desc": "Girls 9-10 25 Free",
+            },
+            {
+                "event_ptr": 2,
+                "event_no": 2,
+                "event_sex": "F",
+                "low_age": 9,
+                "high_age": 10,
+                "ind_rel": "I",
+                "desc": "Girls 9-10 25 Back",
+            },
         ],
         "entry": [
             # Alice only has 1 active entry
@@ -847,7 +877,7 @@ def test_champs_single_entry():
 
     findings = validate_meet_data(cache)
     champs_findings = [f for f in findings if f.category == "Champs Single Entry"]
-    
+
     assert len(champs_findings) == 1
     assert "Alice Smith [DP]" in champs_findings[0].message
     assert "Event 1" in champs_findings[0].message
