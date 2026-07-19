@@ -779,21 +779,15 @@ def test_tvsl_swim_up_rules():
 
 
 def test_swimmer_team_code():
-    """Verify that swimmer team code (LSC) is appended to swimmer's name in warnings/errors."""
-    cache = {
+    """Verify that swimmer team code (abbr preferred, lsc fallback) is appended to swimmer's name in warnings/errors."""
+    # Test fallback to team_lsc
+    cache_lsc = {
         "athlete": [
             {"ath_no": 1, "first_name": "Alice", "last_name": "Smith", "ath_age": 10, "ath_sex": "F", "team_no": 100},
         ],
         "team": [{"team_no": 100, "team_name": "Del Prado", "team_lsc": "DP"}],
         "event": [
-            {
-                "event_ptr": 1,
-                "event_no": 1,
-                "event_sex": "M",
-                "low_age": 9,
-                "high_age": 10,
-                "ind_rel": "I",
-            },  # Gender mismatch
+            {"event_ptr": 1, "event_no": 1, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "I"}, # Gender mismatch
         ],
         "entry": [
             {"ath_no": 1, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
@@ -802,6 +796,58 @@ def test_swimmer_team_code():
         "relaynames": [],
     }
 
+    findings_lsc = validate_meet_data(cache_lsc)
+    assert len(findings_lsc) > 0
+    assert "Alice Smith [DP]" in findings_lsc[0].message
+
+    # Test preference for team_abbr
+    cache_abbr = {
+        "athlete": [
+            {"ath_no": 1, "first_name": "Alice", "last_name": "Smith", "ath_age": 10, "ath_sex": "F", "team_no": 100},
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_abbr": "DP_ABBR", "team_lsc": "TV"}],
+        "event": [
+            {"event_ptr": 1, "event_no": 1, "event_sex": "M", "low_age": 9, "high_age": 10, "ind_rel": "I"}, # Gender mismatch
+        ],
+        "entry": [
+            {"ath_no": 1, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
+        ],
+        "relay": [],
+        "relaynames": [],
+    }
+
+    findings_abbr = validate_meet_data(cache_abbr)
+    assert len(findings_abbr) > 0
+    assert "Alice Smith [DP_ABBR]" in findings_abbr[0].message
+
+
+def test_champs_single_entry():
+    """Verify that swimmers with only 1 active entry in a Championship meet are flagged."""
+    cache = {
+        "meet": [{"meet_name1": "TVSL Championship Meet 2026"}],
+        "athlete": [
+            {"ath_no": 1, "first_name": "Alice", "last_name": "Smith", "ath_age": 10, "ath_sex": "F", "team_no": 100},
+            {"ath_no": 2, "first_name": "Bob", "last_name": "Jones", "ath_age": 10, "ath_sex": "M", "team_no": 100},
+        ],
+        "team": [{"team_no": 100, "team_name": "Del Prado", "team_abbr": "DP"}],
+        "event": [
+            {"event_ptr": 1, "event_no": 1, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I", "desc": "Girls 9-10 25 Free"},
+            {"event_ptr": 2, "event_no": 2, "event_sex": "F", "low_age": 9, "high_age": 10, "ind_rel": "I", "desc": "Girls 9-10 25 Back"},
+        ],
+        "entry": [
+            # Alice only has 1 active entry
+            {"ath_no": 1, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
+            # Bob has 2 entries
+            {"ath_no": 2, "event_ptr": 1, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
+            {"ath_no": 2, "event_ptr": 2, "fin_time": 0.0, "fin_stat": "", "scr_stat": 0},
+        ],
+        "relay": [],
+        "relaynames": [],
+    }
+
     findings = validate_meet_data(cache)
-    assert len(findings) > 0
-    assert "Alice Smith [DP]" in findings[0].message
+    champs_findings = [f for f in findings if f.category == "Champs Single Entry"]
+    
+    assert len(champs_findings) == 1
+    assert "Alice Smith [DP]" in champs_findings[0].message
+    assert "Event 1" in champs_findings[0].message

@@ -127,15 +127,26 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
     entries = get_table(cache, "entry")
     relays = get_table(cache, "relay")
     relay_names = get_table(cache, "relaynames")
+    meet_table = get_table(cache, "meet")
+
+    # Detect if this is a Championship/Champs meet
+    is_champs = False
+    if meet_table:
+        meet_info = meet_table[0] if len(meet_table) > 0 else {}
+        meet_name = str(get_field(meet_info, ["meet_name1", "Meet_name1"]) or "").lower()
+        if "championship" in meet_name or "champs" in meet_name:
+            is_champs = True
 
     # Build lookups
     teams_map = {}
     for t in teams:
         t_no = safe_int(get_field(t, ["team_no", "Team_no"]))
         t_name = get_field(t, ["team_name", "Team_name"])
+        t_abbr = get_field(t, ["team_abbr", "Team_abbr"])
         t_lsc = get_field(t, ["team_lsc", "Team_lsc"])
         if t_no:
-            teams_map[t_no] = {"name": t_name, "lsc": t_lsc}
+            abbr_str = str(t_abbr or "").strip()
+            teams_map[t_no] = {"name": t_name, "abbr": abbr_str, "lsc": t_lsc}
             # WARNING: Check for missing LSC code
             if not t_lsc or not str(t_lsc).strip():
                 findings.append(
@@ -267,7 +278,7 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         ath = athletes_map.get(ath_id, {})
         t_no = safe_int(ath.get("team_no", 0))
         t_info = teams_map.get(t_no, {})
-        t_code = t_info.get("lsc", "")
+        t_code = t_info.get("abbr", "") or t_info.get("lsc", "")
         ath_name = str(ath.get("name", f"Swimmer #{ath_id}"))
         if t_code:
             ath_name = f"{ath_name} [{t_code}]"
@@ -459,7 +470,7 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
         ath_info = athletes_map.get(ath_id, {})
         t_no = safe_int(ath_info.get("team_no", 0))
         t_info = teams_map.get(t_no, {})
-        t_code = t_info.get("lsc", "")
+        t_code = t_info.get("abbr", "") or t_info.get("lsc", "")
         name = str(ath_info.get("name", f"Swimmer #{ath_id}"))
         if t_code:
             name = f"{name} [{t_code}]"
@@ -583,6 +594,24 @@ def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
                     severity=pb2.VALIDATION_SEVERITY_WARNING,
                     category="Rules Limit",
                     message=f"Swimmer {name} exceeds total entry limits with {ind_count + rel_count} total entries (max: 4).",
+                    affected_id=str(ath_id),
+                )
+            )
+
+        # WARNING: Swimmers with only 1 entry in Championship meets
+        if is_champs and (ind_count + rel_count) == 1:
+            single_event_desc = "Unknown"
+            for item in ath_evts:
+                if not item.get("is_scratched", False) and not item["is_exhibition"]:
+                    evt_info = events_map.get(item["evt_id"])
+                    if evt_info:
+                        single_event_desc = evt_info.get("desc", f"Event {item['evt_id']}")
+                        break
+            findings.append(
+                pb2.ValidationFinding(
+                    severity=pb2.VALIDATION_SEVERITY_WARNING,
+                    category="Champs Single Entry",
+                    message=f"Swimmer {name} is entered in only 1 event ({single_event_desc}) in Championship meet.",
                     affected_id=str(ath_id),
                 )
             )
