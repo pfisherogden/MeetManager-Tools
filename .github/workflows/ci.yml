@@ -278,7 +278,7 @@ jobs:
         run: docker compose -f docker-compose.ci.yml logs frontend
 
       - name: Upload Playwright Report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-report-${{ matrix.shardIndex }}
