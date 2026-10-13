@@ -16,6 +16,7 @@ tmp
 **/.npm_cache
 **/.npm-cache
 backend/data/*.mdb
+backend/data/users
 **/venv*/
 **/uv_cache
 **/.uv_cache

@@ -8,7 +8,7 @@ resource "google_project_service" "apis" {
     "secretmanager.googleapis.com",
     "identitytoolkit.googleapis.com"
   ])
-  service = each.key
+  service            = each.key
   disable_on_destroy = false
 }
 
@@ -19,6 +19,25 @@ resource "google_artifact_registry_repository" "repo" {
   description   = "Docker repository for MeetManager tools"
   format        = "DOCKER"
   depends_on    = [google_project_service.apis]
+
+  cleanup_policy_dry_run = false
+
+  cleanup_policies {
+    id     = "delete-old-images"
+    action = "DELETE"
+    condition {
+      tag_state  = "ANY"
+      older_than = "1209600s"
+    }
+  }
+
+  cleanup_policies {
+    id     = "keep-latest-versions"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 3
+    }
+  }
 }
 
 # GCS Bucket for Dataset Storage
@@ -35,7 +54,7 @@ resource "google_storage_bucket" "data_bucket" {
     response_header = ["*"]
     max_age_seconds = 3600
   }
-  
+
   depends_on = [google_project_service.apis]
 }
 
@@ -61,9 +80,9 @@ resource "google_project_iam_member" "run_sa_token_creator" {
 
 # Backend Service (Cloud Run)
 resource "google_cloud_run_v2_service" "backend" {
-  name     = "${var.app_name}-backend"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  name                = "${var.app_name}-backend"
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
   deletion_protection = false
 
   template {
@@ -89,9 +108,9 @@ resource "google_cloud_run_v2_service" "backend" {
 
 # Frontend Service (Cloud Run)
 resource "google_cloud_run_v2_service" "frontend" {
-  name     = "${var.app_name}-frontend"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  name                = "${var.app_name}-frontend"
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
   deletion_protection = false
 
   template {
