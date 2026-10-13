@@ -35,7 +35,7 @@ resource "google_artifact_registry_repository" "repo" {
     id     = "keep-latest-versions"
     action = "KEEP"
     most_recent_versions {
-      keep_count = 5
+      keep_count = 3
     }
   }
 }

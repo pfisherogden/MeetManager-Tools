@@ -6,16 +6,12 @@ COPY mobile-judge-app/ .
 # Expo export web
 RUN APP_BASE_URL=/judge npm run build-web
 
-FROM node:20-alpine
-RUN apk add --no-cache libc6-compat protobuf netcat-openbsd
+FROM node:20-alpine AS web-builder
+RUN apk add --no-cache libc6-compat protobuf
 WORKDIR /app
 
 # Copy protos
 COPY protos/ /app/protos/
-
-# Copy root for scripts
-COPY package.json package-lock.json* ./
-RUN npm install
 
 # Build web-client
 WORKDIR /app/web-client
@@ -66,7 +62,14 @@ ENV NEXT_PUBLIC_GOOGLE_API_KEY=$NEXT_PUBLIC_GOOGLE_API_KEY
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
 ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
-RUN npm run codegen && npm run build
+RUN npm run codegen && npm run build && rm -rf .next/cache && npm prune --omit=dev
+
+FROM node:20-alpine
+RUN apk add --no-cache libc6-compat netcat-openbsd
+WORKDIR /app/web-client
+
+COPY --from=web-builder /app/protos /app/protos
+COPY --from=web-builder /app/web-client /app/web-client
 
 EXPOSE 3000
 ENV PORT=3000

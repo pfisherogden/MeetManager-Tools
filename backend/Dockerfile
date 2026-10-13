@@ -26,8 +26,8 @@ WORKDIR /app
 
 # 1. Install Python dependencies using uv (layer 1)
 COPY backend/pyproject.toml backend/uv.lock* ./
-RUN /uv/bin/uv pip install --system .
-RUN python -m playwright install --with-deps chromium
+RUN /uv/bin/uv pip install --system --no-cache .
+RUN python -m playwright install --with-deps chromium && rm -rf /var/lib/apt/lists/* /root/.cache
 
 # 2. Download Java libraries (layer 2 - depends only on script and config)
 COPY backend/src/mm_to_json/download_libs.py ./src/mm_to_json/
