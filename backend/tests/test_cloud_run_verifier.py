@@ -11,6 +11,7 @@ import pytest
 
 from mm_to_json.cloud_run_verifier import (
     FIREBASE_CUSTOM_TOKEN_AUDIENCE,
+    fetch_cloud_run_logs,
     file_or_update_production_issue,
     format_anomaly_markdown,
     main,
@@ -226,3 +227,19 @@ def test_cli_audit_logs_with_json_file(tmp_path: Path) -> None:
     )
     assert "Memory limit exceeded" in report_text
     assert "`failed`" in report_text
+
+
+def test_fetch_cloud_run_logs_handles_permission_denied() -> None:
+    """Verify fetch_cloud_run_logs returns empty list instead of raising on gcloud permission errors."""
+    with patch("mm_to_json.cloud_run_verifier.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="ERROR: (gcloud.logging.read) PERMISSION_DENIED: The caller does not have permission",
+        )
+        entries = fetch_cloud_run_logs(
+            project_id="mmtools-488404",
+            region="us-west1",
+            services=["mmtools-backend", "mmtools-frontend"],
+        )
+        assert entries == []
