@@ -10,35 +10,66 @@ from google.auth import default
 logger = logging.getLogger(__name__)
 
 
-def _cleanup_old_sheets(gc: gspread.client.Client) -> None:
+def _empty_drive_trash(gc: gspread.client.Client) -> None:
+    """Permanently empties the authenticated account's Google Drive trash to free storage quota."""
+    try:
+        http_client = getattr(gc, "http_client", None)
+        if http_client is not None and hasattr(http_client, "request"):
+            http_client.request("delete", "https://www.googleapis.com/drive/v3/files/trash")
+            logger.info("Emptied Google Drive trash to reclaim storage quota.")
+    except Exception as trash_err:
+        logger.debug(f"Could not empty Google Drive trash: {trash_err}")
+
+
+def _cleanup_old_sheets(
+    gc: gspread.client.Client,
+    max_keep: int = 10,
+    current_title: str | None = None,
+    include_all_owned: bool = False,
+) -> None:
     """Deletes older attendance tracker spreadsheets from the client's Google Drive.
 
-    Keeps only the 10 most recent spreadsheets matching the pattern
-    'Check-in Sheet' or 'Attendance Tracker'.
+    Args:
+        gc: Authorized gspread client.
+        max_keep: Number of newest matching spreadsheets to retain.
+        current_title: Optional current report title to include in matching criteria.
+        include_all_owned: If True, considers all spreadsheets returned by Drive when recovering from quota exhaustion.
     """
     import re
+
+    _empty_drive_trash(gc)
 
     try:
         files = gc.list_spreadsheet_files()
         target_files = []
+        keywords = ["attendance", "check-in", "check in", "swimmer"]
+        if current_title and current_title.strip():
+            keywords.append(current_title.strip().lower())
+
+        timestamp_pattern = re.compile(r"\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}")
+
         for f in files:
             name = f.get("name", "")
-            if "Attendance Tracker" in name or "Check-in Sheet" in name:
+            name_lower = name.lower()
+            if include_all_owned or any(kw in name_lower for kw in keywords) or bool(timestamp_pattern.search(name)):
                 target_files.append(f)
 
-        def get_timestamp(f):
+        def get_timestamp(f: dict[str, Any]) -> str:
             name = f.get("name", "")
-            # Look for YYYY-MM-DD HH:MM
-            match = re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", name)
+            match = timestamp_pattern.search(name)
             if match:
-                return match.group(0)
+                return re.sub(r"\s+", " ", match.group(0))
+            for meta_key in ("createdTime", "modifiedTime"):
+                meta_val = f.get(meta_key)
+                if isinstance(meta_val, str) and len(meta_val) >= 16:
+                    return meta_val[:16].replace("T", " ")
             return ""
 
         target_files.sort(key=get_timestamp)
 
-        # Keep the 10 newest, delete the rest
-        if len(target_files) > 10:
-            to_delete = target_files[:-10]
+        # Keep the max_keep newest, delete the rest
+        if len(target_files) > max_keep:
+            to_delete = target_files[:-max_keep] if max_keep > 0 else target_files
             for f in to_delete:
                 file_id = f.get("id")
                 file_name = f.get("name")
@@ -55,9 +86,9 @@ def _cleanup_old_sheets(gc: gspread.client.Client) -> None:
 class SwimmerCheckInWriter:
     """Generates a Google Spreadsheet or Excel for swimmer check-in with native checkboxes and bi-directional sync."""
 
-    def __init__(self, check_in_data: list[dict[str, Any]], title: str = "Swimmer Check-in"):
+    def __init__(self, check_in_data: list[dict[str, Any]], title: str | None = "Swimmer Check-in"):
         self.data = check_in_data
-        self.title = title
+        self.title = (title or "").strip() or "Swimmer Check-in"
         # New Column Order: Last Name, Preferred Name, Present, Scratch, Gender, Age Group, Events..., ID, First Name, Age, Team
         self.visible_cols = [
             "Last Name",
@@ -125,11 +156,23 @@ class SwimmerCheckInWriter:
             gc = gspread.authorize(credentials)
 
             # Clean up old sheets to preserve storage quota (Issue #506)
-            _cleanup_old_sheets(gc)
+            _cleanup_old_sheets(gc, max_keep=10, current_title=self.title)
 
-            # 2. Create Spreadsheet
+            # 2. Create Spreadsheet (with automatic retry on Drive storage quota exhaustion)
             sheet_title = f"{self.title} - {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}"
-            sh = gc.create(sheet_title)
+            try:
+                sh = gc.create(sheet_title)
+            except gspread.exceptions.APIError as api_err:
+                err_str = str(api_err).lower()
+                if getattr(api_err, "code", None) == 403 or "quota" in err_str or "storagequotaexceeded" in err_str:
+                    logger.warning(
+                        f"Drive storage quota exceeded when creating '{sheet_title}'. "
+                        "Running aggressive spreadsheet cleanup and retrying..."
+                    )
+                    _cleanup_old_sheets(gc, max_keep=0, current_title=self.title, include_all_owned=True)
+                    sh = gc.create(sheet_title)
+                else:
+                    raise
 
             # 3. Share
             if user_email:
