@@ -197,7 +197,9 @@ async function getOrInitClient(): Promise<MeetManagerServiceClient> {
 
 	const hostClean = targetHost.replace(/^https?:\/\//, "");
 	const useSsl =
-		hostClean.includes(".run.app") || process.env.BACKEND_USE_SSL === "true";
+		targetHost.startsWith("https://") ||
+		hostClean.includes(".run.app") ||
+		process.env.BACKEND_USE_SSL === "true";
 	const credentials = useSsl
 		? ChannelCredentials.createSsl()
 		: ChannelCredentials.createInsecure();
