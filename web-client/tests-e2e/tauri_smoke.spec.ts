@@ -574,7 +574,9 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	await generateBundleBtn.click();
 
 	// Wait for the bundle generation to complete and return to idle status
-	await expect(page.locator("text=Report bundle ready!")).toBeVisible({
+	await expect(
+		page.locator("text=Custom pack generated successfully"),
+	).toBeVisible({
 		timeout: 60000,
 	});
 	await expect(builderCard).toHaveAttribute("data-report-status", "idle", {
