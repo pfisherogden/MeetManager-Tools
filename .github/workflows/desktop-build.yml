@@ -11,6 +11,8 @@ on:
     paths:
       - 'web-client/src-tauri/**'
       - 'web-client/lib/tauri-bridge.ts'
+      - 'web-client/tests-e2e/tauri*'
+      - 'web-client/playwright.tauri.config.ts'
       - 'backend/src/**'
       - '.github/workflows/desktop-build.yml'
   workflow_dispatch:
@@ -145,7 +147,7 @@ jobs:
           npx tauri build
 
       - name: Run Tauri E2E Smoke Tests
-        if: matrix.platform == 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
+        if: (matrix.platform == 'windows' || matrix.platform == 'macos') && hashFiles('web-client/src-tauri/Cargo.toml') != ''
         env:
           TAURI_BUILD_PROFILE: "release"
         run: |
@@ -153,7 +155,7 @@ jobs:
           npx playwright test --config playwright.tauri.config.ts
 
       - name: Upload Playwright Test Results
-        if: always() && matrix.platform == 'windows'
+        if: always() && (matrix.platform == 'windows' || matrix.platform == 'macos')
         uses: actions/upload-artifact@v6
         with:
           name: playwright-results-${{ matrix.platform }}

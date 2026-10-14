@@ -104,7 +104,22 @@ export async function downloadFile(
 
 	if (isTauri) {
 		try {
-			const { save } = await import("@tauri-apps/plugin-dialog");
+			const e2eSaveDir =
+				typeof window !== "undefined"
+					? (window as any).__MM_E2E_SAVE_DIR__
+					: undefined;
+			const resolveSavePath = async (
+				defaultFilename: string,
+			): Promise<string | null> => {
+				if (typeof e2eSaveDir === "string" && e2eSaveDir.trim().length > 0) {
+					const sep = e2eSaveDir.includes("\\") ? "\\" : "/";
+					return `${e2eSaveDir.replace(/[/\\]$/, "")}${sep}${defaultFilename}`;
+				}
+				const { save } = await import("@tauri-apps/plugin-dialog");
+				return await save({
+					defaultPath: defaultFilename,
+				});
+			};
 
 			// If content is a URL pointing to a storage file, use dynamic filesystem copy
 			if (
@@ -118,9 +133,7 @@ export async function downloadFile(
 					throw new Error("No path parameter found in download URL");
 				}
 
-				const savePath = await save({
-					defaultPath: filename,
-				});
+				const savePath = await resolveSavePath(filename);
 
 				if (!savePath) {
 					console.log("Download cancelled by user");
@@ -135,9 +148,7 @@ export async function downloadFile(
 				return;
 			}
 
-			const savePath = await save({
-				defaultPath: filename,
-			});
+			const savePath = await resolveSavePath(filename);
 
 			if (!savePath) {
 				console.log("Download cancelled by user");
