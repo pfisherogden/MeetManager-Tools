@@ -240,7 +240,13 @@ def fetch_cloud_run_logs(
         f"--limit={limit}",
         "--format=json",
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if res.returncode != 0:
+        print(
+            f"Warning: gcloud logging read returned exit code {res.returncode}: {res.stderr.strip()}",
+            file=sys.stderr,
+        )
+        return []
     raw = res.stdout.strip()
     if not raw:
         return []

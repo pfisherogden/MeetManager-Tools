@@ -39,9 +39,12 @@ test.describe("Production Smoke Tests", () => {
 	test("should load admin/ingestion page", async ({ page }) => {
 		await page.goto("/admin");
 		await expect(page.getByText(/Dataset Management/i).first()).toBeVisible();
-		// Verify action buttons exist
+		// Verify top-level action buttons exist even before any dataset is uploaded
 		await expect(
-			page.getByRole("button", { name: /Publish to Judge App/i }).first(),
+			page.getByRole("button", { name: /Upload Dataset/i }).first(),
+		).toBeVisible();
+		await expect(
+			page.getByRole("button", { name: /Import from Drive/i }).first(),
 		).toBeVisible();
 	});
 
@@ -130,6 +133,9 @@ test.describe("Production Smoke Tests", () => {
 		await expect(row).toHaveAttribute("data-test-state", "active", {
 			timeout: 15000,
 		});
+		await expect(
+			row.getByRole("button", { name: /Publish to Judge App/i }),
+		).toBeVisible();
 
 		await page.goto("/meets");
 		await expect(page.locator("table")).toContainText("Cloud Run Drive Meet", {
