@@ -115,7 +115,7 @@ pub fn run() {
             // Propagate LOG_LEVEL if set, otherwise default to INFO
             let log_level = std::env::var("LOG_LEVEL").unwrap_or_else(|_| "INFO".to_string());
 
-            let (mut rx, child) = shell
+            let mut sidecar_cmd = shell
                 .sidecar("mmtools-backend")
                 .expect("failed to setup sidecar")
                 .env("STORAGE_BASE_DIR", &app_data_str)
@@ -123,7 +123,22 @@ pub fn run() {
                 .env("DATA_ACCESS_TOKEN", "mmtools-default-secret-2024")
                 .env("MONITOR_PARENT_PROCESS", "true")
                 .env("TAURI_RESOURCE_DIR", &resource_dir_str)
-                .env("LOG_LEVEL", &log_level)
+                .env("LOG_LEVEL", &log_level);
+
+            for var_name in [
+                "GOOGLE_API_KEY",
+                "NEXT_PUBLIC_GOOGLE_API_KEY",
+                "NEXT_PUBLIC_FIREBASE_API_KEY",
+                "GOOGLE_CLIENT_ID",
+                "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
+                "GOOGLE_DRIVE_API_URL",
+            ] {
+                if let Ok(val) = std::env::var(var_name) {
+                    sidecar_cmd = sidecar_cmd.env(var_name, val);
+                }
+            }
+
+            let (mut rx, child) = sidecar_cmd
                 .spawn()
                 .expect("failed to spawn sidecar");
 

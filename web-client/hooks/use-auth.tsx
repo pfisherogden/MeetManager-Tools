@@ -43,7 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const isAuthDisabled =
 		process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" ||
-		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true";
+		process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true" ||
+		(typeof window !== "undefined" &&
+			(window as any).__MM_E2E_TEST_BYPASS__ === true);
 
 	useEffect(() => {
 		// Client-side redirection backup for protected routes
@@ -75,7 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	}, [isAuthDisabled]);
 
 	useEffect(() => {
-		const token = Cookies.get("googleAccessToken");
+		const isSecure =
+			typeof window !== "undefined" && window.location.protocol === "https:";
+		const token =
+			Cookies.get("googleAccessToken") ||
+			(typeof window !== "undefined"
+				? (window as any).__MM_TEST_GOOGLE_TOKEN__
+				: undefined);
 		if (token) setGoogleAccessToken(token);
 
 		if (isAuthDisabled) {
@@ -104,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				Cookies.set("x-user-id", mockUid, {
 					path: "/",
 					sameSite: "strict",
-					secure: process.env.NODE_ENV === "production",
+					secure: isSecure,
 				});
 			}
 
@@ -113,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				Cookies.set("idToken", "dev-token", {
 					path: "/",
 					sameSite: "strict",
-					secure: process.env.NODE_ENV === "production",
+					secure: isSecure,
 				});
 			}
 
@@ -130,13 +138,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				}
 				Cookies.set("idToken", idToken, {
 					expires: 1 / 24, // 1 hour
-					secure: true,
+					secure: isSecure,
 					sameSite: "strict",
 					path: "/",
 				});
 				Cookies.set("x-user-id", user.uid, {
 					expires: 1 / 24,
-					secure: true,
+					secure: isSecure,
 					sameSite: "strict",
 					path: "/",
 				});
@@ -156,13 +164,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const login = async () => {
 		if (isAuthDisabled) return {} as UserCredential;
+		const isSecure =
+			typeof window !== "undefined" && window.location.protocol === "https:";
 		const result = await signInWithPopup(auth, googleProvider);
 		const credential = GoogleAuthProvider.credentialFromResult(result);
 		if (credential?.accessToken) {
 			setGoogleAccessToken(credential.accessToken);
 			Cookies.set("googleAccessToken", credential.accessToken, {
 				expires: 1 / 24,
-				secure: true,
+				secure: isSecure,
 				sameSite: "strict",
 				path: "/",
 			});

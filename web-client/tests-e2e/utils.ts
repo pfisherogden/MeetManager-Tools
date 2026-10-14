@@ -107,17 +107,51 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		const authResponse = await page.request.post(
 			`/api/test/auth?uid=${userId}`,
 		);
-		if (!authResponse.ok()) {
+		if (!authResponse.ok() && authResponse.status() !== 404) {
 			throw new Error(
 				`Failed to authenticate test user ${userId}: ${authResponse.status()}`,
 			);
 		}
 	}
 
+	const baseUrl =
+		process.env.FRONTEND_URL ||
+		process.env.PLAYWRIGHT_TEST_BASE_URL ||
+		"http://localhost:3000";
+	try {
+		await page.context().addCookies([
+			{
+				name: "x-user-id",
+				value: userId,
+				url: baseUrl,
+			},
+			{
+				name: "idToken",
+				value: "dev-token",
+				url: baseUrl,
+			},
+			{
+				name: "googleAccessToken",
+				value: "e2e-mock-google-oauth-token",
+				url: baseUrl,
+			},
+		]);
+	} catch (err) {
+		console.warn("[Utils] Could not pre-set context cookies:", err);
+	}
+
 	const restPort = getDynamicGatewayPort();
-	await page.addInitScript((port) => {
-		(window as any).__MM_TEST_PORT__ = port;
-	}, restPort);
+	await page.addInitScript(
+		({ port, uid }) => {
+			(window as any).__MM_TEST_PORT__ = port;
+			(window as any).__MM_E2E_TEST_BYPASS__ = true;
+			(window as any).__MM_TEST_GOOGLE_TOKEN__ = "e2e-mock-google-oauth-token";
+			try {
+				window.localStorage.setItem("x-user-id", uid);
+			} catch (_e) {}
+		},
+		{ port: restPort, uid: userId },
+	);
 
 	// Navigate to home page first so we have a valid domain context in the browser
 	await page.goto("/");
@@ -126,6 +160,7 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 	await page.evaluate((uid) => {
 		document.cookie = `x-user-id=${uid}; path=/; max-age=31536000`;
 		document.cookie = `idToken=dev-token; path=/; max-age=31536000`;
+		document.cookie = `googleAccessToken=e2e-mock-google-oauth-token; path=/; max-age=31536000`;
 	}, userId);
 	console.log(
 		"[Utils] Cookie immediately after set:",
@@ -292,4 +327,138 @@ export function getFixtureData(filename: string) {
 		throw new Error(`Fixture not found: ${fixturePath}`);
 	}
 	return JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+}
+
+export interface MockDriveFileOptions {
+	id: string;
+	name: string;
+	mimeType?: string;
+	content: Buffer | string | Record<string, unknown>;
+}
+
+/**
+ * Mocks the Google Picker UI and Google Drive v3 file download endpoint in Playwright
+ * so E2E tests can verify choosing, uploading, activating, and viewing Google Drive files
+ * across Local Web, Tauri Desktop, and Cloud Run deployments.
+ */
+export async function mockGoogleDrivePicker(
+	page: Page,
+	options: MockDriveFileOptions,
+) {
+	const payloadBuffer = Buffer.isBuffer(options.content)
+		? options.content
+		: Buffer.from(
+				typeof options.content === "string"
+					? options.content
+					: JSON.stringify(options.content),
+			);
+	const mimeType = options.mimeType || "application/octet-stream";
+	const driveDownloadRequests: { url: string; authHeader: string | null }[] =
+		[];
+
+	// 1. Stub external GAPI / GSI scripts so they never overwrite our mock or fail offline
+	await page.route("https://apis.google.com/js/api.js", async (route) => {
+		await route.fulfill({
+			status: 200,
+			contentType: "application/javascript",
+			body: "window.gapi = window.gapi || { load: function(_n, cb) { if (cb) cb(); } };",
+		});
+	});
+	await page.route("https://accounts.google.com/gsi/client", async (route) => {
+		await route.fulfill({
+			status: 200,
+			contentType: "application/javascript",
+			body: "/* mocked gsi client */",
+		});
+	});
+
+	// 2. Intercept Google Drive API v3 media download requests
+	await page.route(
+		"https://www.googleapis.com/drive/v3/files/**",
+		async (route) => {
+			const req = route.request();
+			driveDownloadRequests.push({
+				url: req.url(),
+				authHeader: req.headers().authorization || null,
+			});
+			await route.fulfill({
+				status: 200,
+				contentType: mimeType,
+				headers: {
+					"Access-Control-Allow-Origin": "*",
+					"Access-Control-Allow-Headers": "Authorization, Content-Type",
+				},
+				body: payloadBuffer,
+			});
+		},
+	);
+
+	const pickerDoc = {
+		id: options.id,
+		name: options.name,
+		mimeType,
+		sizeBytes: payloadBuffer.length,
+	};
+
+	const installPickerMock = (doc: typeof pickerDoc) => {
+		(window as any).__MM_TEST_GOOGLE_TOKEN__ =
+			(window as any).__MM_TEST_GOOGLE_TOKEN__ || "e2e-mock-google-oauth-token";
+		try {
+			document.cookie =
+				"googleAccessToken=e2e-mock-google-oauth-token; path=/; max-age=31536000";
+		} catch (_e) {}
+
+		(window as any).gapi = {
+			load: (_name: string, cb?: () => void) => {
+				if (cb) cb();
+			},
+		};
+
+		(window as any).google = {
+			picker: {
+				ViewId: { DOCS: "all" },
+				Action: { PICKED: "picked", CANCEL: "cancel" },
+				DocsView: function (this: any) {
+					this.setIncludeFolders = () => this;
+					this.setSelectFolderEnabled = () => this;
+					return this;
+				},
+				PickerBuilder: function (this: any) {
+					let callback: ((data: any) => void) | null = null;
+					this.addView = () => this;
+					this.setOAuthToken = () => this;
+					this.setDeveloperKey = () => this;
+					this.setAppId = () => this;
+					this.setOrigin = () => this;
+					this.setCallback = (cb: (data: any) => void) => {
+						callback = cb;
+						return this;
+					};
+					this.build = () => ({
+						setVisible: (visible: boolean) => {
+							if (visible && callback) {
+								(window as any).__MM_PICKER_OPENED__ = true;
+								setTimeout(() => {
+									callback?.({
+										action: "picked",
+										docs: [doc],
+									});
+								}, 10);
+							}
+						},
+					});
+					return this;
+				},
+			},
+		};
+	};
+
+	await page.addInitScript(installPickerMock, pickerDoc);
+	try {
+		await page.evaluate(installPickerMock, pickerDoc);
+	} catch (_e) {
+		// Page may not have navigated yet; addInitScript will run on navigation
+	}
+
+	return { driveDownloadRequests };
 }

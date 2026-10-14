@@ -497,10 +497,75 @@ export async function uploadDataset(formData: FormData) {
 	};
 }
 
-export async function uploadDatasetFromDrive(fileId: string, filename: string) {
+export async function uploadDatasetFromDrive(
+	fileId: string,
+	filename: string,
+	accessToken?: string,
+	contentBase64?: string,
+) {
+	let base64 = contentBase64;
+	let token = accessToken;
+
+	if (!token && typeof document !== "undefined") {
+		const match = document.cookie.match(/(?:^|; )googleAccessToken=([^;]*)/);
+		if (match) {
+			token = decodeURIComponent(match[1]);
+		}
+	}
+	if (!token && typeof window !== "undefined") {
+		token = (window as any).__MM_TEST_GOOGLE_TOKEN__;
+	}
+
+	if (!base64 && token) {
+		try {
+			const driveRes = await fetch(
+				`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				},
+			);
+			if (!driveRes.ok) {
+				const errText = await driveRes.text();
+				throw new Error(
+					`Failed to fetch file from Google Drive (${driveRes.status}): ${errText}`,
+				);
+			}
+			const buffer = await driveRes.arrayBuffer();
+			const bytes = new Uint8Array(buffer);
+			let binary = "";
+			const chunkSize = 0x8000;
+			for (let i = 0; i < bytes.length; i += chunkSize) {
+				binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+			}
+			base64 =
+				typeof window !== "undefined"
+					? window.btoa(binary)
+					: Buffer.from(buffer).toString("base64");
+		} catch (err) {
+			console.warn(
+				"Client Drive download failed in actions.client, delegating to REST gateway:",
+				err,
+			);
+		}
+	}
+
+	if (base64) {
+		const response = await callRestGateway("UploadDataset", {
+			filename,
+			content: base64,
+		});
+		return {
+			success: response.success,
+			message: response.message,
+		};
+	}
+
 	const response = await callRestGateway("UploadDatasetFromDrive", {
 		fileId,
 		filename,
+		accessToken: token,
 	});
 	return {
 		success: response.success,
@@ -889,11 +954,30 @@ export async function validateActiveMeet() {
 }
 
 export async function getGoogleConfig() {
+	const fallback = {
+		apiKey:
+			process.env.NEXT_PUBLIC_GOOGLE_API_KEY ||
+			process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+			"",
+		clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
+		appId:
+			process.env.NEXT_PUBLIC_GOOGLE_APP_ID ||
+			process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ||
+			"39869978853",
+	};
 	try {
-		return await callRestGateway("GetGoogleConfig", {});
+		const res = await callRestGateway("GetGoogleConfig", {});
+		if (res && typeof res === "object") {
+			return {
+				apiKey: res.apiKey || fallback.apiKey,
+				clientId: res.clientId || fallback.clientId,
+				appId: res.appId || fallback.appId,
+			};
+		}
 	} catch (_err) {
-		return null;
+		// Ignore REST error and use client env fallback
 	}
+	return fallback;
 }
 
 export async function resolveBundleUrl(bundleUrl: string): Promise<string> {

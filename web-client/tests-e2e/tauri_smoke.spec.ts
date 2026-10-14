@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { chromium, expect } from "@playwright/test";
 import { test } from "./tauri.fixture";
+import { mockGoogleDrivePicker } from "./utils";
 
 test.skip(
 	process.platform !== "win32",
@@ -102,6 +103,42 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	// 3. Navigation to Admin (Dataset Manager)
 	await page.click("text=Admin");
 	await expect(page.locator("text=Dataset Management")).toBeVisible({
+		timeout: 15000,
+	});
+
+	// 3b. Import a dataset from Google Drive in Tauri Desktop
+	await mockGoogleDrivePicker(page, {
+		id: "tauri-drive-file-101",
+		name: "TauriDriveMeet.json",
+		mimeType: "application/json",
+		content: {
+			meet: [
+				{
+					meet_name1: "Tauri Google Drive Meet",
+					meet_location: "Desktop Pool",
+					meet_start: "2025-07-20",
+					meet_end: "2025-07-20",
+				},
+			],
+			team: [{ team_no: 1, team_abbr: "TDRV", team_name: "Tauri Drive Team" }],
+			athlete: [],
+			event: [],
+			session: [],
+			sessitem: [],
+			entry: [],
+		},
+	});
+	const importDriveBtn = page.getByRole("button", {
+		name: /Import from Drive/i,
+	});
+	await expect(importDriveBtn).toBeVisible({ timeout: 15000 });
+	await importDriveBtn.click();
+	await expect(
+		page.locator("text=Successfully imported TauriDriveMeet.json from Drive"),
+	).toBeVisible({
+		timeout: 30000,
+	});
+	await expect(page.locator("text=TauriDriveMeet.json")).toBeVisible({
 		timeout: 15000,
 	});
 
