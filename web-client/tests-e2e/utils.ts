@@ -99,8 +99,65 @@ export async function waitForJudgeApp(page: Page) {
  */
 export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 	const { userId } = getE2ETestContext(testInfo, page);
-
 	const isStatic = process.env.TEST_STATIC === "true";
+	const customToken = process.env.FIREBASE_CUSTOM_TOKEN;
+	const restPort = getDynamicGatewayPort();
+	const baseUrl =
+		process.env.FRONTEND_URL ||
+		process.env.PLAYWRIGHT_TEST_BASE_URL ||
+		"http://localhost:3000";
+
+	page.on("console", (msg) => {
+		console.log(`[Browser Console] [${msg.type()}] ${msg.text()}`);
+	});
+
+	page.on("requestfailed", (request) => {
+		console.log(
+			`[Browser Network Error] ${request.method()} ${request.url()} failed with: ${request.failure()?.errorText}`,
+		);
+	});
+
+	if (customToken) {
+		try {
+			await page.context().addCookies([
+				{
+					name: "googleAccessToken",
+					value: "e2e-mock-google-oauth-token",
+					url: baseUrl,
+				},
+			]);
+		} catch (err) {
+			console.warn("[Utils] Could not pre-set context cookies:", err);
+		}
+
+		await page.addInitScript(
+			({ port, token }) => {
+				(window as any).__MM_TEST_PORT__ = port;
+				(window as any).__MM_FIREBASE_CUSTOM_TOKEN__ = token;
+				(window as any).__MM_TEST_GOOGLE_TOKEN__ =
+					"e2e-mock-google-oauth-token";
+			},
+			{ port: restPort, token: customToken },
+		);
+
+		await page.goto("/login");
+		await page.waitForFunction(
+			() =>
+				document.cookie
+					.split(";")
+					.some(
+						(c) =>
+							c.trim().startsWith("idToken=") &&
+							!c.trim().endsWith("dev-token"),
+					),
+			{ timeout: 30000 },
+		);
+		await page.evaluate(() => {
+			document.cookie =
+				"googleAccessToken=e2e-mock-google-oauth-token; path=/; max-age=31536000";
+		});
+		return { userId };
+	}
 
 	if (!isStatic) {
 		// 1. Hit the dedicated mock login endpoint to synthesize session cookies on the server
@@ -114,10 +171,6 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		}
 	}
 
-	const baseUrl =
-		process.env.FRONTEND_URL ||
-		process.env.PLAYWRIGHT_TEST_BASE_URL ||
-		"http://localhost:3000";
 	try {
 		await page.context().addCookies([
 			{
@@ -140,7 +193,6 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		console.warn("[Utils] Could not pre-set context cookies:", err);
 	}
 
-	const restPort = getDynamicGatewayPort();
 	await page.addInitScript(
 		({ port, uid }) => {
 			(window as any).__MM_TEST_PORT__ = port;
@@ -166,16 +218,6 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		"[Utils] Cookie immediately after set:",
 		await page.evaluate(() => document.cookie),
 	);
-
-	page.on("console", (msg) => {
-		console.log(`[Browser Console] [${msg.type()}] ${msg.text()}`);
-	});
-
-	page.on("requestfailed", (request) => {
-		console.log(
-			`[Browser Network Error] ${request.method()} ${request.url()} failed with: ${request.failure()?.errorText}`,
-		);
-	});
 
 	return { userId };
 }

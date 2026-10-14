@@ -4,6 +4,7 @@ import {
 	GoogleAuthProvider,
 	getIdToken,
 	onAuthStateChanged,
+	signInWithCustomToken,
 	signInWithPopup,
 	signOut,
 	type User,
@@ -129,7 +130,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			return;
 		}
 
+		const customToken =
+			typeof window !== "undefined"
+				? (window as any).__MM_FIREBASE_CUSTOM_TOKEN__
+				: undefined;
+		let customTokenInFlight = Boolean(customToken);
+
+		if (customToken && typeof signInWithCustomToken === "function") {
+			signInWithCustomToken(auth, customToken)
+				.catch((err) => {
+					console.error("[AuthProvider] Custom token sign-in failed:", err);
+				})
+				.finally(() => {
+					customTokenInFlight = false;
+				});
+		} else {
+			customTokenInFlight = false;
+		}
+
 		const unsubscribe = onAuthStateChanged(auth, async (user) => {
+			if (!user && customTokenInFlight) {
+				return;
+			}
 			setUser(user);
 			if (user) {
 				const idToken = await getIdToken(user);
