@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -11,6 +12,7 @@ import pytest
 
 from mm_to_json.cloud_run_verifier import (
     FIREBASE_CUSTOM_TOKEN_AUDIENCE,
+    fetch_cloud_run_logs,
     file_or_update_production_issue,
     format_anomaly_markdown,
     main,
@@ -226,3 +228,40 @@ def test_cli_audit_logs_with_json_file(tmp_path: Path) -> None:
     )
     assert "Memory limit exceeded" in report_text
     assert "`failed`" in report_text
+
+
+def test_fetch_cloud_run_logs_handles_subprocess_error() -> None:
+    """Verify fetch_cloud_run_logs returns an empty list if gcloud logging read fails."""
+    with patch(
+        "mm_to_json.cloud_run_verifier.subprocess.run",
+        side_effect=subprocess.CalledProcessError(1, ["gcloud"], stderr="PERMISSION_DENIED"),
+    ):
+        entries = fetch_cloud_run_logs(
+            project_id="mmtools-488404",
+            region="us-west1",
+            services=["mmtools-backend", "mmtools-frontend"],
+        )
+        assert entries == []
+
+
+def test_file_or_update_production_issue_handles_create_error() -> None:
+    """Verify file_or_update_production_issue returns None if gh issue create fails."""
+
+    def fake_run(cmd: list[str], **_kwargs: Any) -> MagicMock:
+        res = MagicMock()
+        res.returncode = 0
+        if cmd[:3] == ["gh", "issue", "list"]:
+            res.stdout = "[]"
+        elif cmd[:3] == ["gh", "issue", "create"]:
+            raise subprocess.CalledProcessError(1, cmd, stderr="HTTP 403")
+        else:
+            res.stdout = ""
+        return res
+
+    with patch("mm_to_json.cloud_run_verifier.subprocess.run", side_effect=fake_run):
+        url = file_or_update_production_issue(
+            repo="owner/repo",
+            title="[Production Alert] Cloud Run Post-Deployment Verification Failed",
+            body="Report body",
+        )
+    assert url is None

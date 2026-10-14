@@ -240,11 +240,23 @@ def fetch_cloud_run_logs(
         f"--limit={limit}",
         "--format=json",
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        err_detail = getattr(exc, "stderr", "") or str(exc)
+        print(
+            f"Warning: gcloud logging read failed (continuing with empty log entries): {err_detail.strip()}",
+            file=sys.stderr,
+        )
+        return []
+
     raw = res.stdout.strip()
     if not raw:
         return []
-    parsed = json.loads(raw)
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
     return parsed if isinstance(parsed, list) else []
 
 
@@ -380,27 +392,35 @@ def file_or_update_production_issue(
         except (json.JSONDecodeError, KeyError, subprocess.CalledProcessError):
             pass
 
-    create_res = subprocess.run(
-        [
-            "gh",
-            "issue",
-            "create",
-            "--repo",
-            repo,
-            "--title",
-            title,
-            "--body",
-            body,
-            "--label",
-            "bug",
-            "--label",
-            "production",
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return create_res.stdout.strip()
+    try:
+        create_res = subprocess.run(
+            [
+                "gh",
+                "issue",
+                "create",
+                "--repo",
+                repo,
+                "--title",
+                title,
+                "--body",
+                body,
+                "--label",
+                "bug",
+                "--label",
+                "production",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return create_res.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        err_detail = getattr(exc, "stderr", "") or str(exc)
+        print(
+            f"Warning: failed to create GitHub issue via gh CLI: {err_detail.strip()}",
+            file=sys.stderr,
+        )
+        return None
 
 
 def main(argv: list[str] | None = None) -> int:
