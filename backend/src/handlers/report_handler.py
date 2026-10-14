@@ -8,7 +8,6 @@ import multiprocessing
 import os
 import sys
 import tempfile
-import threading
 import zipfile
 from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -627,16 +626,29 @@ def _run_bundle_generation_job(
             bundle_url=bundle_url,
             google_sheet_urls=gs_urls,
         )
+        return {
+            "success": True,
+            "message": "Complete",
+            "filename": bundle_name,
+            "bundle_url": bundle_url,
+            "job_id": job_id,
+            "google_sheet_urls": gs_urls,
+        }
 
     except Exception as e:
-        logging.error(f"Background job {job_id} failed: {e}")
+        logging.error(f"Bundle generation job {job_id} failed: {e}")
         servicer.job_manager.update_job(job_id, status=pb2.JOB_STATUS_FAILED, message=str(e))
+        return {
+            "success": False,
+            "message": str(e),
+            "job_id": job_id,
+        }
 
 
 def generate_report_bundle(
     request: Any, context: grpc.ServicerContext, servicer: ReportServicerContext, pb2: Any
 ) -> Any:
-    """Asynchronously generates a report bundle."""
+    """Synchronously generates a report bundle within the active request connection."""
     logging.info("GenerateReportBundle RPC called")
     try:
         uid = servicer._check_auth(context)
@@ -657,13 +669,15 @@ def generate_report_bundle(
         return pb2.GenerateReportBundleResponse(success=False, message="Missing request")
 
     job_id = servicer.job_manager.create_job()
-    logging.info(f"Created background job {job_id}")
+    logging.info(f"Created report bundle job {job_id} (executing synchronously)")
 
-    thread = threading.Thread(target=_run_bundle_generation_job, args=(job_id, request, uid, cache, servicer, pb2))
-    thread.start()
+    result = _run_bundle_generation_job(job_id, request, uid, cache, servicer, pb2)
 
     return pb2.GenerateReportBundleResponse(
-        success=True,
-        message="Bundle generation started",
+        success=result.get("success", False),
+        message=result.get("message", ""),
+        filename=result.get("filename", ""),
+        bundle_url=result.get("bundle_url", ""),
         job_id=job_id,
+        google_sheet_urls=result.get("google_sheet_urls", []),
     )

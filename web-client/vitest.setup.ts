@@ -35,8 +35,15 @@ const mockActions = {
 	deleteDq: vi.fn(() => Promise.resolve({ success: true })),
 	clearAllDqs: vi.fn(() => Promise.resolve({ success: true })),
 	generateReportBundle: vi.fn(() =>
-		Promise.resolve({ success: true, jobId: "123" }),
+		Promise.resolve({
+			success: true,
+			jobId: "123",
+			bundleUrl: "/api/data?path=bundles/test.zip",
+			filename: "test.zip",
+			googleSheetUrls: [],
+		}),
 	),
+	resolveBundleUrl: vi.fn((url: string) => Promise.resolve(url)),
 	getJobStatus: vi.fn(() =>
 		Promise.resolve({ status: "COMPLETED", progress: 100 }),
 	),

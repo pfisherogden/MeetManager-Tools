@@ -35,28 +35,12 @@ test.describe("Reports Generation Journey", () => {
 		// Click the Generate ZIP button (located in the builder card)
 		const builderCard = page.getByTestId("report-builder-card");
 		const generateBtn = builderCard.getByTestId("generate-bundle-button");
+
+		// Pre-emptively register the download listener before triggering synchronous bundle generation (Rule 14)
+		const downloadPromise = page.waitForEvent("download", { timeout: 360000 });
 		await robustClick(generateBtn);
 
-		// Assert the bundling state
-		await expect(builderCard).toHaveAttribute(
-			"data-report-status",
-			"bundling",
-			{
-				timeout: 30000,
-			},
-		);
-
-		// Wait for progress to start moving
-		await expect(async () => {
-			const progressStr = await builderCard.getAttribute("data-job-progress");
-			const progress = Number.parseFloat(progressStr || "0");
-			expect(progress).toBeGreaterThanOrEqual(0);
-		}).toPass({ timeout: 20000 });
-
-		// Wait for completion and download
-		const downloadPromise = page.waitForEvent("download", { timeout: 360000 });
-
-		// We first wait for the status to return to 'idle' with a very long timeout
+		// Wait for the status to return to 'idle' with a long timeout
 		await expect(builderCard).toHaveAttribute("data-report-status", "idle", {
 			timeout: 360000, // 6 minutes for very large bundles
 		});

@@ -580,6 +580,9 @@ export async function generateReportBundle(
 		message: response.message,
 		jobId: response.jobId || response.job_id,
 		filename: response.filename,
+		bundleUrl: response.bundleUrl || response.bundle_url,
+		googleSheetUrls:
+			response.googleSheetUrls || response.google_sheet_urls || [],
 	};
 }
 

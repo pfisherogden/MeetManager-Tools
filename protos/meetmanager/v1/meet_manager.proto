@@ -691,6 +691,8 @@ message GenerateReportBundleResponse {
   string bundle_url = 5;
   // job_id is the unique identifier for tracking asynchronous generation.
   string job_id = 6;
+  // google_sheet_urls is a list of URLs for any generated Google Sheets in this bundle.
+  repeated string google_sheet_urls = 7;
 }
 
 // ValidateMeetRequest specifies options for validation.
