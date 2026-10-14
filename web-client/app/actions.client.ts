@@ -1000,3 +1000,38 @@ export async function resolveBundleUrl(bundleUrl: string): Promise<string> {
 	} catch (_e) {}
 	return bundleUrl;
 }
+
+export async function uploadResultChunk(
+	filename: string,
+	content: string | Uint8Array,
+) {
+	try {
+		let base64Content: string;
+		if (typeof content === "string") {
+			base64Content =
+				typeof Buffer !== "undefined"
+					? Buffer.from(content, "utf-8").toString("base64")
+					: btoa(unescape(encodeURIComponent(content)));
+		} else {
+			base64Content =
+				typeof Buffer !== "undefined"
+					? Buffer.from(content).toString("base64")
+					: btoa(String.fromCharCode(...content));
+		}
+		const response = await callRestGateway("UploadResultChunk", {
+			filename,
+			content: base64Content,
+		});
+		return {
+			success: Boolean(response.success),
+			message: response.message || "",
+			updatedCount: response.updated_count ?? response.updatedCount ?? 0,
+		};
+	} catch (err: any) {
+		return {
+			success: false,
+			message: err.message || "Failed to upload timing result chunk.",
+			updatedCount: 0,
+		};
+	}
+}

@@ -736,3 +736,45 @@ export async function getGoogleConfig() {
 export async function resolveBundleUrl(bundleUrl: string): Promise<string> {
 	return bundleUrl;
 }
+
+export async function uploadResultChunk(
+	filename: string,
+	content: string | Uint8Array,
+) {
+	try {
+		const metadata = await getAuthMetadata();
+		const bytes =
+			typeof content === "string"
+				? Buffer.from(content, "utf-8")
+				: Buffer.from(content);
+		const response = await client.uploadResultChunk(
+			{
+				filename,
+				content: bytes,
+				uid: "",
+				accessToken: "",
+			},
+			{ metadata },
+		);
+		if (response.success) {
+			revalidatePath("/");
+			revalidatePath("/events");
+			revalidatePath("/entries");
+			revalidatePath("/relays");
+			revalidatePath("/scores");
+		}
+		return {
+			success: response.success,
+			message: response.message,
+			updatedCount:
+				response.updatedCount ?? (response as any).updated_count ?? 0,
+		};
+	} catch (err: any) {
+		console.error("SERVER ACTION ERROR (uploadResultChunk):", err);
+		return {
+			success: false,
+			message: err.message || "Failed to upload timing result chunk.",
+			updatedCount: 0,
+		};
+	}
+}
