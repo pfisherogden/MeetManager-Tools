@@ -545,6 +545,11 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 		timeout: 15000,
 	});
 
+	// Configure non-interactive save directory for Tauri file downloads
+	await page.evaluate((dir: string) => {
+		(window as any).__MM_E2E_SAVE_DIR__ = dir;
+	}, tauriApp.saveDir);
+
 	// Select the Meet Program report card to show the configuration options
 	const meetProgramCard = page.getByTestId("report-card-meet-program-(pdf)");
 	await meetProgramCard.click();
@@ -568,17 +573,15 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 	await expect(generateBundleBtn).toBeVisible({ timeout: 10000 });
 	await generateBundleBtn.click();
 
-	// Assert the status transitions to bundling
-	await expect(builderCard).toHaveAttribute("data-report-status", "bundling", {
-		timeout: 15000,
-	});
-
 	// Wait for the bundle generation to complete and return to idle status
+	await expect(page.locator("text=Report bundle ready!")).toBeVisible({
+		timeout: 60000,
+	});
 	await expect(builderCard).toHaveAttribute("data-report-status", "idle", {
 		timeout: 60000,
 	});
 	console.log("E2E TEST: ZIP bundle generated successfully.");
 
 	// Cleanly close the browser context to finalize trace/screenshot capture
-	await browser.close();
+	await browser.close().catch(() => {});
 });

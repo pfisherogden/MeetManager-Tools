@@ -19,25 +19,37 @@ async function getFreePort(): Promise<number> {
 
 async function terminateProcess(proc: ChildProcess): Promise<void> {
 	if (proc.exitCode !== null || proc.signalCode !== null) {
+		proc.stdout?.destroy();
+		proc.stderr?.destroy();
 		return;
 	}
 	await new Promise<void>((resolve) => {
-		const timer = setTimeout(() => {
+		let settled = false;
+		const finish = () => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(killTimer);
+			clearTimeout(hardTimer);
+			proc.stdout?.destroy();
+			proc.stderr?.destroy();
+			resolve();
+		};
+		const killTimer = setTimeout(() => {
 			try {
 				proc.kill("SIGKILL");
 			} catch (_e) {
 				// Ignore kill errors
 			}
+		}, 1500);
+		const hardTimer = setTimeout(() => {
+			finish();
 		}, 3000);
-		proc.once("close", () => {
-			clearTimeout(timer);
-			resolve();
-		});
+		proc.once("exit", finish);
+		proc.once("close", finish);
 		try {
-			proc.kill("SIGTERM");
+			proc.kill();
 		} catch (_e) {
-			clearTimeout(timer);
-			resolve();
+			finish();
 		}
 	});
 }
