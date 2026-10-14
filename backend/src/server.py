@@ -454,6 +454,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     converter = MmToJsonConverter(table_data=raw_data)
                     cache = converter.export_raw()
 
+                from handlers.live_result_handler import apply_stored_live_results
+
+                apply_stored_live_results(uid, cache, self)
+
                 # Update cache
                 try:
                     mtime = self.storage.get_last_modified(user_path)
@@ -1007,9 +1011,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     continue
 
                 filename = os.path.basename(rel_path)
-                # Only allow MDB files or specific data JSONs (not config.json)
+                # Only allow MDB files or specific data JSONs (not config.json or synced metadata)
                 if filename.lower().endswith(".mdb") or (
-                    filename.lower().endswith(".json") and filename != "config.json"
+                    filename.lower().endswith(".json")
+                    and filename not in ("config.json", "synced_dqs.json", "synced_live_results.json")
                 ):
                     # We don't easily get mod time from all storage providers without extra calls
                     # For local, it's easy. For GCS, we need blob.updated.
@@ -1696,6 +1701,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
         from handlers.dq_handler import sync_dqs
 
         return sync_dqs(request, context, self, pb2)
+
+    def UploadResultChunk(self, request, context):
+        from handlers.live_result_handler import upload_result_chunk
+
+        return upload_result_chunk(request, context, self, pb2)
 
     def GetFile(self, request, context):
         # Allow unauthenticated access specifically for sample-user paths (public sample data)

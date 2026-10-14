@@ -79,6 +79,8 @@ service MeetManagerService {
   rpc GetFile(GetFileRequest) returns (GetFileResponse);
   // ValidateMeet runs validation checks on the active dataset.
   rpc ValidateMeet(ValidateMeetRequest) returns (ValidateMeetResponse);
+  // UploadResultChunk receives incremental live timing system results.
+  rpc UploadResultChunk(UploadResultChunkRequest) returns (UploadResultChunkResponse);
 }
 
 // GetJobStatusRequest specifies the ID of the job to track.
@@ -733,3 +735,26 @@ message ValidateMeetResponse {
   // findings is the list of validation issues discovered.
   repeated ValidationFinding findings = 3;
 }
+
+// UploadResultChunkRequest contains incremental timing system results.
+message UploadResultChunkRequest {
+  // filename is the name of the timing result file or chunk.
+  string filename = 1;
+  // content is the raw bytes of the timing result payload (JSON, CSV, or CTS/Dolphin format).
+  bytes content = 2;
+  // uid is the optional user ID whose dataset should be updated during stateless sync.
+  string uid = 3;
+  // access_token is the shared secret for system-level timing watcher sync.
+  string access_token = 4;
+}
+
+// UploadResultChunkResponse returns the status of the incremental result upload.
+message UploadResultChunkResponse {
+  // success indicates if the result chunk was ingested and applied successfully.
+  bool success = 1;
+  // message provides additional status or error details.
+  string message = 2;
+  // updated_count is the number of entries or relays updated by the chunk.
+  int32 updated_count = 3;
+}
+

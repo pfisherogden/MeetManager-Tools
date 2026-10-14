@@ -7,26 +7,50 @@ import type { GetDashboardStatsResponse } from "@/lib/proto/meetmanager/v1/meet_
 
 interface DashboardProps {
 	stats: GetDashboardStatsResponse;
+	pollIntervalMs?: number;
 }
 
 import { useConfig } from "@/components/config-provider";
 import { MeetValidation } from "@/components/meet-validation";
 
-export function Dashboard({ stats: backendStats }: DashboardProps) {
+export function Dashboard({
+	stats: backendStats,
+	pollIntervalMs = 10000,
+}: DashboardProps) {
 	const { meetName } = useConfig();
 	const [stats, setStats] = useState<GetDashboardStatsResponse>(backendStats);
 
 	useEffect(() => {
-		if (typeof window !== "undefined") {
-			import("@/app/actions").then(({ getDashboardStats }) => {
-				getDashboardStats().then((res) => {
-					if (res) {
-						setStats(res);
-					}
-				});
-			});
+		if (typeof window === "undefined") {
+			return;
 		}
-	}, []);
+		let isMounted = true;
+		const refreshStats = () => {
+			import("@/app/actions").then(({ getDashboardStats }) => {
+				getDashboardStats()
+					.then((res) => {
+						if (isMounted && res) {
+							setStats(res);
+						}
+					})
+					.catch(() => {});
+			});
+		};
+
+		refreshStats();
+
+		if (pollIntervalMs <= 0) {
+			return () => {
+				isMounted = false;
+			};
+		}
+
+		const intervalId = window.setInterval(refreshStats, pollIntervalMs);
+		return () => {
+			isMounted = false;
+			window.clearInterval(intervalId);
+		};
+	}, [pollIntervalMs]);
 
 	// Use backend stats
 	const statItems = [

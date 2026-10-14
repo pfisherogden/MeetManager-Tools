@@ -37,4 +37,17 @@ describe("Dashboard", () => {
 		render(<Dashboard stats={mockStats} />);
 		expect(screen.getByText("Test Championship")).toBeDefined();
 	});
+
+	it("supports configurable live polling interval", () => {
+		const setIntervalSpy = vi.spyOn(window, "setInterval");
+		const clearIntervalSpy = vi.spyOn(window, "clearInterval");
+		const { unmount } = render(
+			<Dashboard stats={mockStats} pollIntervalMs={5000} />,
+		);
+		expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 5000);
+		unmount();
+		expect(clearIntervalSpy).toHaveBeenCalled();
+		setIntervalSpy.mockRestore();
+		clearIntervalSpy.mockRestore();
+	});
 });
