@@ -93,24 +93,74 @@ export function DatasetManager() {
 	const onDriveFileSelect = useCallback(
 		async (file: GoogleDriveFile) => {
 			const ext = file.name.split(".").pop()?.toLowerCase();
-			if (ext !== "mdb" && ext !== "json") {
-				toast.error("Invalid file type. Please select an .mdb or .json file.");
+			if (ext !== "mdb" && ext !== "json" && ext !== "zip") {
+				toast.error(
+					"Invalid file type. Please select an .mdb, .json, or .zip file.",
+				);
 				return;
 			}
 
 			setIsUploading(true);
 			try {
-				await uploadDatasetFromDrive(file.id, file.name);
+				const token = file.accessToken || googleAccessToken || undefined;
+				let contentBase64 = file.contentBase64;
+
+				if (
+					!contentBase64 &&
+					token &&
+					typeof window !== "undefined" &&
+					!window.navigator?.userAgent?.includes("jsdom")
+				) {
+					try {
+						const driveRes = await fetch(
+							`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?alt=media&supportsAllDrives=true`,
+							{
+								headers: {
+									Authorization: `Bearer ${token}`,
+								},
+							},
+						);
+						if (driveRes.ok) {
+							const buffer = await driveRes.arrayBuffer();
+							const bytes = new Uint8Array(buffer);
+							let binary = "";
+							const chunkSize = 0x8000;
+							for (let i = 0; i < bytes.length; i += chunkSize) {
+								binary += String.fromCharCode(
+									...bytes.subarray(i, i + chunkSize),
+								);
+							}
+							contentBase64 = window.btoa(binary);
+						}
+					} catch (fetchErr) {
+						console.warn(
+							"Client-side Drive download failed, falling back to server-side download:",
+							fetchErr,
+						);
+					}
+				}
+
+				const res = await uploadDatasetFromDrive(
+					file.id,
+					file.name,
+					token,
+					contentBase64,
+				);
+				if (res && res.success === false) {
+					toast.error(res.message || "Drive import failed");
+					return;
+				}
 				toast.success(`Successfully imported ${file.name} from Drive`);
 				router.refresh();
 				await fetchDatasets();
-			} catch (_error) {
-				toast.error("Drive import failed");
+			} catch (error: any) {
+				console.error("Drive import error:", error);
+				toast.error(error?.message || "Drive import failed");
 			} finally {
 				setIsUploading(false);
 			}
 		},
-		[fetchDatasets, router.refresh],
+		[fetchDatasets, router, googleAccessToken],
 	);
 
 	const { openPicker, isLoaded: isDriveLoaded } = useGooglePicker({

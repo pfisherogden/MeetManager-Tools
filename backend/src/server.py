@@ -454,6 +454,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     converter = MmToJsonConverter(table_data=raw_data)
                     cache = converter.export_raw()
 
+                from handlers.live_result_handler import apply_stored_live_results
+
+                apply_stored_live_results(uid, cache, self)
+
                 # Update cache
                 try:
                     mtime = self.storage.get_last_modified(user_path)
@@ -1007,9 +1011,10 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     continue
 
                 filename = os.path.basename(rel_path)
-                # Only allow MDB files or specific data JSONs (not config.json)
+                # Only allow MDB files or specific data JSONs (not config.json or synced metadata)
                 if filename.lower().endswith(".mdb") or (
-                    filename.lower().endswith(".json") and filename != "config.json"
+                    filename.lower().endswith(".json")
+                    and filename not in ("config.json", "synced_dqs.json", "synced_live_results.json")
                 ):
                     # We don't easily get mod time from all storage providers without extra calls
                     # For local, it's easy. For GCS, we need blob.updated.
@@ -1697,6 +1702,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         return sync_dqs(request, context, self, pb2)
 
+    def UploadResultChunk(self, request, context):
+        from handlers.live_result_handler import upload_result_chunk
+
+        return upload_result_chunk(request, context, self, pb2)
+
     def GetFile(self, request, context):
         # Allow unauthenticated access specifically for sample-user paths (public sample data)
         is_sample = request.path.startswith("users/sample-user/")
@@ -1842,6 +1852,70 @@ def write_active_ports(grpc_port: int, rest_port: int):
         logging.info(f"Wrote active ports to local registry: {file_path}")
     except Exception as e:
         logging.warning(f"Failed to write active ports to registry: {e}")
+
+
+def get_google_picker_config() -> dict[str, str]:
+    """Resolves Google Picker API configuration from environment variables.
+
+    Returns:
+        dict[str, str]: Dictionary containing apiKey, clientId, and appId.
+    """
+    return {
+        "apiKey": os.getenv("GOOGLE_API_KEY")
+        or os.getenv("NEXT_PUBLIC_GOOGLE_API_KEY")
+        or os.getenv("NEXT_PUBLIC_FIREBASE_API_KEY")
+        or "",
+        "clientId": os.getenv("GOOGLE_CLIENT_ID") or os.getenv("NEXT_PUBLIC_GOOGLE_CLIENT_ID") or "",
+        "appId": os.getenv("GOOGLE_APP_ID")
+        or os.getenv("NEXT_PUBLIC_GOOGLE_APP_ID")
+        or os.getenv("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID")
+        or "39869978853",
+    }
+
+
+def resolve_drive_upload_bytes(
+    file_id: str = "",
+    access_token: str = "",
+    content_str: str = "",
+) -> bytes:
+    """Resolves raw dataset bytes for a Google Drive import request.
+
+    Either decodes pre-fetched base64 content or downloads the file directly
+    from the Google Drive v3 API using the provided OAuth2 access token.
+
+    Args:
+        file_id: The Google Drive file identifier.
+        access_token: The user's OAuth2 access token with Drive read scope.
+        content_str: Optional base64-encoded file content (with or without data URI prefix).
+
+    Returns:
+        bytes: The decoded or downloaded file bytes.
+
+    Raises:
+        ValueError: If neither content_str nor valid (file_id, access_token) are provided.
+    """
+    import base64
+    import urllib.parse
+    import urllib.request
+
+    if content_str:
+        if "," in content_str:
+            content_str = content_str.split(",", 1)[1]
+        return base64.b64decode(content_str)
+
+    if not access_token:
+        raise ValueError("Google access token is required to download from Google Drive")
+    if not file_id:
+        raise ValueError("Google Drive fileId is required")
+
+    drive_base_url = (os.getenv("GOOGLE_DRIVE_API_URL") or "https://www.googleapis.com/drive/v3/files").rstrip("/")
+    drive_url = f"{drive_base_url}/{urllib.parse.quote(file_id, safe='')}?alt=media&supportsAllDrives=true"
+    req_drive = urllib.request.Request(
+        drive_url,
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    with urllib.request.urlopen(req_drive, timeout=60) as resp_stream:
+        return bytes(resp_stream.read())
 
 
 def serve_health_check():
@@ -2117,6 +2191,45 @@ def serve_health_check():
                                 del servicer._user_cache[uid]
                             resp_json = json.dumps({"success": True, "message": "DQs cleared"})
 
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self._send_cors_headers()
+                        self.send_header("Access-Control-Allow-Headers", "*")
+                        self.end_headers()
+                        self.wfile.write(resp_json.encode("utf-8"))
+                        return
+                    elif method_name == "GetGoogleConfig":
+                        resp_json = json.dumps(get_google_picker_config())
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self._send_cors_headers()
+                        self.send_header("Access-Control-Allow-Headers", "*")
+                        self.end_headers()
+                        self.wfile.write(resp_json.encode("utf-8"))
+                        return
+                    elif method_name == "UploadDatasetFromDrive":
+                        data = json.loads(body) if body else {}
+                        filename = data.get("filename") or "uploaded.mdb"
+                        file_id = data.get("fileId") or data.get("file_id") or ""
+                        access_token = data.get("accessToken") or data.get("access_token") or ""
+                        content_str = data.get("content") or ""
+                        context = MockContext(self.headers)
+
+                        content = resolve_drive_upload_bytes(
+                            file_id=file_id,
+                            access_token=access_token,
+                            content_str=content_str,
+                        )
+
+                        def drive_request_generator():
+                            yield pb2.UploadDatasetRequest(filename=filename)
+                            yield pb2.UploadDatasetRequest(chunk=content)
+
+                        resp = servicer.UploadDataset(drive_request_generator(), context)
+                        resp_dict = json_format.MessageToDict(
+                            resp, preserving_proto_field_name=True, use_integers_for_enums=True
+                        )
+                        resp_json = json.dumps(resp_dict)
                         self.send_response(200)
                         self.send_header("Content-Type", "application/json")
                         self._send_cors_headers()

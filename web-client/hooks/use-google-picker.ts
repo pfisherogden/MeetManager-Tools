@@ -1,5 +1,6 @@
 "use client";
 
+import Cookies from "js-cookie";
 import { useCallback, useEffect, useState } from "react";
 import { getGoogleConfig } from "@/app/actions";
 
@@ -15,11 +16,13 @@ export interface GoogleDriveFile {
 	name: string;
 	mimeType: string;
 	sizeBytes: number;
+	accessToken?: string;
+	contentBase64?: string;
 }
 
 interface UseGooglePickerProps {
 	onFileSelect: (file: GoogleDriveFile) => void;
-	accessToken: string | null;
+	accessToken?: string | null;
 }
 
 export function useGooglePicker({
@@ -27,15 +30,30 @@ export function useGooglePicker({
 	accessToken,
 }: UseGooglePickerProps) {
 	const [isLoaded, setIsLoaded] = useState(false);
-	const [apiKey, setApiKey] = useState<string | null>(null);
-	const [appId, setAppId] = useState<string | null>(null);
+	const [apiKey, setApiKey] = useState<string | null>(() => {
+		const envKey =
+			process.env.NEXT_PUBLIC_GOOGLE_API_KEY ||
+			process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+		return envKey && envKey !== "PLACEHOLDER" ? envKey : null;
+	});
+	const [appId, setAppId] = useState<string | null>(
+		process.env.NEXT_PUBLIC_GOOGLE_APP_ID ||
+			process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ||
+			"39869978853",
+	);
 
 	useEffect(() => {
 		async function fetchConfig() {
 			try {
 				const config = await getGoogleConfig();
-				setApiKey(config.apiKey);
-				setAppId(config.appId);
+				if (config) {
+					if (config.apiKey && config.apiKey !== "PLACEHOLDER") {
+						setApiKey(config.apiKey);
+					}
+					if (config.appId) {
+						setAppId(config.appId);
+					}
+				}
 			} catch (err) {
 				console.error("Failed to load Google Picker config:", err);
 			}
@@ -44,32 +62,74 @@ export function useGooglePicker({
 	}, []);
 
 	useEffect(() => {
-		// Load GAPI
-		const script = document.createElement("script");
-		script.src = "https://apis.google.com/js/api.js";
-		script.onload = () => {
-			window.gapi.load("picker", () => setIsLoaded(true));
-		};
-		document.body.appendChild(script);
+		if (typeof window === "undefined") return;
 
-		// Load GSI (for newer auth if needed, though we use Firebase token)
-		const gsiScript = document.createElement("script");
-		gsiScript.src = "https://accounts.google.com/gsi/client";
-		document.body.appendChild(gsiScript);
+		if (window.google?.picker) {
+			setIsLoaded(true);
+			return;
+		}
+
+		if (window.gapi?.load) {
+			window.gapi.load("picker", () => setIsLoaded(true));
+			return;
+		}
+
+		const existingScript = document.querySelector<HTMLScriptElement>(
+			'script[src="https://apis.google.com/js/api.js"]',
+		);
+		const handleLoad = () => {
+			if (window.google?.picker) {
+				setIsLoaded(true);
+				return;
+			}
+			if (window.gapi?.load) {
+				window.gapi.load("picker", () => setIsLoaded(true));
+			}
+		};
+
+		if (existingScript) {
+			existingScript.addEventListener("load", handleLoad);
+		} else {
+			const script = document.createElement("script");
+			script.src = "https://apis.google.com/js/api.js";
+			script.async = true;
+			script.onload = handleLoad;
+			document.body.appendChild(script);
+		}
+
+		const existingGsi = document.querySelector<HTMLScriptElement>(
+			'script[src="https://accounts.google.com/gsi/client"]',
+		);
+		if (!existingGsi) {
+			const gsiScript = document.createElement("script");
+			gsiScript.src = "https://accounts.google.com/gsi/client";
+			gsiScript.async = true;
+			document.body.appendChild(gsiScript);
+		}
 
 		return () => {
-			document.body.removeChild(script);
-			document.body.removeChild(gsiScript);
+			if (existingScript) {
+				existingScript.removeEventListener("load", handleLoad);
+			}
 		};
 	}, []);
 
 	const openPicker = useCallback(async () => {
-		if (!isLoaded || !apiKey) {
-			console.error("Picker not loaded or API key missing");
+		if (
+			!isLoaded &&
+			!(typeof window !== "undefined" && window.google?.picker)
+		) {
+			console.error("Google Picker script not loaded");
 			return;
 		}
 
-		let currentToken = accessToken;
+		let currentToken =
+			accessToken ||
+			Cookies.get("googleAccessToken") ||
+			(typeof window !== "undefined"
+				? (window as any).__MM_TEST_GOOGLE_TOKEN__
+				: null) ||
+			null;
 
 		if (!currentToken) {
 			try {
@@ -81,10 +141,12 @@ export function useGooglePicker({
 				const credential = GoogleAuthProvider.credentialFromResult(result);
 				currentToken = credential?.accessToken || null;
 				if (currentToken) {
-					const Cookies = (await import("js-cookie")).default;
+					const isSecure =
+						typeof window !== "undefined" &&
+						window.location.protocol === "https:";
 					Cookies.set("googleAccessToken", currentToken, {
 						expires: 1 / 24,
-						secure: true,
+						secure: isSecure,
 						sameSite: "strict",
 						path: "/",
 					});
@@ -99,6 +161,8 @@ export function useGooglePicker({
 
 		if (!currentToken) {
 			console.error("No access token available after authentication");
+			const { toast } = await import("sonner");
+			toast.error("No Google access token available");
 			return;
 		}
 
@@ -110,22 +174,47 @@ export function useGooglePicker({
 			apiKeyLength: apiKey?.length || 0,
 		});
 
-		const builder = new window.google.picker.PickerBuilder()
-			.addView(window.google.picker.ViewId.DOCS)
-			.setOAuthToken(currentToken)
-			.setDeveloperKey(apiKey);
-
-		if (appId) {
-			builder.setAppId(appId);
+		let view: any = window.google.picker.ViewId?.DOCS || "all";
+		if (typeof window.google.picker.DocsView === "function") {
+			const docsView = new window.google.picker.DocsView();
+			if (typeof docsView.setIncludeFolders === "function") {
+				docsView.setIncludeFolders(true);
+			}
+			if (typeof docsView.setSelectFolderEnabled === "function") {
+				docsView.setSelectFolderEnabled(false);
+			}
+			view = docsView;
 		}
 
-		// setOrigin is critical if the API key has domain restrictions
-		if (typeof window !== "undefined") {
-			builder.setOrigin(window.location.origin);
+		let builder = new window.google.picker.PickerBuilder()
+			.addView(view)
+			.setOAuthToken(currentToken);
+
+		if (
+			apiKey &&
+			apiKey !== "PLACEHOLDER" &&
+			typeof builder.setDeveloperKey === "function"
+		) {
+			builder = builder.setDeveloperKey(apiKey) || builder;
 		}
 
-		const picker = builder
-			.setCallback((data: any) => {
+		if (appId && typeof builder.setAppId === "function") {
+			builder = builder.setAppId(appId) || builder;
+		}
+
+		// setOrigin is critical if the API key has HTTP referrer restrictions,
+		// but must only be set on standard http/https origins (not tauri://)
+		if (
+			typeof window !== "undefined" &&
+			(window.location.protocol === "http:" ||
+				window.location.protocol === "https:") &&
+			typeof builder.setOrigin === "function"
+		) {
+			builder = builder.setOrigin(window.location.origin) || builder;
+		}
+
+		const picker = (
+			builder.setCallback((data: any) => {
 				if (data.action === window.google.picker.Action.PICKED) {
 					const doc = data.docs[0];
 					onFileSelect({
@@ -133,13 +222,14 @@ export function useGooglePicker({
 						name: doc.name,
 						mimeType: doc.mimeType,
 						sizeBytes: doc.sizeBytes,
+						accessToken: currentToken || undefined,
 					});
 				}
-			})
-			.build();
+			}) || builder
+		).build();
 
 		picker.setVisible(true);
 	}, [isLoaded, accessToken, apiKey, appId, onFileSelect]);
 
-	return { openPicker, isLoaded: isLoaded && !!apiKey };
+	return { openPicker, isLoaded };
 }
