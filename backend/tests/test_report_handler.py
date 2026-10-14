@@ -74,9 +74,20 @@ def test_generate_report_bundle_isolated():
 
     servicer.job_manager.create_job.return_value = "mock-job-id"
 
-    with patch("threading.Thread") as mock_thread:
+    with patch("handlers.report_handler._run_bundle_generation_job") as mock_run_job:
+        mock_run_job.return_value = {
+            "success": True,
+            "message": "Complete",
+            "filename": "meet_bundle.zip",
+            "bundle_url": "http://localhost:3100/api/data?path=meet_bundle.zip",
+            "job_id": "mock-job-id",
+            "google_sheet_urls": ["https://docs.google.com/spreadsheets/d/123"],
+        }
         response = generate_report_bundle(request, None, servicer, pb2)
 
         assert response.success is True
         assert response.job_id == "mock-job-id"
-        mock_thread.assert_called_once()
+        assert response.filename == "meet_bundle.zip"
+        assert response.bundle_url == "http://localhost:3100/api/data?path=meet_bundle.zip"
+        assert list(response.google_sheet_urls) == ["https://docs.google.com/spreadsheets/d/123"]
+        mock_run_job.assert_called_once()

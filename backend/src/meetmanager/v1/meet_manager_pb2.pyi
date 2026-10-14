@@ -638,20 +638,22 @@ class GenerateReportBundleRequest(_message.Message):
     def __init__(self, reports: _Optional[_Iterable[_Union[GenerateReportRequest, _Mapping]]] = ..., bundle_name: _Optional[str] = ..., renderer_type: _Optional[_Union[RendererType, str]] = ..., frontend_url: _Optional[str] = ...) -> None: ...
 
 class GenerateReportBundleResponse(_message.Message):
-    __slots__ = ("success", "message", "zip_content", "filename", "bundle_url", "job_id")
+    __slots__ = ("success", "message", "zip_content", "filename", "bundle_url", "job_id", "google_sheet_urls")
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     ZIP_CONTENT_FIELD_NUMBER: _ClassVar[int]
     FILENAME_FIELD_NUMBER: _ClassVar[int]
     BUNDLE_URL_FIELD_NUMBER: _ClassVar[int]
     JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    GOOGLE_SHEET_URLS_FIELD_NUMBER: _ClassVar[int]
     success: bool
     message: str
     zip_content: bytes
     filename: str
     bundle_url: str
     job_id: str
-    def __init__(self, success: bool = ..., message: _Optional[str] = ..., zip_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., bundle_url: _Optional[str] = ..., job_id: _Optional[str] = ...) -> None: ...
+    google_sheet_urls: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., zip_content: _Optional[bytes] = ..., filename: _Optional[str] = ..., bundle_url: _Optional[str] = ..., job_id: _Optional[str] = ..., google_sheet_urls: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class ValidateMeetRequest(_message.Message):
     __slots__ = ()

@@ -344,7 +344,7 @@ export function ReportsManager({
 		if (customPack.length === 0) return;
 		setIsBundling(true);
 		setJobProgress(0);
-		setJobMessage("Initializing bundle...");
+		setJobMessage("Generating report bundle...");
 
 		try {
 			// Convert pack items to requests
@@ -378,11 +378,36 @@ export function ReportsManager({
 			);
 
 			console.log("[ReportsManager] generateReportBundle result:", result);
-			if (result.success && result.jobId) {
+			if (result.success && result.bundleUrl) {
+				setJobProgress(100);
+				setJobMessage("Complete");
+				const finalFilename =
+					result.filename || bundleName || "meet_reports.zip";
+
+				resolveBundleUrl(result.bundleUrl).then((resolvedUrl) => {
+					downloadFile(finalFilename, resolvedUrl).catch((err) => {
+						console.error("Programmatic download failed:", err);
+						toast.error("Failed to download reports bundle");
+					});
+				});
+
+				if (result.googleSheetUrls && result.googleSheetUrls.length > 0) {
+					for (const url of result.googleSheetUrls) {
+						window.open(url, "_blank");
+					}
+				}
+
+				toast.success(
+					result.googleSheetUrls && result.googleSheetUrls.length > 0
+						? "Pack generated! Check-in sheets opened in new tabs."
+						: "Custom pack generated successfully",
+				);
+				setIsBundling(false);
+			} else if (result.success && result.jobId) {
 				startPolling(result.jobId, bundleName);
 			} else {
 				console.error("[ReportsManager] generateReportBundle failed:", result);
-				toast.error(result.message || "Failed to start bundle generation");
+				toast.error(result.message || "Failed to generate report bundle");
 				setIsBundling(false);
 			}
 		} catch (_error: unknown) {

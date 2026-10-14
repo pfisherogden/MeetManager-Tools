@@ -1,5 +1,17 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import {
+	generateReportBundle,
+	getJobStatus,
+	resolveBundleUrl,
+} from "@/app/actions";
+import { downloadFile } from "@/lib/tauri-bridge";
 import { ReportsManager } from "./reports-manager";
 
 // Mock server actions
@@ -7,6 +19,7 @@ vi.mock("@/app/actions", () => ({
 	generateReport: vi.fn(),
 	generateReportBundle: vi.fn(),
 	getJobStatus: vi.fn(),
+	resolveBundleUrl: vi.fn((url: string) => Promise.resolve(url)),
 	getTeams: vi.fn(() => Promise.resolve({ teams: [] })),
 	getDashboardStats: vi.fn(() =>
 		Promise.resolve({
@@ -17,6 +30,10 @@ vi.mock("@/app/actions", () => ({
 		}),
 	),
 	getDisqualifications: vi.fn(() => Promise.resolve({ disqualifications: [] })),
+}));
+
+vi.mock("@/lib/tauri-bridge", () => ({
+	downloadFile: vi.fn(() => Promise.resolve()),
 }));
 
 const mockTeams = [
@@ -68,5 +85,37 @@ describe("ReportsManager", () => {
 
 		// Check if reports were added (Lineup Sheets adds 1)
 		expect(screen.getByText(/1 Reports/i)).toBeDefined();
+	});
+
+	it("generates a report bundle synchronously without polling GetJobStatus", async () => {
+		vi.mocked(generateReportBundle).mockResolvedValueOnce({
+			success: true,
+			message: "Complete",
+			jobId: "sync-job-1",
+			filename: "sync_bundle.zip",
+			bundleUrl: "http://localhost:3100/api/data?path=sync_bundle.zip",
+			googleSheetUrls: [],
+		});
+
+		render(<ReportsManager initialTeams={mockTeams} />);
+
+		const psychCard = screen.getByTestId("report-card-psych-sheet");
+		fireEvent.click(psychCard);
+		fireEvent.click(screen.getByRole("button", { name: /Add to Pack/i }));
+
+		const generateBundleBtn = screen.getByTestId("generate-bundle-button");
+		fireEvent.click(generateBundleBtn);
+
+		await waitFor(() => {
+			expect(generateReportBundle).toHaveBeenCalledTimes(1);
+			expect(resolveBundleUrl).toHaveBeenCalledWith(
+				"http://localhost:3100/api/data?path=sync_bundle.zip",
+			);
+			expect(downloadFile).toHaveBeenCalledWith(
+				"sync_bundle.zip",
+				"http://localhost:3100/api/data?path=sync_bundle.zip",
+			);
+		});
+		expect(getJobStatus).not.toHaveBeenCalled();
 	});
 });

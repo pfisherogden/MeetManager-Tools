@@ -455,6 +455,8 @@ export async function generateReportBundle(
 			message: response.message,
 			jobId: response.jobId,
 			filename: response.filename,
+			bundleUrl: response.bundleUrl,
+			googleSheetUrls: response.googleSheetUrls || [],
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (generateReportBundle):", err);
