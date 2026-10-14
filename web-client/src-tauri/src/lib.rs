@@ -83,7 +83,7 @@ fn copy_file_from_storage(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
@@ -92,7 +92,15 @@ pub fn run() {
                 .level(log::LevelFilter::Info)
                 .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
                 .build(),
-        )
+        );
+
+    if std::env::var("WDIO_EMBEDDED_SERVER").is_ok()
+        || std::env::var("TAURI_WEBDRIVER_PORT").is_ok()
+    {
+        builder = builder.plugin(tauri_plugin_wdio_webdriver::init());
+    }
+
+    builder
         .setup(|app| {
             let shell = app.shell();
             let app_data_dir = app

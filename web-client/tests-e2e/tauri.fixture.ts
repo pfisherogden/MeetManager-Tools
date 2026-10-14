@@ -1,10 +1,66 @@
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { test as base } from "@playwright/test";
 
+async function getFreePort(): Promise<number> {
+	return new Promise((resolve, reject) => {
+		const srv = net.createServer();
+		srv.listen(0, "127.0.0.1", () => {
+			const addr = srv.address();
+			const port = typeof addr === "object" && addr ? addr.port : 4445;
+			srv.close((err) => (err ? reject(err) : resolve(port)));
+		});
+		srv.on("error", reject);
+	});
+}
+
+async function terminateProcess(proc: ChildProcess): Promise<void> {
+	if (proc.exitCode !== null || proc.signalCode !== null) {
+		proc.stdout?.destroy();
+		proc.stderr?.destroy();
+		return;
+	}
+	await new Promise<void>((resolve) => {
+		let settled = false;
+		const finish = () => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(killTimer);
+			clearTimeout(hardTimer);
+			proc.stdout?.destroy();
+			proc.stderr?.destroy();
+			resolve();
+		};
+		const killTimer = setTimeout(() => {
+			try {
+				proc.kill("SIGKILL");
+			} catch (_e) {
+				// Ignore kill errors
+			}
+		}, 1500);
+		const hardTimer = setTimeout(() => {
+			finish();
+		}, 3000);
+		proc.once("exit", finish);
+		proc.once("close", finish);
+		try {
+			proc.kill();
+		} catch (_e) {
+			finish();
+		}
+	});
+}
+
 export const test = base.extend<{
-	tauriApp: { wsEndpoint: string; process: any };
+	tauriApp: {
+		wsEndpoint: string;
+		webdriverPort: number;
+		saveDir: string;
+		process: ChildProcess;
+	};
 }>({
 	// biome-ignore lint/correctness/noEmptyPattern: Playwright requires object destructuring for first argument of fixtures
 	tauriApp: async ({}, use) => {
@@ -58,8 +114,17 @@ export const test = base.extend<{
 			);
 		}
 
-		// Run Tauri app with remote debugging enabled
-		const env: Record<string, string> = {
+		const saveDir = path.join(
+			os.tmpdir(),
+			`mmtools-e2e-downloads-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+		);
+		fs.mkdirSync(saveDir, { recursive: true });
+
+		const webdriverPort =
+			process.platform === "darwin" ? await getFreePort() : 4445;
+
+		// Run Tauri app with remote debugging / embedded WebDriver enabled
+		const env: Record<string, string | undefined> = {
 			...process.env,
 			TAURI_DEBUG: "1",
 			TAURI_WEBVIEW_DEBUGGABLE: "1",
@@ -77,19 +142,38 @@ export const test = base.extend<{
 			);
 			fs.mkdirSync(tmpUserDataDir, { recursive: true });
 			env.WEBVIEW2_USER_DATA_FOLDER = tmpUserDataDir;
+		} else if (process.platform === "darwin") {
+			env.WDIO_EMBEDDED_SERVER = "true";
+			env.TAURI_WEBDRIVER_PORT = String(webdriverPort);
 		}
 
-		const tauriProcess = spawn(appPath, [], { env });
+		const tauriProcess = spawn(appPath, [], {
+			env: env as NodeJS.ProcessEnv,
+		});
+
+		let backendRestReady = false;
+		const checkBackendReadyLog = (text: string) => {
+			if (
+				text.includes("Successfully connected to backend REST server") ||
+				text.includes("Backend REST server failed to start")
+			) {
+				backendRestReady = true;
+			}
+		};
 
 		// Pipe child process logs to the test console for debugging
 		tauriProcess.stdout.on("data", (data) => {
-			console.log(`[Tauri App STDOUT] ${data.toString().trim()}`);
+			const text = data.toString().trim();
+			console.log(`[Tauri App STDOUT] ${text}`);
+			checkBackendReadyLog(text);
 		});
 		tauriProcess.stderr.on("data", (data) => {
-			console.error(`[Tauri App STDERR] ${data.toString().trim()}`);
+			const text = data.toString().trim();
+			console.error(`[Tauri App STDERR] ${text}`);
+			checkBackendReadyLog(text);
 		});
 
-		// Wait for remote debugging websocket or port to become active
+		// Wait for remote debugging websocket or WebDriver port to become active
 		let wsEndpoint = "";
 		if (process.platform === "win32") {
 			// Poll the CDP endpoint until it is active (checking both 127.0.0.1 and localhost)
@@ -112,13 +196,51 @@ export const test = base.extend<{
 				await new Promise((resolve) => setTimeout(resolve, 500));
 			}
 			if (!activeUrl) {
+				await terminateProcess(tauriProcess);
 				throw new Error(
 					"Timeout waiting for WebView2 remote debugging port 9223 to become active",
 				);
 			}
 			wsEndpoint = activeUrl;
+		} else if (process.platform === "darwin") {
+			// Wait for BOTH the Tauri .setup() backend sidecar handshake AND the embedded WebDriver server
+			let activeUrl = "";
+			for (let i = 0; i < 180; i++) {
+				if (
+					tauriProcess.exitCode !== null ||
+					tauriProcess.signalCode !== null
+				) {
+					throw new Error(
+						`Tauri process exited early with code=${tauriProcess.exitCode} signal=${tauriProcess.signalCode}`,
+					);
+				}
+				if (backendRestReady) {
+					try {
+						const res = await fetch(`http://127.0.0.1:${webdriverPort}/status`);
+						if (res.ok) {
+							const data = (await res.json()) as {
+								value?: { ready?: boolean };
+							};
+							if (data?.value?.ready === true) {
+								activeUrl = `http://127.0.0.1:${webdriverPort}`;
+								break;
+							}
+						}
+					} catch (_e) {
+						// Ignore connection errors while starting
+					}
+				}
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			}
+			if (!activeUrl) {
+				await terminateProcess(tauriProcess);
+				throw new Error(
+					`Timeout waiting for macOS Tauri embedded WebDriver server on port ${webdriverPort} (backendRestReady=${backendRestReady})`,
+				);
+			}
+			wsEndpoint = activeUrl;
 		} else {
-			// On macOS/Linux, parse from stderr
+			// On Linux, parse from stderr
 			await new Promise<void>((resolve, reject) => {
 				const timeout = setTimeout(() => {
 					reject(
@@ -147,11 +269,22 @@ export const test = base.extend<{
 			});
 		}
 
-		// Pass the Tauri process down to Playwright to control
-		await use({ wsEndpoint, process: tauriProcess });
+		// Pass the Tauri process and endpoints down to the test
+		await use({
+			wsEndpoint,
+			webdriverPort,
+			saveDir,
+			process: tauriProcess,
+		});
 
-		// Teardown
-		tauriProcess.kill();
+		// Teardown: cleanly terminate Tauri process and wait for exit so ports/locks release
+		await terminateProcess(tauriProcess);
+
+		try {
+			fs.rmSync(saveDir, { recursive: true, force: true });
+		} catch (_e) {
+			// Ignore cleanup errors
+		}
 
 		// Clean up the temp user data directory after process exits
 		if (tmpUserDataDir) {

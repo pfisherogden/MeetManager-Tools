@@ -27,6 +27,7 @@ tauri-plugin-log = "2"
 tauri-plugin-shell = "2.3.5"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-wdio-webdriver = "1.5.0"
 
 [profile.release]
 debug = 0
