@@ -17,8 +17,28 @@ async function waitForWdioText(
 	await browser.waitUntil(
 		async () => {
 			try {
-				const el = await browser.$(`//*[contains(text(), "${text}")]`);
-				return await el.isDisplayed();
+				return await browser.execute((targetText: string) => {
+					const elements = Array.from(
+						document.querySelectorAll(
+							"a, button, span, p, h1, h2, h3, h4, th, td, div, label, [role='status']",
+						),
+					);
+					return elements.some((el) => {
+						if (!el.textContent?.includes(targetText)) {
+							return false;
+						}
+						const style = window.getComputedStyle(el);
+						if (
+							style.display === "none" ||
+							style.visibility === "hidden" ||
+							style.opacity === "0"
+						) {
+							return false;
+						}
+						const rect = el.getBoundingClientRect();
+						return rect.width > 0 && rect.height > 0;
+					});
+				}, text);
 			} catch (_e) {
 				return false;
 			}
@@ -37,20 +57,82 @@ async function clickWdioText(
 	timeout = 15000,
 ): Promise<void> {
 	await waitForWdioText(browser, text, timeout);
-	const el = await browser.$(`//*[contains(text(), "${text}")]`);
-	await el.click();
+	const clicked = await browser.execute((targetText: string) => {
+		const isVisible = (el: Element) => {
+			const style = window.getComputedStyle(el);
+			if (
+				style.display === "none" ||
+				style.visibility === "hidden" ||
+				style.opacity === "0"
+			) {
+				return false;
+			}
+			const rect = el.getBoundingClientRect();
+			return rect.width > 0 && rect.height > 0;
+		};
+
+		const interactive = Array.from(
+			document.querySelectorAll("a, button, [role='button'], [data-testid]"),
+		).filter(isVisible);
+
+		const exactMatch = interactive.find(
+			(el) => el.textContent?.trim() === targetText,
+		);
+		if (exactMatch) {
+			(exactMatch as HTMLElement).scrollIntoView({ block: "center" });
+			(exactMatch as HTMLElement).click();
+			return true;
+		}
+
+		const partialInteractive = interactive.find((el) =>
+			el.textContent?.includes(targetText),
+		);
+		if (partialInteractive) {
+			(partialInteractive as HTMLElement).scrollIntoView({ block: "center" });
+			(partialInteractive as HTMLElement).click();
+			return true;
+		}
+
+		const allVisible = Array.from(
+			document.querySelectorAll("span, p, div, h1, h2, h3, h4, td, th"),
+		).filter((el) => isVisible(el) && el.textContent?.includes(targetText));
+		const deepest = allVisible[allVisible.length - 1];
+		if (deepest) {
+			(deepest as HTMLElement).scrollIntoView({ block: "center" });
+			(deepest as HTMLElement).click();
+			return true;
+		}
+		return false;
+	}, text);
+
+	if (!clicked) {
+		throw new Error(`Failed to click visible element with text "${text}"`);
+	}
 }
 
-async function waitForWdioSelector(
+async function clickWdioSelector(
 	browser: WebdriverIO.Browser,
 	selector: string,
 	timeout = 15000,
-) {
+): Promise<void> {
 	await browser.waitUntil(
 		async () => {
 			try {
-				const el = await browser.$(selector);
-				return await el.isDisplayed();
+				return await browser.execute((sel: string) => {
+					const elements = Array.from(document.querySelectorAll(sel));
+					return elements.some((el) => {
+						const style = window.getComputedStyle(el);
+						if (
+							style.display === "none" ||
+							style.visibility === "hidden" ||
+							style.opacity === "0"
+						) {
+							return false;
+						}
+						const rect = el.getBoundingClientRect();
+						return rect.width > 0 && rect.height > 0;
+					});
+				}, selector);
 			} catch (_e) {
 				return false;
 			}
@@ -61,7 +143,27 @@ async function waitForWdioSelector(
 			timeoutMsg: `Timed out waiting for selector "${selector}" to be visible`,
 		},
 	);
-	return browser.$(selector);
+
+	await browser.execute((sel: string) => {
+		const elements = Array.from(document.querySelectorAll(sel));
+		const visible = elements.find((el) => {
+			const style = window.getComputedStyle(el);
+			if (
+				style.display === "none" ||
+				style.visibility === "hidden" ||
+				style.opacity === "0"
+			) {
+				return false;
+			}
+			const rect = el.getBoundingClientRect();
+			return rect.width > 0 && rect.height > 0;
+		});
+		if (!visible) {
+			throw new Error(`Visible element not found for selector "${sel}"`);
+		}
+		(visible as HTMLElement).scrollIntoView({ block: "center" });
+		(visible as HTMLElement).click();
+	}, selector);
 }
 
 async function uploadFileViaWdioChunks(
@@ -266,19 +368,17 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 				(window as any).__MM_E2E_SAVE_DIR__ = dir;
 			}, tauriApp.saveDir);
 
-			const meetProgramCard = await waitForWdioSelector(
+			await clickWdioSelector(
 				browser,
 				'[data-testid="report-card-meet-program-(pdf)"]',
 				15000,
 			);
-			await meetProgramCard.click();
 
-			const generateBtn = await waitForWdioSelector(
+			await clickWdioSelector(
 				browser,
 				'[data-testid="generate-report-button"]',
 				10000,
 			);
-			await generateBtn.click();
 
 			await waitForWdioText(browser, "Report generated successfully", 45000);
 			console.log(
@@ -289,19 +389,13 @@ test("Tauri Desktop App functional navigation & data query check", async ({
 			console.log(
 				"[macOS WebDriver] Adding report to pack and generating ZIP bundle...",
 			);
-			const addToPackBtn = await waitForWdioSelector(
-				browser,
-				'//button[contains(., "Add to Pack")]',
-				10000,
-			);
-			await addToPackBtn.click();
+			await clickWdioText(browser, "Add to Pack", 10000);
 
-			const generateBundleBtn = await waitForWdioSelector(
+			await clickWdioSelector(
 				browser,
 				'[data-testid="generate-bundle-button"]',
 				10000,
 			);
-			await generateBundleBtn.click();
 
 			// Wait for bundle generation to complete and return to idle status (and verify ZIP saved)
 			await browser.waitUntil(
