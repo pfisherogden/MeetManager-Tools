@@ -37,3 +37,15 @@ variable "google_client_id" {
   type        = string
   default     = ""
 }
+
+variable "custom_domain" {
+  description = "Optional custom domain hostname (e.g. mmtools.example.com) for Cloud Run routing"
+  type        = string
+  default     = ""
+}
+
+variable "enable_cdn" {
+  description = "Enable Cloud CDN on the frontend load balancer backend service"
+  type        = bool
+  default     = false
+}

@@ -2,6 +2,7 @@
 resource "google_project_service" "apis" {
   for_each = toset([
     "run.googleapis.com",
+    "compute.googleapis.com",
     "artifactregistry.googleapis.com",
     "storage.googleapis.com",
     "iam.googleapis.com",
@@ -49,7 +50,7 @@ resource "google_storage_bucket" "data_bucket" {
   uniform_bucket_level_access = true
 
   cors {
-    origin          = ["*"] # Adjust this to your frontend URL later
+    origin          = var.custom_domain != "" ? ["https://${var.custom_domain}", "*"] : ["*"]
     method          = ["GET", "HEAD", "PUT", "POST", "DELETE"]
     response_header = ["*"]
     max_age_seconds = 3600
@@ -125,6 +126,10 @@ resource "google_cloud_run_v2_service" "frontend" {
         value = replace(google_cloud_run_v2_service.backend.uri, "https://", "")
       }
       env {
+        name  = "BACKEND_USE_SSL"
+        value = "true"
+      }
+      env {
         name  = "NEXT_PUBLIC_FIREBASE_API_KEY"
         value = var.firebase_api_key
       }
@@ -177,3 +182,144 @@ resource "google_cloud_run_v2_service_iam_member" "backend_public" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+# Custom Domain Mapping via Global External Application Load Balancer (Option A)
+resource "google_compute_global_address" "lb_ip" {
+  count      = var.custom_domain != "" ? 1 : 0
+  name       = "${var.app_name}-lb-ip"
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_compute_region_network_endpoint_group" "frontend_neg" {
+  count                 = var.custom_domain != "" ? 1 : 0
+  name                  = "${var.app_name}-frontend-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+
+  cloud_run {
+    service = google_cloud_run_v2_service.frontend.name
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_compute_region_network_endpoint_group" "backend_neg" {
+  count                 = var.custom_domain != "" ? 1 : 0
+  name                  = "${var.app_name}-backend-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+
+  cloud_run {
+    service = google_cloud_run_v2_service.backend.name
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_compute_backend_service" "frontend_lb" {
+  count                 = var.custom_domain != "" ? 1 : 0
+  name                  = "${var.app_name}-frontend-lb"
+  protocol              = "HTTPS"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  enable_cdn            = var.enable_cdn
+
+  backend {
+    group = google_compute_region_network_endpoint_group.frontend_neg[0].id
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_compute_backend_service" "backend_lb" {
+  count                 = var.custom_domain != "" ? 1 : 0
+  name                  = "${var.app_name}-backend-lb"
+  protocol              = "HTTP2"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+
+  backend {
+    group = google_compute_region_network_endpoint_group.backend_neg[0].id
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_compute_url_map" "https_url_map" {
+  count           = var.custom_domain != "" ? 1 : 0
+  name            = "${var.app_name}-https-url-map"
+  default_service = google_compute_backend_service.frontend_lb[0].id
+
+  host_rule {
+    hosts        = [var.custom_domain]
+    path_matcher = "allpaths"
+  }
+
+  path_matcher {
+    name            = "allpaths"
+    default_service = google_compute_backend_service.frontend_lb[0].id
+
+    path_rule {
+      paths   = ["/meetmanager.v1.MeetManagerService/*", "/api/grpc/*"]
+      service = google_compute_backend_service.backend_lb[0].id
+    }
+  }
+}
+
+resource "google_compute_managed_ssl_certificate" "lb_cert" {
+  count = var.custom_domain != "" ? 1 : 0
+  name  = "${var.app_name}-ssl-cert"
+
+  managed {
+    domains = [var.custom_domain]
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_compute_target_https_proxy" "https_proxy" {
+  count            = var.custom_domain != "" ? 1 : 0
+  name             = "${var.app_name}-https-proxy"
+  url_map          = google_compute_url_map.https_url_map[0].id
+  ssl_certificates = [google_compute_managed_ssl_certificate.lb_cert[0].id]
+}
+
+resource "google_compute_global_forwarding_rule" "https_forwarding_rule" {
+  count                 = var.custom_domain != "" ? 1 : 0
+  name                  = "${var.app_name}-https-forwarding-rule"
+  target                = google_compute_target_https_proxy.https_proxy[0].id
+  port_range            = "443"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  ip_address            = google_compute_global_address.lb_ip[0].id
+}
+
+resource "google_compute_url_map" "http_redirect" {
+  count = var.custom_domain != "" ? 1 : 0
+  name  = "${var.app_name}-http-redirect"
+
+  default_url_redirect {
+    https_redirect         = true
+    redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+    strip_query            = false
+  }
+}
+
+resource "google_compute_target_http_proxy" "http_proxy" {
+  count   = var.custom_domain != "" ? 1 : 0
+  name    = "${var.app_name}-http-proxy"
+  url_map = google_compute_url_map.http_redirect[0].id
+}
+
+resource "google_compute_global_forwarding_rule" "http_forwarding_rule" {
+  count                 = var.custom_domain != "" ? 1 : 0
+  name                  = "${var.app_name}-http-forwarding-rule"
+  target                = google_compute_target_http_proxy.http_proxy[0].id
+  port_range            = "80"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  ip_address            = google_compute_global_address.lb_ip[0].id
+}
+

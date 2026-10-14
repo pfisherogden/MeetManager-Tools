@@ -17,3 +17,11 @@ output "backend_url" {
 output "frontend_url" {
   value = google_cloud_run_v2_service.frontend.uri
 }
+
+output "custom_domain_url" {
+  value = var.custom_domain != "" ? "https://${var.custom_domain}" : null
+}
+
+output "load_balancer_ip" {
+  value = var.custom_domain != "" ? google_compute_global_address.lb_ip[0].address : null
+}
