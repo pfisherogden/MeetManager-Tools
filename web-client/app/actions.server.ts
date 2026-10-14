@@ -345,15 +345,71 @@ export async function uploadDataset(formData: FormData) {
 	}
 }
 
-export async function uploadDatasetFromDrive(fileId: string, filename: string) {
+export async function uploadDatasetFromDrive(
+	fileId: string,
+	filename: string,
+	accessToken?: string,
+	contentBase64?: string,
+) {
 	try {
 		const metadata = await getAuthMetadata();
-		const response = await client.uploadDatasetFromDrive(
-			{ fileId, filename },
-			{ metadata },
-		);
+		let uint8Array: Uint8Array;
+
+		if (contentBase64) {
+			const cleanBase64 = contentBase64.includes(",")
+				? contentBase64.split(",", 2)[1]
+				: contentBase64;
+			uint8Array = new Uint8Array(Buffer.from(cleanBase64, "base64"));
+		} else {
+			const cookieStore = await cookies();
+			const token = accessToken || cookieStore.get("googleAccessToken")?.value;
+
+			if (!token) {
+				throw new Error(
+					"Google access token not found. Please authenticate with Google Drive.",
+				);
+			}
+
+			const driveBaseUrl =
+				process.env.GOOGLE_DRIVE_API_URL ||
+				"https://www.googleapis.com/drive/v3/files";
+			const driveUrl = `${driveBaseUrl.replace(/\/$/, "")}/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`;
+
+			const driveResponse = await fetch(driveUrl, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			if (!driveResponse.ok) {
+				const errorText = await driveResponse.text();
+				throw new Error(
+					`Failed to fetch file from Google Drive (${driveResponse.status}): ${errorText}`,
+				);
+			}
+
+			const arrayBuffer = await driveResponse.arrayBuffer();
+			uint8Array = new Uint8Array(arrayBuffer);
+		}
+
+		async function* requestGenerator() {
+			yield { filename };
+
+			const CHUNK_SIZE = 1024 * 1024; // 1MB
+			for (let offset = 0; offset < uint8Array.length; offset += CHUNK_SIZE) {
+				const chunk = uint8Array.slice(offset, offset + CHUNK_SIZE);
+				yield { chunk };
+			}
+		}
+
+		const response = await client.uploadDataset(requestGenerator(), {
+			metadata,
+		});
 
 		if (response.success) {
+			if (process.env.NEXT_PUBLIC_E2E_AUTH_BYPASS === "true") {
+				await new Promise((r) => setTimeout(r, 1000));
+			}
 			revalidatePath("/admin");
 			revalidatePath("/meets");
 			revalidatePath("/teams");
@@ -366,7 +422,10 @@ export async function uploadDatasetFromDrive(fileId: string, filename: string) {
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (uploadDatasetFromDrive):", err);
-		throw err;
+		return {
+			success: false,
+			message: err instanceof Error ? err.message : String(err),
+		};
 	}
 }
 
@@ -660,7 +719,11 @@ export async function validateActiveMeet() {
 export async function getGoogleConfig() {
 	const env = process.env;
 	return {
-		apiKey: env.GOOGLE_API_KEY || env.NEXT_PUBLIC_GOOGLE_API_KEY || "",
+		apiKey:
+			env.GOOGLE_API_KEY ||
+			env.NEXT_PUBLIC_GOOGLE_API_KEY ||
+			env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+			"",
 		clientId: env.GOOGLE_CLIENT_ID || env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
 		appId:
 			env.GOOGLE_APP_ID ||

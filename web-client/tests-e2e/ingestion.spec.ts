@@ -1,7 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
-import { getE2ETestContext, setupE2ESession } from "./utils";
+import {
+	getDynamicGatewayUrl,
+	getE2ETestContext,
+	mockGoogleDrivePicker,
+	setupE2ESession,
+} from "./utils";
 
 test.describe("Ingestion and Admin Journey", () => {
 	test.beforeEach(async ({ page }, testInfo) => {
@@ -95,6 +100,185 @@ test.describe("Ingestion and Admin Journey", () => {
 				fs.unlinkSync(testFilePath);
 			}
 		}
+	});
+
+	test("should allow choosing a Google Drive file, importing it, and viewing the meet", async ({
+		page,
+	}, testInfo) => {
+		const { getFilename } = getE2ETestContext(testInfo);
+		const driveFileName = getFilename("drive-meet.json");
+		const driveMeetData = {
+			meet: [
+				{
+					meet_name1: "Google Drive E2E Meet",
+					meet_location: "Drive Aquatic Center",
+					meet_start: "2025-07-15",
+					meet_end: "2025-07-15",
+				},
+			],
+			team: [
+				{ team_no: 1, team_abbr: "GDRV", team_name: "Google Drive Swim Club" },
+			],
+			athlete: [
+				{
+					ath_no: 1,
+					team_no: 1,
+					first_name: "Drive",
+					last_name: "Swimmer",
+					sex: "F",
+					ath_age: 12,
+				},
+			],
+			event: [
+				{
+					event_no: 1,
+					event_ptr: 1,
+					event_gender: "F",
+					event_dist: 50,
+					event_stroke: "A",
+					event_sex: "Girls",
+					low_age: 11,
+					high_age: 12,
+					ind_rel: "I",
+				},
+			],
+			session: [
+				{
+					sess_ptr: 1,
+					sess_no: 1,
+					sess_name: "Session 1",
+					sess_day: 1,
+					sess_starttime: 32400,
+				},
+			],
+			sessitem: [{ sess_ptr: 1, event_ptr: 1, sess_order: 1, sess_rnd: "F" }],
+			entry: [
+				{
+					ath_no: 1,
+					event_ptr: 1,
+					pre_heat: 1,
+					pre_lane: 1,
+					convseed_time: 28.5,
+				},
+			],
+		};
+
+		const { driveDownloadRequests } = await mockGoogleDrivePicker(page, {
+			id: "e2e-drive-file-id-123",
+			name: driveFileName,
+			mimeType: "application/json",
+			content: driveMeetData,
+		});
+
+		await page.goto("/admin");
+		const importDriveBtn = page.getByRole("button", {
+			name: /Import from Drive/i,
+		});
+		await expect(importDriveBtn).toBeVisible();
+		await expect(importDriveBtn).toBeEnabled({ timeout: 15000 });
+		await importDriveBtn.click();
+
+		await expect(
+			page.getByText(`Successfully imported ${driveFileName} from Drive`),
+		).toBeVisible({ timeout: 30000 });
+
+		expect(driveDownloadRequests.length).toBeGreaterThan(0);
+		expect(driveDownloadRequests[0].url).toContain("e2e-drive-file-id-123");
+
+		// Verify dataset row is visible and active in /admin
+		const row = page.getByTestId(`dataset-row-${driveFileName}`);
+		await expect(row).toBeVisible({ timeout: 15000 });
+		await expect(row).toHaveAttribute("data-test-state", "active", {
+			timeout: 15000,
+		});
+
+		// Navigate to /meets and verify the imported Google Drive meet is rendered
+		await page.goto("/meets");
+		await expect(page.locator("table")).toContainText("Google Drive E2E Meet", {
+			timeout: 20000,
+		});
+	});
+
+	test("should support Tauri Desktop REST Gateway Google Drive config and upload endpoints and view the meet", async ({
+		page,
+	}, testInfo) => {
+		const { userId, getFilename } = getE2ETestContext(testInfo);
+		const gatewayUrl = getDynamicGatewayUrl();
+		const tauriFileName = getFilename("tauri-drive-meet.json");
+
+		// 1. Verify GetGoogleConfig on the Python sidecar REST Gateway
+		const configRes = await page.request.post(`${gatewayUrl}/GetGoogleConfig`, {
+			data: {},
+			headers: { "x-user-id": userId },
+		});
+		expect(configRes.ok()).toBe(true);
+		const configJson = await configRes.json();
+		expect(configJson).toHaveProperty("appId");
+		expect(configJson).toHaveProperty("apiKey");
+
+		// 2. Verify UploadDatasetFromDrive on the Python sidecar REST Gateway
+		const tauriMeetData = {
+			meet: [
+				{
+					meet_name1: "Tauri Sidecar Drive Meet",
+					meet_location: "Desktop Aquatic Center",
+					meet_start: "2025-07-22",
+					meet_end: "2025-07-22",
+				},
+			],
+			team: [
+				{
+					team_no: 1,
+					team_abbr: "TSID",
+					team_name: "Tauri Sidecar Team",
+				},
+			],
+			athlete: [],
+			event: [],
+			session: [],
+			sessitem: [],
+			entry: [],
+		};
+		const base64Content = Buffer.from(JSON.stringify(tauriMeetData)).toString(
+			"base64",
+		);
+		const uploadRes = await page.request.post(
+			`${gatewayUrl}/UploadDatasetFromDrive`,
+			{
+				data: {
+					fileId: "tauri-sidecar-file-777",
+					filename: tauriFileName,
+					content: base64Content,
+				},
+				headers: { "x-user-id": userId },
+			},
+		);
+		expect(uploadRes.ok()).toBe(true);
+		const uploadJson = await uploadRes.json();
+		expect(uploadJson.success).toBe(true);
+
+		// 3. Activate and verify in UI
+		const activateRes = await page.request.post(
+			`${gatewayUrl}/SetActiveDataset`,
+			{
+				data: { filename: tauriFileName },
+				headers: { "x-user-id": userId },
+			},
+		);
+		expect(activateRes.ok()).toBe(true);
+
+		await page.goto("/admin");
+		const row = page.getByTestId(`dataset-row-${tauriFileName}`);
+		await expect(row).toBeVisible({ timeout: 15000 });
+		await expect(row).toHaveAttribute("data-test-state", "active", {
+			timeout: 15000,
+		});
+
+		await page.goto("/meets");
+		await expect(page.locator("table")).toContainText(
+			"Tauri Sidecar Drive Meet",
+			{ timeout: 20000 },
+		);
 	});
 
 	test("should verify dashboard stats update", async ({ page }) => {

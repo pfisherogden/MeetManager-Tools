@@ -6,7 +6,9 @@ resource "google_project_service" "apis" {
     "storage.googleapis.com",
     "iam.googleapis.com",
     "secretmanager.googleapis.com",
-    "identitytoolkit.googleapis.com"
+    "identitytoolkit.googleapis.com",
+    "drive.googleapis.com",
+    "drivepicker.googleapis.com"
   ])
   service            = each.key
   disable_on_destroy = false
