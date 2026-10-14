@@ -357,7 +357,7 @@ export async function mockGoogleDrivePicker(
 		[];
 
 	// 1. Stub external GAPI / GSI scripts so they never overwrite our mock or fail offline
-	await page.route("https://apis.google.com/js/api.js", async (route) => {
+	await page.route("https://apis.google.com/**", async (route) => {
 		await route.fulfill({
 			status: 200,
 			contentType: "application/javascript",
@@ -377,15 +377,18 @@ export async function mockGoogleDrivePicker(
 		"https://www.googleapis.com/drive/v3/files/**",
 		async (route) => {
 			const req = route.request();
-			driveDownloadRequests.push({
-				url: req.url(),
-				authHeader: req.headers().authorization || null,
-			});
+			if (req.method() !== "OPTIONS") {
+				driveDownloadRequests.push({
+					url: req.url(),
+					authHeader: req.headers().authorization || null,
+				});
+			}
 			await route.fulfill({
 				status: 200,
 				contentType: mimeType,
 				headers: {
 					"Access-Control-Allow-Origin": "*",
+					"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 					"Access-Control-Allow-Headers": "Authorization, Content-Type",
 				},
 				body: payloadBuffer,
@@ -398,15 +401,49 @@ export async function mockGoogleDrivePicker(
 		name: options.name,
 		mimeType,
 		sizeBytes: payloadBuffer.length,
+		payloadBase64: payloadBuffer.toString("base64"),
 	};
 
 	const installPickerMock = (doc: typeof pickerDoc) => {
+		(window as any).__MM_MOCK_DRIVE_DOC__ = doc;
 		(window as any).__MM_TEST_GOOGLE_TOKEN__ =
 			(window as any).__MM_TEST_GOOGLE_TOKEN__ || "e2e-mock-google-oauth-token";
 		try {
 			document.cookie =
 				"googleAccessToken=e2e-mock-google-oauth-token; path=/; max-age=31536000";
 		} catch (_e) {}
+
+		if (!(window as any).__MM_DRIVE_FETCH_WRAPPED__ && window.fetch) {
+			(window as any).__MM_DRIVE_FETCH_WRAPPED__ = true;
+			const origFetch = window.fetch.bind(window);
+			window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+				const url =
+					typeof input === "string"
+						? input
+						: input instanceof URL
+							? input.toString()
+							: input.url;
+				if (url.includes("googleapis.com/drive/v3/files/")) {
+					try {
+						const res = await origFetch(input, init);
+						if (res.ok) return res;
+					} catch (_err) {
+						// Fall back to in-page mock response when CDP/CORS blocks external request
+					}
+					const activeDoc = (window as any).__MM_MOCK_DRIVE_DOC__ || doc;
+					const binary = window.atob(activeDoc.payloadBase64 || "");
+					const bytes = new Uint8Array(binary.length);
+					for (let i = 0; i < binary.length; i++) {
+						bytes[i] = binary.charCodeAt(i);
+					}
+					return new Response(bytes, {
+						status: 200,
+						headers: { "Content-Type": activeDoc.mimeType },
+					});
+				}
+				return origFetch(input, init);
+			};
+		}
 
 		(window as any).gapi = {
 			load: (_name: string, cb?: () => void) => {
@@ -439,9 +476,11 @@ export async function mockGoogleDrivePicker(
 							if (visible && callback) {
 								(window as any).__MM_PICKER_OPENED__ = true;
 								setTimeout(() => {
+									const activeDoc =
+										(window as any).__MM_MOCK_DRIVE_DOC__ || doc;
 									callback?.({
 										action: "picked",
-										docs: [doc],
+										docs: [activeDoc],
 									});
 								}, 10);
 							}
@@ -451,6 +490,13 @@ export async function mockGoogleDrivePicker(
 				},
 			},
 		};
+
+		const existingScript = document.querySelector<HTMLScriptElement>(
+			'script[src="https://apis.google.com/js/api.js"]',
+		);
+		if (existingScript) {
+			existingScript.dispatchEvent(new Event("load"));
+		}
 	};
 
 	await page.addInitScript(installPickerMock, pickerDoc);

@@ -78,6 +78,10 @@ export function useGooglePicker({
 			'script[src="https://apis.google.com/js/api.js"]',
 		);
 		const handleLoad = () => {
+			if (window.google?.picker) {
+				setIsLoaded(true);
+				return;
+			}
 			if (window.gapi?.load) {
 				window.gapi.load("picker", () => setIsLoaded(true));
 			}
