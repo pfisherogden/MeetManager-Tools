@@ -409,6 +409,68 @@ def file_or_update_production_issue(
     return create_res.stdout.strip()
 
 
+PICKER_KEY_BLOCKED_REASONS: frozenset[str] = frozenset(
+    {"API_KEY_SERVICE_BLOCKED", "API_KEY_INVALID", "API_KEY_HTTP_REFERRER_BLOCKED"}
+)
+
+
+def check_picker_api_key(api_key: str, referer: str | None = None, timeout: float = 15.0) -> tuple[bool, str]:
+    """Check that a Google Picker developer key is usable for Drive.
+
+    The Google Picker rejects keys whose API restrictions exclude Drive/Picker
+    with the user-facing error "The API developer key is invalid". The Firebase
+    auto-created browser key is restricted to Firebase services and fails this
+    check, so it must never be used as the Picker developer key.
+
+    An unauthenticated Drive request is made with the key. A correctly
+    configured key yields an auth/permission error for the *request* (401/403
+    ``insufficientFilePermissions`` / ``authError``), whereas a key blocked by
+    API restrictions yields ``API_KEY_SERVICE_BLOCKED`` (or ``API_KEY_INVALID``).
+
+    Args:
+        api_key: The browser API key to validate.
+        referer: Optional HTTP referer (the deployed frontend origin) to send,
+            so HTTP-referrer restrictions on the key are exercised too.
+        timeout: Network timeout in seconds.
+
+    Returns:
+        A ``(ok, message)`` tuple. Network failures are treated as inconclusive
+        (``ok`` is True) so a transient outage cannot block a deployment.
+    """
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    if not api_key:
+        return False, "No Picker API key provided (GOOGLE_PICKER_API_KEY is empty)"
+
+    query = urllib.parse.urlencode({"pageSize": 1, "key": api_key})
+    request = urllib.request.Request(f"https://www.googleapis.com/drive/v3/files?{query}")
+    if referer:
+        request.add_header("Referer", referer)
+
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as resp:  # noqa: S310
+            body = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        return True, f"Inconclusive (network error contacting Google: {exc})"
+
+    try:
+        error = json.loads(body).get("error", {})
+    except (json.JSONDecodeError, AttributeError):
+        return True, "Inconclusive (non-JSON response from Google)"
+
+    reasons = {str(d.get("reason")) for d in error.get("details", []) if isinstance(d, dict)}
+    blocked = reasons & PICKER_KEY_BLOCKED_REASONS
+    if blocked:
+        return False, f"Picker key rejected by Google: {', '.join(sorted(blocked))} - {error.get('message', '')}"
+    if "API key not valid" in str(error.get("message", "")):
+        return False, f"Picker key rejected by Google: {error.get('message')}"
+    return True, "Picker key accepted by Google Drive API"
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point for Cloud Run post-deployment verification."""
     parser = argparse.ArgumentParser(description="Cloud Run post-deployment verification and log auditor.")
@@ -454,12 +516,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-markdown", type=str, default=None)
     parser.add_argument("--auto-file-issue", action="store_true")
     parser.add_argument(
+        "--check-picker-key",
+        action="store_true",
+        help="Validate the GOOGLE_PICKER_API_KEY env var is accepted by Google Drive (exit 1 if blocked).",
+    )
+    parser.add_argument(
+        "--picker-referer",
+        type=str,
+        default=None,
+        help="HTTP referer (deployed frontend origin) to send when checking the Picker key.",
+    )
+    parser.add_argument(
         "--repo",
         type=str,
         default=os.environ.get("GITHUB_REPOSITORY", "pfisherogden/MeetManager-Tools"),
     )
 
     args = parser.parse_args(argv)
+
+    if args.check_picker_key:
+        ok, message = check_picker_api_key(os.environ.get("GOOGLE_PICKER_API_KEY", ""), referer=args.picker_referer)
+        print(message, file=sys.stdout if ok else sys.stderr)
+        return 0 if ok else 1
 
     if args.mint_custom_token:
         raw_key = os.environ.get("GCP_SA_KEY", "")
