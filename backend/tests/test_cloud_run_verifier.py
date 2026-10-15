@@ -11,6 +11,7 @@ import pytest
 
 from mm_to_json.cloud_run_verifier import (
     FIREBASE_CUSTOM_TOKEN_AUDIENCE,
+    check_picker_api_key,
     fetch_cloud_run_logs,
     file_or_update_production_issue,
     format_anomaly_markdown,
@@ -243,3 +244,84 @@ def test_fetch_cloud_run_logs_handles_permission_denied() -> None:
             services=["mmtools-backend", "mmtools-frontend"],
         )
         assert entries == []
+
+
+# Real responses captured from Google for the production project (consumer projects/39869978853).
+_BLOCKED_FIREBASE_KEY_BODY = json.dumps(
+    {
+        "error": {
+            "code": 403,
+            "message": "Requests to this API drive method google.apps.drive.v3.DriveFiles.List are blocked.",
+            "status": "PERMISSION_DENIED",
+            "details": [{"reason": "API_KEY_SERVICE_BLOCKED", "metadata": {"service": "drive.googleapis.com"}}],
+        }
+    }
+).encode()
+_ACCEPTED_DRIVE_KEY_BODY = json.dumps(
+    {
+        "error": {
+            "code": 403,
+            "message": "The user does not have sufficient permissions for this file.",
+            "errors": [{"reason": "insufficientFilePermissions"}],
+        }
+    }
+).encode()
+_INVALID_KEY_BODY = json.dumps(
+    {
+        "error": {
+            "code": 400,
+            "message": "API key not valid. Please pass a valid API key.",
+            "details": [{"reason": "API_KEY_INVALID"}],
+        }
+    }
+).encode()
+
+
+def _http_error(body: bytes) -> Any:
+    import io
+    import urllib.error
+
+    return urllib.error.HTTPError("https://www.googleapis.com/drive/v3/files", 403, "Forbidden", {}, io.BytesIO(body))  # type: ignore[arg-type]
+
+
+def test_check_picker_api_key_rejects_firebase_restricted_key() -> None:
+    """The Firebase browser key is blocked from Drive; this is what caused 'The API developer key is invalid'."""
+    with patch("urllib.request.urlopen", side_effect=_http_error(_BLOCKED_FIREBASE_KEY_BODY)):
+        ok, message = check_picker_api_key("AIzaFirebaseKey", referer="https://app.example")
+    assert ok is False
+    assert "API_KEY_SERVICE_BLOCKED" in message
+
+
+def test_check_picker_api_key_accepts_drive_enabled_key() -> None:
+    """A key permitted for Drive only fails with a normal per-request permission error."""
+    with patch("urllib.request.urlopen", side_effect=_http_error(_ACCEPTED_DRIVE_KEY_BODY)):
+        ok, message = check_picker_api_key("AIzaDriveKey")
+    assert ok is True
+    assert "accepted" in message
+
+
+def test_check_picker_api_key_rejects_invalid_and_empty_keys() -> None:
+    with patch("urllib.request.urlopen", side_effect=_http_error(_INVALID_KEY_BODY)):
+        ok, _ = check_picker_api_key("not-a-key")
+    assert ok is False
+    ok_empty, message = check_picker_api_key("")
+    assert ok_empty is False
+    assert "GOOGLE_PICKER_API_KEY" in message
+
+
+def test_check_picker_api_key_network_error_is_inconclusive() -> None:
+    import urllib.error
+
+    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("dns down")):
+        ok, message = check_picker_api_key("AIzaDriveKey")
+    assert ok is True
+    assert "Inconclusive" in message
+
+
+def test_cli_check_picker_key_exit_codes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GOOGLE_PICKER_API_KEY", "AIzaFirebaseKey")
+    with patch("urllib.request.urlopen", side_effect=_http_error(_BLOCKED_FIREBASE_KEY_BODY)):
+        assert main(["--check-picker-key"]) == 1
+    monkeypatch.setenv("GOOGLE_PICKER_API_KEY", "AIzaDriveKey")
+    with patch("urllib.request.urlopen", side_effect=_http_error(_ACCEPTED_DRIVE_KEY_BODY)):
+        assert main(["--check-picker-key"]) == 0
