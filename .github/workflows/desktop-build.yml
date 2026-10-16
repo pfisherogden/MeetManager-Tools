@@ -180,6 +180,16 @@ jobs:
           cd web-client
           npx playwright test --config playwright.tauri.config.ts
 
+      # The E2E app + its sidecar can still hold files in target/release, which makes the next
+      # build fail with "Access is denied" while copying resources. Stop them first.
+      - name: Stop leftover test processes (Windows)
+        if: always() && matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          Get-Process -Name app, 'mmtools-backend*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 5
+          Get-Process -Name app, 'mmtools-backend*' -ErrorAction SilentlyContinue | Format-Table Id, ProcessName
+
       - name: Build Tauri Desktop Client (Windows installer, clean config)
         if: matrix.platform == 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
         env:

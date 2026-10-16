@@ -40,6 +40,9 @@ async function terminateProcess(proc: ChildProcess): Promise<void> {
 		proc.stderr?.destroy();
 		return;
 	}
+	// Kill the whole tree FIRST: once the parent has exited, Windows can no longer
+	// enumerate its children, which would leave WebView2 and the sidecar orphaned.
+	killWindowsProcessTree(proc);
 	await new Promise<void>((resolve) => {
 		let settled = false;
 		const finish = () => {
@@ -69,7 +72,6 @@ async function terminateProcess(proc: ChildProcess): Promise<void> {
 			finish();
 		}
 	});
-	killWindowsProcessTree(proc);
 }
 
 /**
