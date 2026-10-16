@@ -1,4 +1,4 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -17,12 +17,32 @@ async function getFreePort(): Promise<number> {
 	});
 }
 
+async function waitForPortFree(port: number, timeoutMs = 30000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		const inUse = await new Promise<boolean>((resolve) => {
+			const sock = net.connect({ port, host: "127.0.0.1" });
+			sock.once("connect", () => {
+				sock.destroy();
+				resolve(true);
+			});
+			sock.once("error", () => resolve(false));
+		});
+		if (!inUse) return;
+		await new Promise((r) => setTimeout(r, 500));
+	}
+	throw new Error(`CDP port ${port} is still in use after ${timeoutMs}ms`);
+}
+
 async function terminateProcess(proc: ChildProcess): Promise<void> {
 	if (proc.exitCode !== null || proc.signalCode !== null) {
 		proc.stdout?.destroy();
 		proc.stderr?.destroy();
 		return;
 	}
+	// Kill the whole tree FIRST: once the parent has exited, Windows can no longer
+	// enumerate its children, which would leave WebView2 and the sidecar orphaned.
+	killWindowsProcessTree(proc);
 	await new Promise<void>((resolve) => {
 		let settled = false;
 		const finish = () => {
@@ -52,6 +72,24 @@ async function terminateProcess(proc: ChildProcess): Promise<void> {
 			finish();
 		}
 	});
+}
+
+/**
+ * On Windows, ChildProcess.kill() only terminates app.exe. Its WebView2 browser
+ * (which owns the CDP port) and the Python backend sidecar survive, so a later test
+ * can attach to the previous, dying WebView2 and fail with "socket hang up".
+ * taskkill /T /F terminates the whole process tree.
+ */
+function killWindowsProcessTree(proc: ChildProcess): void {
+	if (process.platform !== "win32" || !proc.pid) return;
+	try {
+		spawnSync("taskkill", ["/PID", String(proc.pid), "/T", "/F"], {
+			stdio: "ignore",
+			timeout: 10000,
+		});
+	} catch (_e) {
+		// Process tree may already be gone
+	}
 }
 
 export const test = base.extend<{
@@ -122,6 +160,9 @@ export const test = base.extend<{
 
 		const webdriverPort =
 			process.platform === "darwin" ? await getFreePort() : 4445;
+		// Must match --remote-debugging-port in the Windows E2E build (see desktop-build.yml).
+		// WebView2 ignores WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS once Tauri sets its own browser args.
+		const cdpPort = 9223;
 
 		// Run Tauri app with remote debugging / embedded WebDriver enabled
 		const env: Record<string, string | undefined> = {
@@ -131,9 +172,9 @@ export const test = base.extend<{
 		};
 		let tmpUserDataDir = "";
 		if (process.platform === "win32") {
-			// On Windows, WebView2 requires WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS to expose remote debugging CDP
-			env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS =
-				"--remote-debugging-port=9223";
+			// A previous test's dying WebView2 must no longer own the CDP port, otherwise we could
+			// attach to it and fail with "socket hang up".
+			await waitForPortFree(cdpPort);
 
 			// Force a unique WebView2 user data folder to avoid sharing processes or file locks in parallel/sequential runs
 			tmpUserDataDir = path.join(
@@ -181,9 +222,9 @@ export const test = base.extend<{
 			for (let i = 0; i < 120; i++) {
 				for (const host of ["127.0.0.1", "localhost"]) {
 					try {
-						const res = await fetch(`http://${host}:9223/json/version`);
+						const res = await fetch(`http://${host}:${cdpPort}/json/version`);
 						if (res.ok) {
-							activeUrl = `http://${host}:9223`;
+							activeUrl = `http://${host}:${cdpPort}`;
 							break;
 						}
 					} catch (_e) {
@@ -198,7 +239,7 @@ export const test = base.extend<{
 			if (!activeUrl) {
 				await terminateProcess(tauriProcess);
 				throw new Error(
-					"Timeout waiting for WebView2 remote debugging port 9223 to become active",
+					`Timeout waiting for WebView2 remote debugging port ${cdpPort} to become active`,
 				);
 			}
 			wsEndpoint = activeUrl;
