@@ -134,8 +134,9 @@ jobs:
         with:
           workspaces: "./web-client/src-tauri -> target"
 
+      # macOS: the single build is both the E2E target and the shipped installer (no debug port).
       - name: Build Tauri Desktop Client
-        if: hashFiles('web-client/src-tauri/Cargo.toml') != ''
+        if: matrix.platform != 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
@@ -150,6 +151,27 @@ jobs:
           # Builds the installer for the host operating system
           npx tauri build
 
+      # Windows: WebView2 only honors the remote-debugging port when it is compiled into the
+      # app's window config (the WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS env var is ignored once
+      # Tauri sets its own browser args). Baking it into the config also bakes it into the
+      # public installer, so build a throw-away TEST-ONLY binary with the port for the E2E,
+      # then build the real installer from the clean config below.
+      - name: Build Tauri E2E Binary (Windows, remote debugging enabled, never published)
+        if: matrix.platform == 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          NEXT_PUBLIC_GOOGLE_API_KEY: ${{ secrets.GOOGLE_PICKER_API_KEY }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        shell: bash
+        run: |
+          cd web-client
+          npm install -g @tauri-apps/cli
+          npx tauri build --no-bundle --config '{"app":{"windows":[{"label":"main","title":"MeetManager Tools","width":1280,"height":800,"resizable":true,"fullscreen":false,"devtools":true,"additionalBrowserArgs":"--remote-debugging-port=9223"}]}}'
+
       - name: Run Tauri E2E Smoke Tests
         if: (matrix.platform == 'windows' || matrix.platform == 'macos') && hashFiles('web-client/src-tauri/Cargo.toml') != ''
         env:
@@ -157,6 +179,31 @@ jobs:
         run: |
           cd web-client
           npx playwright test --config playwright.tauri.config.ts
+
+      - name: Build Tauri Desktop Client (Windows installer, clean config)
+        if: matrix.platform == 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          NEXT_PUBLIC_GOOGLE_API_KEY: ${{ secrets.GOOGLE_PICKER_API_KEY }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        shell: bash
+        run: |
+          cd web-client
+          npx tauri build
+
+      - name: Verify Windows installer binary has no remote debugging
+        if: matrix.platform == 'windows' && hashFiles('web-client/src-tauri/Cargo.toml') != ''
+        shell: bash
+        run: |
+          if grep -a -q "remote-debugging-port" web-client/src-tauri/target/release/app.exe; then
+            echo "::error::The shipped Windows app.exe contains --remote-debugging-port (unauthenticated DevTools endpoint)"
+            exit 1
+          fi
+          echo "OK: shipped app.exe has no remote debugging flag"
 
       - name: Upload Playwright Test Results
         if: always() && (matrix.platform == 'windows' || matrix.platform == 'macos')

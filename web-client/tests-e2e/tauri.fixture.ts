@@ -17,6 +17,23 @@ async function getFreePort(): Promise<number> {
 	});
 }
 
+async function waitForPortFree(port: number, timeoutMs = 30000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		const inUse = await new Promise<boolean>((resolve) => {
+			const sock = net.connect({ port, host: "127.0.0.1" });
+			sock.once("connect", () => {
+				sock.destroy();
+				resolve(true);
+			});
+			sock.once("error", () => resolve(false));
+		});
+		if (!inUse) return;
+		await new Promise((r) => setTimeout(r, 500));
+	}
+	throw new Error(`CDP port ${port} is still in use after ${timeoutMs}ms`);
+}
+
 async function terminateProcess(proc: ChildProcess): Promise<void> {
 	if (proc.exitCode !== null || proc.signalCode !== null) {
 		proc.stdout?.destroy();
@@ -141,9 +158,9 @@ export const test = base.extend<{
 
 		const webdriverPort =
 			process.platform === "darwin" ? await getFreePort() : 4445;
-		// A fresh CDP port per test so a test can never attach to a previous test's
-		// still-exiting WebView2 instance (previously hard-coded to 9223).
-		const cdpPort = process.platform === "win32" ? await getFreePort() : 9223;
+		// Must match --remote-debugging-port in the Windows E2E build (see desktop-build.yml).
+		// WebView2 ignores WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS once Tauri sets its own browser args.
+		const cdpPort = 9223;
 
 		// Run Tauri app with remote debugging / embedded WebDriver enabled
 		const env: Record<string, string | undefined> = {
@@ -153,8 +170,9 @@ export const test = base.extend<{
 		};
 		let tmpUserDataDir = "";
 		if (process.platform === "win32") {
-			// On Windows, WebView2 requires WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS to expose remote debugging CDP
-			env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = `--remote-debugging-port=${cdpPort}`;
+			// A previous test's dying WebView2 must no longer own the CDP port, otherwise we could
+			// attach to it and fail with "socket hang up".
+			await waitForPortFree(cdpPort);
 
 			// Force a unique WebView2 user data folder to avoid sharing processes or file locks in parallel/sequential runs
 			tmpUserDataDir = path.join(

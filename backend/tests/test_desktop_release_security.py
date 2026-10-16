@@ -36,3 +36,13 @@ def test_release_workflow_does_not_set_debug_port_job_wide() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "desktop-build.yml").read_text(encoding="utf-8")
     top_level_env = workflow.split("\njobs:", 1)[0]
     assert "remote-debugging-port" not in top_level_env
+
+
+def test_windows_installer_is_scanned_for_debug_flag_after_clean_build() -> None:
+    """The workflow must build the installer from the clean config and fail if the flag is present."""
+    workflow = (REPO_ROOT / ".github" / "workflows" / "desktop-build.yml").read_text(encoding="utf-8")
+    assert "Verify Windows installer binary has no remote debugging" in workflow
+    assert 'grep -a -q "remote-debugging-port"' in workflow
+    # The debug-port build is test-only: it must not bundle an installer.
+    test_build = workflow.split("Build Tauri E2E Binary", 1)[1].split("- name:", 1)[0]
+    assert "--no-bundle" in test_build
