@@ -3,22 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MMTools</title>
+    <meta name="description" content="MMTools — Modern swim meet orchestration, automated rule validation, publication-grade PDF report packs, CTS scoreboard exports, and mobile deckside DQ judging. Available online in the cloud or offline on macOS and Windows.">
+    <title>MMTools — Modern Swim Meet Orchestration (Online Cloud &amp; Offline Desktop)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0B0F19;
-            --bg-card: rgba(17, 24, 39, 0.7);
-            --border-card: rgba(255, 255, 255, 0.08);
-            --primary: #3B82F6;
-            --primary-hover: #2563EB;
-            --secondary: #10B981;
-            --secondary-hover: #059669;
+            --bg-dark: #070B14;
+            --bg-surface: rgba(15, 23, 42, 0.78);
+            --bg-surface-elevated: rgba(30, 41, 59, 0.72);
+            --border-card: rgba(148, 163, 184, 0.16);
+            --border-highlight: rgba(56, 189, 248, 0.42);
+            --primary: #2563EB;
+            --primary-hover: #1D4ED8;
+            --primary-light: #60A5FA;
+            --secondary: #059669;
+            --secondary-hover: #047857;
+            --secondary-light: #34D399;
             --accent: #F59E0B;
-            --text-main: #F3F4F6;
-            --text-muted: #9CA3AF;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
@@ -28,290 +41,1088 @@
             background-color: var(--bg-dark);
             color: var(--text-main);
             min-height: 100vh;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+            background-image:
+                radial-gradient(at 10% 0%, rgba(37, 99, 235, 0.22) 0px, transparent 52%),
+                radial-gradient(at 90% 15%, rgba(16, 185, 129, 0.15) 0px, transparent 48%),
+                radial-gradient(at 50% 100%, rgba(56, 189, 248, 0.12) 0px, transparent 55%);
             background-attachment: fixed;
+            line-height: 1.6;
         }
 
         header {
-            background: rgba(11, 15, 25, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(7, 11, 20, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border-bottom: 1px solid var(--border-card);
-            padding: 20px;
+            padding: 16px 24px;
             position: sticky;
             top: 0;
             z-index: 100;
-            text-align: center;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .brand-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #2563EB, #10B981);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 18px;
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
         }
 
         header h1 {
             margin: 0;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 800;
-            background: linear-gradient(135deg, #3B82F6, #10B981);
+            background: linear-gradient(135deg, #F8FAFC, #60A5FA, #34D399);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.5px;
         }
 
-        .container {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 0 24px 60px;
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
 
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--text-main);
+        }
+
+        .nav-cta {
+            background: rgba(37, 99, 235, 0.2);
+            border: 1px solid rgba(96, 165, 250, 0.4);
+            color: #93C5FD;
+            padding: 8px 14px;
+            border-radius: 8px;
+        }
+
+        .nav-cta:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px 80px;
+        }
+
+        /* Hero Section */
         .hero {
+            padding: 64px 0 48px;
             text-align: center;
-            margin-bottom: 48px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(37, 99, 235, 0.15);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            color: #93C5FD;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 999px;
+            margin-bottom: 20px;
         }
 
         .hero h2 {
-            font-size: 40px;
+            font-size: clamp(34px, 5vw, 56px);
             font-weight: 800;
-            margin-bottom: 16px;
-            letter-spacing: -1px;
-            background: linear-gradient(135deg, #F3F4F6, #9CA3AF);
+            margin: 0 auto 20px;
+            max-width: 900px;
+            line-height: 1.12;
+            letter-spacing: -1.2px;
+            background: linear-gradient(135deg, #FFFFFF 30%, #93C5FD 70%, #6EE7B7 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .hero p {
-            font-size: 18px;
+            font-size: clamp(17px, 2vw, 20px);
             color: var(--text-muted);
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
+            max-width: 760px;
+            margin: 0 auto 32px;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-        }
-
-        @media (min-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            .grid-full {
-                grid-column: span 2;
-            }
-        }
-
-        .card {
-            background: var(--bg-card);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid var(--border-card);
-            border-radius: 16px;
-            padding: 32px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(59, 130, 246, 0.3);
-            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1);
-        }
-
-        .card h3 {
-            margin-top: 0;
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .card p {
-            line-height: 1.6;
-            color: var(--text-muted);
-            font-size: 15px;
-            flex-grow: 1;
-        }
-
-        .tag {
-            display: inline-block;
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--primary);
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 12px;
-            margin-bottom: 12px;
-            align-self: flex-start;
-        }
-
-        .button-group {
+        .cta-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 20px;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 28px;
         }
 
         .button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 12px 24px;
+            padding: 13px 24px;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 600;
             font-size: 15px;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            gap: 8px;
+            gap: 10px;
+            border: 1px solid transparent;
         }
 
         .button-primary {
-            background-color: var(--primary);
-            color: white;
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
         }
 
         .button-primary:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
+            background: linear-gradient(135deg, #3B82F6, #2563EB);
+            transform: translateY(-2px);
         }
 
         .button-secondary {
-            background-color: var(--secondary);
-            color: white;
+            background: linear-gradient(135deg, #059669, #047857);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(5, 150, 105, 0.3);
         }
 
         .button-secondary:hover {
-            background-color: var(--secondary-hover);
-            transform: translateY(-1px);
+            background: linear-gradient(135deg, #10B981, #059669);
+            transform: translateY(-2px);
         }
 
         .button-outline {
-            background-color: transparent;
+            background: rgba(15, 23, 42, 0.75);
             border: 1px solid var(--border-card);
             color: var(--text-main);
         }
 
         .button-outline:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-            border-color: var(--text-muted);
+            background: rgba(30, 41, 59, 0.9);
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        /* Metric Strip */
+        .metrics-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 40px 0 56px;
+        }
+
+        .metric-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-card);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Hero Showcase Figure */
+        .hero-figure {
+            margin: 0 auto 64px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-highlight);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+        }
+
+        .hero-figure img {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            display: block;
+            border: 1px solid var(--border-card);
+        }
+
+        .hero-figure figcaption {
+            margin-top: 14px;
+            font-size: 14px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 0 6px;
+        }
+
+        /* Section Headings */
+        .section-header {
+            text-align: center;
+            margin: 64px 0 36px;
+        }
+
+        .section-header h2 {
+            font-size: clamp(28px, 3.5vw, 38px);
+            font-weight: 800;
+            margin: 0 0 12px;
+            letter-spacing: -0.6px;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            max-width: 680px;
+            margin: 0 auto;
+            font-size: 17px;
+        }
+
+        /* Online vs Offline Deployment Cards */
+        .deployment-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 860px) {
+            .deployment-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: border-color 0.25s, transform 0.25s;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        }
+
+        .card:hover {
+            border-color: var(--border-highlight);
+            transform: translateY(-3px);
+        }
+
+        .tag {
+            display: inline-block;
+            background: rgba(37, 99, 235, 0.16);
+            color: #93C5FD;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            margin-bottom: 14px;
+            align-self: flex-start;
+        }
+
+        .tag-green {
+            background: rgba(16, 185, 129, 0.16);
+            color: #6EE7B7;
+        }
+
+        .tag-amber {
+            background: rgba(245, 158, 11, 0.16);
+            color: #FCD34D;
+        }
+
+        .card h3 {
+            margin: 0 0 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin: 0 0 16px;
         }
 
         .features-list {
-            margin: 16px 0;
+            margin: 0 0 24px;
             padding-left: 20px;
             color: var(--text-muted);
             font-size: 14px;
-            line-height: 1.8;
+            line-height: 1.85;
         }
 
-        .trust-instructions {
-            background: rgba(245, 158, 11, 0.05);
-            border-left: 4px solid var(--accent);
-            padding: 16px;
-            border-radius: 0 8px 8px 0;
-            font-size: 13px;
+        .features-list strong {
+            color: var(--text-main);
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        /* Screenshot Gallery Grid */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 28px;
+        }
+
+        @media (min-width: 860px) {
+            .gallery-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .screenshot-card {
+            margin: 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.25s, transform 0.25s;
+        }
+
+        .screenshot-card:hover {
+            border-color: var(--border-highlight);
+            transform: translateY(-3px);
+        }
+
+        .screenshot-preview-btn {
+            appearance: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            background: #0F172A;
+            cursor: zoom-in;
+            display: block;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screenshot-preview-btn img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .screenshot-preview-btn:hover img {
+            transform: scale(1.02);
+        }
+
+        .zoom-pill {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(7, 11, 20, 0.85);
+            border: 1px solid var(--border-card);
+            color: var(--text-main);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .screenshot-caption {
+            padding: 22px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .screenshot-caption h3 {
+            margin: 0;
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .screenshot-caption p {
+            margin: 0;
+            font-size: 14px;
             color: var(--text-muted);
-            margin-top: 16px;
             line-height: 1.6;
         }
 
-        .trust-instructions strong {
+        /* Disclosure / Details for macOS Gatekeeper */
+        details.trust-instructions {
+            background: rgba(245, 158, 11, 0.06);
+            border: 1px solid rgba(245, 158, 11, 0.28);
+            border-left: 4px solid var(--accent);
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+
+        details.trust-instructions summary {
+            cursor: pointer;
+            font-weight: 600;
             color: var(--text-main);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        details.trust-instructions summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.trust-instructions pre {
+            background: rgba(0, 0, 0, 0.45);
+            padding: 10px 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 8px 0 0;
+            color: #FCD34D;
+            font-size: 12px;
+        }
+
+        /* Comparison Table */
+        .table-wrap {
+            overflow-x: auto;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            margin-top: 24px;
+        }
+
+        table.comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        table.comparison-table th,
+        table.comparison-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-card);
+        }
+
+        table.comparison-table th {
+            color: var(--text-main);
+            font-weight: 700;
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        table.comparison-table td {
+            color: var(--text-muted);
+        }
+
+        table.comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Lightbox Dialog */
+        dialog#screenshot-modal {
+            max-width: min(94vw, 1360px);
+            width: 100%;
+            background: #0B0F19;
+            color: var(--text-main);
+            border: 1px solid var(--border-highlight);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.85);
+        }
+
+        dialog#screenshot-modal::backdrop {
+            background: rgba(3, 7, 18, 0.82);
+            backdrop-filter: blur(6px);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .modal-close-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-card);
+            color: var(--text-main);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        dialog#screenshot-modal img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            display: block;
+            border: 1px solid var(--border-card);
+        }
+
+        footer {
+            margin-top: 72px;
+            text-align: center;
+            border-top: 1px solid var(--border-card);
+            padding: 32px 24px 48px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        footer a {
+            color: #93C5FD;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>MMTools</h1>
+        <div class="header-inner">
+            <a href="#" class="brand">
+                <span class="brand-badge" aria-hidden="true">MM</span>
+                <h1>MMTools</h1>
+            </a>
+            <nav aria-label="Primary Navigation">
+                <ul>
+                    <li><a href="#deployments">Online &amp; Offline Apps</a></li>
+                    <li><a href="#screenshots">Feature Tour &amp; Screenshots</a></li>
+                    <li><a href="#deck-apps">Deck &amp; Spectator Apps</a></li>
+                    <li><a href="#comparison">Compare Editions</a></li>
+                    <li><a href="https://mmtools-app.web.app" class="nav-cta" target="_blank" rel="noopener">Launch Online App &rarr;</a></li>
+                </ul>
+            </nav>
+        </div>
     </header>
-    <div class="container">
-        <div class="hero">
-            <h2>Modern Swimming Meet Orchestration</h2>
-            <p>A suite of lightweight, high-performance web and desktop applications built to streamline swim meet operations, spectator experience, and referee workflow.</p>
-        </div>
 
-        <div class="grid">
-            <!-- Desktop Application Card (Featured) -->
-            <div class="card grid-full">
-                <div>
-                    <span class="tag">Central Controller</span>
-                    <h3>MMTools Desktop</h3>
-                    <p>The core application for meet managers, coordinators, and deck officials. MMTools simplifies swim meet operations by parsing your meet databases, generating high-fidelity PDF program sheets and CTS scoreboard files, and syncing data in real-time to mobile judge apps on the deck.</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px;">
-                        <div>
-                            <strong style="color: var(--text-main); font-size: 14px;">Key Benefits:</strong>
-                            <ul class="features-list">
-                                <li><strong>Easy Meet Import:</strong> Drag and drop your meet database to instantly load events, entries, and rosters.</li>
-                                <li><strong>Fast PDF Reports:</strong> Generate beautifully formatted heat sheets, psych sheets, and starter lists in seconds.</li>
-                                <li><strong>Real-time Deck Syncing:</strong> Push heat/lane updates and sync disqualifications (DQs) instantly with deck officials.</li>
-                                <li><strong>Scoreboard Exports:</strong> Directly generate CTS and Wahoo! Results scoreboard compatible files.</li>
-                            </ul>
+    <main class="container">
+        <!-- Hero Pitch -->
+        <section class="hero" aria-labelledby="hero-heading">
+            <span class="eyebrow">Built for Swim Meet Directors, Computer Tables &amp; Deck Officials</span>
+            <h2 id="hero-heading">From Legacy .mdb Databases to Championship-Ready Meet Operations in Seconds</h2>
+            <p>
+                Stop wrestling with legacy Windows-only utilities and manual paper workflows.
+                <strong>MMTools</strong> ingests your Meet Manager <code>.mdb</code> files directly from your computer or Google Drive, validates league entry rules automatically, generates publication-grade PDF heat sheets and CTS scoreboard start lists, and syncs live disqualifications from mobile Stroke &amp; Turn judges on deck.
+            </p>
+            <div class="cta-row">
+                <a href="https://mmtools-app.web.app" class="button button-primary" target="_blank" rel="noopener">
+                    &#9729; Launch Online Cloud App
+                </a>
+                <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-macOS.dmg" class="button button-outline">
+                    &#63743; Download Offline App for Mac (.dmg)
+                </a>
+                <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-Windows.msi" class="button button-secondary">
+                    &#8862; Download Offline App for Windows (.msi)
+                </a>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">
+                Also available on deck: <a href="./judge/" style="color: #93C5FD; font-weight: 600;">Mobile Stroke &amp; Turn Judge App</a>
+                &middot; <a href="./viewer/" style="color: #6EE7B7; font-weight: 600;">Live Spectator Program &amp; Results Viewer</a>
+            </p>
+
+            <div class="metrics-strip" aria-label="Platform Highlights">
+                <div class="metric-card">
+                    <span class="metric-value">Direct .mdb + Drive</span>
+                    <span class="metric-label">Zero Microsoft Access license required; import straight from Google Drive or local disk</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-value">1-Click Rule Audit</span>
+                    <span class="metric-label">Detects max-entry violations, illegal swim-ups, 420-splash limits &amp; timer anomalies</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-value">10+ Report Formats</span>
+                    <span class="metric-label">2-Column Meet Programs, Psych Sheets, Timer/Judge Sheets, Google Sheets &amp; CTS .scb</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-value">Online &amp; Offline</span>
+                    <span class="metric-label">Run in any browser via Cloud Run or 100% offline on pool decks with Mac/Windows installers</span>
+                </div>
+            </div>
+
+            <figure class="hero-figure">
+                <button
+                    type="button"
+                    class="screenshot-preview-btn"
+                    data-fullsrc="./screenshots/dashboard.webp"
+                    data-title="MMTools Command Center &amp; Automated TVSL League Rule Validation"
+                    aria-label="Zoom MMTools Command Center and Rule Validation screenshot"
+                >
+                    <img
+                        src="./screenshots/dashboard.webp"
+                        alt="MMTools Dashboard showing 1 Meet, 106 Athletes, 56 Events, and automated TVSL League Rule Validation results across 350 entries"
+                        width="1440"
+                        height="900"
+                        fetchpriority="high"
+                    >
+                    <span class="zoom-pill">Click to Enlarge</span>
+                </button>
+                <figcaption>
+                    <span><strong>Live Example Dataset (106 Athletes &middot; 56 Events &middot; 350 Entries):</strong> Instant meet overview paired with automated league rule compliance auditing.</span>
+                    <a href="https://mmtools-app.web.app" target="_blank" rel="noopener" style="color: #93C5FD; font-weight: 600; text-decoration: none;">Try it live in the Cloud App &rarr;</a>
+                </figcaption>
+            </figure>
+        </section>
+
+        <!-- Online vs Offline Deployment Section -->
+        <section id="deployments" aria-labelledby="deployments-heading">
+            <div class="section-header">
+                <h2 id="deployments-heading">Choose Your Workflow: Online Cloud or Offline Desktop</h2>
+                <p>Run MMTools from anywhere in your browser before the meet, or run completely self-contained at a pool deck with no Wi-Fi.</p>
+            </div>
+
+            <div class="deployment-grid">
+                <!-- Online Cloud Version -->
+                <article class="card">
+                    <div>
+                        <span class="tag">Online Cloud Edition &middot; Zero Install</span>
+                        <h3>MMTools Web App (Cloud Run)</h3>
+                        <p>
+                            Hosted on Google Cloud with global CDN acceleration and Firebase Authentication. Ideal for pre-meet preparation, remote team managers, and pools with cellular or Wi-Fi coverage.
+                        </p>
+                        <ul class="features-list">
+                            <li><strong>One-Click Google Drive Picker:</strong> Browse and import <code>.mdb</code> or JSON meet databases directly from your team's shared Google Drive.</li>
+                            <li><strong>Cloud-Assisted Report Rendering:</strong> Generate complete PDF report packs and Google Sheets attendance trackers in the cloud without taxing your laptop battery.</li>
+                            <li><strong>Live QR Code Publishing:</strong> Publish heat/lane programs to the cloud so deck officials and parents can sync immediately on their phones.</li>
+                            <li><strong>Permanent Cloud URL:</strong> Bookmark <code>mmtools-app.web.app</code> on any Mac, PC, Chromebook, or tablet.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="button-group">
+                            <a href="https://mmtools-app.web.app" class="button button-primary" target="_blank" rel="noopener">
+                                &#9729; Open Online App (mmtools-app.web.app)
+                            </a>
+                            <a href="https://mmtools-frontend-ckhcthqhya-uw.a.run.app" class="button button-outline" target="_blank" rel="noopener">
+                                Direct Cloud Run Endpoint
+                            </a>
                         </div>
-                        <div>
-                            <strong style="color: var(--text-main); font-size: 14px;">Download MMTools Desktop:</strong>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Get the latest version of the desktop controller for your operating system.</p>
-                            <div class="button-group" style="margin-top: 10px;">
-                                <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-macOS.dmg" class="button button-primary">
-                                     Download for Mac (.dmg)
-                                </a>
-                                <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-Windows.msi" class="button button-secondary">
-                                    ⊞ Download for Windows (.msi)
-                                </a>
+                    </div>
+                </article>
+
+                <!-- Offline Desktop Version -->
+                <article class="card">
+                    <div>
+                        <span class="tag tag-green">Offline Desktop Edition &middot; macOS &amp; Windows</span>
+                        <h3>MMTools Native Desktop App</h3>
+                        <p>
+                            A self-contained native Tauri desktop application bundling the Python/Java MDB extraction engine and WeasyPrint PDF renderer locally—built for swim clubs where pool-deck Wi-Fi is unavailable or unreliable.
+                        </p>
+                        <ul class="features-list">
+                            <li><strong>100% Offline Capable:</strong> Parses <code>.mdb</code> Access files and renders PDF bundles locally on your machine with zero internet dependency.</li>
+                            <li><strong>Bundled Runtime:</strong> Ships with an embedded JVM, Jackcess/UCanAccess MDB parser, and Cairo/Pango PDF engine—nothing extra to install.</li>
+                            <li><strong>Direct timing file ingestion:</strong> Watch local timing directories for Colorado Time Systems (CTS) and Dolphin result files.</li>
+                            <li><strong>Native File Dialogs:</strong> Save ZIP report packs and <code>.scb</code> scoreboard start lists directly to local USB drives for the timing console.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="button-group">
+                            <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-macOS.dmg" class="button button-primary">
+                                &#63743; Download for macOS (.dmg)
+                            </a>
+                            <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-Windows.msi" class="button button-secondary">
+                                &#8862; Download for Windows (.msi)
+                            </a>
+                        </div>
+
+                        <details class="trust-instructions">
+                            <summary>
+                                <span>&#63743; macOS First-Launch Authorization Instructions (Click to expand)</span>
+                                <span aria-hidden="true">+</span>
+                            </summary>
+                            <div style="margin-top: 10px;">
+                                Because MMTools Desktop is compiled and packaged automatically via GitHub Actions, macOS Gatekeeper may show an "unidentified developer" prompt on first launch. Authorize <strong>only MM-Tools.app</strong> using either method:
+                                <ol style="margin: 8px 0 10px 18px; padding: 0;">
+                                    <li><strong>System Settings &rarr; Privacy &amp; Security:</strong> Attempt to open <code>MM-Tools.app</code>, click <strong>Cancel</strong>, then click <strong>Open Anyway</strong> under <em>Privacy &amp; Security</em>.</li>
+                                    <li><strong>Terminal One-Liner:</strong> Clear the download quarantine flag for <code>MM-Tools.app</code>:</li>
+                                </ol>
+                                <pre tabindex="0"><code>xattr -d com.apple.quarantine /Applications/MM-Tools.app</code></pre>
                             </div>
-                        </div>
+                        </details>
                     </div>
+                </article>
+            </div>
+        </section>
 
-                    <div class="trust-instructions">
-                        <strong> macOS Installation Note:</strong> Since the application is compiled and packaged securely via GitHub Actions, macOS will show an "unidentified developer" warning on first launch. You can authorize <strong>only this specific app</strong> without changing your Mac's global security settings using one of these methods:
-                        <div style="margin-top: 10px;">
-                            <strong>Method 1: Open Anyway (Standard)</strong>
-                            <ol style="margin: 4px 0 12px 20px; padding: 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                                <li>Double-click the downloaded app to trigger the warning dialog, then click <strong>Cancel</strong>.</li>
-                                <li>Open your Mac's <strong>System Settings</strong> and navigate to <strong>Privacy & Security</strong>.</li>
-                                <li>Scroll down to the <strong>Security</strong> section. You will see a note stating: <em>"MM-Tools" was blocked from use because it is not from an identified developer</em>.</li>
-                                <li>Click the <strong>Open Anyway</strong> button and enter your Mac credentials. This authorizes only MMTools.</li>
-                            </ol>
-                        </div>
-                        <div>
-                            <strong>Method 2: Remove Quarantine Flag (Terminal)</strong>
-                            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                                Alternatively, you can clear the download quarantine flag for MMTools alone. Open your Terminal and run:
-                                <code style="display: block; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; margin-top: 6px; font-family: monospace; color: var(--accent);">xattr -d com.apple.quarantine /Applications/MM-Tools.app</code>
-                            </p>
-                        </div>
+        <!-- Feature Tour & Real Screenshots with Example Data -->
+        <section id="screenshots" aria-labelledby="screenshots-heading">
+            <div class="section-header">
+                <h2 id="screenshots-heading">See What You Can Do with MMTools</h2>
+                <p>Explore real screenshots captured from a live 56-event, 106-swimmer dual &amp; championship meet dataset. Click any screenshot to inspect it full-screen.</p>
+            </div>
+
+            <div class="gallery-grid">
+                <!-- Screenshot 1: Reports & Scoreboard Export Builder -->
+                <figure class="screenshot-card">
+                    <button
+                        type="button"
+                        class="screenshot-preview-btn"
+                        data-fullsrc="./screenshots/reports.webp"
+                        data-title="Publication-Grade PDF Reports &amp; CTS Scoreboard Export Builder"
+                        aria-label="Zoom Reports and Scoreboard Export screenshot"
+                    >
+                        <img
+                            src="./screenshots/reports.webp"
+                            alt="MMTools Reports screen displaying Psych Sheet, Meet Entries, Lineup Sheets, Meet Results, 2-Column Meet Program PDF and HTML, Lane Timer Sheets, Judge Sheets, CTS Scoreboard Export, and Swimmer Check-in Sheet"
+                            width="1440"
+                            height="900"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                        <span class="zoom-pill">Click to Enlarge</span>
+                    </button>
+                    <figcaption class="screenshot-caption">
+                        <span class="tag">Reporting &amp; Scoreboards</span>
+                        <h3>1. Generate Complete Meet Report Packs &amp; CTS Start Lists</h3>
+                        <p>
+                            Produce traditional 2-column HY-TEK style Meet Programs, Psych Sheets, Lineup Sheets, Lane Timer Sheets, S&amp;T Judge Sheets, Google Sheets Swimmer Check-In trackers, and Colorado Time Systems (<code>E001.scb</code> + Dolphin <code>events.csv</code>) start lists individually or in a single downloadable ZIP pack.
+                        </p>
+                    </figcaption>
+                </figure>
+
+                <!-- Screenshot 2: Events, Heats & Entries Explorer -->
+                <figure class="screenshot-card">
+                    <button
+                        type="button"
+                        class="screenshot-preview-btn"
+                        data-fullsrc="./screenshots/events.webp"
+                        data-title="Interactive Events, Sessions, Heats &amp; Entries Explorer"
+                        aria-label="Zoom Events and Entries Explorer screenshot"
+                    >
+                        <img
+                            src="./screenshots/events.webp"
+                            alt="MMTools Events table showing 56 swim events with stroke badges, age groups, session filters, and entry counts"
+                            width="1440"
+                            height="900"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                        <span class="zoom-pill">Click to Enlarge</span>
+                    </button>
+                    <figcaption class="screenshot-caption">
+                        <span class="tag">Data Explorer</span>
+                        <h3>2. Inspect Events, Relays, Athletes &amp; Seed Times Instantly</h3>
+                        <p>
+                            Filter across 56+ events by stroke, gender, age group, or session. Drill down directly from any event into its individual entries or 4-leg relay rosters without clicking through nested legacy dialogs.
+                        </p>
+                    </figcaption>
+                </figure>
+
+                <!-- Screenshot 3: Dataset Management & Google Drive Integration -->
+                <figure class="screenshot-card">
+                    <button
+                        type="button"
+                        class="screenshot-preview-btn"
+                        data-fullsrc="./screenshots/admin.webp"
+                        data-title="Dataset Management, Google Drive Picker &amp; Judge App Sync"
+                        aria-label="Zoom Admin Dataset Management and Google Drive Import screenshot"
+                    >
+                        <img
+                            src="./screenshots/admin.webp"
+                            alt="MMTools Admin Configuration screen showing active Singers23.mdb dataset imported from Google Drive with Publish to Judge App action"
+                            width="1440"
+                            height="900"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                        <span class="zoom-pill">Click to Enlarge</span>
+                    </button>
+                    <figcaption class="screenshot-caption">
+                        <span class="tag">Cloud &amp; Local Ingestion</span>
+                        <h3>3. Import .mdb Files from Google Drive &amp; Publish to Deck</h3>
+                        <p>
+                            Upload local <code>.mdb</code> files or pick them straight from Google Drive. Switch active meets with one click, reload caches, and generate a secure QR code to push the current meet program to mobile judges on deck.
+                        </p>
+                    </figcaption>
+                </figure>
+
+                <!-- Screenshot 4: Dashboard & Automated League Rule Validation -->
+                <figure class="screenshot-card">
+                    <button
+                        type="button"
+                        class="screenshot-preview-btn"
+                        data-fullsrc="./screenshots/dashboard.webp"
+                        data-title="Automated League Rule Validation &amp; Anomaly Detection"
+                        aria-label="Zoom Automated League Rule Validation screenshot"
+                    >
+                        <img
+                            src="./screenshots/dashboard.webp"
+                            alt="MMTools Meet Rules and Data Validation panel highlighting NS/Scratch with Times, 1 Backup Timer, Wild Times, Entries, and Rules Limit checks"
+                            width="1440"
+                            height="900"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                        <span class="zoom-pill">Click to Enlarge</span>
+                    </button>
+                    <figcaption class="screenshot-caption">
+                        <span class="tag">Compliance Engine</span>
+                        <h3>4. Catch Rule Violations &amp; Scoring Anomalies Automatically</h3>
+                        <p>
+                            Audit 350+ entries in under a second for league rule limits (max individual/total entries, exhibition bypasses, 420 team splash limit, illegal swim-ups), NS/Scratch entries with recorded times, single backup timers, and outlier times.
+                        </p>
+                    </figcaption>
+                </figure>
+
+                <!-- Screenshot 5: Mobile Stroke & Turn Judge App -->
+                <figure class="screenshot-card">
+                    <button
+                        type="button"
+                        class="screenshot-preview-btn"
+                        data-fullsrc="./screenshots/judge.webp"
+                        data-title="Deckside Mobile Stroke &amp; Turn Judge App"
+                        aria-label="Zoom Mobile Stroke and Turn Judge App screenshot"
+                    >
+                        <img
+                            src="./screenshots/judge.webp"
+                            alt="Mobile Stroke and Turn Judge App showing Event 1 Heat 1 relay teams, ordered leg swimmers, and Tap to DQ buttons"
+                            width="1440"
+                            height="900"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                        <span class="zoom-pill">Click to Enlarge</span>
+                    </button>
+                    <figcaption class="screenshot-caption">
+                        <span class="tag tag-amber">Deck Officials PWA</span>
+                        <h3>5. Record Disqualifications (DQs) from Any Phone or Tablet</h3>
+                        <p>
+                            Judges step through events and heats, view individual swimmers or all four relay legs per lane, tap <strong>TAP TO DQ</strong> to select official stroke/turn infraction codes, queue DQs offline when pool Wi-Fi drops, and sync back to the computer table.
+                        </p>
+                    </figcaption>
+                </figure>
+
+                <!-- Screenshot 6: Live Spectator Program & Results Viewer -->
+                <figure class="screenshot-card">
+                    <button
+                        type="button"
+                        class="screenshot-preview-btn"
+                        data-fullsrc="./screenshots/viewer.webp"
+                        data-title="Live Spectator Meet Program &amp; Results Viewer"
+                        aria-label="Zoom Spectator Meet Program and Results Viewer screenshot"
+                    >
+                        <img
+                            src="./screenshots/viewer.webp"
+                            alt="Meet Results Viewer showing Mixed 6 and Under 100 Medley Relay heats, lanes, all 4 relay swimmer names, seed times, final times, and gold/silver/bronze medal badges"
+                            width="1440"
+                            height="900"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                        <span class="zoom-pill">Click to Enlarge</span>
+                    </button>
+                    <figcaption class="screenshot-caption">
+                        <span class="tag tag-green">Spectators &amp; Coaches</span>
+                        <h3>6. Share Live Heat Sheets, Relay Rosters &amp; Medal Results</h3>
+                        <p>
+                            Give parents and coaches a mobile-friendly view of heat/lane assignments, ordered relay leg names, seed times, final times, and gold/silver/bronze placement indicators.
+                        </p>
+                    </figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <!-- Dedicated Companion Web Apps Section -->
+        <section id="deck-apps" aria-labelledby="deck-apps-heading">
+            <div class="section-header">
+                <h2 id="deck-apps-heading">Companion Deck &amp; Spectator Web Apps</h2>
+                <p>Hosted directly on GitHub Pages for instant access via QR code on iOS and Android devices.</p>
+            </div>
+
+            <div class="deployment-grid">
+                <article class="card">
+                    <div>
+                        <span class="tag tag-amber">For Referees &amp; S&amp;T Judges</span>
+                        <h3>Mobile Stroke &amp; Turn Judge App</h3>
+                        <p>
+                            Designed for bright outdoor pool decks. Scan the meet QR code from MMTools Admin to load the full meet program onto your phone, log DQs with standardized rule codes and relay leg attribution, and automatically sync pending DQs even over spotty connections.
+                        </p>
                     </div>
-                </div>
+                    <div class="button-group">
+                        <a href="./judge/" class="button button-outline">Open Stroke &amp; Turn Judge App &rarr;</a>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div>
+                        <span class="tag tag-green">For Parents, Swimmers &amp; Coaches</span>
+                        <h3>Meet Program &amp; Results Viewer</h3>
+                        <p>
+                            A fast, searchable mobile program and results board. Browse every event, heat, and lane assignment, check relay swimmer order (legs 1&ndash;4), compare seed times against final times, and see top finishers highlighted with medal indicators.
+                        </p>
+                    </div>
+                    <div class="button-group">
+                        <a href="./viewer/" class="button button-outline">Open Meet Program &amp; Results Viewer &rarr;</a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Comparison Table -->
+        <section id="comparison" aria-labelledby="comparison-heading">
+            <div class="section-header">
+                <h2 id="comparison-heading">Which Edition Should I Use?</h2>
+                <p>Both editions share the exact same UI, reporting engine, and rule validation logic—pick based on your venue's internet connectivity.</p>
             </div>
 
-            <!-- Mobile Judge App Card -->
-            <div class="card">
-                <h3>Stroke & Turn Judge App</h3>
-                <p>A mobile-optimized interface designed for deck referees and judges. Allows officials to quickly record disqualifications (DQs), assign them to swimmers or relay legs, manage an offline queue for areas with poor connectivity, and sync results back to the database.</p>
-                <div class="button-group">
-                    <a href="./judge/" class="button button-outline">Open Judge App</a>
-                </div>
+            <div class="table-wrap">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Capability</th>
+                            <th scope="col">Online Cloud App (<code>mmtools-app.web.app</code>)</th>
+                            <th scope="col">Offline Desktop App (macOS <code>.dmg</code> / Windows <code>.msi</code>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Installation Required</strong></td>
+                            <td>None &mdash; runs in any modern browser</td>
+                            <td>Single native installer (bundles Python, Java &amp; WeasyPrint)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Internet Connectivity</strong></td>
+                            <td>Requires internet connection</td>
+                            <td>Works 100% offline on the pool deck</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Direct <code>.mdb</code> Upload &amp; Google Drive Import</strong></td>
+                            <td>&#10003; Local file upload + Google Drive Picker</td>
+                            <td>&#10003; Local file upload + Google Drive Picker (when online)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PDF Report Packs &amp; CTS (<code>.scb</code>) Exports</strong></td>
+                            <td>&#10003; Cloud-rendered PDFs &amp; ZIP bundles</td>
+                            <td>&#10003; Locally-rendered PDFs &amp; direct filesystem save</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Automated League Rule Validation</strong></td>
+                            <td>&#10003; Full compliance suite</td>
+                            <td>&#10003; Full compliance suite</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mobile Judge App DQ Sync</strong></td>
+                            <td>&#10003; Cloud QR sync from anywhere</td>
+                            <td>&#10003; Local LAN / Wi-Fi QR sync on deck</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
+        </section>
+    </main>
 
-            <!-- Live Spectator App Card -->
-            <div class="card">
-                <h3>Meet Program & Results Viewer</h3>
-                <p>A spectator and coach-friendly dashboard providing a real-time view of the meet. Features include heat and lane assignments, seed times, ordered relay swimmer names, live results with final times, and visual medal indicators for top finishers.</p>
-                <div class="button-group">
-                    <a href="./viewer/" class="button button-outline">Open Viewer App</a>
-                </div>
-            </div>
+    <!-- Native HTML5 Dialog Lightbox for Screenshots -->
+    <dialog id="screenshot-modal" closedby="any" aria-labelledby="modal-title">
+        <div class="modal-header">
+            <h3 id="modal-title">Screenshot Preview</h3>
+            <form method="dialog">
+                <button type="submit" class="modal-close-btn" aria-label="Close preview">Close (Esc)</button>
+            </form>
         </div>
-    </div>
-    <footer style="margin-top: 60px; text-align: center; border-top: 1px solid var(--border-card); padding-top: 24px; padding-bottom: 40px;">
-        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-            Last deployed: <span style="font-family: monospace; color: var(--accent);">2026-10-17 02:02:29 PM PDT</span>
+        <img id="modal-image" src="./screenshots/dashboard.webp" alt="Full-size application screenshot" width="1440" height="900">
+    </dialog>
+
+    <footer>
+        <p style="margin: 0 0 8px;">
+            <strong>MMTools</strong> &mdash; <a href="https://mmtools-app.web.app" target="_blank" rel="noopener">Online Cloud App</a> &middot;
+            <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-macOS.dmg">macOS Desktop (.dmg)</a> &middot;
+            <a href="https://github.com/pfisherogden/MeetManager-Tools/releases/download/latest/MM-Tools-Windows.msi">Windows Desktop (.msi)</a> &middot;
+            <a href="./judge/">Judge App</a> &middot;
+            <a href="./viewer/">Results Viewer</a> &middot;
+            <a href="https://github.com/pfisherogden/MeetManager-Tools" target="_blank" rel="noopener">GitHub Repository</a>
+        </p>
+        <p style="margin: 0;">
+            Last deployed: <span style="font-family: monospace; color: var(--accent);">2026-10-17 02:41:38 PM PDT</span>
         </p>
     </footer>
+
+    <script>
+        (function () {
+            const modal = document.getElementById('screenshot-modal');
+            const modalImg = document.getElementById('modal-image');
+            const modalTitle = document.getElementById('modal-title');
+            if (!modal || !modalImg || !modalTitle) return;
+
+            document.querySelectorAll('.screenshot-preview-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const src = btn.getAttribute('data-fullsrc');
+                    const title = btn.getAttribute('data-title') || 'Screenshot Preview';
+                    if (src) {
+                        modalImg.src = src;
+                        modalImg.alt = title;
+                        modalTitle.textContent = title;
+                        if (typeof modal.showModal === 'function') {
+                            modal.showModal();
+                        }
+                    }
+                });
+            });
+
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    modal.close();
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
