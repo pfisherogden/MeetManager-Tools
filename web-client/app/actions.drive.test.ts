@@ -80,6 +80,39 @@ describe("Google Drive Upload Actions (Server & Tauri Client)", () => {
 			expect(mockRevalidatePath).toHaveBeenCalledWith("/admin");
 		});
 
+		it("accepts single-object payload for multi-MB .mdb files (>1M base64 chars) and chunks at 1MB", async () => {
+			const { uploadDatasetFromDrive } = await import("./actions.server");
+			// 2.2 MB raw binary (> 2.9M base64 chars, exceeding React Flight's 1e6 array limit)
+			const rawContent = Buffer.alloc(2.2 * 1024 * 1024, 0x41);
+			const base64Content = rawContent.toString("base64");
+			expect(base64Content.length).toBeGreaterThan(1_000_000);
+
+			const streamedChunks: Uint8Array[] = [];
+			const streamedFilenames: string[] = [];
+			mockUploadDataset.mockImplementation(async (gen: AsyncIterable<any>) => {
+				for await (const req of gen) {
+					if (req.filename) streamedFilenames.push(req.filename);
+					if (req.chunk) streamedChunks.push(req.chunk);
+				}
+				return {
+					success: true,
+					message: "Saved Singers23.mdb",
+				};
+			});
+
+			const res = await uploadDatasetFromDrive({
+				fileId: "drive-mdb-large",
+				filename: "Singers23.mdb",
+				accessToken: "explicit-token",
+				contentBase64: base64Content,
+			});
+
+			expect(res.success).toBe(true);
+			expect(streamedFilenames).toEqual(["Singers23.mdb"]);
+			expect(streamedChunks.length).toBe(3); // 1MB + 1MB + 0.2MB
+			expect(Buffer.concat(streamedChunks).length).toBe(rawContent.length);
+		});
+
 		it("downloads file from Google Drive API v3 when contentBase64 is not provided", async () => {
 			const { uploadDatasetFromDrive } = await import("./actions.server");
 			const drivePayload = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
@@ -158,12 +191,12 @@ describe("Google Drive Upload Actions (Server & Tauri Client)", () => {
 				datasetPath: "/tmp/TauriDrive.mdb",
 			});
 
-			const res = await uploadDatasetFromDrive(
-				"tauri-drive-id",
-				"TauriDrive.mdb",
-				"tauri-token",
-				"dGF1cmktZGF0YQ==",
-			);
+			const res = await uploadDatasetFromDrive({
+				fileId: "tauri-drive-id",
+				filename: "TauriDrive.mdb",
+				accessToken: "tauri-token",
+				contentBase64: "dGF1cmktZGF0YQ==",
+			});
 
 			expect(res.success).toBe(true);
 			expect(mockCallRestGateway).toHaveBeenCalledWith("UploadDataset", {

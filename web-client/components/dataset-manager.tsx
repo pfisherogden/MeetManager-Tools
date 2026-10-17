@@ -140,12 +140,12 @@ export function DatasetManager() {
 					}
 				}
 
-				const res = await uploadDatasetFromDrive(
-					file.id,
-					file.name,
-					token,
+				const res = await uploadDatasetFromDrive({
+					fileId: file.id,
+					filename: file.name,
+					accessToken: token,
 					contentBase64,
-				);
+				});
 				if (res && res.success === false) {
 					toast.error(res.message || "Drive import failed");
 					return;

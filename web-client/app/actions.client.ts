@@ -497,14 +497,37 @@ export async function uploadDataset(formData: FormData) {
 	};
 }
 
+export interface UploadDatasetFromDrivePayload {
+	fileId: string;
+	filename: string;
+	accessToken?: string;
+	contentBase64?: string;
+}
+
 export async function uploadDatasetFromDrive(
-	fileId: string,
-	filename: string,
-	accessToken?: string,
-	contentBase64?: string,
+	fileIdOrPayload: string | UploadDatasetFromDrivePayload,
+	filenameArg?: string,
+	accessTokenArg?: string,
+	contentBase64Arg?: string | { contentBase64?: string },
 ) {
-	let base64 = contentBase64;
-	let token = accessToken;
+	const fileId =
+		typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+			? fileIdOrPayload.fileId
+			: fileIdOrPayload;
+	const filename =
+		typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+			? fileIdOrPayload.filename
+			: filenameArg || "uploaded.mdb";
+	let base64 =
+		typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+			? fileIdOrPayload.contentBase64
+			: typeof contentBase64Arg === "object" && contentBase64Arg !== null
+				? contentBase64Arg.contentBase64
+				: contentBase64Arg;
+	let token =
+		typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+			? fileIdOrPayload.accessToken
+			: accessTokenArg;
 
 	if (!token && typeof document !== "undefined") {
 		const match = document.cookie.match(/(?:^|; )googleAccessToken=([^;]*)/);

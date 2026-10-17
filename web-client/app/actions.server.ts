@@ -289,16 +289,16 @@ export async function getEventScores() {
 }
 
 export async function uploadDataset(formData: FormData) {
-	const file = formData.get("file") as File;
-	const metadata = await getAuthMetadata();
-
-	if (!file) throw new Error("No file provided");
-
-	console.log(
-		`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`,
-	);
-
 	try {
+		const file = formData.get("file") as File;
+		const metadata = await getAuthMetadata();
+
+		if (!file) throw new Error("No file provided");
+
+		console.log(
+			`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`,
+		);
+
 		const buffer = await file.arrayBuffer();
 		const uint8Array = new Uint8Array(buffer);
 
@@ -341,17 +341,46 @@ export async function uploadDataset(formData: FormData) {
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (uploadDataset):", err);
-		throw err;
+		return {
+			success: false,
+			message: err instanceof Error ? err.message : String(err),
+		};
 	}
 }
 
+export interface UploadDatasetFromDrivePayload {
+	fileId: string;
+	filename: string;
+	accessToken?: string;
+	contentBase64?: string;
+}
+
 export async function uploadDatasetFromDrive(
-	fileId: string,
-	filename: string,
-	accessToken?: string,
-	contentBase64?: string,
+	fileIdOrPayload: string | UploadDatasetFromDrivePayload,
+	filenameArg?: string,
+	accessTokenArg?: string,
+	contentBase64Arg?: string | { contentBase64?: string },
 ) {
 	try {
+		const fileId =
+			typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+				? fileIdOrPayload.fileId
+				: fileIdOrPayload;
+		const filename =
+			typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+				? fileIdOrPayload.filename
+				: filenameArg || "uploaded.mdb";
+		const accessToken =
+			typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+				? fileIdOrPayload.accessToken
+				: accessTokenArg;
+		const contentBase64 =
+			typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+				? fileIdOrPayload.contentBase64
+				: typeof contentBase64Arg === "object" && contentBase64Arg !== null
+					? contentBase64Arg.contentBase64
+					: contentBase64Arg;
+
 		const metadata = await getAuthMetadata();
 		let uint8Array: Uint8Array;
 

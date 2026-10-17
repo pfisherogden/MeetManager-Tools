@@ -4,6 +4,7 @@ import {
 	GoogleAuthProvider,
 	getIdToken,
 	onAuthStateChanged,
+	onIdTokenChanged,
 	signInWithCustomToken,
 	signInWithPopup,
 	signOut,
@@ -148,7 +149,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			customTokenInFlight = false;
 		}
 
-		const unsubscribe = onAuthStateChanged(auth, async (user) => {
+		const subscribeAuth =
+			typeof onIdTokenChanged === "function"
+				? onIdTokenChanged
+				: onAuthStateChanged;
+		const unsubscribe = subscribeAuth(auth, async (user) => {
 			if (!user && customTokenInFlight) {
 				return;
 			}

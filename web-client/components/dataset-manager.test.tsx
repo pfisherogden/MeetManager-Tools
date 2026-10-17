@@ -125,12 +125,12 @@ describe("DatasetManager", () => {
 			contentBase64: "dGVzdC1tZGItY29udGVudA==",
 		});
 
-		expect(uploadDatasetFromDrive).toHaveBeenCalledWith(
-			"drive-file-123",
-			"Champs2026.mdb",
-			"picker-oauth-token",
-			"dGVzdC1tZGItY29udGVudA==",
-		);
+		expect(uploadDatasetFromDrive).toHaveBeenCalledWith({
+			fileId: "drive-file-123",
+			filename: "Champs2026.mdb",
+			accessToken: "picker-oauth-token",
+			contentBase64: "dGVzdC1tZGItY29udGVudA==",
+		});
 		expect(toast.success).toHaveBeenCalledWith(
 			"Successfully imported Champs2026.mdb from Drive",
 		);
@@ -145,12 +145,12 @@ describe("DatasetManager", () => {
 			sizeBytes: 2048,
 		});
 
-		expect(uploadDatasetFromDrive).toHaveBeenCalledWith(
-			"drive-zip-456",
-			"Swmm7Bkup.zip",
-			"test-token",
-			undefined,
-		);
+		expect(uploadDatasetFromDrive).toHaveBeenCalledWith({
+			fileId: "drive-zip-456",
+			filename: "Swmm7Bkup.zip",
+			accessToken: "test-token",
+			contentBase64: undefined,
+		});
 	});
 
 	it("rejects unsupported file extensions from Google Drive", async () => {
