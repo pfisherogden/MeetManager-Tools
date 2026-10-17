@@ -188,6 +188,15 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 				value: "e2e-mock-google-oauth-token",
 				url: baseUrl,
 			},
+			{
+				name: "__session",
+				value: JSON.stringify({
+					idToken: "dev-token",
+					uid: userId,
+					googleAccessToken: "e2e-mock-google-oauth-token",
+				}),
+				url: baseUrl,
+			},
 		]);
 	} catch (err) {
 		console.warn("[Utils] Could not pre-set context cookies:", err);
@@ -213,6 +222,14 @@ export async function setupE2ESession(page: Page, testInfo: TestInfo) {
 		document.cookie = `x-user-id=${uid}; path=/; max-age=31536000`;
 		document.cookie = `idToken=dev-token; path=/; max-age=31536000`;
 		document.cookie = `googleAccessToken=e2e-mock-google-oauth-token; path=/; max-age=31536000`;
+		const sessionPayload = encodeURIComponent(
+			JSON.stringify({
+				idToken: "dev-token",
+				uid,
+				googleAccessToken: "e2e-mock-google-oauth-token",
+			}),
+		);
+		document.cookie = `__session=${sessionPayload}; path=/; max-age=31536000`;
 	}, userId);
 	console.log(
 		"[Utils] Cookie immediately after set:",

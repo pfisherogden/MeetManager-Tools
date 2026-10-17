@@ -177,6 +177,35 @@ describe("Google Drive Upload Actions (Server & Tauri Client)", () => {
 			);
 			fetchSpy.mockRestore();
 		});
+
+		it("falls back to __session cookie when individual cookies are stripped by Firebase Hosting CDN", async () => {
+			const { getServerCookie } = await import("@/lib/session-cookie");
+			const sessionCookieStore = {
+				get: (name: string) => {
+					if (name === "__session") {
+						return {
+							value: encodeURIComponent(
+								JSON.stringify({
+									idToken: "fb-hosting-id-token",
+									uid: "fb-hosting-uid",
+									googleAccessToken: "fb-hosting-drive-token",
+								}),
+							),
+						};
+					}
+					return undefined;
+				},
+			};
+			expect(getServerCookie(sessionCookieStore, "idToken")).toBe(
+				"fb-hosting-id-token",
+			);
+			expect(getServerCookie(sessionCookieStore, "x-user-id")).toBe(
+				"fb-hosting-uid",
+			);
+			expect(getServerCookie(sessionCookieStore, "googleAccessToken")).toBe(
+				"fb-hosting-drive-token",
+			);
+		});
 	});
 
 	describe("actions.client.ts (Tauri Desktop App)", () => {

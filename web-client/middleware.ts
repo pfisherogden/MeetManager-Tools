@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getServerCookie } from "@/lib/session-cookie";
 
 export function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
@@ -33,8 +34,8 @@ export function middleware(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	// Check for the presence of the idToken cookie
-	const idToken = request.cookies.get("idToken")?.value;
+	// Check for the presence of the idToken cookie (or __session via Firebase Hosting)
+	const idToken = getServerCookie(request.cookies, "idToken");
 
 	if (!idToken) {
 		// Redirect to login if not authenticated

@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { Metadata } from "nice-grpc";
 import client from "@/lib/mm-client";
+import { getServerCookie } from "@/lib/session-cookie";
 
 async function getAuthMetadata() {
 	const headerList = await headers();
 	const cookieStore = await cookies();
 	let userId =
-		headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+		headerList.get("x-user-id") || getServerCookie(cookieStore, "x-user-id");
 
 	// Fallback for local development, desktop mode, or E2E bypass
 	const isAuthDisabled =
@@ -391,7 +392,8 @@ export async function uploadDatasetFromDrive(
 			uint8Array = new Uint8Array(Buffer.from(cleanBase64, "base64"));
 		} else {
 			const cookieStore = await cookies();
-			const token = accessToken || cookieStore.get("googleAccessToken")?.value;
+			const token =
+				accessToken || getServerCookie(cookieStore, "googleAccessToken");
 
 			if (!token) {
 				throw new Error(
@@ -653,7 +655,7 @@ export async function getDisqualifications() {
 		const headerList = await headers();
 		const cookieStore = await cookies();
 		const userId =
-			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+			headerList.get("x-user-id") || getServerCookie(cookieStore, "x-user-id");
 
 		if (!userId) {
 			console.warn("getDisqualifications: No userId found");
@@ -674,7 +676,7 @@ export async function deleteDq(dqId: string) {
 		const headerList = await headers();
 		const cookieStore = await cookies();
 		const userId =
-			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+			headerList.get("x-user-id") || getServerCookie(cookieStore, "x-user-id");
 
 		if (!userId) throw new Error("Unauthorized");
 
@@ -693,7 +695,7 @@ export async function clearAllDqs() {
 		const headerList = await headers();
 		const cookieStore = await cookies();
 		const userId =
-			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+			headerList.get("x-user-id") || getServerCookie(cookieStore, "x-user-id");
 
 		if (!userId) throw new Error("Unauthorized");
 

@@ -1,0 +1,28 @@
+{
+	"hosting": [
+		{
+			"site": "mmtools-app",
+			"rewrites": [
+				{
+					"source": "**",
+					"run": {
+						"serviceId": "mmtools-frontend",
+						"region": "us-west1"
+					}
+				}
+			]
+		},
+		{
+			"site": "mmtools-488404",
+			"rewrites": [
+				{
+					"source": "**",
+					"run": {
+						"serviceId": "mmtools-frontend",
+						"region": "us-west1"
+					}
+				}
+			]
+		}
+	]
+}

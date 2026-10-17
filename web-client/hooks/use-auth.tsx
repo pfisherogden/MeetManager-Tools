@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				});
 			}
 
-			// In bypass mode, we also need a dummy idToken for the middleware
+			const currentIdToken = Cookies.get("idToken") || "dev-token";
 			if (!Cookies.get("idToken")) {
 				Cookies.set("idToken", "dev-token", {
 					path: "/",
@@ -126,6 +126,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					secure: isSecure,
 				});
 			}
+			Cookies.set(
+				"__session",
+				JSON.stringify({
+					idToken: currentIdToken,
+					uid: mockUid,
+					googleAccessToken: token,
+				}),
+				{
+					path: "/",
+					sameSite: "strict",
+					secure: isSecure,
+				},
+			);
 
 			setLoading(false);
 			return;
@@ -163,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				if (typeof window !== "undefined") {
 					localStorage.setItem("x-user-id", user.uid);
 				}
+				const currentGoogleToken = Cookies.get("googleAccessToken");
 				Cookies.set("idToken", idToken, {
 					expires: 1 / 24, // 1 hour
 					secure: isSecure,
@@ -175,6 +189,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					sameSite: "strict",
 					path: "/",
 				});
+				Cookies.set(
+					"__session",
+					JSON.stringify({
+						idToken,
+						uid: user.uid,
+						googleAccessToken: currentGoogleToken,
+					}),
+					{
+						expires: 1 / 24,
+						secure: isSecure,
+						sameSite: "strict",
+						path: "/",
+					},
+				);
 			} else {
 				if (typeof window !== "undefined") {
 					localStorage.removeItem("x-user-id");
@@ -182,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				Cookies.remove("idToken", { path: "/" });
 				Cookies.remove("x-user-id", { path: "/" });
 				Cookies.remove("googleAccessToken", { path: "/" });
+				Cookies.remove("__session", { path: "/" });
 				setGoogleAccessToken(null);
 			}
 			setLoading(false);
@@ -203,6 +232,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				sameSite: "strict",
 				path: "/",
 			});
+			const existingIdToken = Cookies.get("idToken");
+			const existingUid = result.user?.uid || Cookies.get("x-user-id");
+			Cookies.set(
+				"__session",
+				JSON.stringify({
+					idToken: existingIdToken,
+					uid: existingUid,
+					googleAccessToken: credential.accessToken,
+				}),
+				{
+					expires: 1 / 24,
+					secure: isSecure,
+					sameSite: "strict",
+					path: "/",
+				},
+			);
 		}
 		return result;
 	};
@@ -218,6 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			Cookies.remove("idToken", { path: "/" });
 			Cookies.remove("x-user-id", { path: "/" });
 			Cookies.remove("googleAccessToken", { path: "/" });
+			Cookies.remove("__session", { path: "/" });
 			setUser(null);
 			setGoogleAccessToken(null);
 			router.push("/login");

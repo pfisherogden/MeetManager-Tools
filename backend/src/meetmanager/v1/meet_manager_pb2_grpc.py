@@ -166,6 +166,11 @@ class MeetManagerServiceStub(object):
                 request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.ValidateMeetRequest.SerializeToString,
                 response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.ValidateMeetResponse.FromString,
                 _registered_method=True)
+        self.UploadResultChunk = channel.unary_unary(
+                '/meetmanager.v1.MeetManagerService/UploadResultChunk',
+                request_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.UploadResultChunkRequest.SerializeToString,
+                response_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.UploadResultChunkResponse.FromString,
+                _registered_method=True)
 
 
 class MeetManagerServiceServicer(object):
@@ -369,6 +374,13 @@ class MeetManagerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def UploadResultChunk(self, request, context):
+        """UploadResultChunk receives incremental live timing system results.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MeetManagerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -501,6 +513,11 @@ def add_MeetManagerServiceServicer_to_server(servicer, server):
                     servicer.ValidateMeet,
                     request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.ValidateMeetRequest.FromString,
                     response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.ValidateMeetResponse.SerializeToString,
+            ),
+            'UploadResultChunk': grpc.unary_unary_rpc_method_handler(
+                    servicer.UploadResultChunk,
+                    request_deserializer=meetmanager_dot_v1_dot_meet__manager__pb2.UploadResultChunkRequest.FromString,
+                    response_serializer=meetmanager_dot_v1_dot_meet__manager__pb2.UploadResultChunkResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -1207,6 +1224,33 @@ class MeetManagerService(object):
             '/meetmanager.v1.MeetManagerService/ValidateMeet',
             meetmanager_dot_v1_dot_meet__manager__pb2.ValidateMeetRequest.SerializeToString,
             meetmanager_dot_v1_dot_meet__manager__pb2.ValidateMeetResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UploadResultChunk(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/meetmanager.v1.MeetManagerService/UploadResultChunk',
+            meetmanager_dot_v1_dot_meet__manager__pb2.UploadResultChunkRequest.SerializeToString,
+            meetmanager_dot_v1_dot_meet__manager__pb2.UploadResultChunkResponse.FromString,
             options,
             channel_credentials,
             insecure,
