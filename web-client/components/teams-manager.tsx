@@ -78,15 +78,15 @@ export function TeamsManager({ initialTeams }: TeamsManagerProps) {
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			import("@/app/actions.client").then(({ getTeams }) => {
+			import("@/app/actions").then(({ getTeams }) => {
 				getTeams().then((res) => {
-					if (res?.teams) {
+					if (res?.teams && (res.teams.length > 0 || !initialTeams?.length)) {
 						setData(res.teams);
 					}
 				});
 			});
 		}
-	}, []);
+	}, [initialTeams]);
 
 	const handleAdd = () => {
 		const newTeam: Team = {

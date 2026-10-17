@@ -9,6 +9,7 @@ on:
       - 'protos/**'
       - 'web-client/**'
       - 'mobile-judge-app/**'
+      - 'public/**'
       - 'Justfile'
       - 'docker-compose*'
       - '.github/workflows/ci.yml'

@@ -27,9 +27,12 @@ export function EventsManager({ initialEvents, sessions }: EventsManagerProps) {
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			import("@/app/actions.client").then(({ getEvents }) => {
+			import("@/app/actions").then(({ getEvents }) => {
 				getEvents().then((res) => {
-					if (res?.events) {
+					if (
+						res?.events &&
+						(res.events.length > 0 || !initialEvents?.length)
+					) {
 						const mapped = res.events.map((e: any) => ({
 							id: e.id ? e.id.toString() : "",
 							sessionId: e.session ? e.session.toString() : "",
@@ -49,7 +52,7 @@ export function EventsManager({ initialEvents, sessions }: EventsManagerProps) {
 				});
 			});
 		}
-	}, [sessionFilter]);
+	}, [sessionFilter, initialEvents]);
 
 	const columns: Column<SwimEvent>[] = [
 		{

@@ -22,15 +22,18 @@ export function SessionsManager({
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			import("@/app/actions.client").then(({ getSessions }) => {
+			import("@/app/actions").then(({ getSessions }) => {
 				getSessions().then((res) => {
-					if (res?.sessions) {
+					if (
+						res?.sessions &&
+						(res.sessions.length > 0 || !initialSessions?.length)
+					) {
 						setData(res.sessions);
 					}
 				});
 			});
 		}
-	}, []);
+	}, [initialSessions]);
 
 	const getMeetName = (meetId: string) =>
 		meets.find((m) => m.id === meetId)?.name || meetId;
