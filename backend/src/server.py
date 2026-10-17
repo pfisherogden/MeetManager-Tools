@@ -1858,14 +1858,13 @@ def get_google_picker_config() -> dict[str, str]:
     """Resolves Google Picker API configuration from environment variables.
 
     Returns:
-        dict[str, str]: Dictionary containing apiKey, clientId, and appId.
+        dict[str, str]: Dictionary containing apiKey and appId.
     """
     return {
         "apiKey": os.getenv("GOOGLE_API_KEY")
         or os.getenv("NEXT_PUBLIC_GOOGLE_API_KEY")
         or os.getenv("NEXT_PUBLIC_FIREBASE_API_KEY")
         or "",
-        "clientId": os.getenv("GOOGLE_CLIENT_ID") or os.getenv("NEXT_PUBLIC_GOOGLE_CLIENT_ID") or "",
         "appId": os.getenv("GOOGLE_APP_ID")
         or os.getenv("NEXT_PUBLIC_GOOGLE_APP_ID")
         or os.getenv("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID")

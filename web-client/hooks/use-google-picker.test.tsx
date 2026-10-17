@@ -84,7 +84,6 @@ describe("useGooglePicker", () => {
 	it("loads config and configures PickerBuilder with DocsView and access token", async () => {
 		(getGoogleConfig as any).mockResolvedValue({
 			apiKey: "test-google-api-key",
-			clientId: "test-client-id",
 			appId: "99887766",
 		});
 		(Cookies.get as any).mockReturnValue("cookie-oauth-token");
@@ -157,7 +156,6 @@ describe("useGooglePicker", () => {
 	it("authenticates via Firebase signInWithPopup when no accessToken cookie is present", async () => {
 		(getGoogleConfig as any).mockResolvedValue({
 			apiKey: "test-api-key",
-			clientId: "",
 			appId: "12345",
 		});
 		(Cookies.get as any).mockReturnValue(undefined);

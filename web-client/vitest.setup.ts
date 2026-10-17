@@ -28,9 +28,7 @@ const mockActions = {
 	getAdminConfig: vi.fn(() =>
 		Promise.resolve({ meetName: "Test Meet", meetDescription: "" }),
 	),
-	getGoogleConfig: vi.fn(() =>
-		Promise.resolve({ apiKey: "", clientId: "", appId: "" }),
-	),
+	getGoogleConfig: vi.fn(() => Promise.resolve({ apiKey: "", appId: "" })),
 	getDisqualifications: vi.fn(() => Promise.resolve({ disqualifications: [] })),
 	deleteDq: vi.fn(() => Promise.resolve({ success: true })),
 	clearAllDqs: vi.fn(() => Promise.resolve({ success: true })),
