@@ -137,8 +137,6 @@ pub fn run() {
                 "GOOGLE_API_KEY",
                 "NEXT_PUBLIC_GOOGLE_API_KEY",
                 "NEXT_PUBLIC_FIREBASE_API_KEY",
-                "GOOGLE_CLIENT_ID",
-                "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
                 "GOOGLE_DRIVE_API_URL",
             ] {
                 if let Ok(val) = std::env::var(var_name) {

@@ -982,7 +982,6 @@ export async function getGoogleConfig() {
 			process.env.NEXT_PUBLIC_GOOGLE_API_KEY ||
 			process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
 			"",
-		clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
 		appId:
 			process.env.NEXT_PUBLIC_GOOGLE_APP_ID ||
 			process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ||
@@ -993,7 +992,6 @@ export async function getGoogleConfig() {
 		if (res && typeof res === "object") {
 			return {
 				apiKey: res.apiKey || fallback.apiKey,
-				clientId: res.clientId || fallback.clientId,
 				appId: res.appId || fallback.appId,
 			};
 		}

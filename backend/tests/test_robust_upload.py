@@ -39,13 +39,12 @@ def test_get_google_picker_config_env_resolution(monkeypatch):
     from server import get_google_picker_config
 
     monkeypatch.setenv("GOOGLE_API_KEY", "picker-key-123")
-    monkeypatch.setenv("GOOGLE_CLIENT_ID", "client-id-456")
     monkeypatch.setenv("GOOGLE_APP_ID", "app-id-789")
 
     cfg = get_google_picker_config()
     assert cfg["apiKey"] == "picker-key-123"
-    assert cfg["clientId"] == "client-id-456"
     assert cfg["appId"] == "app-id-789"
+    assert "clientId" not in cfg
 
 
 def test_resolve_drive_upload_bytes_base64():

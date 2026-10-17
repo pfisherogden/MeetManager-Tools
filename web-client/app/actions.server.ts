@@ -755,7 +755,6 @@ export async function getGoogleConfig() {
 			env.NEXT_PUBLIC_GOOGLE_API_KEY ||
 			env.NEXT_PUBLIC_FIREBASE_API_KEY ||
 			"",
-		clientId: env.GOOGLE_CLIENT_ID || env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
 		appId:
 			env.GOOGLE_APP_ID ||
 			env.NEXT_PUBLIC_GOOGLE_APP_ID ||

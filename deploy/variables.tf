@@ -32,12 +32,6 @@ variable "firebase_app_id" {
   type        = string
 }
 
-variable "google_client_id" {
-  description = "Google Client ID for Drive integration"
-  type        = string
-  default     = ""
-}
-
 variable "custom_domain" {
   description = "Optional custom domain hostname (e.g. mmtools.example.com) for Cloud Run routing"
   type        = string
