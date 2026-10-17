@@ -126,15 +126,18 @@ export function RelaysManager({ initialRelays }: RelaysManagerProps) {
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			import("@/app/actions.client").then(({ getRelays }) => {
+			import("@/app/actions").then(({ getRelays }) => {
 				getRelays(eventFilter || undefined).then((res) => {
-					if (res?.relays) {
+					if (
+						res?.relays &&
+						(res.relays.length > 0 || !initialRelays?.length)
+					) {
 						setData(res.relays);
 					}
 				});
 			});
 		}
-	}, [eventFilter]);
+	}, [eventFilter, initialRelays]);
 
 	const handleAdd = () => {
 		const newRelay: Relay = {

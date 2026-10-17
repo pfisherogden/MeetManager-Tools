@@ -163,15 +163,18 @@ export function EntriesManager({ initialEntries }: EntriesManagerProps) {
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			import("@/app/actions.client").then(({ getEntries }) => {
+			import("@/app/actions").then(({ getEntries }) => {
 				getEntries(eventFilter || undefined).then((res) => {
-					if (res?.entries) {
+					if (
+						res?.entries &&
+						(res.entries.length > 0 || !initialEntries?.length)
+					) {
 						setData(res.entries);
 					}
 				});
 			});
 		}
-	}, [eventFilter]);
+	}, [eventFilter, initialEntries]);
 
 	const handleAdd = () => {
 		const newEntry: Entry = {

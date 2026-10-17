@@ -12,6 +12,7 @@ on:
     paths:
       - 'mobile-judge-app/**'
       - 'meet-program-viewer/**'
+      - 'public/**'
       - '.github/workflows/deploy-mobile.yml'
   workflow_dispatch:
 

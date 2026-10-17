@@ -104,20 +104,23 @@ export function AthletesManager({
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			import("@/app/actions.client").then(({ getAthletes, getTeams }) => {
+			import("@/app/actions").then(({ getAthletes, getTeams }) => {
 				getAthletes().then((res) => {
-					if (res?.athletes) {
+					if (
+						res?.athletes &&
+						(res.athletes.length > 0 || !initialAthletes?.length)
+					) {
 						setData(res.athletes);
 					}
 				});
 				getTeams().then((res) => {
-					if (res?.teams) {
+					if (res?.teams && (res.teams.length > 0 || !teams?.length)) {
 						setLocalTeams(res.teams);
 					}
 				});
 			});
 		}
-	}, []);
+	}, [initialAthletes, teams]);
 
 	// Update columns to use dynamic teams
 	const teamOptions = localTeams.map((t) => t.name);

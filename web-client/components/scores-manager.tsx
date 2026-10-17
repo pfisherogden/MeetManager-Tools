@@ -63,20 +63,27 @@ export function ScoresManager({
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			import("@/app/actions.client").then(({ getScores, getEventScores }) => {
+			import("@/app/actions").then(({ getScores, getEventScores }) => {
 				getScores().then((res) => {
-					if (res?.scores) {
+					if (
+						res?.scores &&
+						(res.scores.length > 0 || !initialScores?.length)
+					) {
 						setData(res.scores);
 					}
 				});
-				getEventScores().then((res) => {
-					if (res?.scores) {
-						setLocalEventScores(res.scores);
+				getEventScores().then((res: any) => {
+					const evScores = res?.scores || res?.eventScores;
+					if (
+						evScores &&
+						(evScores.length > 0 || !initialEventScores?.length)
+					) {
+						setLocalEventScores(evScores);
 					}
 				});
 			});
 		}
-	}, []);
+	}, [initialScores, initialEventScores]);
 
 	// Flatten event scores for table
 	const eventRows = useMemo(
