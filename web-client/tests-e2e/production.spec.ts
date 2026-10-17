@@ -1,3 +1,5 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { expect, test } from "@playwright/test";
 import {
 	getE2ETestContext,
@@ -95,7 +97,7 @@ test.describe("Production Smoke Tests", () => {
 					sess_starttime: 32400,
 				},
 			],
-			sessitem: [{ sess_ptr: 1, event_ptr: 1, sess_order: 1, sess_rnd: "F" }],
+			sessitem: [{ sess_ptr: 1, event_ptr: 1, sess_rnd: "F", sess_order: 1 }],
 			entry: [
 				{
 					ath_no: 1,
@@ -140,6 +142,41 @@ test.describe("Production Smoke Tests", () => {
 		await page.goto("/meets");
 		await expect(page.locator("table")).toContainText("Cloud Run Drive Meet", {
 			timeout: 20000,
+		});
+	});
+
+	test("should allow importing a multi-MB .mdb database (Singers23.mdb) from Google Drive without RSC error", async ({
+		page,
+	}, testInfo) => {
+		const { shardIndex, workerIndex, retry } = getE2ETestContext(testInfo);
+		const mdbFileName = `Singers23_drive_${shardIndex}_${workerIndex}_${retry}.mdb`;
+		const mdbBuffer = fs.readFileSync(path.join(__dirname, "Singers23.mdb"));
+
+		const { driveDownloadRequests } = await mockGoogleDrivePicker(page, {
+			id: "cloud-drive-mdb-213",
+			name: mdbFileName,
+			mimeType: "application/x-msaccess",
+			content: mdbBuffer,
+		});
+
+		await page.goto("/admin");
+		const importDriveBtn = page.getByRole("button", {
+			name: /Import from Drive/i,
+		});
+		await expect(importDriveBtn).toBeVisible();
+		await expect(importDriveBtn).toBeEnabled({ timeout: 15000 });
+		await importDriveBtn.click();
+
+		await expect(
+			page.getByText(`Successfully imported ${mdbFileName} from Drive`),
+		).toBeVisible({ timeout: 45000 });
+
+		expect(driveDownloadRequests.length).toBeGreaterThan(0);
+
+		const row = page.getByTestId(`dataset-row-${mdbFileName}`);
+		await expect(row).toBeVisible({ timeout: 15000 });
+		await expect(row).toHaveAttribute("data-test-state", "active", {
+			timeout: 15000,
 		});
 	});
 });

@@ -680,3 +680,25 @@ class ValidateMeetResponse(_message.Message):
     message: str
     findings: _containers.RepeatedCompositeFieldContainer[ValidationFinding]
     def __init__(self, success: bool = ..., message: _Optional[str] = ..., findings: _Optional[_Iterable[_Union[ValidationFinding, _Mapping]]] = ...) -> None: ...
+
+class UploadResultChunkRequest(_message.Message):
+    __slots__ = ("filename", "content", "uid", "access_token")
+    FILENAME_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    UID_FIELD_NUMBER: _ClassVar[int]
+    ACCESS_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    filename: str
+    content: bytes
+    uid: str
+    access_token: str
+    def __init__(self, filename: _Optional[str] = ..., content: _Optional[bytes] = ..., uid: _Optional[str] = ..., access_token: _Optional[str] = ...) -> None: ...
+
+class UploadResultChunkResponse(_message.Message):
+    __slots__ = ("success", "message", "updated_count")
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    UPDATED_COUNT_FIELD_NUMBER: _ClassVar[int]
+    success: bool
+    message: str
+    updated_count: int
+    def __init__(self, success: bool = ..., message: _Optional[str] = ..., updated_count: _Optional[int] = ...) -> None: ...

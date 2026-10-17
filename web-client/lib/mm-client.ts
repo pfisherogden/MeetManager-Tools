@@ -53,9 +53,10 @@ const authMiddleware = async function* (call: any, options: any) {
 	if (typeof window === "undefined") {
 		try {
 			const { cookies } = await import("next/headers");
+			const { getServerCookie } = await import("@/lib/session-cookie");
 			const cookieStore = await cookies();
-			token = cookieStore.get("idToken")?.value;
-			userId = cookieStore.get("x-user-id")?.value;
+			token = getServerCookie(cookieStore, "idToken");
+			userId = getServerCookie(cookieStore, "x-user-id");
 		} catch (e) {
 			console.warn("Could not retrieve cookies on server", e);
 		}

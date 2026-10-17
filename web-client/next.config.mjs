@@ -19,6 +19,17 @@ const nextConfig = {
 	experimental: {
 		serverActions: {
 			bodySizeLimit: "50mb",
+			allowedOrigins: [
+				"mmtools-app.web.app",
+				"mmtools-app.firebaseapp.com",
+				"mmtools-488404.web.app",
+				"mmtools-488404.firebaseapp.com",
+				"*.web.app",
+				"*.firebaseapp.com",
+				"*.run.app",
+				"localhost:3000",
+				"127.0.0.1:3000",
+			],
 		},
 	},
 	generateBuildId: async () => {

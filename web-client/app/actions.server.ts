@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { Metadata } from "nice-grpc";
 import client from "@/lib/mm-client";
+import { getServerCookie } from "@/lib/session-cookie";
 
 async function getAuthMetadata() {
 	const headerList = await headers();
 	const cookieStore = await cookies();
 	let userId =
-		headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+		headerList.get("x-user-id") || getServerCookie(cookieStore, "x-user-id");
 
 	// Fallback for local development, desktop mode, or E2E bypass
 	const isAuthDisabled =
@@ -289,16 +290,16 @@ export async function getEventScores() {
 }
 
 export async function uploadDataset(formData: FormData) {
-	const file = formData.get("file") as File;
-	const metadata = await getAuthMetadata();
-
-	if (!file) throw new Error("No file provided");
-
-	console.log(
-		`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`,
-	);
-
 	try {
+		const file = formData.get("file") as File;
+		const metadata = await getAuthMetadata();
+
+		if (!file) throw new Error("No file provided");
+
+		console.log(
+			`E2E DEBUG: Server Action: uploadDataset for file ${file.name}, size ${file.size}`,
+		);
+
 		const buffer = await file.arrayBuffer();
 		const uint8Array = new Uint8Array(buffer);
 
@@ -341,17 +342,46 @@ export async function uploadDataset(formData: FormData) {
 		};
 	} catch (err: unknown) {
 		console.error("SERVER ACTION ERROR (uploadDataset):", err);
-		throw err;
+		return {
+			success: false,
+			message: err instanceof Error ? err.message : String(err),
+		};
 	}
 }
 
+export interface UploadDatasetFromDrivePayload {
+	fileId: string;
+	filename: string;
+	accessToken?: string;
+	contentBase64?: string;
+}
+
 export async function uploadDatasetFromDrive(
-	fileId: string,
-	filename: string,
-	accessToken?: string,
-	contentBase64?: string,
+	fileIdOrPayload: string | UploadDatasetFromDrivePayload,
+	filenameArg?: string,
+	accessTokenArg?: string,
+	contentBase64Arg?: string | { contentBase64?: string },
 ) {
 	try {
+		const fileId =
+			typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+				? fileIdOrPayload.fileId
+				: fileIdOrPayload;
+		const filename =
+			typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+				? fileIdOrPayload.filename
+				: filenameArg || "uploaded.mdb";
+		const accessToken =
+			typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+				? fileIdOrPayload.accessToken
+				: accessTokenArg;
+		const contentBase64 =
+			typeof fileIdOrPayload === "object" && fileIdOrPayload !== null
+				? fileIdOrPayload.contentBase64
+				: typeof contentBase64Arg === "object" && contentBase64Arg !== null
+					? contentBase64Arg.contentBase64
+					: contentBase64Arg;
+
 		const metadata = await getAuthMetadata();
 		let uint8Array: Uint8Array;
 
@@ -362,7 +392,8 @@ export async function uploadDatasetFromDrive(
 			uint8Array = new Uint8Array(Buffer.from(cleanBase64, "base64"));
 		} else {
 			const cookieStore = await cookies();
-			const token = accessToken || cookieStore.get("googleAccessToken")?.value;
+			const token =
+				accessToken || getServerCookie(cookieStore, "googleAccessToken");
 
 			if (!token) {
 				throw new Error(
@@ -624,7 +655,7 @@ export async function getDisqualifications() {
 		const headerList = await headers();
 		const cookieStore = await cookies();
 		const userId =
-			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+			headerList.get("x-user-id") || getServerCookie(cookieStore, "x-user-id");
 
 		if (!userId) {
 			console.warn("getDisqualifications: No userId found");
@@ -645,7 +676,7 @@ export async function deleteDq(dqId: string) {
 		const headerList = await headers();
 		const cookieStore = await cookies();
 		const userId =
-			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+			headerList.get("x-user-id") || getServerCookie(cookieStore, "x-user-id");
 
 		if (!userId) throw new Error("Unauthorized");
 
@@ -664,7 +695,7 @@ export async function clearAllDqs() {
 		const headerList = await headers();
 		const cookieStore = await cookies();
 		const userId =
-			headerList.get("x-user-id") || cookieStore.get("x-user-id")?.value;
+			headerList.get("x-user-id") || getServerCookie(cookieStore, "x-user-id");
 
 		if (!userId) throw new Error("Unauthorized");
 

@@ -29,6 +29,8 @@ ERROR_SEVERITIES: frozenset[str] = frozenset({"ERROR", "CRITICAL", "ALERT", "EME
 ANOMALY_PATTERNS: tuple[str, ...] = (
     "Memory limit exceeded",
     "Failed to find Server Action",
+    "Maximum array nesting exceeded",
+    "Server Components render",
     "Token expired",
     "TemplateNotFound",
 )

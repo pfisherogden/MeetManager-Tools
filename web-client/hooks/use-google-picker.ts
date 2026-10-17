@@ -123,9 +123,20 @@ export function useGooglePicker({
 			return;
 		}
 
+		const sessionRaw = Cookies.get("__session");
+		let sessionGoogleToken: string | undefined;
+		if (sessionRaw) {
+			try {
+				sessionGoogleToken = JSON.parse(sessionRaw)?.googleAccessToken;
+			} catch {
+				// ignore malformed session cookie
+			}
+		}
+
 		let currentToken =
 			accessToken ||
 			Cookies.get("googleAccessToken") ||
+			sessionGoogleToken ||
 			(typeof window !== "undefined"
 				? (window as any).__MM_TEST_GOOGLE_TOKEN__
 				: null) ||
@@ -150,6 +161,20 @@ export function useGooglePicker({
 						sameSite: "strict",
 						path: "/",
 					});
+					Cookies.set(
+						"__session",
+						JSON.stringify({
+							idToken: Cookies.get("idToken"),
+							uid: result.user?.uid || Cookies.get("x-user-id"),
+							googleAccessToken: currentToken,
+						}),
+						{
+							expires: 1 / 24,
+							secure: isSecure,
+							sameSite: "strict",
+							path: "/",
+						},
+					);
 				}
 			} catch (err) {
 				console.error("Failed to authenticate with Google:", err);
