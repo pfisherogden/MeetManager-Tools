@@ -39,6 +39,16 @@ build-tauri:
     @echo "Building Tauri desktop app..."
     cd web-client && npx tauri build
 
+# Build the Rust core acceleration library (mm_core_rs)
+build-rust:
+    @echo "Building Rust core engine (mm_core_rs)..."
+    cargo build --release --manifest-path backend/rust/mm_core_rs/Cargo.toml
+
+# Run Rust unit tests for mm_core_rs
+test-rust:
+    @echo "Running Rust unit tests (mm_core_rs)..."
+    cargo test --manifest-path backend/rust/mm_core_rs/Cargo.toml
+
 # Start services in the background
 up:
     @echo "Starting services..."

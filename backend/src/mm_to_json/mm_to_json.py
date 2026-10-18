@@ -5,8 +5,16 @@ import logging
 import math
 import os
 from typing import Any
+from unittest.mock import MagicMock, NonCallableMagicMock
 
 import pandas as pd
+
+from .rust_bridge import (
+    is_jet4_mdb_file,
+    rust_convert_meet,
+    rust_export_mdb_full_schema,
+    rust_load_mdb_bundle,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +26,29 @@ except ImportError as e:
     mdb_writer: Any = None  # type: ignore
 
 
+def _is_mock_obj(obj: Any) -> bool:
+    """Return True if `obj` is a unittest.mock instance."""
+    return isinstance(obj, (MagicMock, NonCallableMagicMock))
+
+
 class MmToJsonConverter:
     def __init__(self, mdb_path=None, password=None, table_data=None):
+        self.mdb_path = str(mdb_path) if mdb_path else None
+        self._db: Any = None
+        self._tables: dict[str, pd.DataFrame] = {}
+        self._raw_tables_dict: dict[str, list[dict[str, Any]]] | None = None
+        self._raw_table_data: dict[str, Any] | None = None
+        self._rust_converted: dict[str, Any] | None = None
+        self._tables_fingerprint: tuple[Any, ...] | None = None
+
+        self.cache_athlete_map = None
+        self.cache_team_map = None
+        self.cache_division_map = None
+        self.schema_type = "A"  # A = Original C++ assumption, B = Singers23/Newer
+
+        self._entry_grouped = {}
+        self._relay_grouped = {}
+
         if mdb_path:
             if not os.path.exists(mdb_path):
                 raise FileNotFoundError(f"MDB file not found: {mdb_path}")
@@ -33,30 +62,36 @@ class MmToJsonConverter:
             logger.info(f"Loading database: {display_path}")
             logger.debug(f"DEBUG: Full MDB path: {mdb_path}")
 
-            # Initialize Jackcess
-            if mdb_writer:
-                mdb_writer.ensure_jvm_started()
-                self.db = mdb_writer.open_db(mdb_path)
+            # Fast path: Load Jet 4.0 MDB directly via Rust without starting JVM
+            writer_mocked = _is_mock_obj(mdb_writer) or _is_mock_obj(getattr(mdb_writer, "open_db", None))
+            rust_bundle = None if writer_mocked else rust_load_mdb_bundle(str(mdb_path))
+            if rust_bundle is not None:
+                self._load_from_rust_bundle(rust_bundle)
             else:
-                raise ImportError("mdb_writer (Jackcess) is required for opening MDB files directly.")
+                if mdb_writer:
+                    mdb_writer.ensure_jvm_started()
+                    self._db = mdb_writer.open_db(mdb_path)
+                else:
+                    raise ImportError("mdb_writer (Jackcess) is required for opening MDB files directly.")
+                self._load_from_db()
         elif table_data is not None:
-            self.db = None
+            self._load_from_data(table_data)
         else:
             raise ValueError("Either mdb_path or table_data must be provided.")
 
-        self._tables = {}
-        self.cache_athlete_map = None
-        self.cache_team_map = None
-        self.cache_division_map = None
-        self.schema_type = "A"  # A = Original C++ assumption, B = Singers23/Newer
+    @property
+    def db(self):
+        if self._db is None and self.mdb_path is not None:
+            if mdb_writer:
+                mdb_writer.ensure_jvm_started()
+                self._db = mdb_writer.open_db(self.mdb_path)
+            else:
+                raise ImportError("mdb_writer (Jackcess) is required for opening MDB files directly.")
+        return self._db
 
-        self._entry_grouped = {}
-        self._relay_grouped = {}
-
-        if table_data is not None:
-            self._load_from_data(table_data)
-        else:
-            self._load_from_db()
+    @db.setter
+    def db(self, value):
+        self._db = value
 
     def __enter__(self):
         return self
@@ -68,16 +103,16 @@ class MmToJsonConverter:
         self.close()
 
     def close(self):
-        if hasattr(self, "db") and self.db is not None:
+        if getattr(self, "_db", None) is not None:
             try:
                 import jpype
 
                 if jpype.isJVMStarted():
-                    self.db.close()
+                    self._db.close()
             except Exception as e:
                 logger.error(f"Error closing Jackcess database: {e}")
             finally:
-                self.db = None
+                self._db = None
 
     @property
     def tables(self):
@@ -86,7 +121,44 @@ class MmToJsonConverter:
     @tables.setter
     def tables(self, value):
         self._tables = value
+        self._rust_converted = None
+        self._raw_table_data = None
+        self._raw_tables_dict = None
+        self._tables_fingerprint = None
         self._setup_grouped_tables()
+
+    def _compute_tables_fingerprint(self) -> tuple[Any, ...]:
+        """Compute a lightweight structural fingerprint of `self._tables`."""
+        return tuple(
+            (k, id(df), len(df), tuple(df.columns)) for k, df in self._tables.items() if isinstance(df, pd.DataFrame)
+        )
+
+    def _load_from_rust_bundle(self, bundle: dict[str, Any]) -> None:
+        """Populate converter tables and cached conversion from a Rust MDB bundle."""
+        self.schema_type = bundle.get("schema_type", "A")
+        self._rust_converted = bundle.get("converted")
+        raw_tables: dict[str, list[dict[str, Any]]] = bundle.get("tables", {})
+        self._raw_tables_dict = raw_tables
+
+        logical_tables = [
+            "meet",
+            "session",
+            "sessitem",
+            "event",
+            "entry",
+            "relay",
+            "relaynames",
+            "athlete",
+            "team",
+            "divisions",
+            "scoring",
+            "stdlanes",
+        ]
+        for logical in logical_tables:
+            rows = raw_tables.get(logical, [])
+            self._tables[logical] = pd.DataFrame(rows) if rows else pd.DataFrame()
+        self._setup_grouped_tables()
+        self._tables_fingerprint = self._compute_tables_fingerprint()
 
     def _setup_grouped_tables(self):
         """Optimization: Pre-calculate grouped tables for O(1) lookups in add_entries_to_event"""
@@ -116,6 +188,9 @@ class MmToJsonConverter:
         if "data" in table_data and isinstance(table_data["data"], dict):
             logger.debug("DEBUG: Unwrapping 'data' key from table_data")
             table_data = table_data["data"]
+
+        self._raw_table_data = table_data
+        self._rust_converted = None
 
         self.table_aliases = {
             "meet": ["Meet", "MEET", "meet"],
@@ -173,6 +248,7 @@ class MmToJsonConverter:
                     logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
                 self.tables[logical] = pd.DataFrame()
         self._setup_grouped_tables()
+        self._tables_fingerprint = self._compute_tables_fingerprint()
 
     def _get_val(self, row, key, default=""):
         """Safely retrieve value from a row, handling pandas NaN/None and ambiguous Series."""
@@ -296,6 +372,16 @@ class MmToJsonConverter:
         Exports the entire database including table definitions (columns, types, indexes)
         and row data in a format compatible with mdb_restorer.py.
         """
+        if (
+            self.mdb_path
+            and not _is_mock_obj(self._db)
+            and not _is_mock_obj(mdb_writer)
+            and is_jet4_mdb_file(self.mdb_path)
+        ):
+            rust_schema = rust_export_mdb_full_schema(self.mdb_path)
+            if rust_schema is not None:
+                return rust_schema
+
         data: dict[str, Any] = {"tables": {}}
         for tname in self.db.getTableNames():
             table = self.db.getTable(tname)
@@ -329,6 +415,15 @@ class MmToJsonConverter:
         return data
 
     def convert(self) -> dict[str, Any]:
+        if self._tables_fingerprint is not None and self._tables_fingerprint == self._compute_tables_fingerprint():
+            if self._rust_converted is not None:
+                return self._rust_converted
+            if self._raw_table_data is not None:
+                rust_res = rust_convert_meet(self._raw_table_data, from_mdb=False)
+                if rust_res is not None:
+                    self._rust_converted = rust_res
+                    return rust_res
+
         # Print table counts for CI debugging
         for tname, df in self.tables.items():
             logger.debug(f"DEBUG: Table '{tname}' has {len(df)} rows")

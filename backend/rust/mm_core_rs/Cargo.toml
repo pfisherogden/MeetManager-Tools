@@ -1,0 +1,16 @@
+[package]
+name = "mm_core_rs"
+version = "0.1.0"
+edition = "2021"
+description = "Native Rust acceleration engine for MeetManager-Tools (Jet4 MDB parser, relational converter, validator, and report data extractor)"
+
+[lib]
+name = "mm_core_rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+chrono = "0.4"
+regex = "1.12"
+base64 = "0.22"
