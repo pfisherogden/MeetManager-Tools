@@ -118,6 +118,26 @@ def get_tvsl_age_group_index(age: int) -> int:
 
 def validate_meet_data(cache: dict[str, Any]) -> list[Any]:
     """Validate the active dataset for registry anomalies and rules violations."""
+    if not cache:
+        return []
+
+    try:
+        from mm_to_json.rust_bridge import rust_validate_meet
+
+        rust_findings = rust_validate_meet(cache)
+        if rust_findings is not None and pb2 is not None:
+            return [
+                pb2.ValidationFinding(
+                    severity=item["severity"],
+                    category=item["category"],
+                    message=item["message"],
+                    affected_id=item["affected_id"],
+                )
+                for item in rust_findings
+            ]
+    except Exception:
+        pass
+
     findings = []
 
     # Retrieve tables safely (case-insensitive)

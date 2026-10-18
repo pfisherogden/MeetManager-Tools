@@ -590,7 +590,7 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 logging.debug(f"DEBUG: _get_table('{name}') found match via actual_key='{actual_key}'")
                 return cache[actual_key]
 
-        logging.warning(f"DEBUG: _get_table('{name}') NOT FOUND. Available keys: {list(cache.keys())}")
+        logging.debug(f"DEBUG: _get_table('{name}') NOT FOUND. Available keys: {list(cache.keys())}")
         return []
 
     def _get_field(self, d, keys, default=None):
@@ -1917,10 +1917,12 @@ def resolve_drive_upload_bytes(
         return bytes(resp_stream.read())
 
 
-def serve_health_check():
+def serve_health_check(servicer: MeetManagerService | None = None):
     import base64
 
     from google.protobuf import json_format
+
+    shared_servicer = servicer if servicer is not None else MeetManagerService()
 
     class MockContext:
         def __init__(self, metadata_headers_or_user_id):
@@ -2084,7 +2086,7 @@ def serve_health_check():
                     else:
                         dqs_list = payload if isinstance(payload, list) else [payload]
 
-                    servicer = MeetManagerService()
+                    servicer = shared_servicer
                     context = MockContext(uid)
 
                     resp = servicer.SyncDQs(
@@ -2110,7 +2112,7 @@ def serve_health_check():
                 body = self.rfile.read(content_length).decode("utf-8")
 
                 try:
-                    servicer = MeetManagerService()
+                    servicer = shared_servicer
 
                     if method_name in ["GetDisqualifications", "DeleteDq", "ClearAllDqs"]:
                         uid = self.headers.get("x-user-id") or "desktop-user"
@@ -2434,8 +2436,10 @@ def serve():
     signal.signal(signal.SIGTERM, handle_sigterm)
     signal.signal(signal.SIGINT, handle_sigterm)
 
+    main_servicer = MeetManagerService()
+
     # Start health check server in background thread
-    health_thread = threading.Thread(target=serve_health_check, daemon=True)
+    health_thread = threading.Thread(target=serve_health_check, args=(main_servicer,), daemon=True)
     health_thread.start()
 
     # Add Health Servicer
@@ -2443,7 +2447,7 @@ def serve():
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
     health_servicer.set("", health_pb2.HealthCheckResponse.SERVING)
 
-    pb2_grpc.add_MeetManagerServiceServicer_to_server(MeetManagerService(), server)
+    pb2_grpc.add_MeetManagerServiceServicer_to_server(main_servicer, server)
 
     # Bind host: loopback for local/desktop, wildcard for cloud and docker container networks
     in_docker = os.path.exists("/.dockerenv")
@@ -2544,7 +2548,7 @@ if __name__ == "__main__":
         try:
             from mm_to_json.mdb_writer import ensure_jvm_started
 
-            ensure_jvm_started()
+            ensure_jvm_started(force_jvm=True)
             print("SUCCESS: JVM started successfully.")
             sys.exit(0)
         except Exception as e:
@@ -2552,6 +2556,23 @@ if __name__ == "__main__":
 
             traceback.print_exc()
             print(f"FAILURE: JVM start failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    # CLI check for Rust core engine loading (used by GHA to validate mm_core_rs bundling)
+    if len(sys.argv) > 1 and sys.argv[1] == "--check-rust":
+        try:
+            from mm_to_json.rust_bridge import get_rust_lib, rust_validate_meet
+
+            lib = get_rust_lib()
+            if lib is None or rust_validate_meet({}) is None:
+                raise RuntimeError("mm_core_rs library failed to load or execute.")
+            print("SUCCESS: Rust mm_core_rs engine loaded and verified.")
+            sys.exit(0)
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
+            print(f"FAILURE: Rust engine check failed: {e}", file=sys.stderr)
             sys.exit(1)
 
     serve()

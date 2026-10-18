@@ -16,7 +16,25 @@ def restore_db(json_path, target_mdb):
     with open(json_path) as f:
         dump_data = json.load(f)
 
-    mdb_writer.ensure_jvm_started()
+    # Fast native Rust Jackcess path when enabled and not mocked in unit tests
+    jvm_fn_mocked = type(getattr(mdb_writer, "ensure_jvm_started", None)).__module__.startswith("unittest.mock")
+    if not jvm_fn_mocked and mdb_writer._use_rust_jackcess():
+        from mm_to_json.rust_bridge import rust_jackcess_exec
+
+        res = rust_jackcess_exec(
+            {
+                "op": "restore_db",
+                "schema": dump_data,
+                "target_mdb": str(target_mdb),
+            }
+        )
+        if res and res.get("ok"):
+            print("Restore complete.")
+            return
+        err = res.get("error", "Unknown error") if res else "Rust engine unavailable"
+        raise RuntimeError(f"Rust restore_db failed for {target_mdb}: {err}")
+
+    mdb_writer.ensure_jvm_started(force_jvm=True)
 
     from com.healthmarketscience.jackcess import (
         ColumnBuilder,

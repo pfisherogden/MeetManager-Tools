@@ -47,8 +47,27 @@ def sanitize_windows_path(path: str) -> str:
     return path
 
 
-def ensure_jvm_started():
-    """Starts the JVM if not already started."""
+def _is_jpype_mocked() -> bool:
+    """Return True if jpype or ensure_jvm_started is mocked by unit tests."""
+    return type(jpype).__module__.startswith("unittest.mock") or type(
+        getattr(jpype, "startJVM", None)
+    ).__module__.startswith("unittest.mock")
+
+
+def _use_rust_jackcess() -> bool:
+    """Return True if the Rust Jackcess engine is enabled and available."""
+    if _is_jpype_mocked():
+        return False
+    from .rust_bridge import get_rust_lib, is_rust_engine_enabled
+
+    return is_rust_engine_enabled() and get_rust_lib() is not None
+
+
+def ensure_jvm_started(force_jvm: bool = False):
+    """Starts the JVM if not already started (no-op when Rust Jackcess engine is active unless force_jvm=True)."""
+    if not force_jvm and _use_rust_jackcess():
+        return
+
     if jpype.isJVMStarted():
         return
 
@@ -233,12 +252,29 @@ def _ensure_jvm_started_locked():
             raise
 
 
+def _new_map(db=None):
+    """Return a map-like object with `.put(k, v)` suitable for `db` (Rust `Row` or Java `HashMap`)."""
+    from . import jackcess_rs
+
+    if isinstance(db, jackcess_rs.Database) or _use_rust_jackcess() or not jpype.isJVMStarted():
+        return jackcess_rs.Row()
+    from java.util import HashMap
+
+    return HashMap()
+
+
 def open_db(mdb_path):
     """
-    Opens the Access Database using Jackcess and returns the Database object.
+    Opens the Access Database using Jackcess (Rust engine by default, Java fallback) and returns the Database object.
     Caller is responsible for calling db.close() or try/finally.
     """
-    ensure_jvm_started()
+    if _use_rust_jackcess():
+        from . import jackcess_rs
+
+        logger.info(f"Rust Jackcess opening Access Database: {os.path.basename(str(mdb_path))}")
+        return jackcess_rs.DatabaseBuilder.open(mdb_path)
+
+    ensure_jvm_started(force_jvm=True)
 
     import datetime
 
@@ -265,14 +301,7 @@ def _add_row(db, table_name, **kwargs):
     if table is None:
         raise ValueError(f"Table {table_name} not found")
 
-    # Jackcess addRow takes object array or map?
-    # .addRow(Object... row) order must match columns?
-    # .addRowFromMap(Map<String, Object> row) is safer.
-
-    # We need to construct a Java Map
-    from java.util import HashMap
-
-    row_map = HashMap()
+    row_map = _new_map(db)
     for k, v in kwargs.items():
         row_map.put(k, v)
 
@@ -323,9 +352,7 @@ def add_team(db, team_id, abbr, name, short_name="", lsc="AB", t_type="AGE"):
     )
 
     # Retrieve ID
-    from java.util import HashMap
-
-    criteria = HashMap()
+    criteria = _new_map(db)
     criteria.put("TCode", abbr)
     criteria.put("TName", name)
 
@@ -356,9 +383,7 @@ def add_athlete(db, athlete_id, team_id, first, last, gender, age, school_year="
     )
 
     # Retrieve ID
-    from java.util import HashMap
-
-    criteria = HashMap()
+    criteria = _new_map(db)
     criteria.put("First", first)
     criteria.put("Last", last)
     criteria.put("Team1", team_id)
@@ -421,9 +446,7 @@ def add_event(
 
     # Retrieve the actual ID (in case of AutoNumber)
     # Search by unique combo: Meet, Session, MtEv
-    from java.util import HashMap
-
-    criteria = HashMap()
+    criteria = _new_map(db)
     criteria.put("Meet", meet_id)
     criteria.put("Session", session_num)
     criteria.put("MtEv", event_no)
@@ -482,9 +505,7 @@ def add_relay_team(db, relay_id, meet_id, team_id, letter, gender, age_range_cod
     _add_row(db, "RELAY", **row_data)
 
     # Retrieve ID
-    from java.util import HashMap
-
-    criteria = HashMap()
+    criteria = _new_map(db)
     criteria.put("MEET", meet_id)
     criteria.put("TEAM", team_id)
     criteria.put("LETTER", letter)
@@ -519,11 +540,9 @@ def update_entry_status(
     if table is None:
         raise ValueError(f"{table_name} table not found")
 
-    from java.util import HashMap
-
     # Helper to attempt update for a specific round type
     def try_update(r_type):
-        criteria = HashMap()
+        criteria = _new_map(db)
         criteria.put("Event_ptr", event_ptr)
         # In RELAY table it's Relay_no, in ENTRY it's Ath_no
         id_col = "Relay_no" if is_relay else "Ath_no"

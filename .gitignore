@@ -54,8 +54,11 @@ pnpm-lock.yaml
 web-client/package-lock 2.json
 web-client/pnpm-lock.yaml
 
-# Java Libraries
+# Java and Native Libraries
 **/*.jar
+backend/src/mm_to_json/lib/*.dylib
+backend/src/mm_to_json/lib/*.so
+backend/src/mm_to_json/lib/*.dll
 
 # Generated Reports
 backend/data/example_reports/
@@ -99,9 +102,8 @@ web-client/lib/proto/
 # Tauri/Build Artifacts
 backend/build/
 backend/dist/
+backend/rust/**/target/
 backend/mmtools-backend-aarch64-apple-darwin.spec
 web-client/src-tauri/binaries/
 web-client/public/judge/
 backend/data/users/
-
-

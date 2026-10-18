@@ -17,58 +17,56 @@ class ReportDataExtractor:
 
         # Performance: Pre-calculate lookup maps for common lookups
         self._athlete_map = {}
-        athlete_df = self.converter.tables.get("athlete")
-        if athlete_df is not None and not athlete_df.empty:
-            for _, row in athlete_df.iterrows():
-                ath_id = row.get("ath_no")
-                if ath_id:
-                    self._athlete_map[str(ath_id)] = row.to_dict()
+        self._name_gender_map = {}
+        for row in self._get_table_records("athlete"):
+            ath_id = row.get("ath_no")
+            if ath_id:
+                self._athlete_map[str(ath_id)] = row
+            last = str(row.get("last_name", "")).strip().lower()
+            first = str(row.get("first_name", "")).strip().lower()
+            sex = str(row.get("sex", "")).upper()
+            gender = "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
+            self._name_gender_map[f"{last}, {first}"] = gender
+            self._name_gender_map[f"{first} {last}"] = gender
 
         self._team_map = {}
-        team_df = self.converter.tables.get("team")
-        if team_df is not None and not team_df.empty:
-            for _, row in team_df.iterrows():
-                t_id = row.get("team_no")
-                if t_id:
-                    self._team_map[str(t_id)] = row.to_dict()
+        for row in self._get_table_records("team"):
+            t_id = row.get("team_no")
+            if t_id:
+                self._team_map[str(t_id)] = row
 
-        # Performance: Pre-calculate name-to-gender map for fallbacks
-        self._name_gender_map = {}
-        if athlete_df is not None and not athlete_df.empty:
-            for _, row in athlete_df.iterrows():
-                last = str(row.get("last_name", "")).strip().lower()
-                first = str(row.get("first_name", "")).strip().lower()
-                sex = str(row.get("sex", "")).upper()
-                gender = "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
-                self._name_gender_map[f"{last}, {first}"] = gender
-                self._name_gender_map[f"{first} {last}"] = gender
+    def _get_table_records(self, table_name: str) -> list[dict[str, Any]]:
+        """Return list of row dictionaries for `table_name` without slow DataFrame.iterrows()."""
+        df = self.converter.tables.get(table_name)
+        if df is None or df.empty:
+            return []
+        return df.to_dict(orient="records")
 
     def _build_team_color_map(self) -> dict[str, str]:
         """Map team names to their assigned colors for UI consistency."""
-        df_team = self.converter.tables.get("team")
-        if df_team is None or df_team.empty:
+        team_records = self._get_table_records("team")
+        if not team_records:
             return {}
 
+        palette = [
+            "#3b82f6",
+            "#ef4444",
+            "#10b981",
+            "#f59e0b",
+            "#8b5cf6",
+            "#ec4899",
+            "#06b6d4",
+            "#f97316",
+            "#84cc16",
+            "#6366f1",
+            "#a855f7",
+            "#14b8a6",
+        ]
         color_map = {}
-        for _, row in df_team.iterrows():
+        for row in team_records:
             t_id = self._safe_int(row.get("team_no"))
             t_name = str(row.get("team_name", "")).strip()
             if t_name:
-                # Use same logic as server.py
-                palette = [
-                    "#3b82f6",
-                    "#ef4444",
-                    "#10b981",
-                    "#f59e0b",
-                    "#8b5cf6",
-                    "#ec4899",
-                    "#06b6d4",
-                    "#f97316",
-                    "#84cc16",
-                    "#6366f1",
-                    "#a855f7",
-                    "#14b8a6",
-                ]
                 color = palette[t_id % len(palette)]
                 color_map[t_name] = color
         return color_map
@@ -206,13 +204,17 @@ class ReportDataExtractor:
         if df_ath is None or df_team is None:
             return {"groups": []}
 
+        team_records = self._get_table_records("team")
         team_map = {}
-        for _, row in df_team.iterrows():
+        team_code_map = {}
+        for row in team_records:
             t_id = row.get("team_no")
+            t_name = str(row.get("team_name", "")).strip()
             t_code = str(row.get("team_abbr", "")).strip()
             t_lsc = str(row.get("team_lsc", "")).strip()
             full_code = f"{t_code}-{t_lsc}" if t_lsc else t_code
-            team_map[t_id] = {"name": str(row.get("team_name", "")).strip(), "code": full_code}
+            team_map[t_id] = {"name": t_name, "code": full_code}
+            team_code_map[t_name] = full_code
 
         full_data = self._get_full_data()
         flat_entries = []
@@ -281,17 +283,6 @@ class ReportDataExtractor:
                     if is_relay:
                         entry_data["relayAthletes"] = entry.get("relayAthletes", [])
                     flat_entries.append(entry_data)
-
-        # Performance: Use pre-calculated name-gender map and team-code map
-        team_code_map = {}
-        df_team = self.converter.tables.get("team", None)
-        if df_team is not None:
-            for _, row in df_team.iterrows():
-                t_name = str(row.get("team_name", "")).strip()
-                t_code = str(row.get("team_abbr", "")).strip()
-                t_lsc = str(row.get("team_lsc", "")).strip()
-                full_code = f"{t_code}-{t_lsc}" if t_lsc else t_code
-                team_code_map[t_name] = full_code
 
         grouped: dict[str, Any] = {}
         ind_entries = [e for e in flat_entries if not e["is_relay"]]

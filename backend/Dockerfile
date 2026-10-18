@@ -1,3 +1,10 @@
+FROM rust:1-slim-bookworm AS rust-builder
+WORKDIR /build/mm_core_rs
+COPY backend/rust/mm_core_rs/Cargo.toml backend/rust/mm_core_rs/Cargo.lock* ./
+COPY backend/rust/mm_core_rs/.cargo ./.cargo
+COPY backend/rust/mm_core_rs/src ./src
+RUN cargo build --release
+
 FROM python:3.11-slim
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uv/bin/uv
@@ -37,13 +44,15 @@ RUN python3 src/mm_to_json/download_libs.py
 COPY protos ./protos
 RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src --pyi_out=src protos/meetmanager/v1/meet_manager.proto
 
-# 4. Copy source and data (layer 4)
+# 4. Copy source, data, and compiled Rust engine (layer 4)
 COPY backend/src ./src
 COPY backend/data ./data
+COPY --from=rust-builder /build/mm_core_rs/target/release/libmm_core_rs.so ./src/mm_to_json/lib/libmm_core_rs.so
 
 ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV MM_ENGINE=rust
 ENV PORT=8080
 
 EXPOSE 8080

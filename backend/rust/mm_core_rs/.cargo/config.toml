@@ -1,0 +1,1 @@
+# No platform-specific linker flags required; CPython C-API function pointers are passed at runtime.

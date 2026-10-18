@@ -41,6 +41,19 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build and Test Rust Core (mm_core_rs)
+        run: |
+          cargo test --manifest-path backend/rust/mm_core_rs/Cargo.toml
+          cargo build --release --manifest-path backend/rust/mm_core_rs/Cargo.toml
+
+      - name: Download Java Libraries for Parity Tests
+        run: |
+          cd backend
+          uv run python src/mm_to_json/download_libs.py
+
       - name: Generate Protos
         run: |
           cd backend
@@ -54,10 +67,17 @@ jobs:
       - name: Type Check Backend
         run: just type-check-backend
 
-      - name: Test with Pytest
+      - name: Test with Pytest (Rust Engine - Default)
         env:
           GRPC_AUTH_DISABLED: "true"
+          MM_ENGINE: "rust"
         run: PYTHONPATH=backend/src uv run pytest backend/tests/ --ignore=backend/tests/integration/
+
+      - name: Test with Pytest (Python Fallback Engine)
+        env:
+          GRPC_AUTH_DISABLED: "true"
+          MM_ENGINE: "python"
+        run: PYTHONPATH=backend/src uv run pytest backend/tests/ --ignore=backend/tests/integration/ --ignore=backend/tests/test_rust_core.py --ignore=backend/tests/test_jackcess_suite.py
 
   web-client:
     runs-on: ubuntu-latest
