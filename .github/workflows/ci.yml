@@ -44,8 +44,9 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build and Test Rust Core (mm_core_rs)
+      - name: Build and Test Rust Core (jackcess_rs & mm_core_rs)
         run: |
+          cargo test --manifest-path backend/rust/jackcess_rs/Cargo.toml
           cargo test --manifest-path backend/rust/mm_core_rs/Cargo.toml
           cargo build --release --manifest-path backend/rust/mm_core_rs/Cargo.toml
 
