@@ -10,6 +10,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uv/bin/uv
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    git \
     mdbtools \
     openjdk-21-jre-headless \
     libpango-1.0-0 \
