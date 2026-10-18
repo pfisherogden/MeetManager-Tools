@@ -1,8 +1,7 @@
 FROM rust:1-slim-bookworm AS rust-builder
-WORKDIR /build/mm_core_rs
-COPY backend/rust/mm_core_rs/Cargo.toml backend/rust/mm_core_rs/Cargo.lock* ./
-COPY backend/rust/mm_core_rs/.cargo ./.cargo
-COPY backend/rust/mm_core_rs/src ./src
+WORKDIR /build/rust
+COPY backend/rust ./
+WORKDIR /build/rust/mm_core_rs
 RUN cargo build --release
 
 FROM python:3.11-slim
@@ -47,7 +46,7 @@ RUN python -m grpc_tools.protoc -Iprotos --python_out=src --grpc_python_out=src 
 # 4. Copy source, data, and compiled Rust engine (layer 4)
 COPY backend/src ./src
 COPY backend/data ./data
-COPY --from=rust-builder /build/mm_core_rs/target/release/libmm_core_rs.so ./src/mm_to_json/lib/libmm_core_rs.so
+COPY --from=rust-builder /build/rust/mm_core_rs/target/release/libmm_core_rs.so ./src/mm_to_json/lib/libmm_core_rs.so
 
 ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1

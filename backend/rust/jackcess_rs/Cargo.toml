@@ -1,0 +1,16 @@
+[package]
+name = "jackcess_rs"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Pure-Rust reader and writer for Microsoft Access Jet 3/4 and ACE (.mdb / .accdb) databases, binary-compatible with Java Jackcess"
+
+[lib]
+name = "jackcess_rs"
+crate-type = ["rlib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+chrono = "0.4"
+base64 = "0.22"

@@ -37,10 +37,13 @@ def _find_or_build_rust_lib() -> Path | None:
     # backend/src/mm_to_json/rust_bridge.py -> backend/
     import sys
 
+    src_dir = Path(__file__).resolve().parents[1]
     backend_dir = Path(__file__).resolve().parents[2]
-    crate_dir = backend_dir / "rust" / "mm_core_rs"
+    repo_crate_dir = backend_dir / "rust" / "mm_core_rs"
+    pkg_crate_dir = src_dir / "jackcess_rs" / "_rust" / "mm_core_rs"
     candidates = [
-        crate_dir / "target" / "release" / lib_name,
+        repo_crate_dir / "target" / "release" / lib_name,
+        pkg_crate_dir / "target" / "release" / lib_name,
         Path(__file__).resolve().parent / "lib" / lib_name,
     ]
     meipass = getattr(sys, "_MEIPASS", None)
@@ -54,21 +57,38 @@ def _find_or_build_rust_lib() -> Path | None:
         if cand.is_file():
             return cand
 
-    # Attempt an offline release build if Cargo.toml exists
-    if (crate_dir / "Cargo.toml").is_file():
-        try:
-            subprocess.run(
-                ["cargo", "build", "--release", "--offline"],
-                cwd=str(crate_dir),
-                check=True,
-                capture_output=True,
-                timeout=60,
-            )
+    # Attempt a release build if Cargo.toml exists in repo, packaged wheel, or uv git cache
+    crate_dirs = [repo_crate_dir, pkg_crate_dir]
+    uv_cache_root = Path(os.environ.get("UV_CACHE_DIR", str(Path.home() / ".cache" / "uv"))) / "git-v0" / "checkouts"
+    if uv_cache_root.is_dir():
+        uv_crates = sorted(
+            uv_cache_root.glob("*/*/backend/rust/mm_core_rs"),
+            key=lambda p: p.stat().st_mtime if p.exists() else 0.0,
+            reverse=True,
+        )
+        crate_dirs.extend(uv_crates)
+
+    for crate_dir in crate_dirs:
+        if (crate_dir / "Cargo.toml").is_file():
             built = crate_dir / "target" / "release" / lib_name
             if built.is_file():
                 return built
-        except Exception as exc:
-            logger.debug("Could not auto-build mm_core_rs: %s", exc)
+            for build_cmd in (
+                ["cargo", "build", "--release", "--offline"],
+                ["cargo", "build", "--release"],
+            ):
+                try:
+                    subprocess.run(
+                        build_cmd,
+                        cwd=str(crate_dir),
+                        check=True,
+                        capture_output=True,
+                        timeout=120,
+                    )
+                    if built.is_file():
+                        return built
+                except Exception as exc:
+                    logger.debug("Could not auto-build mm_core_rs (%s): %s", build_cmd, exc)
 
     return None
 

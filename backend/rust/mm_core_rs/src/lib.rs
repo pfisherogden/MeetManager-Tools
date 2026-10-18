@@ -1,7 +1,5 @@
 pub mod converter;
-pub mod empty_mdb;
-pub mod jackcess;
-pub mod mdb;
+pub use jackcess_rs::{empty_mdb, jackcess, mdb};
 pub mod py_bridge;
 pub mod validator;
 
@@ -73,10 +71,103 @@ pub extern "C" fn mm_py_convert_meet(dict_obj: *mut c_void, from_mdb: bool) -> *
     }
 }
 
+pub fn load_mdb_meet_bundle(mdb_path: &str) -> Result<Value, String> {
+    let data = std::fs::read(mdb_path).map_err(|e| format!("Failed to read MDB {}: {}", mdb_path, e))?;
+    let ver = mdb::JetVersion::from_data(&data)?;
+    let user_tables = mdb::discover_user_tables(&data)?;
+    let mut catalog_map: std::collections::HashMap<String, (String, usize)> =
+        std::collections::HashMap::with_capacity(user_tables.len());
+    for (tname, tpage) in &user_tables {
+        catalog_map.insert(tname.to_lowercase(), (tname.clone(), *tpage));
+    }
+
+    let aliases: &[(&str, &[&str])] = &[
+        ("meet", &["Meet", "MEET"]),
+        ("session", &["Session", "SESSIONS"]),
+        ("sessitem", &["Sessitem", "SESSITEM"]),
+        ("event", &["Event", "MTEVENT"]),
+        ("entry", &["Entry", "ENTRY"]),
+        ("relay", &["Relay", "RELAY"]),
+        ("relaynames", &["RelayNames", "RELAYNAMES"]),
+        ("athlete", &["athlete", "ATHLETE", "Athlete"]),
+        ("team", &["Team", "TEAM"]),
+        ("divisions", &["Divisions", "DIVISIONS"]),
+        ("scoring", &["Scoring", "SCORING"]),
+        ("stdlanes", &["StdLanes", "STDLANES"]),
+    ];
+
+    let mut schema_type = "A";
+    let mut lower_tables_map = Map::new();
+    let mut raw_input_for_convert = Map::new();
+    let mut date_columns_map = Map::new();
+    let mut missing_warnings = Vec::new();
+
+    for &(logical, candidates) in aliases {
+        let mut found: Option<(String, usize)> = None;
+        for &cand in candidates {
+            if let Some(entry) = catalog_map.get(&cand.to_lowercase()) {
+                found = Some(entry.clone());
+                break;
+            }
+        }
+        if let Some((phys_name, tpage)) = found {
+            if logical == "event" && phys_name.eq_ignore_ascii_case("MTEVENT") {
+                schema_type = "B";
+            }
+            if let Ok(tdef) = mdb::parse_table_ver(&data, tpage, ver) {
+                let mut date_cols = Vec::new();
+                for c in &tdef.columns {
+                    if c.col_type == 8 {
+                        date_cols.push(Value::String(c.name.to_lowercase()));
+                    }
+                }
+                if !date_cols.is_empty() {
+                    date_columns_map.insert(logical.to_string(), Value::Array(date_cols));
+                }
+
+                let mut lower_rows = Vec::with_capacity(tdef.rows.len());
+                for r in tdef.rows {
+                    let mut lr = Map::with_capacity(r.len());
+                    for (k, v) in r {
+                        let lk = k.to_lowercase();
+                        if !lr.contains_key(&lk) {
+                            lr.insert(lk, v);
+                        }
+                    }
+                    lower_rows.push(Value::Object(lr));
+                }
+                let arr_val = Value::Array(lower_rows);
+                if logical == "event" && schema_type == "B" {
+                    raw_input_for_convert.insert("MTEVENT".to_string(), arr_val.clone());
+                } else {
+                    raw_input_for_convert.insert(logical.to_string(), arr_val.clone());
+                }
+                lower_tables_map.insert(logical.to_string(), arr_val);
+            } else {
+                lower_tables_map.insert(logical.to_string(), Value::Array(Vec::new()));
+            }
+        } else {
+            if !matches!(logical, "sessitem" | "relaynames" | "divisions") {
+                missing_warnings.push(Value::String(logical.to_string()));
+            }
+            lower_tables_map.insert(logical.to_string(), Value::Array(Vec::new()));
+        }
+    }
+
+    let converted = converter::convert_meet_data_rs(&raw_input_for_convert, true);
+    Ok(serde_json::json!({
+        "schema_type": schema_type,
+        "tables": Value::Object(lower_tables_map),
+        "date_columns": Value::Object(date_columns_map),
+        "missing_warnings": Value::Array(missing_warnings),
+        "converted": converted,
+    }))
+}
+
 #[no_mangle]
 pub extern "C" fn mm_py_load_mdb_bundle(mdb_path_ptr: *const c_char) -> *mut c_void {
     unsafe {
-        match c_str_to_str(mdb_path_ptr).and_then(mdb::load_mdb_meet_bundle) {
+        match c_str_to_str(mdb_path_ptr).and_then(load_mdb_meet_bundle) {
             Ok(val) => py_bridge::value_to_py_obj(&val),
             Err(err) => {
                 let err_val = serde_json::json!({ "error": err });

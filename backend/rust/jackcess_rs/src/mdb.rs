@@ -80,10 +80,38 @@ pub struct ColumnDef {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RealIndexDef {
+    pub index_data_num: usize,
+    pub unique_entry_count: u32,
+    pub columns: Vec<(String, usize, bool)>,
+    pub umap_row: u8,
+    pub umap_page: u32,
+    pub root_page: u32,
+    pub flags: u8,
+    pub unique: bool,
+    pub ignore_nulls: bool,
+    pub required: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct IndexDef {
     pub name: String,
     pub unique: bool,
     pub columns: Vec<String>,
+    #[serde(default)]
+    pub column_orders: Vec<bool>,
+    #[serde(default)]
+    pub primary_key: bool,
+    #[serde(default)]
+    pub ignore_nulls: bool,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default)]
+    pub foreign_key: bool,
+    #[serde(default)]
+    pub index_data_num: usize,
+    #[serde(default)]
+    pub root_page: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,6 +119,8 @@ pub struct TableDef {
     pub columns: Vec<ColumnDef>,
     pub indexes: Vec<IndexDef>,
     pub rows: Vec<Map<String, Value>>,
+    #[serde(skip)]
+    pub real_indexes: Vec<RealIndexDef>,
     #[serde(skip)]
     pub row_ids: Vec<(usize, usize)>,
     #[serde(skip)]
@@ -612,34 +642,58 @@ pub fn parse_table_ver(data: &[u8], page_num: usize, ver: JetVersion) -> Result<
         col_name_by_id.insert(c.col_id, c.name.clone());
     }
 
-    struct RealIdx {
-        unique: bool,
-        cols: Vec<String>,
-    }
-    let mut real_indexes = Vec::with_capacity(real_idx_count.min(256));
-    for _ in 0..real_idx_count {
+    let mut real_indexes: Vec<RealIndexDef> = Vec::with_capacity(real_idx_count.min(256));
+    for r_idx in 0..real_idx_count {
         if pos + real_idx_blk_size > tdef.len() {
             break;
         }
         let ib = &tdef[pos..pos + real_idx_blk_size];
         pos += real_idx_blk_size;
+        let unique_entry_count = read_u32_le(&tdef, hdr_size + r_idx * idx_def_size + 4);
         let mut cols = Vec::new();
         for s in 0..10 {
             let cid = read_u16_le(ib, 4 + s * 3);
+            let cflags = ib[4 + s * 3 + 2];
             if cid != 0xFFFF {
                 if let Some(cname) = col_name_by_id.get(&(cid as usize)) {
-                    cols.push(cname.clone());
+                    cols.push((cname.clone(), cid as usize, (cflags & 0x01) != 0));
                 }
             }
         }
-        let unique_off = if is_jet3 { 38 } else { 46 };
-        let unique = (ib[unique_off] & 0x01) != 0;
-        real_indexes.push(RealIdx { unique, cols });
+        let umap_row = ib[34];
+        let umap_page = if is_jet3 {
+            0
+        } else {
+            (ib[35] as u32) | ((ib[36] as u32) << 8) | ((ib[37] as u32) << 16)
+        };
+        let root_page = if is_jet3 {
+            read_u32_le(ib, 34)
+        } else {
+            read_u32_le(ib, 38)
+        };
+        let flags_off = if is_jet3 { 38 } else { 46 };
+        let flags = ib[flags_off];
+        let unique = (flags & 0x01) != 0;
+        let ignore_nulls = (flags & 0x02) != 0;
+        let required = (flags & 0x08) != 0;
+        real_indexes.push(RealIndexDef {
+            index_data_num: r_idx,
+            unique_entry_count,
+            columns: cols,
+            umap_row,
+            umap_page,
+            root_page,
+            flags,
+            unique,
+            ignore_nulls,
+            required,
+        });
     }
 
     struct LogIdx {
         idx_num: i32,
         real_idx_num: usize,
+        idx_type: u8,
         name: String,
     }
     let mut logical_indexes = Vec::with_capacity(idx_count.min(256));
@@ -651,9 +705,11 @@ pub fn parse_table_ver(data: &[u8], page_num: usize, ver: JetVersion) -> Result<
         pos += log_idx_blk_size;
         let idx_num = read_i32_le(lb, 4);
         let real_idx_num = read_i32_le(lb, 8) as usize;
+        let idx_type = lb[if is_jet3 { 19 } else { 23 }];
         logical_indexes.push(LogIdx {
             idx_num,
             real_idx_num,
+            idx_type,
             name: String::new(),
         });
     }
@@ -691,7 +747,14 @@ pub fn parse_table_ver(data: &[u8], page_num: usize, ver: JetVersion) -> Result<
             indexes.push(IndexDef {
                 name: li.name,
                 unique: ri.unique,
-                columns: ri.cols.clone(),
+                columns: ri.columns.iter().map(|(n, _, _)| n.clone()).collect(),
+                column_orders: ri.columns.iter().map(|(_, _, asc)| *asc).collect(),
+                primary_key: li.idx_type == 0x01,
+                ignore_nulls: ri.ignore_nulls,
+                required: ri.required,
+                foreign_key: li.idx_type == 0x02,
+                index_data_num: ri.index_data_num,
+                root_page: ri.root_page,
             });
         }
     }
@@ -879,6 +942,7 @@ pub fn parse_table_ver(data: &[u8], page_num: usize, ver: JetVersion) -> Result<
         columns: raw_cols,
         indexes,
         rows,
+        real_indexes,
         row_ids,
         tdef_page: page_num,
         tdef_row_count,
@@ -985,96 +1049,4 @@ pub fn export_full_schema_from_file(mdb_path: &str) -> Result<Value, String> {
         tables_map.insert(tname, val);
     }
     Ok(json!({ "tables": Value::Object(tables_map) }))
-}
-
-pub fn load_mdb_meet_bundle(mdb_path: &str) -> Result<Value, String> {
-    let data = fs::read(mdb_path).map_err(|e| format!("Failed to read MDB {}: {}", mdb_path, e))?;
-    let ver = JetVersion::from_data(&data)?;
-    let user_tables = discover_user_tables(&data)?;
-    let mut catalog_map: HashMap<String, (String, usize)> = HashMap::with_capacity(user_tables.len());
-    for (tname, tpage) in &user_tables {
-        catalog_map.insert(tname.to_lowercase(), (tname.clone(), *tpage));
-    }
-
-    let aliases: &[(&str, &[&str])] = &[
-        ("meet", &["Meet", "MEET"]),
-        ("session", &["Session", "SESSIONS"]),
-        ("sessitem", &["Sessitem", "SESSITEM"]),
-        ("event", &["Event", "MTEVENT"]),
-        ("entry", &["Entry", "ENTRY"]),
-        ("relay", &["Relay", "RELAY"]),
-        ("relaynames", &["RelayNames", "RELAYNAMES"]),
-        ("athlete", &["athlete", "ATHLETE", "Athlete"]),
-        ("team", &["Team", "TEAM"]),
-        ("divisions", &["Divisions", "DIVISIONS"]),
-        ("scoring", &["Scoring", "SCORING"]),
-        ("stdlanes", &["StdLanes", "STDLANES"]),
-    ];
-
-    let mut schema_type = "A";
-    let mut lower_tables_map = Map::new();
-    let mut raw_input_for_convert = Map::new();
-    let mut date_columns_map = Map::new();
-    let mut missing_warnings = Vec::new();
-
-    for &(logical, candidates) in aliases {
-        let mut found: Option<(String, usize)> = None;
-        for &cand in candidates {
-            if let Some(entry) = catalog_map.get(&cand.to_lowercase()) {
-                found = Some(entry.clone());
-                break;
-            }
-        }
-        if let Some((phys_name, tpage)) = found {
-            if logical == "event" && phys_name.eq_ignore_ascii_case("MTEVENT") {
-                schema_type = "B";
-            }
-            if let Ok(tdef) = parse_table_ver(&data, tpage, ver) {
-                let mut date_cols = Vec::new();
-                for c in &tdef.columns {
-                    if c.col_type == 8 {
-                        date_cols.push(Value::String(c.name.to_lowercase()));
-                    }
-                }
-                if !date_cols.is_empty() {
-                    date_columns_map.insert(logical.to_string(), Value::Array(date_cols));
-                }
-
-                let mut lower_rows = Vec::with_capacity(tdef.rows.len());
-                for r in tdef.rows {
-                    let mut lr = Map::with_capacity(r.len());
-                    for (k, v) in r {
-                        let lk = k.to_lowercase();
-                        if !lr.contains_key(&lk) {
-                            lr.insert(lk, v);
-                        }
-                    }
-                    lower_rows.push(Value::Object(lr));
-                }
-                let arr_val = Value::Array(lower_rows);
-                if logical == "event" && schema_type == "B" {
-                    raw_input_for_convert.insert("MTEVENT".to_string(), arr_val.clone());
-                } else {
-                    raw_input_for_convert.insert(logical.to_string(), arr_val.clone());
-                }
-                lower_tables_map.insert(logical.to_string(), arr_val);
-            } else {
-                lower_tables_map.insert(logical.to_string(), Value::Array(Vec::new()));
-            }
-        } else {
-            if !matches!(logical, "sessitem" | "relaynames" | "divisions") {
-                missing_warnings.push(Value::String(logical.to_string()));
-            }
-            lower_tables_map.insert(logical.to_string(), Value::Array(Vec::new()));
-        }
-    }
-
-    let converted = crate::converter::convert_meet_data_rs(&raw_input_for_convert, true);
-    Ok(json!({
-        "schema_type": schema_type,
-        "tables": Value::Object(lower_tables_map),
-        "date_columns": Value::Object(date_columns_map),
-        "missing_warnings": Value::Array(missing_warnings),
-        "converted": converted,
-    }))
 }

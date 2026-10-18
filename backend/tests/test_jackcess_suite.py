@@ -26,8 +26,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mm_to_json import jackcess_rs, mdb_restorer, mdb_writer
-from mm_to_json.jackcess_rs import (
+import jackcess_rs as standalone_jackcess_rs
+from jackcess_rs import (
     ColumnBuilder,
     CursorBuilder,
     Database,
@@ -36,7 +36,11 @@ from mm_to_json.jackcess_rs import (
     IndexBuilder,
     TableBuilder,
 )
+from mm_to_json import jackcess_rs, mdb_restorer, mdb_writer
 from mm_to_json.mm_to_json import MmToJsonConverter
+
+assert standalone_jackcess_rs.DatabaseBuilder is jackcess_rs.DatabaseBuilder
+assert standalone_jackcess_rs.PropertyMap is jackcess_rs.PropertyMap
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SINGERS_MDB = REPO_ROOT / "web-client" / "tests-e2e" / "Singers23.mdb"
@@ -439,6 +443,188 @@ def test_mdb_restorer_and_mdb_writer_with_rust_jackcess(tmp_path: Path) -> None:
         assert row_after["Fin_dqcode"] == "1A"
     finally:
         db4_open.close()
+
+
+def test_btree_indexes_and_java_index_cursor_parity(tmp_path: Path) -> None:
+    """Verify B-tree index creation, page splitting, constraint enforcement, and Java IndexCursor traversal."""
+    mdb_file = tmp_path / "btree_index_test.mdb"
+    with DatabaseBuilder.create(Database.FileFormat.V2000, mdb_file) as db:
+        tbl = (
+            TableBuilder("IndexedAthletes")
+            .addColumn(ColumnBuilder("Ath_no", DataType.LONG))
+            .addColumn(ColumnBuilder("Reg_code", DataType.TEXT).setLengthInUnits(60))
+            .addColumn(ColumnBuilder("Score", DataType.DOUBLE))
+            .setPrimaryKey("Ath_no")
+            .addIndex(IndexBuilder("RegCodeIdx").addColumns("Reg_code").setUnique())
+            .addIndex(IndexBuilder("ScoreDescIdx").addColumnsWithOrder(False, "Score"))
+            .toTable(db)
+        )
+
+        # Insert 120 rows with 40-char codes to trigger B-tree Leaf -> Node (0x03) page splits
+        rows = [
+            {
+                "Ath_no": i,
+                "Reg_code": f"REG_{i:04d}_{'X' * 30}",
+                "Score": float(i * 1.5),
+            }
+            for i in range(1, 121)
+        ]
+        tbl.addRowsFromMaps(rows)
+        assert tbl.getRowCount() == 120
+
+        # Constraint checks: duplicate PrimaryKey or Unique Reg_code must raise
+        with pytest.raises(RuntimeError, match="ConstraintViolationException"):
+            tbl.addRowFromMap({"Ath_no": 50, "Reg_code": "REG_9999_NEW", "Score": 1.0})
+
+        with pytest.raises(RuntimeError, match="ConstraintViolationException"):
+            tbl.addRowFromMap({"Ath_no": 999, "Reg_code": f"REG_{25:04d}_{'X' * 30}", "Score": 1.0})
+
+        with pytest.raises(RuntimeError, match="ConstraintViolationException"):
+            tbl.addRowFromMap({"Ath_no": None, "Reg_code": "REG_NULL_PK", "Score": 1.0})
+
+        # Update row 10's Reg_code and delete row 20
+        c = tbl.getDefaultCursor()
+        assert c.findFirstRow({"Ath_no": 10})
+        c.setCurrentRowValue("Reg_code", f"REG_0010_UPDATED_{'Y' * 22}")
+        assert c.findFirstRow({"Ath_no": 20})
+        c.deleteCurrentRow()
+        assert tbl.getRowCount() == 119
+
+        # Test Python IndexCursor lookup and descending traversal
+        reg_idx = tbl.getIndex("RegCodeIdx")
+        idx_cursor = reg_idx.newCursor().toIndexCursor()
+        found_row = idx_cursor.findRowByEntry(f"REG_0010_UPDATED_{'Y' * 22}")
+        assert found_row is not None
+        assert found_row["Ath_no"] == 10
+
+        desc_idx = tbl.getIndex("ScoreDescIdx")
+        desc_rows = list(desc_idx.newCursor().toIndexCursor())
+        assert desc_rows[0]["Ath_no"] == 120
+        assert desc_rows[-1]["Ath_no"] == 1
+
+    # Verify Java Jackcess can traverse the multi-page B-Tree indexes natively via IndexCursor!
+    if not mdb_writer.get_classpath():
+        pytest.skip("Jackcess JARs not downloaded in lib/")
+    mdb_writer.ensure_jvm_started(force_jvm=True)
+    from com.healthmarketscience.jackcess import CursorBuilder as JavaCursorBuilder
+    from com.healthmarketscience.jackcess import DatabaseBuilder as JavaDatabaseBuilder
+    from java.io import File
+
+    java_db = JavaDatabaseBuilder.open(File(str(mdb_file)))
+    try:
+        java_tbl = java_db.getTable("IndexedAthletes")
+        assert java_tbl.getRowCount() == 119
+
+        java_pk_idx = java_tbl.getIndex("PrimaryKey")
+        java_pk_cursor = JavaCursorBuilder.createCursor(java_pk_idx)
+        pk_ids = [int(r.get("Ath_no")) for r in java_pk_cursor]
+        assert len(pk_ids) == 119
+        assert pk_ids == sorted(pk_ids)
+        assert 20 not in pk_ids
+
+        java_reg_idx = java_tbl.getIndex("RegCodeIdx")
+        java_reg_cursor = JavaCursorBuilder.createCursor(java_reg_idx)
+        assert java_reg_cursor.findFirstRowByEntry(f"REG_0010_UPDATED_{'Y' * 22}") is True
+        assert int(java_reg_cursor.getCurrentRow().get("Ath_no")) == 10
+        assert java_reg_cursor.findFirstRowByEntry(f"REG_{20:04d}_{'X' * 30}") is False
+    finally:
+        java_db.close()
+
+
+def test_property_maps_roundtrip_and_java_parity(tmp_path: Path) -> None:
+    """Verify LvProp PropertyMap read/write across Table, Column, Index, and Database with Java Jackcess."""
+    from mm_to_json.jackcess_rs import PropertyMap
+
+    mdb_file = tmp_path / "props_test.mdb"
+    with DatabaseBuilder.create(Database.FileFormat.V2000, mdb_file) as db:
+        tbl = (
+            TableBuilder("PropTable")
+            .putProperty(PropertyMap.DESCRIPTION_PROP, "Table level description")
+            .addColumn(
+                ColumnBuilder("Id", DataType.LONG)
+                .setAutoNumber(True)
+                .putProperty(PropertyMap.CAPTION_PROP, "Athlete ID")
+            )
+            .addColumn(
+                ColumnBuilder("Status", DataType.TEXT)
+                .setLengthInUnits(20)
+                .putProperty(PropertyMap.DEFAULT_VALUE_PROP, '"ACTIVE"')
+                .putProperty(PropertyMap.REQUIRED_PROP, True)
+            )
+            .setPrimaryKey("Id")
+            .toTable(db)
+        )
+
+        # Verify initial properties set via builders
+        t_props = tbl.getProperties()
+        assert t_props.getValue(PropertyMap.DESCRIPTION_PROP) == "Table level description"
+        t_props.put("CustomTableNote", DataType.TEXT, "Created by Rust")
+        t_props.save()
+
+        id_props = tbl.getColumn("Id").getProperties()
+        assert id_props.getValue(PropertyMap.CAPTION_PROP) == "Athlete ID"
+
+        st_props = tbl.getColumn("Status").getProperties()
+        assert st_props.getValue(PropertyMap.DEFAULT_VALUE_PROP) == '"ACTIVE"'
+        assert st_props.getValue(PropertyMap.REQUIRED_PROP) is True
+
+        idx_props = tbl.getIndex("PrimaryKey").getProperties()
+        idx_props.put("IndexComment", DataType.TEXT, "PK B-tree")
+        idx_props.save()
+
+        # Database, Summary, and UserDefined properties
+        db_props = db.getDatabaseProperties()
+        db_props.put("ProjVer", DataType.INT, 42)
+        db_props.save()
+
+        sum_props = db.getSummaryProperties()
+        sum_props.put(PropertyMap.TITLE_PROP, "2026 Championship Database")
+        sum_props.put(PropertyMap.AUTHOR_PROP, "MMTools Rust Engine")
+        sum_props.save()
+
+        ud_props = db.getUserDefinedProperties()
+        ud_props.put("LeagueCode", DataType.TEXT, "TVSL")
+        ud_props.save()
+
+    # Verify Java Jackcess reads all PropertyMaps written by Rust, and writes back a property
+    if not mdb_writer.get_classpath():
+        pytest.skip("Jackcess JARs not downloaded in lib/")
+    mdb_writer.ensure_jvm_started(force_jvm=True)
+    from com.healthmarketscience.jackcess import DatabaseBuilder as JavaDatabaseBuilder
+    from java.io import File
+
+    java_db = JavaDatabaseBuilder.open(File(str(mdb_file)))
+    try:
+        java_tbl = java_db.getTable("PropTable")
+        jt_props = java_tbl.getProperties()
+        assert str(jt_props.getValue("Description")) == "Table level description"
+        assert str(jt_props.getValue("CustomTableNote")) == "Created by Rust"
+
+        jc_id_props = java_tbl.getColumn("Id").getProperties()
+        assert str(jc_id_props.getValue("Caption")) == "Athlete ID"
+
+        jc_st_props = java_tbl.getColumn("Status").getProperties()
+        assert str(jc_st_props.getValue("DefaultValue")) == '"ACTIVE"'
+        assert bool(jc_st_props.getValue("Required")) is True
+
+        j_sum_props = java_db.getSummaryProperties()
+        assert str(j_sum_props.getValue("Title")) == "2026 Championship Database"
+        assert str(j_sum_props.getValue("Author")) == "MMTools Rust Engine"
+
+        j_ud_props = java_db.getUserDefinedProperties()
+        assert str(j_ud_props.getValue("LeagueCode")) == "TVSL"
+
+        # Mutate in Java and save
+        jt_props.put("JavaAddedProp", "HelloFromJavaJackcess")
+        jt_props.save()
+    finally:
+        java_db.close()
+
+    # Reopen in Rust and verify Java's property modification
+    with DatabaseBuilder.open(mdb_file) as db2:
+        tbl2 = db2.getTable("PropTable")
+        assert tbl2 is not None
+        assert tbl2.getProperties().getValue("JavaAddedProp") == "HelloFromJavaJackcess"
 
 
 @pytest.mark.skipif(

@@ -44,9 +44,10 @@ build-rust:
     @echo "Building Rust core engine (mm_core_rs)..."
     cargo build --release --manifest-path backend/rust/mm_core_rs/Cargo.toml
 
-# Run Rust unit tests for mm_core_rs
+# Run Rust unit tests for jackcess_rs and mm_core_rs
 test-rust:
-    @echo "Running Rust unit tests (mm_core_rs)..."
+    @echo "Running Rust unit tests (jackcess_rs & mm_core_rs)..."
+    cargo test --manifest-path backend/rust/jackcess_rs/Cargo.toml
     cargo test --manifest-path backend/rust/mm_core_rs/Cargo.toml
 
 # Start services in the background

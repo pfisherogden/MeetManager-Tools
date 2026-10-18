@@ -262,6 +262,333 @@ class Row(dict[str, Any]):
         return bytes(val)
 
 
+class Property:
+    """Jackcess `PropertyMap.Property` representing a single named metadata property."""
+
+    def __init__(
+        self,
+        name: str,
+        data_type: _DataTypeItem | str,
+        value: Any,
+        ddl: bool = False,
+    ) -> None:
+        self._name = str(name)
+        self._type = DataType.valueOf(data_type)
+        self._value = value
+        self._ddl = bool(ddl)
+
+    def getName(self) -> str:
+        """Return the property name."""
+        return self._name
+
+    def getType(self) -> _DataTypeItem:
+        """Return the property `DataType`."""
+        return self._type
+
+    def getValue(self) -> Any:
+        """Return the property value."""
+        return self._value
+
+    def setValue(self, value: Any) -> None:
+        """Update the property value in memory (call `PropertyMap.save()` to persist)."""
+        self._value = value
+
+    def isDdl(self) -> bool:
+        """Return True if this property is marked as a DDL property."""
+        return self._ddl
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize property for Rust `jackcess.rs`."""
+        val = self._value
+        if isinstance(val, (bytes, bytearray)):
+            val = base64.b64encode(bytes(val)).decode("ascii")
+        elif isinstance(val, datetime.datetime):
+            val = val.strftime("%Y-%m-%dT%H:%M:%S")
+        elif isinstance(val, datetime.date):
+            val = f"{val.strftime('%Y-%m-%d')}T00:00:00"
+        elif isinstance(val, Decimal):
+            val = str(val)
+        return {
+            "name": self._name,
+            "type": self._type.name(),
+            "type_code": self._type.getValue(),
+            "ddl": self._ddl,
+            "value": val,
+        }
+
+    def __repr__(self) -> str:
+        return f"{self._name}[{self._type.name()}]={self._value!r}"
+
+
+class PropertyMap:
+    """Jackcess `PropertyMap` container for table, column, index, or database properties."""
+
+    ACCESS_VERSION_PROP = "AccessVersion"
+    TITLE_PROP = "Title"
+    AUTHOR_PROP = "Author"
+    COMPANY_PROP = "Company"
+    DEFAULT_VALUE_PROP = "DefaultValue"
+    REQUIRED_PROP = "Required"
+    ALLOW_ZERO_LEN_PROP = "AllowZeroLength"
+    DECIMAL_PLACES_PROP = "DecimalPlaces"
+    FORMAT_PROP = "Format"
+    INPUT_MASK_PROP = "InputMask"
+    CAPTION_PROP = "Caption"
+    VALIDATION_RULE_PROP = "ValidationRule"
+    VALIDATION_TEXT_PROP = "ValidationText"
+    GUID_PROP = "GUID"
+    DESCRIPTION_PROP = "Description"
+    RESULT_TYPE_PROP = "ResultType"
+    EXPRESSION_PROP = "Expression"
+
+    _DEFAULT_TYPES: dict[str, _DataTypeItem] = {
+        "accessversion": DataType.TEXT,
+        "title": DataType.TEXT,
+        "author": DataType.TEXT,
+        "company": DataType.TEXT,
+        "defaultvalue": DataType.TEXT,
+        "required": DataType.BOOLEAN,
+        "allowzerolength": DataType.BOOLEAN,
+        "decimalplaces": DataType.BYTE,
+        "format": DataType.TEXT,
+        "inputmask": DataType.TEXT,
+        "caption": DataType.TEXT,
+        "validationrule": DataType.TEXT,
+        "validationtext": DataType.TEXT,
+        "guid": DataType.BINARY,
+        "description": DataType.MEMO,
+        "resulttype": DataType.BYTE,
+        "expression": DataType.MEMO,
+    }
+
+    def __init__(
+        self,
+        name: str = "",
+        props: Iterable[Property] | None = None,
+        owner_group: _PropertyMapsGroup | None = None,
+    ) -> None:
+        self._name = name
+        self._props: dict[str, Property] = {}
+        self._owner_group = owner_group
+        if props:
+            for p in props:
+                self._props[p.getName()] = p
+
+    @classmethod
+    def _from_rust_list(
+        cls,
+        name: str,
+        raw_list: list[dict[str, Any]],
+        owner_group: _PropertyMapsGroup | None = None,
+    ) -> PropertyMap:
+        props: list[Property] = []
+        for item in raw_list:
+            pname = str(item.get("name", ""))
+            dtype_name = str(item.get("type", "TEXT"))
+            dtype = DataType.valueOf(dtype_name)
+            val = item.get("value")
+            if dtype in (DataType.BINARY, DataType.OLE) and isinstance(val, str):
+                try:
+                    val = base64.b64decode(val)
+                except Exception:
+                    pass
+            elif dtype == DataType.SHORT_DATE_TIME and isinstance(val, str) and val:
+                try:
+                    dt = datetime.datetime.fromisoformat(val)
+                    val = JackcessDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)
+                except ValueError:
+                    pass
+            elif dtype in (DataType.NUMERIC, DataType.MONEY) and isinstance(val, str) and val:
+                try:
+                    val = Decimal(val)
+                except Exception:
+                    pass
+            props.append(Property(pname, dtype, val, bool(item.get("ddl", False))))
+        return cls(name=name, props=props, owner_group=owner_group)
+
+    def _resolve_key(self, name: str) -> str | None:
+        if name in self._props:
+            return name
+        n_low = name.lower()
+        for k in self._props:
+            if k.lower() == n_low:
+                return k
+        return None
+
+    @classmethod
+    def _infer_type(cls, name: str, value: Any) -> _DataTypeItem:
+        default_dt = cls._DEFAULT_TYPES.get(name.lower())
+        if default_dt is not None:
+            return default_dt
+        if isinstance(value, bool):
+            return DataType.BOOLEAN
+        if isinstance(value, int):
+            return DataType.LONG
+        if isinstance(value, float):
+            return DataType.DOUBLE
+        if isinstance(value, (bytes, bytearray)):
+            return DataType.BINARY
+        if isinstance(value, (datetime.datetime, datetime.date)):
+            return DataType.SHORT_DATE_TIME
+        return DataType.TEXT
+
+    def getName(self) -> str:
+        """Return the name of this property map (`''` for default/table, or column/index name)."""
+        return self._name
+
+    def getSize(self) -> int:
+        """Return the number of properties in this map."""
+        return len(self._props)
+
+    def isEmpty(self) -> bool:
+        """Return True if this map contains no properties."""
+        return len(self._props) == 0
+
+    def get(self, name: str) -> Property | None:
+        """Return the `Property` with `name` (case-insensitive), or `None`."""
+        rk = self._resolve_key(str(name))
+        return self._props.get(rk) if rk is not None else None
+
+    def getValue(self, name: str, default: Any = None) -> Any:
+        """Return the value of the property with `name`, or `default` if absent."""
+        prop = self.get(name)
+        return prop.getValue() if prop is not None else default
+
+    def put(
+        self,
+        name: str,
+        type_or_val: Any,
+        value: Any = ...,
+        is_ddl: bool = False,
+    ) -> Property:
+        """Create or update a property in this map (`put(name, val)` or `put(name, type, val, ddl)`)."""
+        if value is ...:
+            actual_val = type_or_val
+            dtype = self._infer_type(name, actual_val)
+        elif isinstance(type_or_val, _DataTypeItem) or (
+            isinstance(type_or_val, str) and type_or_val.upper() in DataType._BY_NAME and value is not ...
+        ):
+            dtype = DataType.valueOf(type_or_val)
+            actual_val = value
+        else:
+            actual_val = type_or_val
+            dtype = self._infer_type(name, actual_val)
+            is_ddl = bool(value)
+        rk = self._resolve_key(name) or name
+        prop = Property(rk, dtype, actual_val, is_ddl)
+        self._props[rk] = prop
+        return prop
+
+    def putAll(self, props: Iterable[Property] | dict[str, Any]) -> None:
+        """Put all properties from an iterable of `Property` objects or a dict."""
+        if isinstance(props, dict):
+            for k, v in props.items():
+                self.put(str(k), v)
+        else:
+            for p in props:
+                self._props[p.getName()] = p
+
+    def remove(self, name: str) -> Property | None:
+        """Remove and return the `Property` with `name`, or `None`."""
+        rk = self._resolve_key(name)
+        if rk is not None:
+            return self._props.pop(rk, None)
+        return None
+
+    def save(self) -> None:
+        """Persist all changes in this `PropertyMap` (and its owning object's maps) to the MDB file."""
+        if self._owner_group is not None:
+            self._owner_group.save()
+
+    def to_list(self) -> list[dict[str, Any]]:
+        """Serialize all properties in this map for Rust `jackcess.rs`."""
+        return [p.to_dict() for p in self._props.values()]
+
+    def __len__(self) -> int:
+        return len(self._props)
+
+    def __iter__(self) -> Iterator[Property]:
+        return iter(list(self._props.values()))
+
+
+PropertyMap.Property = Property  # type: ignore[attr-defined]
+
+
+class _PropertyMapsGroup:
+    """Manages the `LvProp` bundle (`default`, `columns`, `indexes`) for a table or DB object."""
+
+    def __init__(
+        self,
+        db: Database,
+        table_name: str | None = None,
+        object_name: str | None = None,
+    ) -> None:
+        self._db = db
+        self._table_name = table_name
+        self._object_name = object_name
+        self._default_map = PropertyMap("", owner_group=self)
+        self._col_maps: dict[str, PropertyMap] = {}
+        self._idx_maps: dict[str, PropertyMap] = {}
+        self._load()
+
+    def _load(self) -> None:
+        req: dict[str, Any] = {
+            "op": "get_properties",
+            "mdb_path": str(self._db.getFile()),
+        }
+        if self._table_name is not None:
+            req["table_name"] = self._table_name
+        if self._object_name is not None:
+            req["object_name"] = self._object_name
+        res = rust_jackcess_exec(req)
+        if res and res.get("ok"):
+            props_obj = res.get("properties", {})
+            self._default_map = PropertyMap._from_rust_list("", props_obj.get("default", []), owner_group=self)
+            for cname, clist in props_obj.get("columns", {}).items():
+                self._col_maps[cname] = PropertyMap._from_rust_list(cname, clist, owner_group=self)
+            for iname, ilist in props_obj.get("indexes", {}).items():
+                self._idx_maps[iname] = PropertyMap._from_rust_list(iname, ilist, owner_group=self)
+
+    def get_default(self) -> PropertyMap:
+        return self._default_map
+
+    def get_column(self, col_name: str) -> PropertyMap:
+        for k, pm in self._col_maps.items():
+            if k.lower() == col_name.lower():
+                return pm
+        pm = PropertyMap(col_name, owner_group=self)
+        self._col_maps[col_name] = pm
+        return pm
+
+    def get_index(self, idx_name: str) -> PropertyMap:
+        for k, pm in self._idx_maps.items():
+            if k.lower() == idx_name.lower():
+                return pm
+        pm = PropertyMap(idx_name, owner_group=self)
+        self._idx_maps[idx_name] = pm
+        return pm
+
+    def save(self) -> None:
+        payload = {
+            "default": self._default_map.to_list(),
+            "columns": {k: pm.to_list() for k, pm in self._col_maps.items() if len(pm) > 0},
+            "indexes": {k: pm.to_list() for k, pm in self._idx_maps.items() if len(pm) > 0},
+        }
+        req: dict[str, Any] = {
+            "op": "save_properties",
+            "mdb_path": str(self._db.getFile()),
+            "properties": payload,
+        }
+        if self._table_name is not None:
+            req["table_name"] = self._table_name
+        if self._object_name is not None:
+            req["object_name"] = self._object_name
+        res = rust_jackcess_exec(req)
+        if not res or not res.get("ok"):
+            err = res.get("error", "Unknown error") if res else "Rust engine unavailable"
+            raise RuntimeError(f"Failed to save properties: {err}")
+
+
 class Column:
     """Jackcess `Column` metadata descriptor."""
 
@@ -276,6 +603,8 @@ class Column:
         scale: int = 0,
         col_index: int = 0,
         col_id: int = 0,
+        table: Table | None = None,
+        initial_properties: list[tuple[str, Any, Any, bool]] | None = None,
     ) -> None:
         self._name = name
         self._type = DataType.valueOf(data_type)
@@ -286,6 +615,12 @@ class Column:
         self._scale = int(scale)
         self._col_index = int(col_index)
         self._col_id = int(col_id)
+        self._table = table
+        self._initial_properties = list(initial_properties or [])
+
+    def getTable(self) -> Table | None:
+        """Return the owning `Table`."""
+        return self._table
 
     def getName(self) -> str:
         """Return the column name."""
@@ -325,6 +660,12 @@ class Column:
         """Return the 0-based column index in the table."""
         return self._col_index
 
+    def getProperties(self) -> PropertyMap:
+        """Return the `PropertyMap` for this column."""
+        if self._table is None:
+            return PropertyMap(self._name)
+        return self._table._get_props_group().get_column(self._name)
+
     def to_dict(self, idx: int = 0) -> dict[str, Any]:
         """Serialize column definition for Rust `jackcess.rs`."""
         return {
@@ -353,6 +694,7 @@ class ColumnBuilder:
         self._auto_number: bool = False
         self._precision: int = 18
         self._scale: int = 0
+        self._properties: list[tuple[str, Any, Any, bool]] = []
 
     def setType(self, data_type: _DataTypeItem | str) -> ColumnBuilder:
         """Set the column `DataType`."""
@@ -399,6 +741,17 @@ class ColumnBuilder:
         """No-op for compatibility with Jackcess `setCompressedUnicode`."""
         return self
 
+    def putProperty(
+        self,
+        name: str,
+        type_or_val: Any,
+        value: Any = ...,
+        is_ddl: bool = False,
+    ) -> ColumnBuilder:
+        """Attach a metadata property to be saved when the table is created."""
+        self._properties.append((name, type_or_val, value, is_ddl))
+        return self
+
     def toColumn(self) -> Column:
         """Build and return the `Column`."""
         length = self._length if self._length is not None else self._type.getDefaultSize()
@@ -410,19 +763,25 @@ class ColumnBuilder:
             variable_length=self._type.isVariableLength(),
             precision=self._precision,
             scale=self._scale,
+            initial_properties=self._properties,
         )
 
 
 class IndexColumn:
     """Represents a column reference inside a Jackcess `Index`."""
 
-    def __init__(self, name: str, ascending: bool = True) -> None:
+    def __init__(self, name: str, ascending: bool = True, column: Column | None = None) -> None:
         self._name = name
         self._ascending = bool(ascending)
+        self._column = column
 
     def getName(self) -> str:
         """Return the column name."""
         return self._name
+
+    def getColumn(self) -> Column | None:
+        """Return the associated `Column` descriptor."""
+        return self._column
 
     def isAscending(self) -> bool:
         """Return True if sorted ascending."""
@@ -440,20 +799,29 @@ class Index:
         primary_key: bool = False,
         ignore_nulls: bool = False,
         required: bool = False,
+        column_orders: list[bool] | None = None,
+        table: Table | None = None,
     ) -> None:
         self._name = name
         self._columns: list[IndexColumn] = []
-        for c in columns:
+        col_list = list(columns)
+        for idx, c in enumerate(col_list):
+            asc = column_orders[idx] if column_orders and idx < len(column_orders) else True
             if isinstance(c, IndexColumn):
                 self._columns.append(c)
             elif isinstance(c, dict):
-                self._columns.append(IndexColumn(str(c.get("name", "")), bool(c.get("ascending", True))))
+                self._columns.append(IndexColumn(str(c.get("name", "")), bool(c.get("ascending", asc))))
             else:
-                self._columns.append(IndexColumn(str(c), True))
+                self._columns.append(IndexColumn(str(c), bool(asc)))
         self._primary_key = bool(primary_key) or name == IndexBuilder.PRIMARY_KEY_NAME
         self._unique = bool(unique) or self._primary_key
         self._ignore_nulls = bool(ignore_nulls)
-        self._required = bool(required)
+        self._required = bool(required) or self._primary_key
+        self._table = table
+
+    def getTable(self) -> Table | None:
+        """Return the owning `Table`."""
+        return self._table
 
     def getName(self) -> str:
         """Return the index name."""
@@ -479,12 +847,28 @@ class Index:
         """Return the list of `IndexColumn` descriptors."""
         return list(self._columns)
 
+    def getProperties(self) -> PropertyMap:
+        """Return the `PropertyMap` for this index."""
+        if self._table is None:
+            return PropertyMap(self._name)
+        return self._table._get_props_group().get_index(self._name)
+
+    def newCursor(self) -> CursorBuilder:
+        """Return a `CursorBuilder` configured to use this index."""
+        if self._table is None:
+            raise RuntimeError("Index is not bound to a Table")
+        return CursorBuilder(self._table).setIndex(self)
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize index definition for Rust `jackcess.rs`."""
         return {
             "name": self._name,
             "unique": self._unique,
             "columns": [c.getName() for c in self._columns],
+            "column_orders": [c.isAscending() for c in self._columns],
+            "primary_key": self._primary_key,
+            "ignore_nulls": self._ignore_nulls,
+            "required": self._required,
         }
 
 
@@ -518,24 +902,25 @@ class IndexBuilder:
         return self
 
     def setPrimaryKey(self) -> IndexBuilder:
-        """Mark this index as the primary key (and unique)."""
+        """Mark this index as the primary key (and unique + required)."""
         self._primary_key = True
         self._unique = True
-        return self
-
-    def setUnique(self) -> IndexBuilder:
-        """Mark this index as unique."""
-        self._unique = True
-        return self
-
-    def setIgnoreNulls(self) -> IndexBuilder:
-        """Mark this index as ignoring nulls."""
-        self._ignore_nulls = True
-        return self
-
-    def setRequired(self) -> IndexBuilder:
-        """Mark this index as required."""
         self._required = True
+        return self
+
+    def setUnique(self, unique: bool = True) -> IndexBuilder:
+        """Mark this index as unique."""
+        self._unique = bool(unique)
+        return self
+
+    def setIgnoreNulls(self, ignore_nulls: bool = True) -> IndexBuilder:
+        """Mark this index as ignoring nulls."""
+        self._ignore_nulls = bool(ignore_nulls)
+        return self
+
+    def setRequired(self, required: bool = True) -> IndexBuilder:
+        """Mark this index as required."""
+        self._required = bool(required)
         return self
 
     def toIndex(self) -> Index:
@@ -551,11 +936,60 @@ class IndexBuilder:
 
 
 class Cursor:
-    """Jackcess `Cursor` for navigating, searching, updating, and deleting table rows."""
+    """Jackcess `Cursor` (and `IndexCursor`) for navigating, searching, updating, and deleting table rows."""
 
-    def __init__(self, table: Table) -> None:
+    def __init__(self, table: Table, index: Index | None = None) -> None:
         self._table = table
+        self._index = index
         self._pos = -1
+
+    def getTable(self) -> Table:
+        """Return the underlying `Table`."""
+        return self._table
+
+    def getIndex(self) -> Index | None:
+        """Return the `Index` backing this cursor, if any."""
+        return self._index
+
+    def _ordered_rows(self) -> list[Row]:
+        rows = list(self._table._rows)
+        if self._index is None:
+            return rows
+        idx_cols = self._index.getColumns()
+        if not idx_cols:
+            return rows
+        # Sort rows according to index columns and ascending/descending order
+        from functools import cmp_to_key
+
+        def _cmp_vals(a: Any, b: Any, asc: bool) -> int:
+            if a is None and b is None:
+                return 0
+            if a is None:
+                return -1 if asc else 1
+            if b is None:
+                return 1 if asc else -1
+            if isinstance(a, str) and isinstance(b, str):
+                sa, sb = a.lower(), b.lower()
+                res = -1 if sa < sb else (1 if sa > sb else 0)
+            else:
+                try:
+                    res = -1 if a < b else (1 if a > b else 0)
+                except TypeError:
+                    sa, sb = str(a), str(b)
+                    res = -1 if sa < sb else (1 if sa > sb else 0)
+            return res if asc else -res
+
+        def _cmp_rows(r1: Row, r2: Row) -> int:
+            for ic in idx_cols:
+                cname = ic.getName()
+                c = _cmp_vals(r1.get(cname), r2.get(cname), ic.isAscending())
+                if c != 0:
+                    return c
+            return 0
+
+        if self._index.isIgnoreNulls():
+            rows = [r for r in rows if not all(r.get(ic.getName()) is None for ic in idx_cols)]
+        return sorted(rows, key=cmp_to_key(_cmp_rows))
 
     def reset(self) -> None:
         """Reset cursor before the first row."""
@@ -567,28 +1001,31 @@ class Cursor:
 
     def afterLast(self) -> None:
         """Position cursor after the last row."""
-        self._pos = len(self._table._rows)
+        self._pos = len(self._ordered_rows())
 
     def getNextRow(self) -> Row | None:
         """Advance to the next row and return it, or `None` if at the end."""
+        rows = self._ordered_rows()
         self._pos += 1
-        if 0 <= self._pos < len(self._table._rows):
-            return self._table._rows[self._pos]
+        if 0 <= self._pos < len(rows):
+            return rows[self._pos]
         return None
 
     def getPreviousRow(self) -> Row | None:
         """Move to the previous row and return it, or `None` if at the beginning."""
-        if self._pos > len(self._table._rows):
-            self._pos = len(self._table._rows)
+        rows = self._ordered_rows()
+        if self._pos > len(rows):
+            self._pos = len(rows)
         self._pos -= 1
-        if 0 <= self._pos < len(self._table._rows):
-            return self._table._rows[self._pos]
+        if 0 <= self._pos < len(rows):
+            return rows[self._pos]
         return None
 
     def getCurrentRow(self) -> Row | None:
         """Return the row at the current cursor position."""
-        if 0 <= self._pos < len(self._table._rows):
-            return self._table._rows[self._pos]
+        rows = self._ordered_rows()
+        if 0 <= self._pos < len(rows):
+            return rows[self._pos]
         return None
 
     def getCurrentRowValue(self, column: Column | str) -> Any:
@@ -631,14 +1068,18 @@ class Cursor:
         for k, expected in criteria.items():
             col_name = k.getName() if hasattr(k, "getName") else str(k)
             actual = row.get(col_name)
-            if actual != expected:
+            if isinstance(actual, str) and isinstance(expected, str):
+                if actual.lower() != expected.lower():
+                    return False
+            elif actual != expected:
                 return False
         return True
 
     def findFirstRow(self, criteria_or_col: Any, value: Any = None) -> bool:
         """Find the first row matching `criteria_or_col` (map or `(Column, value)`)."""
         criteria = criteria_or_col if isinstance(criteria_or_col, dict) else {criteria_or_col: value}
-        for idx, row in enumerate(self._table._rows):
+        rows = self._ordered_rows()
+        for idx, row in enumerate(rows):
             if self._matches(row, criteria):
                 self._pos = idx
                 return True
@@ -647,9 +1088,10 @@ class Cursor:
     def findNextRow(self, criteria_or_col: Any, value: Any = None) -> bool:
         """Find the next row after the current position matching `criteria_or_col`."""
         criteria = criteria_or_col if isinstance(criteria_or_col, dict) else {criteria_or_col: value}
+        rows = self._ordered_rows()
         start = max(0, self._pos + 1)
-        for idx in range(start, len(self._table._rows)):
-            if self._matches(self._table._rows[idx], criteria):
+        for idx in range(start, len(rows)):
+            if self._matches(rows[idx], criteria):
                 self._pos = idx
                 return True
         return False
@@ -658,8 +1100,22 @@ class Cursor:
         """Alias for `findFirstRow(criteria)`."""
         return self.findFirstRow(criteria)
 
+    def findFirstRowByEntry(self, *entry_values: Any) -> bool:
+        """Position the `IndexCursor` on the first row matching `entry_values`."""
+        if self._index is None:
+            raise RuntimeError("findFirstRowByEntry requires an IndexCursor")
+        idx_cols = self._index.getColumns()
+        criteria = {idx_cols[i].getName(): entry_values[i] for i in range(min(len(idx_cols), len(entry_values)))}
+        return self.findFirstRow(criteria)
+
+    def findRowByEntry(self, *entry_values: Any) -> Row | None:
+        """Return the first `Row` matching the index `entry_values`, or `None`."""
+        if self.findFirstRowByEntry(*entry_values):
+            return self.getCurrentRow()
+        return None
+
     def __iter__(self) -> Iterator[Row]:
-        return iter(list(self._table._rows))
+        return iter(self._ordered_rows())
 
 
 class CursorBuilder:
@@ -667,15 +1123,47 @@ class CursorBuilder:
 
     def __init__(self, table: Table) -> None:
         self._table = table
+        self._index: Index | None = None
+
+    def setIndex(self, index: Index) -> CursorBuilder:
+        """Configure the cursor to traverse `index`."""
+        self._index = index
+        return self
+
+    def setIndexByName(self, index_name: str) -> CursorBuilder:
+        """Configure the cursor to traverse the index named `index_name`."""
+        self._index = self._table.getIndex(index_name)
+        return self
+
+    def setIndexByColumns(self, *columns: Column | str) -> CursorBuilder:
+        """Configure the cursor to use an index matching `columns`."""
+        target_names = [(c.getName() if isinstance(c, Column) else str(c)).lower() for c in columns]
+        for ix in self._table.getIndexes():
+            ix_names = [ic.getName().lower() for ic in ix.getColumns()]
+            if ix_names == target_names:
+                self._index = ix
+                return self
+        raise KeyError(f"No index found matching columns {target_names}")
 
     def toCursor(self) -> Cursor:
         """Build a new `Cursor` for the table."""
-        return Cursor(self._table)
+        return Cursor(self._table, self._index)
+
+    def toIndexCursor(self) -> Cursor:
+        """Build a new `IndexCursor` for the table."""
+        if self._index is None:
+            raise ValueError("Index must be specified before calling toIndexCursor()")
+        return Cursor(self._table, self._index)
 
     @staticmethod
-    def createCursor(table: Table) -> Cursor:
-        """Create a new `Cursor` for `table`."""
-        return Cursor(table)
+    def createCursor(table_or_index: Table | Index) -> Cursor:
+        """Create a new `Cursor` for `table` or `IndexCursor` for `index`."""
+        if isinstance(table_or_index, Index):
+            tbl = table_or_index.getTable()
+            if tbl is None:
+                raise ValueError("Index is not associated with a Table")
+            return Cursor(tbl, table_or_index)
+        return Cursor(table_or_index)
 
     @staticmethod
     def findRow(table: Table, criteria: dict[Any, Any]) -> Row | None:
@@ -701,9 +1189,28 @@ class Table:
         self._name = name
         self._columns = columns
         self._indexes = indexes
+        for c in self._columns:
+            c._table = self
+        for ix in self._indexes:
+            ix._table = self
+            for ic in ix.getColumns():
+                try:
+                    ic._column = self.getColumn(ic.getName())
+                except KeyError:
+                    pass
         self._rows = rows
         self._allow_autonum_insert = False
         self._default_cursor: Cursor | None = None
+        self._props_group: _PropertyMapsGroup | None = None
+
+    def _get_props_group(self) -> _PropertyMapsGroup:
+        if self._props_group is None:
+            self._props_group = _PropertyMapsGroup(self._db, table_name=self._name)
+        return self._props_group
+
+    def getProperties(self) -> PropertyMap:
+        """Return the table's `PropertyMap`."""
+        return self._get_props_group().get_default()
 
     @classmethod
     def _from_rust_payload(cls, db: Database, payload: dict[str, Any]) -> Table:
@@ -733,6 +1240,9 @@ class Table:
                     columns=ix.get("columns", []),
                     unique=bool(ix.get("unique", False)),
                     primary_key=bool(ix.get("primary_key", False)),
+                    ignore_nulls=bool(ix.get("ignore_nulls", False)),
+                    required=bool(ix.get("required", False)),
+                    column_orders=ix.get("column_orders"),
                 )
             )
         raw_rows = payload.get("rows", [])
@@ -831,6 +1341,10 @@ class Table:
     def getName(self) -> str:
         """Return the table name."""
         return self._name
+
+    def getDatabase(self) -> Database:
+        """Return the owning `Database`."""
+        return self._db
 
     def getColumns(self) -> list[Column]:
         """Return all `Column` descriptors in this table."""
@@ -1008,6 +1522,7 @@ class TableBuilder:
         self._name = name
         self._columns: list[Column] = []
         self._indexes: list[Index] = []
+        self._properties: list[tuple[str, Any, Any, bool]] = []
 
     def addColumn(self, col: ColumnBuilder | Column) -> TableBuilder:
         """Add a single column to the table builder."""
@@ -1039,6 +1554,17 @@ class TableBuilder:
         self.addIndex(ib)
         return self
 
+    def putProperty(
+        self,
+        name: str,
+        type_or_val: Any,
+        value: Any = ...,
+        is_ddl: bool = False,
+    ) -> TableBuilder:
+        """Attach a table-level metadata property to be saved when the table is created."""
+        self._properties.append((name, type_or_val, value, is_ddl))
+        return self
+
     def toTable(self, db: Database) -> Table:
         """Create the table in `db` and return the resulting `Table`."""
         cols_payload = [c.to_dict(i) for i, c in enumerate(self._columns)]
@@ -1058,6 +1584,17 @@ class TableBuilder:
         tbl = db.getTable(self._name)
         if tbl is None:
             raise RuntimeError(f"Table {self._name} not found after creation")
+        has_initial_props = bool(self._properties) or any(bool(c._initial_properties) for c in self._columns)
+        if has_initial_props:
+            tprops = tbl.getProperties()
+            for pname, torv, val, ddl in self._properties:
+                tprops.put(pname, torv, val, ddl)
+            for orig_col in self._columns:
+                if orig_col._initial_properties:
+                    cprops = tbl.getColumn(orig_col.getName()).getProperties()
+                    for pname, torv, val, ddl in orig_col._initial_properties:
+                        cprops.put(pname, torv, val, ddl)
+            tprops.save()
         return tbl
 
 
@@ -1070,6 +1607,9 @@ class Database:
         self._path = Path(str(mdb_path))
         self._file_format = file_format
         self._closed = False
+        self._db_props: _PropertyMapsGroup | None = None
+        self._summary_props: _PropertyMapsGroup | None = None
+        self._user_props: _PropertyMapsGroup | None = None
 
     def getFile(self) -> Path:
         """Return the `Path` to the underlying `.mdb` file."""
@@ -1078,6 +1618,24 @@ class Database:
     def getFileFormat(self) -> str:
         """Return the `FileFormat` identifier string."""
         return self._file_format
+
+    def getDatabaseProperties(self) -> PropertyMap:
+        """Return the `MSysDb` database-level `PropertyMap`."""
+        if self._db_props is None:
+            self._db_props = _PropertyMapsGroup(self, object_name="MSysDb")
+        return self._db_props.get_default()
+
+    def getSummaryProperties(self) -> PropertyMap:
+        """Return the `SummaryInfo` document summary `PropertyMap`."""
+        if self._summary_props is None:
+            self._summary_props = _PropertyMapsGroup(self, object_name="SummaryInfo")
+        return self._summary_props.get_default()
+
+    def getUserDefinedProperties(self) -> PropertyMap:
+        """Return the `UserDefined` custom `PropertyMap`."""
+        if self._user_props is None:
+            self._user_props = _PropertyMapsGroup(self, object_name="UserDefined")
+        return self._user_props.get_default()
 
     def getTableNames(self) -> set[str]:
         """Return the set of user table names in the database."""
