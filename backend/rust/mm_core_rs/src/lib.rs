@@ -2,6 +2,10 @@ pub mod converter;
 pub use jackcess_rs::{empty_mdb, jackcess, mdb};
 pub mod py_bridge;
 pub mod validator;
+pub use weasy_rs;
+pub use weasy_rs::py_bridge::{
+    weasy_rs_free_buf, weasy_rs_render_pdf_buf, weasy_rs_render_pdf_to_file,
+};
 
 use serde_json::{Map, Value};
 use std::ffi::{CStr, CString};
