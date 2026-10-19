@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import io
-import os
 from pathlib import Path
 from typing import Any
 
@@ -39,9 +38,13 @@ def test_rust_pdf_engine_env_toggle(monkeypatch: pytest.MonkeyPatch) -> None:
     assert is_rust_pdf_enabled() is True
 
 
-def test_weasy_rs_drop_in_api(tmp_path: Path) -> None:
+def test_weasy_rs_drop_in_api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify standalone `weasy_rs.HTML` drop-in API for bytes, Path, and BytesIO."""
     from weasy_rs import HTML
+
+    monkeypatch.setenv("MM_ENGINE", "rust")
+    monkeypatch.setenv("MM_PDF_ENGINE", "rust")
+    monkeypatch.delenv("MM_DISABLE_RUST", raising=False)
 
     html_str = """
     <!DOCTYPE html>
@@ -82,13 +85,15 @@ def test_weasy_rs_drop_in_api(tmp_path: Path) -> None:
     assert out_pdf2.read_bytes() == pdf_bytes
 
 
-def test_weasy_renderer_all_report_types_with_rust(tmp_path: Path) -> None:
+def test_weasy_renderer_all_report_types_with_rust(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify WeasyRenderer produces valid multi-page PDFs with matching text for all report types."""
     mdb_path = _sample_mdb_path()
     if not mdb_path.exists():
         pytest.skip("Sample MDB not found")
 
-    os.environ["MM_PDF_ENGINE"] = "rust"
+    monkeypatch.setenv("MM_ENGINE", "rust")
+    monkeypatch.setenv("MM_PDF_ENGINE", "rust")
+    monkeypatch.delenv("MM_DISABLE_RUST", raising=False)
     conv = MmToJsonConverter(mdb_path=str(mdb_path))
     full_data = conv.convert()
     ext = ReportDataExtractor(conv, full_data=full_data)
