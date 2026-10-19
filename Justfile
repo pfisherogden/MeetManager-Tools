@@ -44,10 +44,9 @@ build-rust:
     @echo "Building Rust core engine (mm_core_rs)..."
     cargo build --release --manifest-path backend/rust/mm_core_rs/Cargo.toml
 
-# Run Rust unit tests for jackcess_rs and mm_core_rs
+# Run Rust unit tests for mm_core_rs (which links jackcess_rs and weasy_rs)
 test-rust:
-    @echo "Running Rust unit tests (jackcess_rs & mm_core_rs)..."
-    cargo test --manifest-path backend/rust/jackcess_rs/Cargo.toml
+    @echo "Running Rust unit tests (mm_core_rs)..."
     cargo test --manifest-path backend/rust/mm_core_rs/Cargo.toml
 
 # Start services in the background
@@ -225,7 +224,7 @@ pre-commit: verify
 
 # Verification to run before any git push
 # Note: pre-push is the preferred local verification method
-pre-push: codegen lint type-check-backend test-backend-fast test-frontend-fast
+pre-push: codegen lint type-check-backend test-rust test-backend-fast test-backend-fallback test-frontend-fast
 
 # Run production validation tests against a specific URL
 # Usage: just test-prod https://mmtools-frontend-ckhcthqhya-uw.a.run.app
@@ -312,8 +311,13 @@ verify-fast: lint test-backend-fast test-frontend-fast verify-mobile
 
 # Fast backend tests (skips codegen)
 test-backend-fast:
-    @echo "Running Backend Tests locally (skipping codegen)..."
+    @echo "Running Backend Tests locally (Rust Engine - Default)..."
     cd backend && DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_FALLBACK_LIBRARY_PATH PYTHONPATH=src:scripts/season_setup uv run pytest tests/
+
+# Backend tests in Python fallback mode (matches CI Python Fallback Engine job)
+test-backend-fallback:
+    @echo "Running Backend Tests locally (Python Fallback Engine)..."
+    cd backend && MM_ENGINE=python DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_FALLBACK_LIBRARY_PATH PYTHONPATH=src:scripts/season_setup uv run pytest tests/ --ignore=tests/integration/ --ignore=tests/test_rust_core.py --ignore=tests/test_jackcess_suite.py
 
 # Fast frontend tests (skips codegen)
 test-frontend-fast:
