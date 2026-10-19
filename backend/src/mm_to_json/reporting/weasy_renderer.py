@@ -39,6 +39,19 @@ class WeasyRenderer:
         return template.render(**render_data)
 
     def _write_pdf(self, html_content: str):
+        from mm_to_json.rust_bridge import is_rust_pdf_enabled, rust_render_pdf_to_file
+
+        if is_rust_pdf_enabled():
+            if rust_render_pdf_to_file(html_content, self.output_path, self.template_dir):
+                return
+            try:
+                import weasy_rs
+
+                weasy_rs.HTML(string=html_content, base_url=self.template_dir).write_pdf(self.output_path)
+                return
+            except Exception:
+                pass
+
         from weasyprint import HTML
 
         html = HTML(string=html_content, base_url=self.template_dir)

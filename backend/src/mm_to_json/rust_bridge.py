@@ -185,6 +185,33 @@ def get_rust_lib() -> ctypes.PyDLL | None:
         lib.mm_py_jackcess_exec.argtypes = [ctypes.py_object]
         lib.mm_py_jackcess_exec.restype = ctypes.py_object
 
+        lib.weasy_rs_render_pdf_buf.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_size_t,
+            ctypes.c_char_p,
+            ctypes.c_size_t,
+            ctypes.POINTER(ctypes.c_size_t),
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        lib.weasy_rs_render_pdf_buf.restype = ctypes.c_void_p
+
+        lib.weasy_rs_free_buf.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_size_t,
+            ctypes.c_size_t,
+        ]
+        lib.weasy_rs_free_buf.restype = None
+
+        lib.weasy_rs_render_pdf_to_file.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_size_t,
+            ctypes.c_char_p,
+            ctypes.c_size_t,
+            ctypes.c_char_p,
+            ctypes.c_size_t,
+        ]
+        lib.weasy_rs_render_pdf_to_file.restype = ctypes.c_int
+
         _RUST_LIB = lib
         return _RUST_LIB
     except Exception as exc:
@@ -361,4 +388,98 @@ def rust_jackcess_exec(req: dict[str, Any]) -> dict[str, Any] | None:
         return None
     except Exception as exc:
         logger.debug("rust_jackcess_exec error: %s", exc)
+        return None
+
+
+def is_rust_pdf_enabled() -> bool:
+    """Return True if the Rust `weasy-rs` PDF rendering engine is enabled.
+
+    Supports `MM_PDF_ENGINE=rust|weasyprint`, `MM_ENGINE=rust|python`, and
+    `MM_DISABLE_RUST=1|true|yes`. Defaults to True (`rust`).
+    """
+    if not is_rust_engine_enabled():
+        return False
+    pdf_engine = os.environ.get("MM_PDF_ENGINE", "rust").strip().lower()
+    return pdf_engine not in ("weasyprint", "python", "py", "0", "false", "no", "off")
+
+
+def rust_render_pdf_to_file(
+    html_content: str,
+    output_path: str | os.PathLike[str],
+    base_url: str | os.PathLike[str] | None = None,
+) -> bool:
+    """Render HTML + CSS Paged Media directly to a PDF file using native Rust `weasy-rs`.
+
+    Args:
+        html_content: Rendered HTML document string.
+        output_path: Destination PDF file path.
+        base_url: Optional base directory for resolving assets.
+
+    Returns:
+        True if the PDF was written by the Rust engine, or False to trigger fallback.
+    """
+    if not is_rust_pdf_enabled():
+        return False
+    lib = get_rust_lib()
+    if lib is None:
+        return False
+
+    try:
+        html_bytes = html_content.encode("utf-8")
+        base_bytes = os.fsdecode(base_url).encode("utf-8") if base_url else b""
+        out_bytes = os.fsdecode(output_path).encode("utf-8")
+        rc: int = lib.weasy_rs_render_pdf_to_file(
+            html_bytes,
+            len(html_bytes),
+            base_bytes if base_bytes else None,
+            len(base_bytes),
+            out_bytes,
+            len(out_bytes),
+        )
+        return rc == 0
+    except Exception as exc:
+        logger.debug("rust_render_pdf_to_file fallback triggered: %s", exc)
+        return False
+
+
+def rust_render_pdf_bytes(
+    html_content: str,
+    base_url: str | os.PathLike[str] | None = None,
+) -> bytes | None:
+    """Render HTML + CSS Paged Media directly to PDF bytes using native Rust `weasy-rs`.
+
+    Args:
+        html_content: Rendered HTML document string.
+        base_url: Optional base directory for resolving assets.
+
+    Returns:
+        PDF bytes if rendered by Rust, or None to trigger fallback.
+    """
+    if not is_rust_pdf_enabled():
+        return None
+    lib = get_rust_lib()
+    if lib is None:
+        return None
+
+    try:
+        html_bytes = html_content.encode("utf-8")
+        base_bytes = os.fsdecode(base_url).encode("utf-8") if base_url else b""
+        out_len = ctypes.c_size_t(0)
+        out_cap = ctypes.c_size_t(0)
+        ptr = lib.weasy_rs_render_pdf_buf(
+            html_bytes,
+            len(html_bytes),
+            base_bytes if base_bytes else None,
+            len(base_bytes),
+            ctypes.byref(out_len),
+            ctypes.byref(out_cap),
+        )
+        if not ptr:
+            return None
+        try:
+            return ctypes.string_at(ptr, out_len.value)
+        finally:
+            lib.weasy_rs_free_buf(ptr, out_len.value, out_cap.value)
+    except Exception as exc:
+        logger.debug("rust_render_pdf_bytes fallback triggered: %s", exc)
         return None
