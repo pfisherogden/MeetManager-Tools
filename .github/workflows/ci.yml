@@ -202,47 +202,45 @@ jobs:
           IMAGE_PREFIX: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
           mkdir -p tmp && chmod -R 777 tmp
-          # Pull the images first to ensure they are available
-          docker pull ${IMAGE_PREFIX}/backend:${TAG}
-          docker pull ${IMAGE_PREFIX}/frontend:${TAG}
-          docker pull ${IMAGE_PREFIX}/judge-app:${TAG}
+          # Pull the images in parallel to speed up startup
+          docker pull ${IMAGE_PREFIX}/backend:${TAG} &
+          docker pull ${IMAGE_PREFIX}/frontend:${TAG} &
+          docker pull ${IMAGE_PREFIX}/judge-app:${TAG} &
+          wait
           
           # Use the CI-specific docker-compose file
           docker compose -f docker-compose.ci.yml up -d
 
       - name: Wait for Services
         run: |
-          echo "Waiting for services to initialize..."
-          sleep 15
-          
           echo "Waiting for backend to be ready..."
           for i in {1..60}; do
-            if curl -s http://localhost:8080 > /dev/null; then
+            if curl -sf http://localhost:8081/health > /dev/null; then
               echo "Backend is ready!"
               break
             fi
-            echo "Waiting... ($i/60)"
-            sleep 5
+            echo "Waiting for backend... ($i/60)"
+            sleep 1
           done
 
           echo "Waiting for frontend to be ready..."
           for i in {1..60}; do
-            if curl -s http://localhost:3000 > /dev/null; then
+            if curl -sf http://localhost:3000 > /dev/null; then
               echo "Frontend is ready!"
               break
             fi
-            echo "Waiting... ($i/60)"
-            sleep 5
+            echo "Waiting for frontend... ($i/60)"
+            sleep 1
           done
 
           echo "Waiting for judge-app to be ready..."
           for i in {1..60}; do
-            if curl -s http://localhost:8081 > /dev/null; then
+            if curl -sf http://localhost:8082 > /dev/null; then
               echo "Judge App is ready!"
               break
             fi
-            echo "Waiting... ($i/60)"
-            sleep 5
+            echo "Waiting for judge-app... ($i/60)"
+            sleep 1
           done
 
       - name: Set up Node.js for Playwright

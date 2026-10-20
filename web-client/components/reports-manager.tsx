@@ -250,7 +250,7 @@ export function ReportsManager({
 			} catch (error) {
 				console.error("Polling error:", error);
 			}
-		}, 2000);
+		}, 500);
 	};
 
 	const handleGenerate = async () => {
