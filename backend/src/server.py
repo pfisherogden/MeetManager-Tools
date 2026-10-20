@@ -342,6 +342,11 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _load_user_config(self, context):
         with self._lock:
             uid = self._check_auth(context)
+            metadata = {k.lower(): v for k, v in (context.invocation_metadata() if context else [])}
+            is_e2e = os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata
+            if not is_e2e and uid in self._user_cache and "config" in self._user_cache[uid]:
+                return dict(self._user_cache[uid]["config"])
+
             config_path = os.path.join("users", uid, CONFIG_FILE)
             if self.storage.exists(config_path):
                 tmp_path = ""
@@ -365,6 +370,8 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
     def _save_user_config(self, context, config):
         with self._lock:
             uid = self._check_auth(context)
+            if uid in self._user_cache:
+                self._user_cache[uid]["config"] = dict(config)
             config_path = os.path.join("users", uid, CONFIG_FILE)
             tmp_path = ""
             with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
@@ -384,44 +391,44 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
     def _load_user_data(self, context):
         with self._lock:
-            config = self._load_user_config(context)
-            filename = config.get("active_dataset", SOURCE_FILE)
             uid = self._check_auth(context)
 
-            # E2E Check: Completely ignore the cache if x-e2e-uid/x-user-id is present or IS_E2E is set
+            # E2E Check: Ignore the cache only when IS_E2E is set or x-e2e-uid is explicitly passed
             metadata = {k.lower(): v for k, v in (context.invocation_metadata() if context else [])}
-            is_e2e = os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata or "x-user-id" in metadata
-            if not is_e2e and "cookie" in metadata:
-                is_e2e = "x-user-id=" in str(metadata["cookie"]).lower()
+            is_e2e = os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata
 
+            config = self._load_user_config(context)
+            filename = config.get("active_dataset", SOURCE_FILE)
             user_path = os.path.join("users", uid, filename)
+
+            # Check cache first before hitting storage.exists() on GCS
+            if not is_e2e and uid in self._user_cache:
+                entry = self._user_cache[uid]
+                self._user_cache.move_to_end(uid)
+
+                if entry.get("filename") == filename:
+                    if hasattr(self.storage, "base_dir"):
+                        try:
+                            mtime = self.storage.get_last_modified(user_path)
+                            if mtime == entry.get("mtime"):
+                                logging.debug(f"DEBUG: Returning cached data for {self._mask_uid(uid)}/{filename}")
+                                return entry["data"], config
+                            logging.debug(
+                                f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry.get('mtime')})"
+                            )
+                        except Exception as e:
+                            logging.debug(f"DEBUG: Cache check error for {self._mask_uid(uid)}/{filename}: {e}")
+                    else:
+                        # On GCS, UploadDataset / SetActiveDataset / ClearDataset / LiveResults explicitly invalidate or update _user_cache
+                        logging.debug(f"DEBUG: Returning cached data for {self._mask_uid(uid)}/{filename}")
+                        return entry["data"], config
+
             storage_exists = self.storage.exists(user_path)
 
             if is_e2e:
                 logging.debug(
                     f"E2E: uid={self._mask_uid(uid)}, file={self._mask_path(user_path)}, exists={storage_exists}"
                 )
-
-            # Check cache (Skip if E2E)
-            if not is_e2e and uid in self._user_cache:
-                entry = self._user_cache[uid]
-                # Move to end (most recent)
-                self._user_cache.move_to_end(uid)
-
-                if entry["filename"] == filename:
-                    # Check if modified
-                    try:
-                        mtime = self.storage.get_last_modified(user_path)
-                        if mtime == entry["mtime"]:
-                            logging.debug(f"DEBUG: Returning cached data for {self._mask_uid(uid)}/{filename}")
-                            return entry["data"], config
-                        else:
-                            logging.debug(
-                                f"DEBUG: Cache stale for {uid}/{filename} (mtime {mtime} != {entry['mtime']})"
-                            )
-                    except Exception as e:
-                        logging.debug(f"DEBUG: Cache check error for {self._mask_uid(uid)}/{filename}: {e}")
-                        pass  # Force reload on error
 
             if not storage_exists:
                 logging.debug(f"DEBUG: User file {user_path} NOT FOUND in storage.")
@@ -460,8 +467,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
                 # Update cache
                 try:
-                    mtime = self.storage.get_last_modified(user_path)
-                    self._user_cache[uid] = {"filename": filename, "mtime": mtime, "data": cache}
+                    mtime = self.storage.get_last_modified(user_path) if hasattr(self.storage, "base_dir") else 0.0
+                    self._user_cache[uid] = {
+                        "filename": filename,
+                        "mtime": mtime,
+                        "data": cache,
+                        "config": dict(config),
+                    }
                     self._user_cache.move_to_end(uid)
 
                     # Evict oldest if limit exceeded
@@ -484,8 +496,30 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                     os.remove(tmp_path)
 
     def _load_mdb(self, path):
-        """Parsing MDB using MmToJsonConverter (Jackcess/JPype) for performance."""
-        # Copy to temp file to avoid locking issues
+        """Parsing MDB using Rust/Jackcess converter for performance."""
+        from unittest.mock import MagicMock, NonCallableMagicMock
+
+        from mm_to_json.rust_bridge import is_rust_engine_enabled, rust_load_mdb_bundle
+
+        if not isinstance(MmToJsonConverter, (MagicMock, NonCallableMagicMock)) and is_rust_engine_enabled():
+            bundle = rust_load_mdb_bundle(str(path))
+            if bundle is not None and "tables" in bundle:
+                raw_tables = bundle["tables"]
+                target_tables = [
+                    "meet",
+                    "team",
+                    "athlete",
+                    "event",
+                    "session",
+                    "sessitem",
+                    "entry",
+                    "relay",
+                    "relaynames",
+                    "divisions",
+                ]
+                return {t: list(raw_tables.get(t, [])) for t in target_tables}
+
+        # Copy to temp file to avoid locking issues when using JVM Jackcess fallback
         with tempfile.NamedTemporaryFile(suffix=".mdb", delete=False) as tmp:
             tmp_path = tmp.name
 
@@ -1077,10 +1111,9 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
             logging.debug(f"SetActiveDataset: Forcing synchronous extraction for {self._mask_uid(uid)}/{filename}...")
             try:
                 self._load_user_data(context)
-                # Clear cache AGAIN after extraction if it's an E2E-like environment
-                # to ensure subsequent calls also bypass any race-condition cache entries.
-                metadata = dict(context.invocation_metadata() if context else [])
-                if os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata or "x-user-id" in metadata:
+                # Clear cache AGAIN after extraction only in explicit E2E mode
+                metadata = {k.lower(): v for k, v in (context.invocation_metadata() if context else [])}
+                if os.getenv("IS_E2E") == "true" or "x-e2e-uid" in metadata:
                     if uid in self._user_cache:
                         del self._user_cache[uid]
                 logging.debug(f"SetActiveDataset: Extraction complete for {self._mask_uid(uid)}/{filename}")
@@ -1110,10 +1143,13 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
 
         try:
             self.storage.delete_file(user_path)
-            config = self._load_user_config(context)
-            if config.get("active_dataset") == filename:
-                config["active_dataset"] = SOURCE_FILE
-                self._save_user_config(context, config)
+            with self._lock:
+                config = self._load_user_config(context)
+                if config.get("active_dataset") == filename:
+                    config["active_dataset"] = SOURCE_FILE
+                    self._save_user_config(context, config)
+                if uid in self._user_cache:
+                    del self._user_cache[uid]
 
         except Exception as e:
             logging.error(f"Error deleting dataset {filename}: {e}")
@@ -1135,9 +1171,12 @@ class MeetManagerService(pb2_grpc.MeetManagerServiceServicer):
                 if filename.endswith(".mdb") or filename.endswith(".json"):
                     self.storage.delete_file(rel_path)
 
-            config = self._load_user_config(context)
-            config["active_dataset"] = SOURCE_FILE
-            self._save_user_config(context, config)
+            with self._lock:
+                config = self._load_user_config(context)
+                config["active_dataset"] = SOURCE_FILE
+                self._save_user_config(context, config)
+                if uid in self._user_cache:
+                    del self._user_cache[uid]
 
         except Exception as e:
             logging.error(f"Error clearing datasets: {e}")

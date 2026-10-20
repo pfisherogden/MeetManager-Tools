@@ -64,6 +64,23 @@ export function useGooglePicker({
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 
+		for (const href of [
+			"https://apis.google.com",
+			"https://docs.google.com",
+			"https://drive.google.com",
+		]) {
+			if (
+				!document.querySelector(`link[rel="preconnect"][href="${href}"]`) &&
+				document.head
+			) {
+				const link = document.createElement("link");
+				link.rel = "preconnect";
+				link.href = href;
+				link.crossOrigin = "anonymous";
+				document.head.appendChild(link);
+			}
+		}
+
 		if (window.google?.picker) {
 			setIsLoaded(true);
 			return;
@@ -199,21 +216,52 @@ export function useGooglePicker({
 			apiKeyLength: apiKey?.length || 0,
 		});
 
-		let view: any = window.google.picker.ViewId?.DOCS || "all";
+		let builder = new window.google.picker.PickerBuilder();
+
 		if (typeof window.google.picker.DocsView === "function") {
-			const docsView = new window.google.picker.DocsView();
-			if (typeof docsView.setIncludeFolders === "function") {
-				docsView.setIncludeFolders(true);
+			// 1. "Recent" view first (flat list without folder tree scanning -> fast initial load)
+			const recentView = new window.google.picker.DocsView(
+				window.google.picker.ViewId?.DOCS,
+			);
+			if (typeof recentView.setIncludeFolders === "function") {
+				recentView.setIncludeFolders(false);
 			}
-			if (typeof docsView.setSelectFolderEnabled === "function") {
-				docsView.setSelectFolderEnabled(false);
+			if (typeof recentView.setSelectFolderEnabled === "function") {
+				recentView.setSelectFolderEnabled(false);
 			}
-			view = docsView;
+			if (typeof recentView.setLabel === "function") {
+				recentView.setLabel("Recent");
+			}
+			builder = builder.addView(recentView) || builder;
+
+			// 2. "My Drive" folder-browsing view rooted at "root" to avoid scanning all Drive folders upfront
+			const myDriveView = new window.google.picker.DocsView(
+				window.google.picker.ViewId?.DOCS,
+			);
+			if (typeof myDriveView.setIncludeFolders === "function") {
+				myDriveView.setIncludeFolders(true);
+			}
+			if (typeof myDriveView.setSelectFolderEnabled === "function") {
+				myDriveView.setSelectFolderEnabled(false);
+			}
+			if (typeof myDriveView.setParent === "function") {
+				myDriveView.setParent("root");
+			}
+			if (typeof myDriveView.setLabel === "function") {
+				myDriveView.setLabel("My Drive");
+			}
+			builder = builder.addView(myDriveView) || builder;
+		} else {
+			const fallbackView = window.google.picker.ViewId?.DOCS || "all";
+			builder = builder.addView(fallbackView) || builder;
 		}
 
-		let builder = new window.google.picker.PickerBuilder()
-			.addView(view)
-			.setOAuthToken(currentToken);
+		if (window.google.picker.ViewId?.RECENTLY_PICKED) {
+			builder =
+				builder.addView(window.google.picker.ViewId.RECENTLY_PICKED) || builder;
+		}
+
+		builder = builder.setOAuthToken(currentToken) || builder;
 
 		if (
 			apiKey &&

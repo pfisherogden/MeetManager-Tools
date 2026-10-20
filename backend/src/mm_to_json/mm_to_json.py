@@ -247,6 +247,17 @@ class MmToJsonConverter:
                 if logical not in ["sessitem", "relaynames", "divisions"]:
                     logger.warning(f"DEBUG: Table {logical} NOT FOUND in data keys")
                 self.tables[logical] = pd.DataFrame()
+
+        if self.schema_type == "A":
+            ev_df = self.tables.get("event")
+            en_df = self.tables.get("entry")
+            if ev_df is not None and not ev_df.empty:
+                if ("mtevent" in ev_df.columns or "mtev" in ev_df.columns) and "event_ptr" not in ev_df.columns:
+                    self.schema_type = "B"
+            elif en_df is not None and not en_df.empty:
+                if "mtevent" in en_df.columns and "event_ptr" not in en_df.columns:
+                    self.schema_type = "B"
+
         self._setup_grouped_tables()
         self._tables_fingerprint = self._compute_tables_fingerprint()
 
@@ -511,6 +522,16 @@ class MmToJsonConverter:
             "relaynames",
             "divisions",
         ]
+
+        if (
+            self._raw_tables_dict is not None
+            and self._tables_fingerprint is not None
+            and self._tables_fingerprint == self._compute_tables_fingerprint()
+        ):
+            for table_name in target_tables:
+                rows = self._raw_tables_dict.get(table_name)
+                raw_data[table_name] = list(rows) if rows else []
+            return raw_data
 
         for table_name in target_tables:
             df = self.tables.get(table_name)
@@ -1210,7 +1231,7 @@ class MmToJsonConverter:
                     tid = self._safe_int(get_val(["team", "team_no", "team_ptr"], row, r_keys))
                     raw_abbr = str(get_val(["tcode", "team_abbr", "abbr"], row, r_keys) or "")
                     abbr = raw_abbr.strip()
-                    full_name = str(get_val(["team_name", "name"], row, r_keys) or "").strip()
+                    full_name = str(get_val(["team_name", "tname", "name"], row, r_keys) or "").strip()
                     short = str(get_val(["short", "team_short", "short_name"], row, r_keys) or "").strip()
                     lsc = str(get_val(["lsc", "team_lsc"], row, r_keys) or "").strip()
 

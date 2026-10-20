@@ -147,6 +147,7 @@
                 </tr>
             </thead>
             <tbody>
+                {% set ns = namespace(swimmer_idx=0) %}
                 {% for row in group.sub_items %}
                     {% if row.type == 'header' %}
                         <tr class="event-header-row">
@@ -155,8 +156,9 @@
                             </td>
                         </tr>
                     {% else %}
+                        {% set ns.swimmer_idx = ns.swimmer_idx + 1 %}
                         {% set entry = row.item %}
-                        <tr class="timer-row {% if entry.is_blank %}blank-row{% elif entry.is_relay %}relay-row{% endif %}">
+                        <tr class="timer-row {% if entry.is_blank %}blank-row{% elif entry.is_relay %}relay-row{% endif %} {% if zebra_striping and not entry.is_blank and ns.swimmer_idx is even %}zebra-row{% endif %}">
                             <td class="col-ev-ht">
                                 {{ entry.event_num }} / {{ entry.heat }}
                             </td>

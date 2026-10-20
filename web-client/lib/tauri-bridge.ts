@@ -182,7 +182,7 @@ export async function downloadFile(
 		if (
 			typeof content === "string" &&
 			!isBase64 &&
-			(content.startsWith("http") || content.startsWith("/api/data"))
+			(content.startsWith("http") || content.startsWith("/api/"))
 		) {
 			link.href = content;
 		} else if (isBase64 && typeof content === "string") {
@@ -195,6 +195,7 @@ export async function downloadFile(
 			link.href = URL.createObjectURL(blob);
 		}
 		link.download = filename;
+		link.addEventListener("click", (e) => e.stopPropagation(), { once: true });
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);

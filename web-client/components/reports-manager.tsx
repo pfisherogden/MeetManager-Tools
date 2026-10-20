@@ -868,7 +868,7 @@ export function ReportsManager({
 										<Select
 											value={
 												rendererType === RendererType.RENDERER_TYPE_UNSPECIFIED
-													? RendererType.RENDERER_TYPE_PLAYWRIGHT.toString()
+													? RendererType.RENDERER_TYPE_WEASYPRINT.toString()
 													: rendererType.toString()
 											}
 											onValueChange={(v) =>
@@ -883,14 +883,14 @@ export function ReportsManager({
 											</SelectTrigger>
 											<SelectContent>
 												<SelectItem
-													value={RendererType.RENDERER_TYPE_PLAYWRIGHT.toString()}
-												>
-													Playwright (Fast, Chromium-based)
-												</SelectItem>
-												<SelectItem
 													value={RendererType.RENDERER_TYPE_WEASYPRINT.toString()}
 												>
-													WeasyPrint (Standard, Python-based)
+													WeasyPrint (Fast, Rust-powered)
+												</SelectItem>
+												<SelectItem
+													value={RendererType.RENDERER_TYPE_PLAYWRIGHT.toString()}
+												>
+													Playwright (Chromium-based)
 												</SelectItem>
 											</SelectContent>
 										</Select>
