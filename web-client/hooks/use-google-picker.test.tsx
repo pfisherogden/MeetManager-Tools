@@ -40,6 +40,8 @@ describe("useGooglePicker", () => {
 	let mockSetOrigin: ReturnType<typeof vi.fn>;
 	let mockSetIncludeFolders: ReturnType<typeof vi.fn>;
 	let mockSetSelectFolderEnabled: ReturnType<typeof vi.fn>;
+	let mockSetParent: ReturnType<typeof vi.fn>;
+	let mockSetLabel: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -52,14 +54,18 @@ describe("useGooglePicker", () => {
 		mockSetOrigin = vi.fn().mockReturnThis();
 		mockSetIncludeFolders = vi.fn().mockReturnThis();
 		mockSetSelectFolderEnabled = vi.fn().mockReturnThis();
+		mockSetParent = vi.fn().mockReturnThis();
+		mockSetLabel = vi.fn().mockReturnThis();
 
 		(window as any).google = {
 			picker: {
-				ViewId: { DOCS: "docs" },
+				ViewId: { DOCS: "docs", RECENTLY_PICKED: "recently-picked" },
 				Action: { PICKED: "picked", CANCEL: "cancel" },
 				DocsView: vi.fn().mockImplementation(function (this: any) {
 					this.setIncludeFolders = mockSetIncludeFolders;
 					this.setSelectFolderEnabled = mockSetSelectFolderEnabled;
+					this.setParent = mockSetParent;
+					this.setLabel = mockSetLabel;
 					return this;
 				}),
 				PickerBuilder: vi.fn().mockImplementation(function (this: any) {
@@ -103,8 +109,13 @@ describe("useGooglePicker", () => {
 			await result.current.openPicker();
 		});
 
+		expect(mockSetIncludeFolders).toHaveBeenCalledWith(false);
 		expect(mockSetIncludeFolders).toHaveBeenCalledWith(true);
 		expect(mockSetSelectFolderEnabled).toHaveBeenCalledWith(false);
+		expect(mockSetParent).toHaveBeenCalledWith("root");
+		expect(mockSetLabel).toHaveBeenCalledWith("Recent");
+		expect(mockSetLabel).toHaveBeenCalledWith("My Drive");
+		expect(mockAddView).toHaveBeenCalledWith("recently-picked");
 		expect(mockSetOAuthToken).toHaveBeenCalledWith("cookie-oauth-token");
 		expect(mockSetDeveloperKey).toHaveBeenCalledWith("test-google-api-key");
 		expect(mockSetAppId).toHaveBeenCalledWith("99887766");

@@ -445,6 +445,20 @@ pub fn convert_meet_data_rs(root_input: &Map<String, Value>, from_mdb: bool) -> 
         }
     }
 
+    if schema_type == "A" {
+        if let Some(ev_first) = tables.get("event").and_then(|r| r.first()) {
+            if (ev_first.contains_key("mtevent") || ev_first.contains_key("mtev"))
+                && !ev_first.contains_key("event_ptr")
+            {
+                schema_type = "B";
+            }
+        } else if let Some(en_first) = tables.get("entry").and_then(|r| r.first()) {
+            if en_first.contains_key("mtevent") && !en_first.contains_key("event_ptr") {
+                schema_type = "B";
+            }
+        }
+    }
+
     // Build team map
     let mut team_map: HashMap<i64, TeamCacheItem> = HashMap::new();
     if let Some(team_rows) = tables.get("team") {
@@ -468,7 +482,12 @@ pub fn convert_meet_data_rs(root_input: &Map<String, Value>, from_mdb: bool) -> 
             let full_name = if !full_name.is_empty() {
                 full_name
             } else {
-                get_val(row, "name", "")
+                let tn = get_val(row, "tname", "");
+                if !tn.is_empty() {
+                    tn
+                } else {
+                    get_val(row, "name", "")
+                }
             };
             let short = {
                 let s1 = get_val(row, "short", "");

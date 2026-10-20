@@ -19,19 +19,19 @@ class ReportDataExtractor:
         self._athlete_map = {}
         self._name_gender_map = {}
         for row in self._get_table_records("athlete"):
-            ath_id = row.get("ath_no")
+            ath_id = row.get("ath_no") or row.get("athlete")
             if ath_id:
                 self._athlete_map[str(ath_id)] = row
-            last = str(row.get("last_name", "")).strip().lower()
-            first = str(row.get("first_name", "")).strip().lower()
-            sex = str(row.get("sex", "")).upper()
+            last = str(row.get("last_name") or row.get("last") or "").strip().lower()
+            first = str(row.get("first_name") or row.get("first") or "").strip().lower()
+            sex = str(row.get("ath_sex") or row.get("sex") or "").upper()
             gender = "Boys" if sex == "M" else "Girls" if sex == "F" else "Mixed"
             self._name_gender_map[f"{last}, {first}"] = gender
             self._name_gender_map[f"{first} {last}"] = gender
 
         self._team_map = {}
         for row in self._get_table_records("team"):
-            t_id = row.get("team_no")
+            t_id = row.get("team_no") or row.get("team")
             if t_id:
                 self._team_map[str(t_id)] = row
 
@@ -64,8 +64,8 @@ class ReportDataExtractor:
         ]
         color_map = {}
         for row in team_records:
-            t_id = self._safe_int(row.get("team_no"))
-            t_name = str(row.get("team_name", "")).strip()
+            t_id = self._safe_int(row.get("team_no") or row.get("team"))
+            t_name = str(row.get("team_name") or row.get("tname") or "").strip()
             if t_name:
                 color = palette[t_id % len(palette)]
                 color_map[t_name] = color
@@ -208,13 +208,16 @@ class ReportDataExtractor:
         team_map = {}
         team_code_map = {}
         for row in team_records:
-            t_id = row.get("team_no")
-            t_name = str(row.get("team_name", "")).strip()
-            t_code = str(row.get("team_abbr", "")).strip()
-            t_lsc = str(row.get("team_lsc", "")).strip()
+            t_id = row.get("team_no") or row.get("team")
+            t_name = str(row.get("team_name") or row.get("tname") or "").strip()
+            t_code = str(row.get("team_abbr") or row.get("tcode") or "").strip()
+            t_lsc = str(row.get("team_lsc") or row.get("lsc") or "").strip()
             full_code = f"{t_code}-{t_lsc}" if t_lsc else t_code
             team_map[t_id] = {"name": t_name, "code": full_code}
-            team_code_map[t_name] = full_code
+            if t_name:
+                team_code_map[t_name] = full_code
+            if t_code:
+                team_code_map[t_code] = full_code
 
         full_data = self._get_full_data()
         flat_entries = []
@@ -252,15 +255,17 @@ class ReportDataExtractor:
 
                     if gender_filter and not is_relay:
                         target_g = self._normalize_gender(gender_filter)
-                        ath_sex = self._get_athlete_gender(entry)
-                        if (
-                            self._normalize_gender(ath_sex) != target_g
-                            and self._normalize_gender(ath_sex) != "X"
-                            and ath_sex != "Unknown"
-                        ):
-                            continue
+                        if target_g != "X":
+                            ath_sex = self._get_athlete_gender(entry)
+                            if (
+                                self._normalize_gender(ath_sex) != target_g
+                                and self._normalize_gender(ath_sex) != "X"
+                                and ath_sex != "Unknown"
+                            ):
+                                continue
 
                     t_name = entry.get("team", "")
+                    t_code = entry.get("teamCode") or team_code_map.get(t_name, "")
                     key = (entry.get("name"), self._safe_int(entry.get("age", 0)), t_name)
                     heat = self._safe_int(entry.get("heat", 0))
                     lane = self._safe_int(entry.get("lane", 0))
@@ -269,6 +274,7 @@ class ReportDataExtractor:
                     entry_data = {
                         "key": key,
                         "team": t_name,
+                        "teamCode": t_code,
                         "team_color": self.team_color_map.get(t_name, ""),
                         "name": entry.get("name"),
                         "age": self._safe_int(entry.get("age", 0)),
@@ -290,7 +296,8 @@ class ReportDataExtractor:
 
         for item in ind_entries:
             t_name = item["team"]
-            if not self._matches_team_filter({"team": t_name}, team_filter):
+            t_code = item.get("teamCode") or team_code_map.get(t_name, "")
+            if not self._matches_team_filter({"team": t_name, "teamCode": t_code}, team_filter):
                 continue
             key = item["key"]
             if t_name not in grouped:
@@ -319,7 +326,8 @@ class ReportDataExtractor:
 
         for item in relay_entries:
             t_name = item["team"]
-            if not self._matches_team_filter({"team": t_name}, team_filter):
+            t_code = item.get("teamCode") or team_code_map.get(t_name, "")
+            if not self._matches_team_filter({"team": t_name, "teamCode": t_code}, team_filter):
                 continue
             if t_name not in grouped:
                 grouped[t_name] = {}

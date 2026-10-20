@@ -76,6 +76,9 @@ def _process_single_report_process(
     user_email=None,
     include_blank_lanes=True,
     break_every_six_events=True,
+    preloaded_extractor=None,
+    preloaded_full_data=None,
+    preloaded_converter=None,
 ):
     import datetime
     import logging
@@ -83,39 +86,50 @@ def _process_single_report_process(
     import tempfile
     import traceback
 
-    from mm_to_json.platform_setup import setup_platform_env
-
-    setup_platform_env()
-
-    import msgpack
-
-    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
-    log_level = getattr(logging, log_level_str, logging.INFO)
-    logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
-    logging.Formatter.converter = pacific_time_converter
-    if log_level_str != "DEBUG":
-        logging.getLogger("fontTools").setLevel(logging.WARNING)
-        logging.getLogger("weasyprint").setLevel(logging.WARNING)
     from mm_to_json.reporting.extractor import ReportDataExtractor
+
+    if preloaded_extractor is None and preloaded_converter is None:
+        from mm_to_json.platform_setup import setup_platform_env
+
+        setup_platform_env()
+
+        log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+        log_level = getattr(logging, log_level_str, logging.INFO)
+        logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+        logging.Formatter.converter = pacific_time_converter
+        if log_level_str != "DEBUG":
+            logging.getLogger("fontTools").setLevel(logging.WARNING)
+            logging.getLogger("weasyprint").setLevel(logging.WARNING)
 
     rtype = rtype_map.get(report_req_type, "psych")
     title = report_req_title
     start_time = datetime.datetime.now()
     try:
-        with open(msgpack_path, "rb") as f:
-            unpacked = msgpack.unpack(f, raw=False)
-            full_data = unpacked["full_data"]
-            cache_data = unpacked["cache"]
-        load_duration = (datetime.datetime.now() - start_time).total_seconds()
+        if preloaded_extractor is not None and preloaded_full_data is not None:
+            extractor = preloaded_extractor
+            full_data = preloaded_full_data
+            load_duration = (datetime.datetime.now() - start_time).total_seconds()
+        elif preloaded_converter is not None and preloaded_full_data is not None:
+            full_data = preloaded_full_data
+            extractor = ReportDataExtractor(preloaded_converter, full_data=full_data)
+            load_duration = (datetime.datetime.now() - start_time).total_seconds()
+        else:
+            import msgpack
+
+            with open(msgpack_path, "rb") as f:
+                unpacked = msgpack.unpack(f, raw=False)
+                full_data = unpacked["full_data"]
+                cache_data = unpacked["cache"]
+            load_duration = (datetime.datetime.now() - start_time).total_seconds()
+            from mm_to_json.mm_to_json import MmToJsonConverter
+
+            converter = MmToJsonConverter(table_data=cache_data)
+            extractor = ReportDataExtractor(converter, full_data=full_data)
+
         render_start_time = datetime.datetime.now()
         is_html = html_preview or (rtype == "program_html")
         temp_fd, temp_path = tempfile.mkstemp(suffix=".html" if is_html else ".pdf")
         os.close(temp_fd)
-
-        from mm_to_json.mm_to_json import MmToJsonConverter
-
-        converter = MmToJsonConverter(table_data=cache_data)
-        extractor = ReportDataExtractor(converter, full_data=full_data)
         renderer: Any = None
         is_playwright = False
         if renderer_type is not None:
@@ -153,11 +167,13 @@ def _process_single_report_process(
             )
             template = "entries_hytek.j2"
         elif rtype == "lineups":
-            report_data = extractor.extract_meet_entries_data(
+            report_data = extractor.extract_meet_program_data(
                 team_filter=report_req_team_filter,
                 report_title=title,
                 gender_filter=report_req_gender_filter,
                 age_group_filter=report_req_age_group_filter,
+                columns_on_page=columns_on_page,
+                show_relay_swimmers=show_relay_swimmers,
             )
             template = "lineups.j2"
         elif rtype == "results":
@@ -364,38 +380,31 @@ def generate_report(request: Any, context: grpc.ServicerContext, servicer: Repor
 
         converter = MmToJsonConverter(table_data=cache)
         full_data = converter.convert()
-
-        with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
-            msgpack_path = msgpack_tmp.name
-            msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
-
         user_email = get_user_email(cast(str, uid))
 
-        try:
-            res = _process_single_report_process(
-                request.type,
-                request.title,
-                request.team_filter,
-                request.gender_filter,
-                request.age_group_filter,
-                uid,
-                request.columns_on_page if request.HasField("columns_on_page") else 2,
-                request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
-                request.zebra_striping if request.HasField("zebra_striping") else False,
-                msgpack_path,
-                rtype_map,
-                request.renderer_type if hasattr(request, "renderer_type") else None,
-                getattr(request, "html_preview", False),
-                idx=0,
-                user_email=user_email,
-                include_blank_lanes=request.include_blank_lanes if request.HasField("include_blank_lanes") else True,
-                break_every_six_events=request.break_every_six_events
-                if request.HasField("break_every_six_events")
-                else True,
-            )
-        finally:
-            if os.path.exists(msgpack_path):
-                os.remove(msgpack_path)
+        res = _process_single_report_process(
+            request.type,
+            request.title,
+            request.team_filter,
+            request.gender_filter,
+            request.age_group_filter,
+            uid,
+            request.columns_on_page if request.HasField("columns_on_page") else 2,
+            request.show_relay_swimmers if request.HasField("show_relay_swimmers") else True,
+            request.zebra_striping if request.HasField("zebra_striping") else False,
+            "",
+            rtype_map,
+            request.renderer_type if hasattr(request, "renderer_type") else None,
+            getattr(request, "html_preview", False),
+            idx=0,
+            user_email=user_email,
+            include_blank_lanes=request.include_blank_lanes if request.HasField("include_blank_lanes") else True,
+            break_every_six_events=request.break_every_six_events
+            if request.HasField("break_every_six_events")
+            else True,
+            preloaded_full_data=full_data,
+            preloaded_converter=converter,
+        )
 
         if not res["success"]:
             logging.error(f"Report generation failed in worker: {res.get('error')}")
@@ -458,6 +467,8 @@ def _run_bundle_generation_job(
 
         from handlers.auth_utils import get_data_access_token, get_user_email
         from mm_to_json.mm_to_json import MmToJsonConverter
+        from mm_to_json.reporting.extractor import ReportDataExtractor
+        from mm_to_json.rust_bridge import is_rust_pdf_enabled
 
         converter = MmToJsonConverter(table_data=cache)
         full_data = converter.convert()
@@ -465,11 +476,29 @@ def _run_bundle_generation_job(
         num_events = sum(len(s.get("events", [])) for s in full_data.get("sessions", []))
         logging.info(f"Job {job_id}: data conversion complete. {num_events} events found.")
 
-        with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
-            msgpack_path = msgpack_tmp.name
-            msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
-            msgpack_tmp.flush()
-            msgpack_tmp.close()
+        renderer_type = request.renderer_type if hasattr(request, "renderer_type") else None
+        is_playwright = False
+        if renderer_type is not None:
+            if isinstance(renderer_type, str):
+                is_playwright = renderer_type.lower() in ["playwright", "renderer_type_playwright"]
+            elif isinstance(renderer_type, int):
+                is_playwright = renderer_type == 2
+            else:
+                is_playwright = "playwright" in str(renderer_type).lower()
+
+        is_frozen = getattr(sys, "frozen", False)
+        use_threads = is_frozen or (is_rust_pdf_enabled() and not is_playwright)
+
+        msgpack_path = ""
+        shared_extractor = None
+        if use_threads:
+            shared_extractor = ReportDataExtractor(converter, full_data=full_data)
+        else:
+            with tempfile.NamedTemporaryFile(suffix=".msgpack", delete=False) as msgpack_tmp:
+                msgpack_path = msgpack_tmp.name
+                msgpack.pack({"full_data": full_data, "cache": cache}, msgpack_tmp, default=msgpack_encode)
+                msgpack_tmp.flush()
+                msgpack_tmp.close()
 
         tasks = []
         env_max_workers = os.getenv("REPORT_MAX_WORKERS")
@@ -479,19 +508,18 @@ def _run_bundle_generation_job(
             except ValueError:
                 max_workers = 3
         elif os.getenv("K_SERVICE"):
-            max_workers = 3  # Cloud Run CPU limit safety
+            max_workers = 4 if use_threads else 3  # Cloud Run CPU limit safety
         else:
             max_workers = min(os.cpu_count() or 4, 8)
 
         servicer.job_manager.update_job(job_id, progress=0.05, message=f"Rendering {len(request.reports)} reports...")
-        is_frozen = getattr(sys, "frozen", False)
         executor_class: Any
         executor_kwargs: dict[str, Any]
-        if is_frozen:
+        if use_threads:
             from concurrent.futures import ThreadPoolExecutor
 
             logging.info(
-                f"Job {job_id}: running in frozen environment. Using ThreadPoolExecutor with {max_workers} workers."
+                f"Job {job_id}: using ThreadPoolExecutor with {max_workers} workers (in-memory shared extractor)."
             )
             executor_class = ThreadPoolExecutor
             executor_kwargs = {"max_workers": max_workers}
@@ -504,6 +532,8 @@ def _run_bundle_generation_job(
         try:
             report_reqs = list(request.reports)
             user_email = get_user_email(uid)
+            use_firestore = bool(getattr(servicer.job_manager, "use_firestore", False))
+            last_update_ts = datetime.datetime.now()
 
             with executor_class(**executor_kwargs) as executor:
                 for idx, report_req in enumerate(report_reqs):
@@ -521,7 +551,7 @@ def _run_bundle_generation_job(
                             report_req.zebra_striping if report_req.HasField("zebra_striping") else False,
                             msgpack_path,
                             rtype_map,
-                            request.renderer_type if hasattr(request, "renderer_type") else None,
+                            renderer_type,
                             False,
                             idx,
                             user_email,
@@ -531,19 +561,28 @@ def _run_bundle_generation_job(
                             break_every_six_events=report_req.break_every_six_events
                             if report_req.HasField("break_every_six_events")
                             else True,
+                            preloaded_extractor=shared_extractor,
+                            preloaded_full_data=full_data if use_threads else None,
                         )
                     )
 
-            total_reports = len(tasks)
-            finished_count = 0
+                total_reports = len(tasks)
+                finished_count = 0
 
-            for _ in as_completed(tasks):
-                finished_count += 1
-                progress = 0.05 + (0.90 * (finished_count / total_reports))
-                servicer.job_manager.update_job(
-                    job_id, progress=progress, message=f"Generated {finished_count}/{total_reports} reports"
-                )
-                logging.info(f"Job {job_id}: Progress update {finished_count}/{total_reports}")
+                for _ in as_completed(tasks):
+                    finished_count += 1
+                    progress = 0.05 + (0.90 * (finished_count / total_reports))
+                    now_ts = datetime.datetime.now()
+                    if (
+                        not use_firestore
+                        or finished_count == total_reports
+                        or (now_ts - last_update_ts).total_seconds() >= 2.0
+                    ):
+                        servicer.job_manager.update_job(
+                            job_id, progress=progress, message=f"Generated {finished_count}/{total_reports} reports"
+                        )
+                        last_update_ts = now_ts
+                    logging.info(f"Job {job_id}: Progress update {finished_count}/{total_reports}")
 
             zip_buffer = io.BytesIO()
             gs_urls = []
@@ -568,7 +607,7 @@ def _run_bundle_generation_job(
                             f"Failed to generate report {res.get('idx')} ({res.get('rtype')}): {res['error']}"
                         )
         finally:
-            if os.path.exists(msgpack_path):
+            if msgpack_path and os.path.exists(msgpack_path):
                 os.remove(msgpack_path)
 
         servicer.job_manager.update_job(job_id, message="Uploading bundle...")

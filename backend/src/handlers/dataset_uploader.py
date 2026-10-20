@@ -127,10 +127,30 @@ def upload_dataset(
                     os.remove(tmp_path)
                 raise Exception(f"Failed to extract ZIP: {str(zip_err)}") from zip_err
 
+        preloaded_cache: dict[str, Any] | None = None
         try:
             service.storage.upload_file(tmp_path, user_path)
             if hasattr(os, "sync"):
                 os.sync()
+            # Pre-parse dataset directly from local tmp_path (if non-empty) so post-upload SSR queries
+            # do not need to re-download the file from GCS.
+            if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                try:
+                    if filename.lower().endswith(".mdb") and hasattr(service, "_load_mdb"):
+                        loaded = service._load_mdb(tmp_path)
+                        if loaded:
+                            preloaded_cache = loaded
+                    elif filename.lower().endswith(".json"):
+                        import json
+
+                        from mm_to_json.mm_to_json import MmToJsonConverter
+
+                        with open(tmp_path) as f_json:
+                            raw_data = json.load(f_json)
+                        converter = MmToJsonConverter(table_data=raw_data)
+                        preloaded_cache = converter.export_raw()
+                except Exception as preload_err:
+                    logging.debug(f"UploadDataset: Preload skipped for {filename}: {preload_err}")
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -143,13 +163,27 @@ def upload_dataset(
             config["active_dataset"] = filename
             service._save_user_config(context, config)
 
-            # Invalidate cache to force reload of the new dataset
+            # Invalidate or populate cache for the new dataset
             if uid in service._user_cache:
                 del service._user_cache[uid]
                 logging.info(f"Invalidated cache for user {service._mask_uid(uid)} due to UploadDataset")
 
-            if uid in service._user_cache:
-                del service._user_cache[uid]
+            if preloaded_cache:
+                try:
+                    from handlers.live_result_handler import apply_stored_live_results
+
+                    apply_stored_live_results(uid, preloaded_cache, service)
+                except Exception:
+                    pass
+                mtime = service.storage.get_last_modified(user_path) if hasattr(service.storage, "base_dir") else 0.0
+                service._user_cache[uid] = {
+                    "filename": filename,
+                    "mtime": mtime,
+                    "data": preloaded_cache,
+                    "config": dict(config),
+                }
+                service._user_cache.move_to_end(uid)
+                logging.info(f"Pre-populated cache for user {service._mask_uid(uid)}/{filename}")
 
         return pb2_module.UploadDatasetResponse(success=True, message=f"Saved {filename}")
 

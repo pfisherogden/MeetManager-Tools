@@ -61,7 +61,7 @@
             </thead>
             <tbody>
                 {% for event in athlete_group.sub_items %}
-                <tr>
+                <tr class="{% if zebra_striping and loop.index is even %}zebra-row{% endif %}">
                     <td class="col-ev">#{{ event.event_num }}</td>
                     <td>
                         {{ event.event_name }}
